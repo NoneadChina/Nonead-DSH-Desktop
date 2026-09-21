@@ -151,29 +151,6 @@ corepack yarn dev
 
 headless 检查使用 `corepack yarn check`；完整的构建、测试和发布边界见[架构说明](docs/architecture.md)和包级 [`README`](dsh-plugin-desktop/README.md)。如何参与贡献见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
-## 社区交流
-
-可选择常用的平台参与讨论，交流使用问题、插件开发和项目进展。
-
-<table>
-  <thead>
-    <tr>
-      <th align="center">企业微信</th>
-      <th align="center">QQ群</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td align="center"><img src="assets/community-wechat-group.png" alt="Nonead DSH Desktop 企业微信二维码" title="扫码添加企业微信" width="180" height="180"></td>
-      <td align="center"><img src="assets/community-qq-group.jpg" alt="Nonead DSH Desktop QQ群二维码" width="180" height="180"></td>
-    </tr>
-  </tbody>
-</table>
-
-Discord：[加入 Nonead DSH Desktop 社区](https://discord.gg/TJeGqKRNM)
-
-如果您希望加入我们的技术团队，也欢迎通过 [t4wefan@qq.com](mailto:t4wefan@qq.com) 联系我们。
-
 ## 友情链接
 
 这里收录 DeepSeek Harness 生态项目及开发者工具。
@@ -208,13 +185,3 @@ Discord：[加入 Nonead DSH Desktop 社区](https://discord.gg/TJeGqKRNM)
 > 本项目完全开源免费。如果有人向您以任何形式出售此软件，请拒绝交易。
 
 > Nonead DSH Desktop 是独立的社区项目，与深度求索不存在隶属、合作、授权或背书关系。
-
-## Star History
-
-<a href="https://www.star-history.com/?repos=anywhere-labs%2Fdeepseek-harness-desktop&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=anywhere-labs/deepseek-harness-desktop&type=date&theme=dark&legend=top-left&sealed_token=BRTkOyC4czCEkIyFb5-QxrsC-kaDotBJ8tsjxrWs-UGfmBqfRCXSwieZPlVTCYOjJVEZ29uLvmBjAPREB524J5dPN1jk-UA7ajFdLdrbjumJqoOBeGWmig" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=anywhere-labs/deepseek-harness-desktop&type=date&legend=top-left&sealed_token=BRTkOyC4czCEkIyFb5-QxrsC-kaDotBJ8tsjxrWs-UGfmBqfRCXSwieZPlVTCYOjJVEZ29uLvmBjAPREB524J5dPN1jk-UA7ajFdLdrbjumJqoOBeGWmig" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=anywhere-labs/deepseek-harness-desktop&type=date&legend=top-left&sealed_token=BRTkOyC4czCEkIyFb5-QxrsC-kaDotBJ8tsjxrWs-UGfmBqfRCXSwieZPlVTCYOjJVEZ29uLvmBjAPREB524J5dPN1jk-UA7ajFdLdrbjumJqoOBeGWmig" />
- </picture>
-</a>
