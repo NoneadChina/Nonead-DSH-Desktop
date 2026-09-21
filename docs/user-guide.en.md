@@ -2,7 +2,7 @@
 
 ## Installation and first launch
 
-Download the macOS or Windows installer from the product download page. Nonead DSH Desktop includes Electron, Node, and its pinned DSH dependencies, so normal users do not need to install Node.js or pnpm separately.
+Download the macOS or Windows installer from the [product download page](https://www.nonead.com). Nonead DSH Desktop includes Electron, Node, and its pinned DSH dependencies, so normal users do not need to install Node.js or pnpm separately.
 
 On first launch, the application prepares the default profile and starts the official DSH Web surface locally. Closing the window normally hides it; use **Quit** from the tray when you want to stop the application and Host process.
 
