@@ -1,0 +1,19 @@
+.DS_Store
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+node_modules/
+*.tsbuildinfo
+.build/
+
+dsh-plugin-desktop/dist/
+dsh-plugin-desktop/lib/
+dsh-community-market/lib/
+
+# Local investigation scratch: probes, build logs and recovered artifacts.
+.tmp-investigate/
+
+.env.yarn
