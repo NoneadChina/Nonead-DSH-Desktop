@@ -7,7 +7,7 @@
 
 Nonead DSH Desktop 是一个本地优先的开源桌面应用。本政策说明 Nonead DSH Desktop 官方版本及官方在线服务会处理哪些信息、为什么处理、信息会发送给谁，以及您可以如何作出选择。
 
-本政策中的“我们”指在 GitHub 组织 [`anywhere-labs`](https://github.com/anywhere-labs) 下维护和发布 Nonead DSH Desktop 官方版本、并运营 `dshdesktop.cn` 官方服务的 **Anywhere Labs 项目维护团队**。项目是独立的社区开源项目，与 DeepSeek 不存在隶属、合作、授权或背书关系。
+本政策中的“我们”指在 GitHub 组织 [`anywhere-labs`](https://github.com/anywhere-labs) 下维护和发布 Nonead DSH Desktop 官方版本、并运营 `dshdesktop.cn` 官方服务的 **Nonead Corporation 项目维护团队**。项目是独立的社区开源项目，与 DeepSeek 不存在隶属、合作、授权或背书关系。
 
 隐私问题或权利请求请发送至 [t4wefan@qq.com](mailto:t4wefan@qq.com)。请不要在公开 GitHub Issue 中提交安装标识、日志、凭据或其他私密信息。
 
@@ -96,7 +96,7 @@ GET https://www.dshdesktop.cn/api/desktop/version
 
 ## 5. 默认保存在本机的信息
 
-以下信息默认由 Nonead DSH Desktop 或其组合的本地 DSH 运行时保存在您的设备上，而不是自动上传到 Anywhere Labs：
+以下信息默认由 Nonead DSH Desktop 或其组合的本地 DSH 运行时保存在您的设备上，而不是自动上传到 Nonead Corporation：
 
 | 本地信息 | 用途和保留方式 |
 | --- | --- |
@@ -153,7 +153,7 @@ Community Market 默认不需要选中远程来源。选择并使用来源后，
 
 ### 6.4 可选的上游遥测
 
-当前上游 DSH session telemetry 在 Desktop 默认组合中为 `DISABLED`。如果您或部署者显式设置 `DSH_TELEMETRY_MODE` 为 `FULL` 或 `FEEDBACK_ONLY`，原始会话遥测可能与上游匿名用户 ID 一起发送到 `https://harness-telemetry.deepseeksvc.com/v1/logs` 或您配置的 `DSH_TELEMETRY_OTLP_URL`。该处理由上游配置和接收方政策决定，不属于 Anywhere Labs 官方更新服务。
+当前上游 DSH session telemetry 在 Desktop 默认组合中为 `DISABLED`。如果您或部署者显式设置 `DSH_TELEMETRY_MODE` 为 `FULL` 或 `FEEDBACK_ONLY`，原始会话遥测可能与上游匿名用户 ID 一起发送到 `https://harness-telemetry.deepseeksvc.com/v1/logs` 或您配置的 `DSH_TELEMETRY_OTLP_URL`。该处理由上游配置和接收方政策决定，不属于 Nonead Corporation 官方更新服务。
 
 ### 6.5 外部链接
 
@@ -161,11 +161,11 @@ Community Market 默认不需要选中远程来源。选择并使用来源后，
 
 ## 7. 浏览器和局域网访问
 
-允许在浏览器中打开 DSH 本身不会向 Anywhere Labs 上传会话；它让普通浏览器访问本机 Host，并且只能在兼容模式中使用。回环访问默认限制在 `127.0.0.1`。
+允许在浏览器中打开 DSH 本身不会向 Nonead Corporation 上传会话；它让普通浏览器访问本机 Host，并且只能在兼容模式中使用。回环访问默认限制在 `127.0.0.1`。
 
 如果您明确开启局域网访问，Host 会监听局域网接口。Host 的信任标记不是用户鉴权。设置、凭据和本机原生对话框等配置面仍被限制在回环访问，但局域网客户端可以创建会话，并可能通过默认的命令和文件系统工具操作您的电脑。局域网 HTTP 还可能因浏览器安全限制而无法使用部分安全模块。只应在完全信任的网络中临时开启，并在不需要时关闭。
 
-这类局域网流量通常不经过 Anywhere Labs，但连接到您电脑的局域网用户会成为该数据的接收方。
+这类局域网流量通常不经过 Nonead Corporation，但连接到您电脑的局域网用户会成为该数据的接收方。
 
 ## 8. 共享、受托处理和跨境
 

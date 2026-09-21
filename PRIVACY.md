@@ -7,7 +7,7 @@
 
 Nonead DSH Desktop is a local-first, open-source desktop application. This policy explains what information the official Nonead DSH Desktop distribution and official online services process, why they process it, who receives it, and what choices you have.
 
-In this policy, “we” means the **Anywhere Labs project maintainer team** that maintains and publishes the official Nonead DSH Desktop distribution under the [`anywhere-labs`](https://github.com/anywhere-labs) GitHub organization and operates the official `dshdesktop.cn` services. Nonead DSH Desktop is an independent community project and has no affiliation, partnership, authorization, or endorsement relationship with DeepSeek.
+In this policy, “we” means the **Nonead Corporation project maintainer team** that maintains and publishes the official Nonead DSH Desktop distribution under the [`anywhere-labs`](https://github.com/anywhere-labs) GitHub organization and operates the official `dshdesktop.cn` services. Nonead DSH Desktop is an independent community project and has no affiliation, partnership, authorization, or endorsement relationship with DeepSeek.
 
 For privacy questions or rights requests, email [t4wefan@qq.com](mailto:t4wefan@qq.com). Do not put installation identifiers, logs, credentials, or other private information in a public GitHub Issue.
 
@@ -96,7 +96,7 @@ As of this policy's effective date, the website and official APIs are hosted by 
 
 ## 5. Information stored locally by default
 
-The following information remains on your device by default rather than being uploaded automatically to Anywhere Labs:
+The following information remains on your device by default rather than being uploaded automatically to Nonead Corporation:
 
 | Local information | Purpose and retention |
 | --- | --- |
@@ -153,7 +153,7 @@ Upload a backup only to a WebDAV service or GitHub account you trust. The select
 
 ### 6.4 Optional upstream telemetry
 
-Upstream DSH session telemetry is `DISABLED` in Desktop's default composition. If you or a deployment operator explicitly sets `DSH_TELEMETRY_MODE` to `FULL` or `FEEDBACK_ONLY`, raw session telemetry may be sent with the upstream anonymous user ID to `https://harness-telemetry.deepseeksvc.com/v1/logs` or the endpoint configured in `DSH_TELEMETRY_OTLP_URL`. That processing is controlled by the upstream configuration and recipient policy and is not the Anywhere Labs official update service.
+Upstream DSH session telemetry is `DISABLED` in Desktop's default composition. If you or a deployment operator explicitly sets `DSH_TELEMETRY_MODE` to `FULL` or `FEEDBACK_ONLY`, raw session telemetry may be sent with the upstream anonymous user ID to `https://harness-telemetry.deepseeksvc.com/v1/logs` or the endpoint configured in `DSH_TELEMETRY_OTLP_URL`. That processing is controlled by the upstream configuration and recipient policy and is not the Nonead Corporation official update service.
 
 ### 6.5 External links
 
@@ -161,11 +161,11 @@ External HTTP, HTTPS, and email links in the application or documentation are ha
 
 ## 7. Browser and LAN access
 
-Allowing DSH to open in a browser does not itself upload a session to Anywhere Labs. It lets an ordinary browser access the local Host and is available only in compatibility mode. Loopback access is limited to `127.0.0.1` by default.
+Allowing DSH to open in a browser does not itself upload a session to Nonead Corporation. It lets an ordinary browser access the local Host and is available only in compatibility mode. Loopback access is limited to `127.0.0.1` by default.
 
 If you explicitly enable LAN access, the Host listens on LAN interfaces. The Host trust marker is not user authentication. Configuration surfaces such as settings, credentials, and local native dialogs remain restricted to loopback access, but a LAN client can create sessions and may operate your computer through the default command and filesystem tools. Browser security restrictions on LAN HTTP can also make some security modules unavailable. Enable it only temporarily on a fully trusted network, and turn it off when no longer needed.
 
-LAN traffic normally does not pass through Anywhere Labs, but a person who connects to your computer over the LAN becomes a recipient of the data exposed through that connection.
+LAN traffic normally does not pass through Nonead Corporation, but a person who connects to your computer over the LAN becomes a recipient of the data exposed through that connection.
 
 ## 8. Sharing, processors, and international transfers
 
