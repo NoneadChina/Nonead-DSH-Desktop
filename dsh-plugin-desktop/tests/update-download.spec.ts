@@ -96,7 +96,7 @@ describe('desktop update installer download', () => {
     expect(result).toBe(join(directory, 'Nonead-DSH-Desktop-2.1.0-mac.dmg'))
     expect(await readFile(result)).toEqual(Buffer.from(artifact))
     expect(calls).toHaveLength(1)
-    expect(calls[0]?.url).toBe(DESKTOP_DOWNLOAD_URLS.darwin)
+    expect(calls[0]?.url).toBe(`${DESKTOP_DOWNLOAD_URLS.darwin}/Nonead-DSH-Desktop-2.1.0-mac.dmg`)
     expect(calls[0]?.init).toMatchObject({ method: 'GET', cache: 'no-store', redirect: 'follow' })
     await expectNoPartialFiles(directory)
   })
@@ -109,7 +109,7 @@ describe('desktop update installer download', () => {
       version: '2.2.0',
       destinationPath: destinationPath(directory, 'win32', '2.2.0'),
       request: async (url) => {
-        expect(url).toBe(DESKTOP_DOWNLOAD_URLS.win32)
+        expect(url).toBe(`${DESKTOP_DOWNLOAD_URLS.win32}/Nonead-DSH-Desktop-2.2.0-windows.exe`)
         return chunkedResponse([artifact])
       },
     })

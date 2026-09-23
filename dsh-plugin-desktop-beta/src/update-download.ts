@@ -121,7 +121,7 @@ export async function downloadDesktopUpdate(options: DownloadDesktopUpdateOption
 
   let response: Response
   try {
-    response = await options.request(DESKTOP_DOWNLOAD_URLS[platform], {
+    response = await options.request(desktopUpdateDownloadUrl(platform, options.version, channel), {
       method: 'GET',
       headers: {
         [DESKTOP_RELEASE_CHANNEL_HEADER]: channel,
@@ -182,6 +182,24 @@ export function desktopUpdateFilename(
   const platformName = platform === 'darwin' ? 'mac' : 'windows'
   const product = channel === 'beta' ? 'Nonead-DSH-Desktop-Beta' : 'Nonead-DSH-Desktop'
   return `${product}-${version}-${platformName}.${extension}`
+}
+
+/**
+ * Installer URL for one platform and target version.
+ * The update service stores one installer per release under the platform directory, so the file
+ * name carries the version the service reported and the same version travels in
+ * {@link DESKTOP_TARGET_VERSION_HEADER}.
+ * @param platform - Fixed download platform.
+ * @param version - Canonical release version the service reported.
+ * @param channel - Stable or beta release channel.
+ * @returns Absolute installer URL for the platform directory and versioned file name.
+ */
+export function desktopUpdateDownloadUrl(
+  platform: DesktopDownloadPlatform,
+  version: string,
+  channel: DesktopReleaseChannel = 'stable',
+): string {
+  return `${DESKTOP_DOWNLOAD_URLS[platform]}/${desktopUpdateFilename(platform, version, channel)}`
 }
 
 /** Remember a downloaded installer until an upgraded application resolves its retention. */

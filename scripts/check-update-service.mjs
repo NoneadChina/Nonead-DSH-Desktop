@@ -292,7 +292,7 @@ async function checkClientParsing(options, client, currentVersion, serviceVersio
 
 async function checkInstallerEndpoint(options, client, reportedVersion, requestVersion, platform, title) {
   const report = startReport(title)
-  const endpoint = client.download.DESKTOP_DOWNLOAD_URLS[platform]
+  const endpoint = client.download.desktopUpdateDownloadUrl(platform, requestVersion, options.channel)
   const headers = {
     [client.checker.DESKTOP_RELEASE_CHANNEL_HEADER]: options.channel,
     [client.download.DESKTOP_TARGET_VERSION_HEADER]: requestVersion,
@@ -385,6 +385,22 @@ async function checkInstallerEndpoint(options, client, reportedVersion, requestV
     if (size > MAX_INSTALLER_BYTES) report.fail(`declared size ${declaredLength} bytes exceeds the client limit`)
   } else {
     report.fix('serve a Content-Length header so the client can reject oversized payloads before writing')
+  }
+
+  // Installations released before versioned installer URLs still request the bare platform path,
+  // so the service has to serve or redirect it as well. That only affects upgrades from older
+  // builds, so it is reported as a fix hint instead of a failure.
+  const bareUrl = url.slice(0, url.lastIndexOf('/'))
+  try {
+    const legacy = await fetch(bareUrl, { method: 'GET', headers, redirect: 'follow', cache: 'no-store' })
+    const legacyPrefix = await readAtMost(legacy, 64)
+    const legacyType = legacy.headers.get('content-type') ?? '(none)'
+    report.line(`legacy bare path ${bareUrl} -> ${String(legacy.status)} ${legacyType}`)
+    if (legacy.status !== 200 || looksLikeHtml(legacyPrefix)) {
+      report.fix(`serve the installer at ${bareUrl} or redirect it to the versioned file: installations released before versioned URLs request that bare path`)
+    }
+  } catch (cause) {
+    report.line(`legacy bare path ${bareUrl} -> request failed: ${cause instanceof Error ? cause.message : String(cause)}`)
   }
 }
 

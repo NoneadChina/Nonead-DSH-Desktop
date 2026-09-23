@@ -44,14 +44,21 @@ Desktop 客户端会在启动后、以及此后按固定间隔检查是否有新
 | 项目 | 值 |
 | --- | --- |
 | 方法 | `GET` |
-| Windows 地址 | `https://www.nonead.com/software/ndsh-desktop/downloads/windows` |
-| macOS 地址 | `https://www.nonead.com/software/ndsh-desktop/downloads/mac` |
+| Windows 地址 | `https://www.nonead.com/software/ndsh-desktop/downloads/windows/Nonead-DSH-Desktop-<版本>-windows.exe` |
+| macOS 地址 | `https://www.nonead.com/software/ndsh-desktop/downloads/mac/Nonead-DSH-Desktop-<版本>-mac.dmg` |
+| 旧版裸地址 | `…/downloads/windows`、`…/downloads/mac`（本次改动之前发布的客户端仍只请求这两条，必须继续可用） |
 | 重定向 | 允许；客户端跟随重定向 |
 | 大小上限 | 1 GiB |
 
 请求头：`X-Nonead-DSH-Desktop-Target-Version` 给出目标版本，`X-Nonead-DSH-Desktop-Channel` 给出通道。
 
-**这两条地址必须直接返回安装包字节，或 302 到真正的文件。** 已发布版本把路径写死在代码里，客户端不会去解析目录列表，也不接受 HTML 页面：任何 `200` 加 `text/html` 的响应都会被判定为 `invalid-artifact`（“下载到的文件不是 PE 可执行文件”），下载被静默放弃，用户只看到“选完保存位置后什么也没发生”。
+请求路径里的文件名由客户端按下述规则拼出，版本号取自版本端点报告的版本：
+
+- 稳定通道：`Nonead-DSH-Desktop-<版本>-windows.exe`、`Nonead-DSH-Desktop-<版本>-mac.dmg`。
+- Beta 通道：`Nonead-DSH-Desktop-Beta-<版本>-windows.exe`、`Nonead-DSH-Desktop-Beta-<版本>-mac.dmg`。
+- 平台目录来自固定前缀 `…/software/ndsh-desktop/downloads/windows` 与 `…/software/ndsh-desktop/downloads/mac`。
+
+**版本化地址必须直接返回安装包字节，或 302 到真正的文件；旧版裸地址同样必须可用。** 客户端不解析目录列表，也不接受 HTML 页面：任何 `200` 加 `text/html` 的响应都会被判定为 `invalid-artifact`（“下载到的文件不是 PE 可执行文件”），下载被静默放弃，用户只看到“选完保存位置后什么也没发生”。
 
 客户端对安装包的校验规则：
 
@@ -59,11 +66,11 @@ Desktop 客户端会在启动后、以及此后按固定间隔检查是否有新
 - macOS：末尾 512 字节处必须出现 `koly`，即 DMG 尾部标记。
 - 文件大小必须在 1 MiB 与 1 GiB 之间。
 
-建议同时返回 `Content-Length`。保存文件名由客户端生成（`Nonead-DSH-Desktop-<版本>-windows.exe`、`Nonead-DSH-Desktop-<版本>-mac.dmg`，beta 通道前缀为 `Nonead-DSH-Desktop-Beta-`），服务端的 `Content-Disposition` 不影响保存位置。
+建议同时返回 `Content-Length`。请求路径里的文件名与客户端保存用的默认文件名是同一套规则（beta 通道前缀为 `Nonead-DSH-Desktop-Beta-`），服务端的 `Content-Disposition` 不影响保存位置。
 
 ## 版本号与文件名
 
-服务端的安装包文件名带版本号（例如 `nonead-dsh-desktop-1.5.3-windows.exe`），**每发布一个版本就会变**。裸地址本身刻意不带版本号：客户端在下载请求里用 `X-Nonead-DSH-Desktop-Target-Version` 告诉服务端它要哪个版本，服务端必须在当次请求中按这个请求头解析出对应文件。
+服务端的安装包文件名带版本号（例如 `nonead-dsh-desktop-1.5.3-windows.exe`），**每发布一个版本就会变**。客户端把版本号同时写进请求路径与 `X-Nonead-DSH-Desktop-Target-Version` 请求头，服务端可以按路径里的文件名取文件，也可以只按请求头解析，但两条信息必须指向同一个版本。
 
 - **不要把 302 目标写死成某一个版本的文件。** 一旦写死，下一个版本的用户请求 `1.5.4` 时拿到的还是 `1.5.3` 的旧安装包。
 - **客户端不会校验下载到的安装包属于哪个版本**：它只校验 PE / DMG 格式和大小。因此“服务端返回了错误版本”在客户端完全不可见，用户只会看到“更新跑完了，版本没变”。这一条只能靠服务端和发版流程保证，所以 `scripts/check-update-service.mjs` 会把重定向目标文件名里的版本号与服务端报告的版本号做交叉校验。
@@ -71,14 +78,14 @@ Desktop 客户端会在启动后、以及此后按固定间隔检查是否有新
 - 请求的目标版本无法提供时返回 `404`，不要回落到最新版或站点首页。
 - 旧版本的安装包建议保留一段时间，避免正在升级的用户请求的版本被撤下。
 
-文件名里的版本号只影响观感与排错：客户端保存到本地的默认文件名同样带版本号，但它由客户端自己生成，与服务端文件名无关。
+客户端用版本端点返回的版本号构造这段文件名，所以版本端点、上传的文件与 302 目标三者必须同版本；对不上时表现为 `404`，而不是静默装错版本。
 
 ## 发版检查清单
 
-1. 上传安装包，确认带版本号的文件地址可以下载。
-2. 让裸地址按请求头里的目标版本解析到该文件：`200` 直接返回字节，或 302 重定向过去；不要写死目标版本。
+1. 上传安装包并按客户端约定的名字改名：构建产物是 `dsh-plugin-desktop/dist/Nonead-DSH-Desktop-v<版本>-x64-Setup.exe`，服务端应存为 `Nonead-DSH-Desktop-<版本>-windows.exe`（macOS 对应 `Nonead-DSH-Desktop-<版本>-mac.dmg`），再确认 `…/downloads/windows/Nonead-DSH-Desktop-<版本>-windows.exe` 可以下载。
+2. 让裸地址也能按请求头里的目标版本解析到该文件：`200` 直接返回字节，或 302 重定向过去；不要写死目标版本。本次改动之前发布的客户端只会请求裸地址。
 3. 更新版本端点，使其报告新版本号，并确认它指向的文件与第 2 步是同一版本。
-4. 运行 `yarn check:update-service`，确认检查全部通过；它会把重定向目标文件名里的版本号与服务端报告的版本号做交叉校验。
+4. 运行 `yarn check:update-service`，确认检查全部通过；它会把最终文件名里的版本号与服务端报告的版本号做交叉校验，并提示旧版裸地址是否仍可用。
 5. 发布后至少手工验证一条真实升级链路：旧版本 → 检查更新 → 下载 → 校验 → 交接安装，并确认装完后的版本号确实是新版本。
 
 ## 检查脚本
