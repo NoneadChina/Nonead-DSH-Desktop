@@ -30,6 +30,7 @@ Ordinary users can start with the [user guide](user-guide.en.md) and never need 
 | [Community Market design](../dsh-community-market/README.md) | The proposed market shell, extensible catalog sources, user selection, install confirmation, and safety boundary |
 | [Market catalog provider contract](../dsh-community-market/docs/catalog-provider-contract.md) | Schemas, query parameters, multi-source behavior, and adapter rules for the implementation team |
 | [Architecture](architecture.en.md) | Electron, Host, the Web carrier, profiles, and packaging |
+| [Update service](update-service.en.md) | Update and download endpoint contracts, the rules the service must satisfy, and the release checklist |
 | [Desktop service reference](../dsh-plugin-desktop/docs/plugin-services.md) | Stable `desktopProfiles` and `desktopPnpm` contracts with TypeScript examples |
 | [Package reference](../dsh-plugin-desktop/README.md) | Detailed build, runtime, release, and limitation notes |
 
