@@ -22,9 +22,9 @@
  * Exit status: 0 when every check passes, 1 otherwise.
  */
 
-import { randomUUID } from 'node:crypto'
-import { existsSync, readFileSync } from 'node:fs'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { createHash, randomUUID } from 'node:crypto'
+import { createReadStream, existsSync, readFileSync } from 'node:fs'
+import { mkdtemp, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -177,6 +177,26 @@ function looksLikeHtml(body) {
   return head.startsWith('<!doctype html') || head.startsWith('<html')
 }
 
+const RELEASE_VERSION_PATTERN = /(?<![\d.])\d+\.\d+\.\d+(?:-beta\.\d+)?(?!\d)/u
+
+/** Return the release-version token a URL carries in its path, when its file name has one. */
+function releaseVersionIn(value) {
+  let pathname
+  try {
+    pathname = new URL(value).pathname
+  } catch {
+    pathname = value
+  }
+  const match = RELEASE_VERSION_PATTERN.exec(pathname)
+  return match === null ? undefined : match[0]
+}
+
+async function sha256OfFile(path) {
+  const hash = createHash('sha256')
+  for await (const chunk of createReadStream(path)) hash.update(chunk)
+  return hash.digest('hex')
+}
+
 async function checkVersionResponse(options, client, currentVersion) {
   const report = startReport('version endpoint response')
   const endpoint = client.checker.DESKTOP_VERSION_ENDPOINT
@@ -270,12 +290,12 @@ async function checkClientParsing(options, client, currentVersion, serviceVersio
   return undefined
 }
 
-async function checkInstallerEndpoint(options, client, serviceVersion, platform, title) {
+async function checkInstallerEndpoint(options, client, reportedVersion, requestVersion, platform, title) {
   const report = startReport(title)
   const endpoint = client.download.DESKTOP_DOWNLOAD_URLS[platform]
   const headers = {
     [client.checker.DESKTOP_RELEASE_CHANNEL_HEADER]: options.channel,
-    [client.download.DESKTOP_TARGET_VERSION_HEADER]: serviceVersion,
+    [client.download.DESKTOP_TARGET_VERSION_HEADER]: requestVersion,
   }
   const url = options.base === DEFAULT_ORIGIN ? endpoint : endpoint.replace(DEFAULT_ORIGIN, options.base)
   report.line(`GET ${url}`)
@@ -322,6 +342,26 @@ async function checkInstallerEndpoint(options, client, serviceVersion, platform,
   const declaredLength = response.headers.get('content-length')
   report.line(`${String(response.status)} ${contentType}, ${declaredLength ?? '(unknown)'} bytes`)
   report.line(`first bytes ${prefix.subarray(0, 16).toString('hex')} ${JSON.stringify(prefix.subarray(0, 16).toString('utf8'))}`)
+
+  const finalUrl = response.url === '' ? url : response.url
+  if (reportedVersion === undefined) {
+    report.line(`final url ${finalUrl}`)
+    report.fix('the version endpoint did not report a usable version, so version correspondence could not be checked')
+  } else {
+    const servedVersion = releaseVersionIn(finalUrl)
+    if (servedVersion === undefined) {
+      report.line(`final url ${finalUrl}`)
+      report.fix('name the installer after the release version: this URL carries no version, so a stale download target cannot be detected here')
+    } else if (servedVersion !== reportedVersion) {
+      report.fail(
+        `the download resolves to ${servedVersion} while the service reports ${reportedVersion}`,
+        'resolve the requested version from the X-Nonead-DSH-Desktop-Target-Version header at request time instead of pinning one file',
+        'clients never check which version they received, so users would silently reinstall the wrong build',
+      )
+    } else {
+      report.line(`final url ${finalUrl} (carries the reported version ${servedVersion})`)
+    }
+  }
 
   if (looksLikeHtml(prefix)) {
     report.fail(
@@ -371,8 +411,8 @@ async function checkFullDownload(options, client, serviceVersion) {
             init,
           ),
         })
-        const head = readFileSync(saved).subarray(0, 2).toString('hex')
-        report.line(`${platform}: accepted ${filename} (magic ${head})`)
+        const info = await stat(saved)
+        report.line(`${platform}: accepted ${filename} — ${String(info.size)} bytes, sha256 ${await sha256OfFile(saved)}`)
         await rm(saved, { force: true })
       } catch (cause) {
         const code = cause?.code ?? cause?.name
@@ -437,8 +477,9 @@ async function main() {
   const currentVersion = options.current ?? defaultCurrentVersion()
   const serviceVersion = await checkVersionResponse(options, client, currentVersion)
   await checkClientParsing(options, client, currentVersion, serviceVersion)
-  await checkInstallerEndpoint(options, client, serviceVersion ?? currentVersion, 'win32', 'windows installer endpoint')
-  await checkInstallerEndpoint(options, client, serviceVersion ?? currentVersion, 'darwin', 'macOS installer endpoint')
+  const requestVersion = serviceVersion ?? currentVersion
+  await checkInstallerEndpoint(options, client, serviceVersion, requestVersion, 'win32', 'windows installer endpoint')
+  await checkInstallerEndpoint(options, client, serviceVersion, requestVersion, 'darwin', 'macOS installer endpoint')
   if (options.full) await checkFullDownload(options, client, serviceVersion)
 
   const ok = render(options, currentVersion)
