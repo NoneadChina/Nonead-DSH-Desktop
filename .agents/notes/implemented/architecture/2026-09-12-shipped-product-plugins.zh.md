@@ -4,6 +4,8 @@ Status: implemented
 
 [English](2026-09-12-shipped-product-plugins.md) | 中文
 
+> **更新（2026-09-21）：** `dsh-nonead-universal-robots` 已退出随产品内置集合。launcher 不再插入它的 loader 行，两个桌面发行版都不再依赖或打包它，`desktopBundleList()` 也不再把它从 Profile bundle 列表中剔除。只有 [`dsh-nonead-client-skin/`](../../../../dsh-nonead-client-skin/) 仍按下文所述随 launcher 代次承载。该包仍是外层 Yarn 工作区的成员。
+
 ## Problem
 
 Nonead DSH Desktop 必须在启动时就已装好并生效 Universal Robots 工具集与 Nonead 品牌皮肤：任何机器、任何 Profile、开发态与打包安装版都要如此，且不需要操作者先执行 `dsh plugin add`。这两个插件原本是各自独立的私有仓库，而桌面 launcher 只组合官方 Web bundle 加上 Profile 自己安装过的第三方 bundle。

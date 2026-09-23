@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-desktop",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "description": "Nonead DSH Desktop: an Electron shell composed as a DeepSeek Harness Cordis plugin",
   "license": "MIT",
   "publishConfig": {
@@ -135,7 +135,7 @@
     "prepare:electron-native": "node scripts/prepare-fs-ext.ts"
   },
   "dependencies": {
-    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-0.1.0-dev.0.desktop.c00df092c98b2.rcda81994.tgz",
+    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-0.1.0-dev.0.desktop.ca022d9286dd0.rcda81994.tgz",
     "@deepseek-ai/cordis": "4.0.2",
     "@deepseek-ai/cordis-plugin-group": "1.0.2",
     "@deepseek-ai/cordis-plugin-include": "1.0.7",
@@ -280,7 +280,6 @@
     "adm-zip": "^0.6.0",
     "dsh-community-market": "0.1.0-dev.0",
     "dsh-nonead-client-skin": "0.1.1-rc.2",
-    "dsh-nonead-universal-robots": "0.3.8",
     "dshmarket": "1.38.1",
     "fs-ext": "2.1.1",
     "koffi": "3.1.5",
@@ -360,15 +359,14 @@
       "package.json",
       "!node_modules/node-pty/build/**",
       "!node_modules/fs-ext/build/**",
-      "!node_modules/dsh-nonead-universal-robots/python/**/*.log"
+      "!node_modules/@dataiku/uv-win32-arm64/**"
     ],
     "mac": {
       "asarUnpack": [
         "build/app-icon-mac.png",
         "build/tray-iconTemplate.png",
         "build/tray-iconTemplate@2x.png",
-        "node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/**",
-        "node_modules/dsh-nonead-universal-robots/python/**"
+        "node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/**"
       ],
       "target": [
         "dir"
@@ -398,8 +396,7 @@
         "build/tray-icon-blue@1.25x.png",
         "build/tray-icon-blue@1.5x.png",
         "build/tray-icon-blue@2x.png",
-        "node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/**",
-        "node_modules/dsh-nonead-universal-robots/python/**"
+        "node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/**"
       ],
       "target": [
         {
@@ -435,8 +432,7 @@
         "build/tray-icon-blue@1.25x.png",
         "build/tray-icon-blue@1.5x.png",
         "build/tray-icon-blue@2x.png",
-        "node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/**",
-        "node_modules/dsh-nonead-universal-robots/python/**"
+        "node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/**"
       ],
       "target": [
         "dir"

@@ -481,18 +481,7 @@ describe('packaged desktop runtime verification', () => {
       [{ path: host, bytes: 100 }])).toThrow('non-allowlisted package roots')
   })
 
-  it('unpacks the UR worker payload while keeping its JavaScript runtime archived', () => {
-    const worker = 'node_modules/dsh-nonead-universal-robots/python/ur_worker.py'
-    const urBasic = 'node_modules/dsh-nonead-universal-robots/python/URBasic/rtde.py'
-    expect(() => verifySelectiveUnpackedRuntime(asarIndex([worker, urBasic]), '/build/resources/app.asar.unpacked',
-      [{ path: worker, bytes: 100 }, { path: urBasic, bytes: 100 }])).not.toThrow()
-    const host = 'node_modules/dsh-nonead-universal-robots/lib/index.js'
-    expect(() => verifySelectiveUnpackedRuntime(asarIndex([host]), '/build/resources/app.asar.unpacked',
-      [{ path: host, bytes: 100 }])).toThrow('non-allowlisted package roots')
-  })
-
   it('reviews every explicit unpacked package payload', () => {
-    expect(ALLOWED_UNPACKED_PACKAGE_PAYLOADS).toContain('node_modules/dsh-nonead-universal-robots/python/')
     expect(ALLOWED_UNPACKED_PACKAGE_PAYLOADS).toContain('node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/')
   })
 

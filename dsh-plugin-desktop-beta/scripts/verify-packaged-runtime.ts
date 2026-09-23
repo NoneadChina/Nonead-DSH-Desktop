@@ -88,6 +88,9 @@ export const ALLOWED_SMART_UNPACK_PACKAGE_ROOTS = [
 
 /** Platform package families selected by native dependencies at package time. */
 export const ALLOWED_SMART_UNPACK_PACKAGE_PREFIXES = [
+  // Bundled by the Agents Anywhere connector: its `uv` runtime bootstrapper
+  // ships one executable per platform and rides the smart-unpack heuristic.
+  'node_modules/@dataiku/uv-',
   'node_modules/@deepseek-ai/node-addon-system-',
   'node_modules/@img/sharp-',
   'node_modules/@koromix/koffi-',
@@ -103,7 +106,6 @@ export const ALLOWED_SMART_UNPACK_PACKAGE_PREFIXES = [
  */
 export const ALLOWED_UNPACKED_PACKAGE_PAYLOADS = [
   'node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/',
-  'node_modules/dsh-nonead-universal-robots/python/',
 ] as const
 
 /** Every generated JavaScript file shipped by the installed DSH CLI package. */

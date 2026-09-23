@@ -76,7 +76,7 @@ const dshResolution = (name: string): unknown =>
 describe('published package surface', () => {
   it('keeps the private workspace version-neutral and versions the Beta package', () => {
     expect(workspaceManifest.version).toBeUndefined()
-    expect(manifest.version).toBe('1.5.2-beta.1')
+    expect(manifest.version).toBe('1.5.3-beta.1')
   })
 
   it('runs desktop and community market typechecks from the root command', () => {
@@ -839,7 +839,7 @@ describe('published package surface', () => {
 
   it('fixes the installed application identity', () => {
     expect(workspaceManifest.version).toBeUndefined()
-    expect(manifest.version).toBe('1.5.2-beta.1')
+    expect(manifest.version).toBe('1.5.3-beta.1')
     expect(manifest.name).toBe('dsh-plugin-desktop-beta')
     expect(manifest.bin).toEqual({
       'dsh-desktop-beta': 'lib/bin.js',
@@ -852,11 +852,10 @@ describe('published package surface', () => {
     expect(manifest.build?.asar).toEqual({ smartUnpack: true })
     expect(manifest.build).not.toHaveProperty('asarUnpack')
     // Native payloads an ASAR archive cannot serve: the AA connector's Python
-    // package and the UR plugin's Python worker, both executed by an external
-    // interpreter that cannot read inside app.asar.
+    // package, executed by an external interpreter that cannot read inside
+    // app.asar.
     const externalRuntimePayloads = [
       'node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/**',
-      'node_modules/dsh-nonead-universal-robots/python/**',
     ]
     expect(manifest.build?.mac?.asarUnpack).toEqual([
       'build/app-icon-mac.png',
@@ -897,10 +896,7 @@ describe('published package surface', () => {
       'package.json',
       '!node_modules/node-pty/build/**',
       '!node_modules/fs-ext/build/**',
-      // Only the worker's runtime log needs an explicit rule here: electron-builder
-      // already drops `__pycache__` directories and `*.pyc` for dependency copies
-      // (app-builder-lib excludedNames/excludedExts), but it has no `*.log` default.
-      '!node_modules/dsh-nonead-universal-robots/python/**/*.log',
+      '!node_modules/@dataiku/uv-win32-arm64/**',
     ])
     expect(manifest.build?.mac?.icon).toBe('build/app-icon-mac.png')
     expect(manifest.build?.mac?.artifactName).toBe('Nonead-DSH-Desktop-Beta-v${version}-${arch}.${ext}')

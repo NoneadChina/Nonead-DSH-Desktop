@@ -23,15 +23,6 @@
     # persistent Profile, so every Profile on every machine starts with them and
     # the Desktop plugin inventory never offers to disable them.
     #
-    # Universal Robots: registers the ur_* tools. The Python worker starts on the
-    # first connect, and ur_ping reports readiness without touching a robot.
-    - id: nonead-universal-robots
-      name: dsh-nonead-universal-robots
-      config:
-        pythonBin: 'python'
-        commandTimeoutMs: 60000
-        connectTimeoutMs: 30000
-        requireApprovalForMotion: true
     # Nonead brand skin: the browser half is picked up by dsh-client-modules
     # through the package's dsh.client declaration (immediately: true).
     - id: nonead-client-skin

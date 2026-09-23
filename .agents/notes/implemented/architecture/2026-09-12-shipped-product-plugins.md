@@ -4,6 +4,8 @@ Status: implemented
 
 English | [中文](2026-09-12-shipped-product-plugins.zh.md)
 
+> **Update (2026-09-21):** `dsh-nonead-universal-robots` left the shipped set. The launcher no longer inserts its loader row, neither desktop edition depends on or packages it, and `desktopBundleList()` no longer filters it out of a Profile bundle list. Only [`dsh-nonead-client-skin/`](../../../../dsh-nonead-client-skin/) still rides the launcher generation as described below. The package remains a member of the outer Yarn workspace.
+
 ## Problem
 
 Nonead DSH Desktop must start with the Universal Robots tool set and the Nonead brand skin already installed and active: on every machine, in every Profile, in development and in the packaged installer, without an operator running `dsh plugin add` first. The two plugins were private, standalone repositories; the desktop launcher composed only the official Web bundles plus whatever third-party bundles a Profile had installed itself.

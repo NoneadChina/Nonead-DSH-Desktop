@@ -14,10 +14,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@agents-anywhere/dsh-bridge-next@file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-0.1.0-dev.0.desktop.c00df092c98b2.rcda81994.tgz::locator=dsh-plugin-desktop%40workspace%3Adsh-plugin-desktop":
-  version: 0.1.0-dev.0.desktop.c00df092c98b2.rcda81994
-  resolution: "@agents-anywhere/dsh-bridge-next@file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-0.1.0-dev.0.desktop.c00df092c98b2.rcda81994.tgz#../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-0.1.0-dev.0.desktop.c00df092c98b2.rcda81994.tgz::hash=28f807&locator=dsh-plugin-desktop%40workspace%3Adsh-plugin-desktop"
+"@agents-anywhere/dsh-bridge-next@file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-0.1.0-dev.0.desktop.ca022d9286dd0.rcda81994.tgz::locator=dsh-plugin-desktop%40workspace%3Adsh-plugin-desktop":
+  version: 0.1.0-dev.0.desktop.ca022d9286dd0.rcda81994
+  resolution: "@agents-anywhere/dsh-bridge-next@file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-0.1.0-dev.0.desktop.ca022d9286dd0.rcda81994.tgz#../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-0.1.0-dev.0.desktop.ca022d9286dd0.rcda81994.tgz::hash=838aae&locator=dsh-plugin-desktop%40workspace%3Adsh-plugin-desktop"
   dependencies:
+    "@dataiku/uv": "npm:0.12.0"
     clsx: "npm:2.1.1"
     lucide-react: "npm:1.41.0"
     qrcode: "npm:1.5.4"
@@ -28,14 +29,15 @@ __metadata:
     "@deepseek-ai/dsh-typert-protocol": 0.1.5-rc.1
     "@deepseek-ai/schemastery": ^3.18.1
     react: ^18.3.1
-  checksum: 10c0/616e212cfbc00830f7b61467d6498d0d4bb4931646b36f4bdef1bcf55bf7bc400afe2a66528a7850a35651e6d46d081521f51d79692b12d96bfb805aee90f74c
+  checksum: 10c0/63c9bb246aeeab0a819ce415286ded0c04507ff7c10ef9634cb91d4911d558da82f432c89d8a59e688483e7caa8a407dd4f3baa27057e11a928ef484a5ee9f52
   languageName: node
   linkType: hard
 
-"@agents-anywhere/dsh-bridge-next@file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-0.1.0-dev.0.desktop.c00df092c98b2.rcda81994.tgz::locator=dsh-plugin-desktop-beta%40workspace%3Adsh-plugin-desktop-beta":
-  version: 0.1.0-dev.0.desktop.c00df092c98b2.rcda81994
-  resolution: "@agents-anywhere/dsh-bridge-next@file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-0.1.0-dev.0.desktop.c00df092c98b2.rcda81994.tgz#../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-0.1.0-dev.0.desktop.c00df092c98b2.rcda81994.tgz::hash=28f807&locator=dsh-plugin-desktop-beta%40workspace%3Adsh-plugin-desktop-beta"
+"@agents-anywhere/dsh-bridge-next@file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-0.1.0-dev.0.desktop.ca022d9286dd0.rcda81994.tgz::locator=dsh-plugin-desktop-beta%40workspace%3Adsh-plugin-desktop-beta":
+  version: 0.1.0-dev.0.desktop.ca022d9286dd0.rcda81994
+  resolution: "@agents-anywhere/dsh-bridge-next@file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-0.1.0-dev.0.desktop.ca022d9286dd0.rcda81994.tgz#../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-0.1.0-dev.0.desktop.ca022d9286dd0.rcda81994.tgz::hash=838aae&locator=dsh-plugin-desktop-beta%40workspace%3Adsh-plugin-desktop-beta"
   dependencies:
+    "@dataiku/uv": "npm:0.12.0"
     clsx: "npm:2.1.1"
     lucide-react: "npm:1.41.0"
     qrcode: "npm:1.5.4"
@@ -46,7 +48,7 @@ __metadata:
     "@deepseek-ai/dsh-typert-protocol": 0.1.5-rc.1
     "@deepseek-ai/schemastery": ^3.18.1
     react: ^18.3.1
-  checksum: 10c0/616e212cfbc00830f7b61467d6498d0d4bb4931646b36f4bdef1bcf55bf7bc400afe2a66528a7850a35651e6d46d081521f51d79692b12d96bfb805aee90f74c
+  checksum: 10c0/63c9bb246aeeab0a819ce415286ded0c04507ff7c10ef9634cb91d4911d558da82f432c89d8a59e688483e7caa8a407dd4f3baa27057e11a928ef484a5ee9f52
   languageName: node
   linkType: hard
 
@@ -956,6 +958,87 @@ __metadata:
   version: 4.0.0
   resolution: "@csstools/css-tokenizer@npm:4.0.0"
   checksum: 10c0/669cf3d0f9c8e1ffdf8c9955ad8beba0c8cfe03197fe29a4fcbd9ee6f7a18856cfa42c62670021a75183d9ab37f5d14a866e6a9df753a6c07f59e36797a9ea9f
+  languageName: node
+  linkType: hard
+
+"@dataiku/uv-darwin-arm64@npm:0.12.0":
+  version: 0.12.0
+  resolution: "@dataiku/uv-darwin-arm64@npm:0.12.0"
+  conditions: os=darwin & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@dataiku/uv-darwin-x64@npm:0.12.0":
+  version: 0.12.0
+  resolution: "@dataiku/uv-darwin-x64@npm:0.12.0"
+  conditions: os=darwin & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@dataiku/uv-linux-arm64@npm:0.12.0":
+  version: 0.12.0
+  resolution: "@dataiku/uv-linux-arm64@npm:0.12.0"
+  conditions: os=linux & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@dataiku/uv-linux-x64@npm:0.12.0":
+  version: 0.12.0
+  resolution: "@dataiku/uv-linux-x64@npm:0.12.0"
+  conditions: os=linux & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@dataiku/uv-win32-arm64@npm:0.12.0":
+  version: 0.12.0
+  resolution: "@dataiku/uv-win32-arm64@npm:0.12.0"
+  conditions: os=win32 & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@dataiku/uv-win32-ia32@npm:0.12.0":
+  version: 0.12.0
+  resolution: "@dataiku/uv-win32-ia32@npm:0.12.0"
+  conditions: os=win32 & cpu=ia32
+  languageName: node
+  linkType: hard
+
+"@dataiku/uv-win32-x64@npm:0.12.0":
+  version: 0.12.0
+  resolution: "@dataiku/uv-win32-x64@npm:0.12.0"
+  conditions: os=win32 & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@dataiku/uv@npm:0.12.0":
+  version: 0.12.0
+  resolution: "@dataiku/uv@npm:0.12.0"
+  dependencies:
+    "@dataiku/uv-darwin-arm64": "npm:0.12.0"
+    "@dataiku/uv-darwin-x64": "npm:0.12.0"
+    "@dataiku/uv-linux-arm64": "npm:0.12.0"
+    "@dataiku/uv-linux-x64": "npm:0.12.0"
+    "@dataiku/uv-win32-arm64": "npm:0.12.0"
+    "@dataiku/uv-win32-ia32": "npm:0.12.0"
+    "@dataiku/uv-win32-x64": "npm:0.12.0"
+  dependenciesMeta:
+    "@dataiku/uv-darwin-arm64":
+      optional: true
+    "@dataiku/uv-darwin-x64":
+      optional: true
+    "@dataiku/uv-linux-arm64":
+      optional: true
+    "@dataiku/uv-linux-x64":
+      optional: true
+    "@dataiku/uv-win32-arm64":
+      optional: true
+    "@dataiku/uv-win32-ia32":
+      optional: true
+    "@dataiku/uv-win32-x64":
+      optional: true
+  bin:
+    uv: bin.cjs
+  checksum: 10c0/0ea34c8c7860903efc46cb8462e84d53e44b26c0a6c9aa8cdf7e8ff650b327fe22152c8cd6e0ffa946021e9ff53c964c8de83e097ba85cc3b267563ad5dac22e
   languageName: node
   linkType: hard
 
@@ -8902,7 +8985,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"dsh-nonead-universal-robots@npm:0.3.8, dsh-nonead-universal-robots@workspace:dsh-nonead-universal-robots":
+"dsh-nonead-universal-robots@workspace:dsh-nonead-universal-robots":
   version: 0.0.0-use.local
   resolution: "dsh-nonead-universal-robots@workspace:dsh-nonead-universal-robots"
   peerDependencies:
@@ -8917,7 +9000,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "dsh-plugin-desktop-beta@workspace:dsh-plugin-desktop-beta"
   dependencies:
-    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-0.1.0-dev.0.desktop.c00df092c98b2.rcda81994.tgz"
+    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-0.1.0-dev.0.desktop.ca022d9286dd0.rcda81994.tgz"
     "@base-ui/react": "npm:^1.7.0"
     "@deepseek-ai/cordis": "npm:4.0.2"
     "@deepseek-ai/cordis-plugin-group": "npm:1.0.2"
@@ -9077,7 +9160,6 @@ __metadata:
     clsx: "npm:^2.1.1"
     dsh-community-market: "npm:0.1.0-dev.0"
     dsh-nonead-client-skin: "npm:0.1.1-rc.2"
-    dsh-nonead-universal-robots: "npm:0.3.8"
     dshmarket: "npm:1.38.1"
     electron: "npm:43.3.0"
     electron-builder: "npm:26.15.7"
@@ -9116,7 +9198,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "dsh-plugin-desktop@workspace:dsh-plugin-desktop"
   dependencies:
-    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-0.1.0-dev.0.desktop.c00df092c98b2.rcda81994.tgz"
+    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-0.1.0-dev.0.desktop.ca022d9286dd0.rcda81994.tgz"
     "@base-ui/react": "npm:^1.7.0"
     "@deepseek-ai/cordis": "npm:4.0.2"
     "@deepseek-ai/cordis-plugin-group": "npm:1.0.2"
@@ -9276,7 +9358,6 @@ __metadata:
     clsx: "npm:^2.1.1"
     dsh-community-market: "npm:0.1.0-dev.0"
     dsh-nonead-client-skin: "npm:0.1.1-rc.2"
-    dsh-nonead-universal-robots: "npm:0.3.8"
     dshmarket: "npm:1.38.1"
     electron: "npm:43.3.0"
     electron-builder: "npm:26.15.7"

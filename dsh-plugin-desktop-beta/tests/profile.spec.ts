@@ -252,7 +252,6 @@ describe('desktop profile composition', {
   it('drops shipped product plugin bundles that the launcher layer already composes', () => {
     expect(desktopBundleList([
       '@deepseek-ai/dsh-base',
-      'dsh-nonead-universal-robots',
       'third-party-one',
       'dsh-nonead-client-skin',
     ])).toEqual([
@@ -271,7 +270,6 @@ describe('desktop profile composition', {
       ...manifest,
       dependencies: {
         'dsh-nonead-client-skin': 'link:D:/plugins/dsh-nonead-client-skin',
-        'dsh-nonead-universal-robots': 'link:D:/plugins/dsh-nonead-universal-robots',
       },
       dsh: {
         profile: {
@@ -279,7 +277,6 @@ describe('desktop profile composition', {
             '@deepseek-ai/dsh-base',
             '@deepseek-ai/dsh-web-app',
             'dsh-nonead-client-skin',
-            'dsh-nonead-universal-robots',
           ],
         },
       },
@@ -297,7 +294,6 @@ describe('desktop profile composition', {
     // Only the composed layer moves: the user-owned dependency list stays.
     expect(repaired.dependencies).toEqual({
       'dsh-nonead-client-skin': 'link:D:/plugins/dsh-nonead-client-skin',
-      'dsh-nonead-universal-robots': 'link:D:/plugins/dsh-nonead-universal-robots',
     })
   })
 
