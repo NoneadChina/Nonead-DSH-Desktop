@@ -761,7 +761,7 @@ describe('published package surface', () => {
 
   it('fixes the installed application identity', () => {
     expect(workspaceManifest.version).toBeUndefined()
-    expect(manifest.version).toBe('1.5.3')
+    expect(manifest.version).toBe('1.5.4')
     expect(manifest.build?.productName).toBe('Nonead DSH Desktop')
     expect(manifest.build?.appId).toBe('com.nonead.ndsh.desktop')
     expect(manifest.build?.asar).toEqual({ smartUnpack: true })
