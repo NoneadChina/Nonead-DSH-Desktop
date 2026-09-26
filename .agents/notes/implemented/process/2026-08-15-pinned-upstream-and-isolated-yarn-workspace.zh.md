@@ -4,6 +4,8 @@ Status: implemented
 
 [English](2026-08-15-pinned-upstream-and-isolated-yarn-workspace.md) | 中文
 
+> **更新（2026-09-26）：** 下文记录的是仓库初建时的状态。当前实际情况：`dsh-community-market` 已实现，是两个桌面发行版的 production dependency，并声明 package 与 DSH 入口；`dsh-nonead-universal-robots` 已从仓库移除；`dsh-nonead-client-skin` 是唯一由产品所有的插件工作区成员，其 `lib/` 制品随仓库提交。Fabric 仍是文档初始化工程。[`AGENTS.md`](../../../../AGENTS.md) 承载当前拓扑。
+
 ## Problem
 
 DSH Desktop 需要保留可供审查的 DeepSeek Harness 官方精确源码，同时让桌面产品独立演进。若把上游源码作为普通文件跟踪，桌面提交就能改写上游实现，代码归属也会变得模糊。共享同一个包管理图还会把上游的 pnpm 规则与桌面产品的 Yarn 发行流程混在一起。

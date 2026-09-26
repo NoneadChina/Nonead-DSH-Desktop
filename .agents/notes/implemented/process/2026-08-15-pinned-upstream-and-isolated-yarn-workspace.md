@@ -4,6 +4,8 @@ Status: implemented
 
 English | [中文](2026-08-15-pinned-upstream-and-isolated-yarn-workspace.zh.md)
 
+> **Update (2026-09-26):** the text below records the repository as first established. Current state: `dsh-community-market` is implemented and is a production dependency of both desktop editions that declares package and DSH entry points; `dsh-nonead-universal-robots` has been removed from the repository; and `dsh-nonead-client-skin` is the only product-owned plugin workspace member, shipping tracked `lib/` artifacts. Fabric is still a documentation scaffold. [`AGENTS.md`](../../../../AGENTS.md) carries the current topology.
+
 ## Problem
 
 DSH Desktop needs the exact official DeepSeek Harness source for review while the desktop product evolves independently. Tracking that source as ordinary files lets desktop commits rewrite upstream implementation and obscures ownership. A shared package-manager graph would also mix upstream pnpm rules with the desktop product's Yarn release.
