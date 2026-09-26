@@ -30,7 +30,7 @@ Current release installers support Windows x64. No extra environment is needed â
 
 | Platform | Download | Installation |
 | --- | --- | --- |
-| Windows x64 | [Download installer](https://www.nonead.com/software/ndsh-desktop/downloads/windows/Nonead-DSH-Desktop-1.7.2-windows.exe) | Run the NSIS installer and follow its prompts |
+| Windows x64 | [Download installer](https://www.nonead.com/software/ndsh-desktop/downloads/windows/Nonead-DSH-Desktop-1.7.3-windows.exe) | Run the NSIS installer and follow its prompts |
 
 See the [user guide](docs/user-guide.en.md) and [FAQ](docs/faq.en.md) for plugin commands, platform details, and troubleshooting.
 

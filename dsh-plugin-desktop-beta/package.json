@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-desktop-beta",
-  "version": "1.7.2-beta.1",
+  "version": "1.7.3-beta.1",
   "description": "Nonead DSH Desktop Beta: an Electron shell composed as a DeepSeek Harness Cordis plugin",
   "author": "Nonead Corporation",
   "license": "MIT",

@@ -20,7 +20,7 @@ Desktop 客户端会在启动后、以及此后按固定间隔检查是否有新
 
 | 请求头 | 含义 |
 | --- | --- |
-| `X-Nonead-DSH-Desktop-Version` | 当前安装的版本，例如 `1.7.2` |
+| `X-Nonead-DSH-Desktop-Version` | 当前安装的版本，例如 `1.7.3` |
 | `X-Nonead-DSH-Desktop-Channel` | `stable` 或 `beta` |
 | `X-Nonead-DSH-Desktop-Installation-Id` | 本机安装标识（UUID），同一次安装内稳定 |
 | `Accept` | `application/json` |
@@ -28,12 +28,12 @@ Desktop 客户端会在启动后、以及此后按固定间隔检查是否有新
 期望响应：状态码 `200`、`application/json`，正文不超过 4096 字节。
 
 ```json
-{ "version": "1.7.2", "channel": "stable" }
+{ "version": "1.7.3", "channel": "stable" }
 ```
 
 正文规则：
 
-- `version` 必须是规范 SemVer，不能带 `v` 前缀：写成 `"v1.7.2"` 会被判为非法。
+- `version` 必须是规范 SemVer，不能带 `v` 前缀：写成 `"v1.7.3"` 会被判为非法。
 - `stable` 通道的版本不能带预发布段；`beta` 通道的版本必须是 `X.Y.Z-beta.N`。
 - `beta` 通道的响应必须额外带 `"channel": "beta"`。
 - 响应必须是 `200`。非 200、重定向或无法解析的正文都会被客户端当作“没有更新”，并保持静默，不会向用户报错。
@@ -85,9 +85,9 @@ Desktop 客户端会在启动后、以及此后按固定间隔检查是否有新
 
 ## 版本号与文件名
 
-服务端的安装包文件名带版本号（例如 `nonead-dsh-desktop-1.7.2-windows.exe`），**每发布一个版本就会变**。客户端把版本号同时写进请求路径与 `X-Nonead-DSH-Desktop-Target-Version` 请求头，服务端可以按路径里的文件名取文件，也可以只按请求头解析，但两条信息必须指向同一个版本。
+服务端的安装包文件名带版本号（例如 `nonead-dsh-desktop-1.7.3-windows.exe`），**每发布一个版本就会变**。客户端把版本号同时写进请求路径与 `X-Nonead-DSH-Desktop-Target-Version` 请求头，服务端可以按路径里的文件名取文件，也可以只按请求头解析，但两条信息必须指向同一个版本。
 
-- **不要把 302 目标写死成某一个版本的文件。** 一旦写死，下一个版本的用户请求 `1.7.2` 时拿到的还是 `1.5.4` 的旧安装包。
+- **不要把 302 目标写死成某一个版本的文件。** 一旦写死，下一个版本的用户请求 `1.7.3` 时拿到的还是 `1.5.4` 的旧安装包。
 - **客户端会拒绝落到别的版本的安装包**：最终地址文件名里的版本号必须等于请求版本，否则下载被拒绝并报错。但文件名不带版本号时客户端无法判断，所以“服务端返回了错误版本”仍可能不可见，用户只会看到“更新跑完了，版本没变”。`scripts/check-update-service.mjs` 同样会把重定向目标文件名里的版本号与服务端报告的版本号做交叉校验。
 - 每次发版要同时更新三处：上传的文件、裸地址的“版本 → 文件”映射、版本端点报告的版本号。三者不一致时脚本会报出来。
 - 请求的目标版本无法提供时返回 `404`，不要回落到最新版或站点首页。
@@ -110,7 +110,7 @@ Desktop 客户端会在启动后、以及此后按固定间隔检查是否有新
 ```bash
 yarn check:update-service
 yarn check:update-service --full
-yarn check:update-service --expect 1.7.2
+yarn check:update-service --expect 1.7.3
 yarn check:update-service --base http://127.0.0.1:8080
 ```
 

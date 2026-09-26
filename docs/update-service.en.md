@@ -20,7 +20,7 @@ Request headers:
 
 | Header | Meaning |
 | --- | --- |
-| `X-Nonead-DSH-Desktop-Version` | Installed version, for example `1.7.2` |
+| `X-Nonead-DSH-Desktop-Version` | Installed version, for example `1.7.3` |
 | `X-Nonead-DSH-Desktop-Channel` | `stable` or `beta` |
 | `X-Nonead-DSH-Desktop-Installation-Id` | Per-installation identifier (UUID), stable within one installation |
 | `Accept` | `application/json` |
@@ -28,12 +28,12 @@ Request headers:
 Expected response: status `200`, `application/json`, body of at most 4096 bytes.
 
 ```json
-{ "version": "1.7.2", "channel": "stable" }
+{ "version": "1.7.3", "channel": "stable" }
 ```
 
 Body rules:
 
-- `version` must be canonical SemVer without a `v` prefix: `"v1.7.2"` is rejected.
+- `version` must be canonical SemVer without a `v` prefix: `"v1.7.3"` is rejected.
 - A `stable` version must not carry a prerelease segment; a `beta` version must be `X.Y.Z-beta.N`.
 - A `beta` response must also carry `"channel": "beta"`.
 - The status must be `200`. A non-200 status, a redirect, or a body that cannot be parsed is treated as "no update" and stays silent — the user sees no error.
@@ -85,9 +85,9 @@ The update service does **not** provide a content hash or signature today, so th
 
 ## Version numbers and file names
 
-Service-side installer filenames carry the version (for example `nonead-dsh-desktop-1.7.2-windows.exe`), so they **change with every release**. The client puts that version into both the request path and the `X-Nonead-DSH-Desktop-Target-Version` header, so the service may resolve the file from either one — but both must name the same version.
+Service-side installer filenames carry the version (for example `nonead-dsh-desktop-1.7.3-windows.exe`), so they **change with every release**. The client puts that version into both the request path and the `X-Nonead-DSH-Desktop-Target-Version` header, so the service may resolve the file from either one — but both must name the same version.
 
-- **Never pin the 302 target to one version's file.** Once it is pinned, a client asking for `1.7.2` after the next release still receives the old `1.5.4` installer.
+- **Never pin the 302 target to one version's file.** Once it is pinned, a client asking for `1.7.3` after the next release still receives the old `1.5.4` installer.
 - **The client rejects an installer that resolves to another release**: the version in the final URL's file name must equal the requested version, or the download fails with an error. A file name that carries no version cannot be judged, so a service that serves the wrong version can still stay invisible and the user only sees "the update ran and the version did not change". `scripts/check-update-service.mjs` cross-checks the version in the redirect target's filename against the version the service reports for the same reason.
 - Every release must update three things together: the uploaded file, the version→file mapping behind the bare URL, and the version the version endpoint reports. When they disagree, the script reports it.
 - Return `404` when the requested target version is unavailable; do not fall back to the latest build or to the site home page.
@@ -110,7 +110,7 @@ The client builds that file name from the version the version endpoint reports, 
 ```bash
 yarn check:update-service
 yarn check:update-service --full
-yarn check:update-service --expect 1.7.2
+yarn check:update-service --expect 1.7.3
 yarn check:update-service --base http://127.0.0.1:8080
 ```
 
