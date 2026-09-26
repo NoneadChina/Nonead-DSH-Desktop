@@ -400,10 +400,10 @@ virtualStoreDirMaxLength: 60
       const rows = patch.insert
       return Array.isArray(rows) ? rows as Array<Record<string, unknown>> : []
     })
-    expect(inserted).toContainEqual(expect.objectContaining({
-      name: DESKTOP_PACKAGE_NAME,
-      config: { mode: 'compatibility' },
-    }))
+    const shellRow = inserted.find(row => row.name === DESKTOP_PACKAGE_NAME)
+    expect(shellRow).toBeDefined()
+    // The shell row no longer carries a presentation choice.
+    expect(shellRow).not.toHaveProperty('config')
     expect(patches).toContainEqual(expect.objectContaining({
       id: 'webserver',
       name: '@deepseek-ai/dsh-host-webserver',
@@ -833,7 +833,7 @@ virtualStoreDirMaxLength: 60
     }))
   })
 
-  it('keeps a custom layout and withdraws incompatible browser and LAN access', () => {
+  it('resolves a legacy custom mode to compatibility and keeps browser access', () => {
     const home = temporaryHome()
     const profileDir = ensureDesktopProfile(home)
     writeFileSync(join(profileDir, PROFILE_PATCH_FILENAME), [
@@ -850,13 +850,13 @@ virtualStoreDirMaxLength: 60
     const prepared = prepareDesktopProfile(undefined, home, 'darwin')
     const rows = composeEntries([prepared.patches])
 
-    expect(prepared.mode).toBe('advanced')
+    expect(prepared.mode).toBe('compatibility')
     expect(prepared.port).toBe(43_189)
-    expect(prepared.openBrowser).toBe(false)
-    expect(prepared.networkExposure).toBe('loopback')
+    expect(prepared.openBrowser).toBe(true)
+    expect(prepared.networkExposure).toBe('lan')
     expect(rows.find(row => row.id === 'desktop-shell')).toEqual(expect.objectContaining({
       disabled: false,
-      config: expect.objectContaining({ mode: 'advanced', port: 43_189 }),
+      config: expect.objectContaining({ mode: 'compatibility', port: 43_189 }),
     }))
     expect(rows.find(row => row.id === 'webserver')).toEqual(expect.objectContaining({
       name: '@deepseek-ai/dsh-host-webserver',
@@ -869,9 +869,10 @@ virtualStoreDirMaxLength: 60
     expect(rows.find(row => row.id === 'web-runtime')).toEqual(expect.objectContaining({
       config: expect.objectContaining({ openBrowser: false }),
     }))
-    expect(rows.find(row => row.id === 'ui-layout')?.disabled).toBe(true)
-    expect(rows.find(row => row.id === 'ui-sidebar')?.disabled).toBe(false)
-    expect(rows.find(row => row.id === 'ui-conversation')?.disabled).toBe(false)
+    // The shipped presentation never touches upstream layout ownership.
+    expect(rows.find(row => row.id === 'ui-layout')?.disabled).toBeUndefined()
+    expect(rows.find(row => row.id === 'ui-sidebar')?.disabled).toBeUndefined()
+    expect(rows.find(row => row.id === 'ui-conversation')?.disabled).toBeUndefined()
   })
 
   it('keeps legacy browser intent but clamps LAN exposure when compatibility mode is selected', () => {
@@ -904,47 +905,14 @@ virtualStoreDirMaxLength: 60
     }))
   })
 
-  it('replaces the official root layout for extended window mode while retaining its occupants', () => {
-    const home = temporaryHome()
-    const profileDir = ensureDesktopProfile(home)
-    writeFileSync(join(profileDir, PROFILE_PATCH_FILENAME), [
-      '- id: dsh-desktop',
-      '  name: dsh-plugin-desktop/settings',
-      '  config:',
-      '    mode: extended',
-      '    macosMaterial: off',
-      '    windowsMaterial: mica',
-      '',
-    ].join('\n'))
-
-    const prepared = prepareDesktopProfile(undefined, home, 'win32')
-    const rows = composeEntries([prepared.patches])
-
-    expect(prepared).toEqual(expect.objectContaining({
-      mode: 'extended',
-      macosMaterial: 'off',
-      windowsMaterial: 'mica',
-    }))
-    expect(rows.find(row => row.id === 'ui-layout')?.disabled).toBe(true)
-    expect(rows.find(row => row.id === 'ui-sidebar')?.disabled).toBe(false)
-    expect(rows.find(row => row.id === 'ui-conversation')?.disabled).toBe(false)
-    expect(rows.find(row => row.id === 'desktop-shell')).toEqual(expect.objectContaining({
-      config: expect.objectContaining({
-        mode: 'extended',
-        macosMaterial: 'off',
-        windowsMaterial: 'mica',
-      }),
-    }))
-  })
-
-  it('reads JSON patch rows and defaults an absent desktop entry to compatibility', () => {
+  it('reads JSON patch rows and resolves every persisted mode to compatibility', () => {
     const home = temporaryHome()
     const path = join(home, 'desktop-settings.json')
     writeFileSync(path, JSON.stringify([{ id: 'dsh-desktop', config: { mode: 'advanced' } }]))
 
-    expect(readDesktopSetupWizardSettings(path).mode).toBe('advanced')
+    // The launcher resolves every persisted value to the shipped presentation.
     expect(desktopStartupSettingsFromSettings({ 'dsh-desktop': { mode: 'advanced', port: 43_189 } })).toEqual({
-      mode: 'advanced',
+      mode: 'compatibility',
       port: 43_189,
       macosMaterial: 'transparent',
       windowsMaterial: 'off',
@@ -952,7 +920,7 @@ virtualStoreDirMaxLength: 60
       networkExposure: 'loopback',
     })
     expect(desktopStartupSettingsFromSettings({ 'dsh-desktop': { mode: 'advanced' } })).toEqual({
-      mode: 'advanced',
+      mode: 'compatibility',
       port: 43_120,
       macosMaterial: 'transparent',
       windowsMaterial: 'off',
@@ -962,7 +930,7 @@ virtualStoreDirMaxLength: 60
     expect(desktopShellModeFromSettings({ unrelated: { enabled: true } })).toBe('compatibility')
   })
 
-  it('treats legacy LAN exposure as browser access only in compatibility mode', () => {
+  it('treats legacy LAN exposure as browser access for every persisted mode', () => {
     expect(desktopStartupSettingsFromSettings({
       'dsh-desktop': {
         mode: 'advanced',
@@ -970,9 +938,9 @@ virtualStoreDirMaxLength: 60
         networkExposure: 'lan',
       },
     })).toMatchObject({
-      mode: 'advanced',
-      openBrowser: false,
-      networkExposure: 'loopback',
+      mode: 'compatibility',
+      openBrowser: true,
+      networkExposure: 'lan',
     })
     expect(desktopStartupSettingsFromSettings({
       'dsh-desktop': {

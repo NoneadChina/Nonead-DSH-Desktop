@@ -274,7 +274,7 @@ describe('Desktop Setup Wizard settings document', () => {
     }
   })
 
-  it('requires a complete update and withdraws LAN exposure with browser access', async () => {
+  it('requires a complete update and clamps LAN exposure without browser access', async () => {
     const path = join(temporaryDirectory(), 'settings.json')
     const incomplete = values({
       openBrowser: false,
@@ -294,16 +294,17 @@ describe('Desktop Setup Wizard settings document', () => {
       networkExposure: 'loopback',
     })
 
-    const incompatible = values({ mode: 'advanced', openBrowser: true, networkExposure: 'lan' })
-    await expect(updateDesktopSetupWizardSettings(path, incompatible)).resolves.toMatchObject({
+    // A legacy mode no longer withdraws the requested browser access.
+    const legacyMode = values({ mode: 'advanced', openBrowser: true, networkExposure: 'lan' })
+    await expect(updateDesktopSetupWizardSettings(path, legacyMode)).resolves.toMatchObject({
       mode: 'advanced',
-      openBrowser: false,
-      networkExposure: 'loopback',
+      openBrowser: true,
+      networkExposure: 'lan',
     })
     expect(readDesktopSetupWizardSettings(path)).toMatchObject({
       mode: 'advanced',
-      openBrowser: false,
-      networkExposure: 'loopback',
+      openBrowser: true,
+      networkExposure: 'lan',
     })
   })
 
@@ -325,7 +326,7 @@ describe('Desktop Setup Wizard settings document', () => {
     })
   })
 
-  it('atomically withdraws legacy browser handoff and LAN from custom modes', async () => {
+  it('atomically materializes legacy browser access for every persisted mode', async () => {
     const root = temporaryDirectory()
     const yamlPath = join(root, 'legacy.yaml')
     writeFileSync(yamlPath, [
@@ -346,8 +347,8 @@ describe('Desktop Setup Wizard settings document', () => {
     expect(migrated).toContain('# preserve browser migration comments')
     expect(findRow(patchRows(yamlPath), 'dsh-desktop').config).toMatchObject({
       mode: 'advanced',
-      openBrowser: false,
-      networkExposure: 'loopback',
+      openBrowser: true,
+      networkExposure: 'lan',
       future: 'keep',
     })
 
@@ -364,11 +365,12 @@ describe('Desktop Setup Wizard settings document', () => {
       },
       { id: 'untouched', name: 'other-plugin', config: { value: 1 } },
     ], undefined, 2)}\n`)
-    await expect(migrateDesktopBrowserAccessSettings(jsonPath)).resolves.toBe(true)
+    // An explicit grant is already consistent, so no migration is needed.
+    await expect(migrateDesktopBrowserAccessSettings(jsonPath)).resolves.toBe(false)
     const rows = jsonRows(jsonPath)
     expect(findRow(rows, 'dsh-desktop').config).toMatchObject({
       mode: 'extended',
-      openBrowser: false,
+      openBrowser: true,
       networkExposure: 'loopback',
     })
     expect(findRow(rows, 'untouched')).toEqual({
@@ -472,7 +474,8 @@ describe('Desktop Setup Wizard settings document', () => {
       `  name: ${DESKTOP_ROW_NAME}`,
       '  config:',
       '    mode: advanced',
-      '    openBrowser: true',
+      '    openBrowser: false',
+      '    networkExposure: lan',
       '',
     ].join('\n')
     writeFileSync(path, contents)
@@ -483,8 +486,8 @@ describe('Desktop Setup Wizard settings document', () => {
     expect(readFileSync(lockPath, 'utf8')).toBe('owner\n')
     expect(readDesktopSetupWizardSettings(path)).toMatchObject({
       mode: 'advanced',
-      openBrowser: false,
-      networkExposure: 'loopback',
+      openBrowser: true,
+      networkExposure: 'lan',
     })
   })
 
