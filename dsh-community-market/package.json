@@ -3,6 +3,7 @@
   "version": "0.1.0-dev.0",
   "private": true,
   "description": "Community plugin discovery and managed package operations for DeepSeek Harness Desktop",
+  "author": "Nonead Corporation",
   "license": "MIT",
   "publishConfig": {
     "access": "public",

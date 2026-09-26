@@ -60,4 +60,4 @@ DSH Community Fabric is not affiliated with FabricMC. The name describes a commu
 
 ## License
 
-The proposal and future reference code are licensed under the [MIT License](LICENSE).
+Copyright © 2026 **Nonead Corporation**. The proposal and future reference code are licensed under the [MIT License](LICENSE).

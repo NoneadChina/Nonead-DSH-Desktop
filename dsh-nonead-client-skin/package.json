@@ -31,6 +31,7 @@
       "immediately": true
     }
   },
+  "author": "Nonead Corporation",
   "license": "MIT",
   "peerDependencies": {
     "@deepseek-ai/cordis": "4.0.4",
@@ -43,6 +44,7 @@
     }
   },
   "files": [
+    "LICENSE",
     "lib/index.js",
     "lib/invariant.js",
     "lib/client.js",

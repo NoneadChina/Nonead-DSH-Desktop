@@ -13,7 +13,7 @@
 - 已有公开 API 无法直接输出标准 page 结构的 provider，可以提出经过审核的 adapter 合作接入。合作只会增加本地、经过测试的 Market 代码，绝不允许 provider 下发可执行 adapter 代码。
 - DSH 1024Store 是当前与本项目合作的目录提供方之一。市场已包含经过审核的内置 adapter；这个 adapter 不会自动选择 1024Store，也不会在当前来源失败时用它兜底。
 - dshfind 是另一个可选合作提供方。它经过审查的 adapter 只接受无歧义的结构化 npm 证据作为结构安装候选；其他条目仍然只能浏览。它不会被默认选择、优先排序、推荐或用作兜底。
-- 某个来源出现在内置选项中或受到 adapter 支持，不代表 Anywhere Labs 推荐、审核或背书该来源及其收录的插件。
+- 某个来源出现在内置选项中或受到 adapter 支持，不代表 Nonead Corporation 推荐、审核或背书该来源及其收录的插件。
 - 所有 provider 必须先转换成同一个标准化模型，数据才能到达市场界面或安装边界。
 
 这些是产品与信任边界，不是后续团队为了实现方便就可以修改的默认值。
@@ -236,7 +236,7 @@ dshfind 文档说明匿名配额为每分钟 30 次、突发 10 次，而当前�
 
 dshfind response 可能包含 `install.cmd`、其他安装 claim 和 `install.methods`。命令文本与普通 claim 都不是执行权限：adapter 会在标准化前丢弃 `install.cmd`，不展示、不执行，也绝不从中解析 package 身份。Adapter 可以输出结构化 npm package 身份和只作信息展示的 provider 版本，但自动安装 preview 会忽略该版本并解析 npm 官方 `latest` manifest。Preview 要求 npm identity 一致、latest 是精确稳定版本、DSH bundle 声明合法，并且当前 Profile 可以安装。
 
-Adapter 可以标准化有界纯文本身份、描述、标签/分类、更新时间，以及规范、无凭据的 `https://github.com/owner/repository` 链接。当前 API 没有插件图标或 README 字段。任何 owner 头像 fallback 都必须标记为 `publisher-avatar` 并通过 Host 媒体边界解析；adapter 不获取或渲染远程 README 内容。dshfind 的分数、等级、`official`/精选标记、风险标记和安装结论仍是 provider 自有运营声明，绝不会成为 Anywhere Labs 的安全审核、推荐或验证信号。
+Adapter 可以标准化有界纯文本身份、描述、标签/分类、更新时间，以及规范、无凭据的 `https://github.com/owner/repository` 链接。当前 API 没有插件图标或 README 字段。任何 owner 头像 fallback 都必须标记为 `publisher-avatar` 并通过 Host 媒体边界解析；adapter 不获取或渲染远程 README 内容。dshfind 的分数、等级、`official`/精选标记、风险标记和安装结论仍是 provider 自有运营声明，绝不会成为 Nonead Corporation 的安全审核、推荐或验证信号。
 
 这一合作只会让 dshfind 作为可选合作来源显示；它**不会**成为默认、优先、官方、推荐、已审核或兜底来源，来源失败也不会触发对其他 provider 的隐藏切换。
 

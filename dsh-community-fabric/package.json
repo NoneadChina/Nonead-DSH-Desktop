@@ -3,6 +3,7 @@
   "version": "0.1.0-dev.0",
   "private": true,
   "description": "Documentation-first home for a community DSH plugin interoperability standard",
+  "author": "Nonead Corporation",
   "license": "MIT",
   "publishConfig": {
     "access": "public",

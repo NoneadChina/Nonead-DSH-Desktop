@@ -2,6 +2,7 @@
   "name": "dsh-plugin-desktop",
   "version": "1.7.2",
   "description": "Nonead DSH Desktop: an Electron shell composed as a DeepSeek Harness Cordis plugin",
+  "author": "Nonead Corporation",
   "license": "MIT",
   "publishConfig": {
     "registry": "https://registry.npmjs.org"
@@ -343,6 +344,7 @@
   "build": {
     "appId": "com.nonead.ndsh.desktop",
     "productName": "Nonead DSH Desktop",
+    "copyright": "Copyright © 2026 Nonead Corporation",
     "asar": {
       "smartUnpack": true
     },

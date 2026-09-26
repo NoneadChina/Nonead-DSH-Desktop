@@ -115,7 +115,7 @@ Nonead DSH Desktop 没有修改上游源码，也不是一个固定写死的外�
 
 Nonead DSH Desktop 是基于 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 和 Cordis 插件思想构建的独立社区项目，旨在提供开放、可组合的 DSH 桌面体验。
 
-本仓库由社区独立维护，目前不存在深度求索员工或 DeepSeek Harness 上游官方团队成员参与本项目开发、维护或治理的情形。GitHub Contributors 页面中可能出现的上游贡献者，来自本仓库 fork 时继承及后续同步的上游提交历史；该署名仅反映提交来源，不代表相关人员参与本仓库，也不构成任何隶属、合作、授权或背书关系。
+Nonead DSH Desktop 由 **Nonead Corporation** 开发与维护，并作为独立社区项目运营。目前不存在深度求索员工或 DeepSeek Harness 上游官方团队成员参与本项目开发、维护或治理的情形。GitHub Contributors 页面中可能出现的上游贡献者，来自本仓库 fork 时继承及后续同步的上游提交历史；该署名仅反映提交来源，不代表相关人员参与本仓库，也不构成任何隶属、合作、授权或背书关系。
 
 上游项目提供核心的智能体能力、插件系统和 Web UI；Nonead DSH Desktop 主要负责：
 
@@ -178,7 +178,7 @@ headless 检查使用 `corepack yarn check`；完整的构建、测试和发布�
 
 ## License
 
-本项目遵循 [MIT License](LICENSE)。
+版权所有 © 2026 **Nonead Corporation**。本项目遵循 [MIT License](LICENSE)。
 
 > “DeepSeek Harness”是深度求索公司的注册商标。本文仅为准确说明兼容性、技术来源及与上游软件的关系而使用该名称。
 

@@ -2,6 +2,7 @@
   "name": "deepseek-harness-desktop",
   "private": true,
   "description": "DSH Desktop product workspace",
+  "author": "Nonead Corporation",
   "license": "MIT",
   "packageManager": "yarn@4.18.0",
   "engines": {

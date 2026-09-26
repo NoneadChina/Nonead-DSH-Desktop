@@ -65,4 +65,4 @@ Renderer 在安装时不会提交 package name 或 package-manager 命令，只�
 
 ## 许可证与归属
 
-Package 代码和文档使用 [MIT License](LICENSE)。本 package 不内置任何第三方目录快照、provider 命令或 artwork；目录提供方是独立项目，并自行负责其 metadata 与服务策略。
+版权所有 © 2026 **Nonead Corporation**。Package 代码和文档使用 [MIT License](LICENSE)。本 package 不内置任何第三方目录快照、provider 命令或 artwork；目录提供方是独立项目，并自行负责其 metadata 与服务策略。

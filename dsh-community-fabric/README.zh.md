@@ -60,4 +60,4 @@ DSH Community Fabric 与 FabricMC 没有关联；这里的 Fabric 表示连接 D
 
 ## License
 
-提案与未来参考代码遵循 [MIT License](LICENSE)。
+版权所有 © 2026 **Nonead Corporation**。提案与未来参考代码遵循 [MIT License](LICENSE)。

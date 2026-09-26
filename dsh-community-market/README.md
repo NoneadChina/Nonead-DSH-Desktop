@@ -65,4 +65,4 @@ If an automatic installation starts but pnpm fails, Desktop keeps a bounded tail
 
 ## License and attribution
 
-Package code and documentation are licensed under the [MIT License](LICENSE). No third-party catalog snapshot, provider command, or artwork is bundled in this package. Catalog providers remain independent projects responsible for their own metadata and service policies.
+Copyright © 2026 **Nonead Corporation**. Package code and documentation are licensed under the [MIT License](LICENSE). No third-party catalog snapshot, provider command, or artwork is bundled in this package. Catalog providers remain independent projects responsible for their own metadata and service policies.

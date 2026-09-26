@@ -115,7 +115,7 @@ Unlike many other projects, this project itself is a DSH [plugin](docs/plugin-de
 
 Nonead DSH Desktop is an independent community project built on [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) and the Cordis plugin model, intended to provide an open and composable DSH desktop experience.
 
-This repository is independently maintained by the community. No DeepSeek employee or member of the official upstream DeepSeek Harness team currently participates in its development, maintenance, or governance. Contributors from the upstream project may appear on GitHub's Contributors page because this repository inherited and later synchronized upstream commit history when it was forked. Such attribution reflects commit provenance only and does not imply involvement in this repository or any affiliation, partnership, authorization, or endorsement.
+Nonead DSH Desktop is developed and maintained by **Nonead Corporation** as an independent community project. No DeepSeek employee or member of the official upstream DeepSeek Harness team currently participates in its development, maintenance, or governance. Contributors from the upstream project may appear on GitHub's Contributors page because this repository inherited and later synchronized upstream commit history when it was forked. Such attribution reflects commit provenance only and does not imply involvement in this repository or any affiliation, partnership, authorization, or endorsement.
 
 The upstream project provides the core agent capabilities, plugin system, and Web UI. Nonead DSH Desktop primarily provides:
 
@@ -201,7 +201,7 @@ Ecosystem projects and developer tools around DeepSeek Harness.
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+Copyright © 2026 **Nonead Corporation**. This project is licensed under the [MIT License](LICENSE).
 
 > “DeepSeek Harness” is a registered trademark of DeepSeek AI. The name is used here solely to accurately describe compatibility, technical origin, and this project's relationship to upstream software.
 

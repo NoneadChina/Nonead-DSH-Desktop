@@ -76,3 +76,7 @@ None; this package neither assembles nor sends a provider request.
   FishLogo 位置）不在替换范围内，保持默认 DeepSeek Harness 品牌。
 - **PNG 变更需重新生成 assets.ts** — 源图更新后运行 `scripts/make-assets.ps1`，
   否则页面仍使用旧 base64 数据。
+
+## License
+
+版权所有 © 2026 **Nonead Corporation**。本插件遵循 [MIT License](LICENSE)。
