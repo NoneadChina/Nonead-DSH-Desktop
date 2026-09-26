@@ -253,7 +253,6 @@ function projectSections(
   const mode = parseMode(desktop.mode)
   const networkExposure = parseExposure(desktop.networkExposure)
   const openBrowser = desktopBrowserAccessEnabled(
-    mode,
     optionalBoolean(desktop, 'openBrowser', false),
     networkExposure,
   )
@@ -301,7 +300,7 @@ function normalizedUpdate(
   if (typeof value.openBrowser !== 'boolean') {
     throw new TypeError(`${BIN_NAME}: Setup Wizard openBrowser must be a boolean`)
   }
-  const openBrowser = desktopBrowserAccessAvailable(requestedMode) && value.openBrowser
+  const openBrowser = desktopBrowserAccessAvailable() && value.openBrowser
   const networkExposure = desktopNetworkExposureForBrowserAccess(
     openBrowser,
     parseExposure(value.networkExposure),
@@ -493,10 +492,9 @@ function browserAccessMigration(loaded: LoadedPatchDocument): {
   // Validate every known desktop value before migrating any leaf.
   projectPatchSettings(loaded.rows)
   const desktop = rowConfig(loaded.rows, DESKTOP_NAMESPACE)
-  const storedMode = parseMode(desktop.mode)
   const storedOpenBrowser = optionalBoolean(desktop, 'openBrowser', false)
   const storedExposure = parseExposure(desktop.networkExposure)
-  const browserAccess = desktopBrowserAccessEnabled(storedMode, storedOpenBrowser, storedExposure)
+  const browserAccess = desktopBrowserAccessEnabled(storedOpenBrowser, storedExposure)
   const networkExposure = desktopNetworkExposureForBrowserAccess(browserAccess, storedExposure)
   return {
     browserAccess,

@@ -39,7 +39,6 @@ export interface DesktopNotificationSettings {
 export interface DesktopSettingsSectionInjected {
   readonly api: DesktopSettingsApi
   readonly platform: DesktopClientPlatform
-  readonly initialMode: DesktopShellSettings['mode']
   readonly micaSupported: boolean
   readonly desktopSettings: ConfigForm<DesktopShellSettings>
   readonly notificationSettings: ConfigForm<DesktopNotificationSettings>
@@ -302,7 +301,6 @@ export function DesktopSettingsSection({
   t,
   api,
   platform,
-  initialMode,
   micaSupported,
   desktopSettings,
   notificationSettings,
@@ -368,10 +366,8 @@ export function DesktopSettingsSection({
   const requestRestart = (): void => { setRestart('restarting') }
   const settingsWritable = desktop.status === 'ready' && desktop.writable
   const notificationsWritable = notifications.status === 'ready' && notifications.writable
-  const storedMode = desktop.value?.mode ?? initialMode
   const configuredNetworkExposure = desktop.value?.networkExposure ?? 'loopback'
   const browserAccess = desktopBrowserAccessEnabled(
-    storedMode,
     desktop.value?.openBrowser ?? false,
     configuredNetworkExposure,
   )
@@ -461,7 +457,7 @@ export function DesktopSettingsSection({
   const setBrowserAccess = (checked: boolean): void => {
     void run('web', async () => {
       if (checked) {
-        if (!desktopBrowserAccessAvailable(storedMode)) return
+        if (!desktopBrowserAccessAvailable()) return
         await persistDesktopBrowserAccessHot(desktopSettings, true, configuredNetworkExposure, refreshView)
         return
       }
@@ -471,7 +467,7 @@ export function DesktopSettingsSection({
 
   const setNetworkExposure = (exposure: DesktopShellSettings['networkExposure']): void => {
     void run('web', async () => {
-      if (exposure === 'lan' && (!desktopBrowserAccessAvailable(storedMode) || !browserAccess)) return
+      if (exposure === 'lan' && (!desktopBrowserAccessAvailable() || !browserAccess)) return
       await persistDesktopNetworkExposureHot(desktopSettings, exposure, refreshView)
     })
   }
@@ -680,7 +676,7 @@ export function DesktopSettingsSection({
         <ToggleRow
           label={t('openBrowser')}
           checked={browserAccess}
-          disabled={!desktopBrowserAccessAvailable(storedMode) || !settingsWritable || busy !== undefined}
+          disabled={!desktopBrowserAccessAvailable() || !settingsWritable || busy !== undefined}
           onChange={setBrowserAccess}
         />
         <p className="dshDesktopSettingsNotice">{t('browserCompatibilityNotice')}</p>

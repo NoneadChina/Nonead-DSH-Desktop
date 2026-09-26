@@ -83,7 +83,6 @@ export function applyDesktopSettings(
     inject: () => ({
       api,
       platform: environment.platform,
-      initialMode: environment.mode,
       micaSupported: environment.micaSupported,
       desktopSettings,
       notificationSettings,

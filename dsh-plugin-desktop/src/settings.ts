@@ -59,6 +59,9 @@ export function volatileField<T extends z>(schema: T) {
 
 /** Editable Desktop settings, including the window geometry of the shell row. */
 export const Config = z.object({
+  // Legacy key. It stays schema-valid so a profile written by an older build
+  // still loads; every read path resolves it to the single shipped
+  // presentation, and no Desktop surface offers to change it.
   mode: volatileField(z.union(['compatibility', 'extended', 'advanced'] as const).default('compatibility')),
   macosMaterial: volatileField(z.union(['off', 'transparent'] as const).default(DEFAULT_MACOS_WINDOW_MATERIAL)),
   windowsMaterial: volatileField(z.union(['off', 'acrylic', 'mica'] as const).default(DEFAULT_WINDOWS_WINDOW_MATERIAL)),
@@ -104,15 +107,14 @@ function parseDesktopLogLevel(value: unknown): DesktopLogLevel {
 /**
  * Narrow the projected shell mode.
  *
- * The pre-boot document reader owns the equivalent check for raw profile
- * documents; this copy keeps the settings module free of a cycle with
- * `./profile.ts`, which imports this module's entry id.
+ * The product ships a single compatibility presentation, so a legacy persisted
+ * value resolves to compatibility rather than failing the settings read.
  * @param value - projected `mode` field.
- * @returns a supported shell mode.
+ * @returns the single supported shell mode.
  */
 function parseDesktopShellMode(value: unknown): DesktopShellMode {
   if (value === undefined) return DEFAULT_DESKTOP_SETTINGS.mode
-  if (value === 'compatibility' || value === 'extended' || value === 'advanced') return value
+  if (value === 'compatibility' || value === 'extended' || value === 'advanced') return DEFAULT_DESKTOP_SETTINGS.mode
   throw new Error('dsh-desktop.mode must be "compatibility", "extended", or "advanced"')
 }
 

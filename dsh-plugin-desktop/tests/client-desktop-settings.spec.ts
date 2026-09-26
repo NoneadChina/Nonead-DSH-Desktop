@@ -603,7 +603,6 @@ describe('Desktop settings Slot registration', () => {
     expect(options.label()).toBe(`${DESKTOP_SETTINGS_LOCALE_NAMESPACE}:nav`)
     expect(options.inject()).toMatchObject({
       platform: 'darwin',
-      initialMode: 'compatibility',
       micaSupported: false,
     })
     expect(component).toBe(DesktopSettingsSection)

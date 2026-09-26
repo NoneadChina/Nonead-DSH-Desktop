@@ -3,8 +3,6 @@
 - insert:
     - id: desktop-shell
       name: dsh-plugin-desktop-beta
-      config:
-        mode: compatibility
 
     # Upstream exposes every configurable plugin entry as a row of the Profile
     # patch document, so the Desktop settings panel edits this row instead of a

@@ -131,13 +131,18 @@ const MARKET_PACKAGE_NAMES: ReadonlySet<string> = new Set([
 ])
 
 /**
- * Parse desktop presentation state and reject corrupted values.
+ * Resolve the Desktop presentation for one persisted settings value.
+ *
+ * The product ships a single compatibility presentation. A profile written by
+ * an older build can still carry `extended` or `advanced`; those are accepted
+ * and resolved to compatibility instead of being rejected, so an upgrade never
+ * refuses to start. Corrupt values are still rejected.
  * @param value - untrusted settings value.
- * @returns a supported desktop shell mode.
+ * @returns the single supported desktop shell mode.
  */
 export function parseDesktopShellMode(value: unknown): DesktopShellMode {
   if (value === undefined) return DEFAULT_DESKTOP_SHELL_MODE
-  if (value === 'compatibility' || value === 'extended' || value === 'advanced') return value
+  if (value === 'compatibility' || value === 'extended' || value === 'advanced') return DEFAULT_DESKTOP_SHELL_MODE
   throw new Error(`${BIN_NAME}: ${DESKTOP_SETTINGS_NAMESPACE}.mode must be "compatibility", "extended", or "advanced"`)
 }
 
@@ -188,7 +193,6 @@ export function desktopStartupSettingsFromSettings(document: unknown): DesktopSt
   const mode = parseDesktopShellMode(values.mode)
   const networkExposure = parseDesktopNetworkExposure(values.networkExposure)
   const openBrowser = desktopBrowserAccessEnabled(
-    mode,
     parseDesktopOpenBrowser(values.openBrowser),
     networkExposure,
   )

@@ -377,7 +377,6 @@ export function apply(ctx: Context, config: Config): void {
       if (namespace !== DESKTOP_SETTINGS_ENTRY_ID) return
       const next = readDesktopSettings(ctx)
       const nextBrowserAccess = desktopBrowserAccessEnabled(
-        next.mode,
         next.openBrowser,
         next.networkExposure,
       )
