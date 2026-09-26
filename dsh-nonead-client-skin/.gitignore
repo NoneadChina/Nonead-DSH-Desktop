@@ -1,0 +1,12 @@
+# Node
+node_modules/
+
+# Build artifacts (tsbuildinfo is a TS incremental build cache)
+lib/tsconfig.tsbuildinfo
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

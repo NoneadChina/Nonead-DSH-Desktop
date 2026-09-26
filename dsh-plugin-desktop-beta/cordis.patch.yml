@@ -1,0 +1,48 @@
+# Desktop Host operations compose around the existing Web bundle. Compatibility
+# mode keeps upstream ownership of the browser carrier and rendered UI.
+- insert:
+    - id: desktop-shell
+      name: dsh-plugin-desktop-beta
+
+    # Upstream exposes every configurable plugin entry as a row of the Profile
+    # patch document, so the Desktop settings panel edits this row instead of a
+    # provider-owned settings file.
+    - id: dsh-desktop
+      name: dsh-plugin-desktop-beta/settings
+
+    - id: desktop-terminal
+      name: dsh-plugin-desktop-beta/terminal
+      disabled: !!js process.platform === 'linux'
+    - id: desktop-diagnostics
+      name: dsh-plugin-desktop-beta/diagnostics
+    - id: dsh-desktop-notifications
+      name: dsh-plugin-desktop-beta/notifications
+    - id: desktop-pnpm
+      name: dsh-plugin-desktop-beta/pnpm
+    - id: desktop-profiles
+      name: dsh-plugin-desktop-beta/profiles
+    - id: desktop-updates
+      name: dsh-plugin-desktop-beta/updates
+
+    # Shipped product plugins. They ride this launcher generation instead of the
+    # persistent Profile, so every Profile on every machine starts with them and
+    # the Desktop plugin inventory never offers to disable them.
+    #
+    # Nonead brand skin: the browser half is picked up by dsh-client-modules
+    # through the package's dsh.client declaration (immediately: true).
+    - id: nonead-client-skin
+      name: dsh-nonead-client-skin
+
+# A desktop launch has no terminal operator waiting for the Web readiness line.
+- id: web-runtime
+  config:
+    openBrowser: false
+    printUrl: false
+    surfaceContext: true
+    trustedHosts: []
+
+# The Desktop Host deliberately drops `loader.internal` so Host imports and
+# browser bundle discovery keep using the packaged profile-overlay resolver, and
+# the HMR service cannot start without it.
+- id: hmr
+  disabled: true

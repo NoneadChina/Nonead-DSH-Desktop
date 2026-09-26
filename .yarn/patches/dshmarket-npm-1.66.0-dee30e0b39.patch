@@ -1,0 +1,622 @@
+diff --git a/client/client.js b/client/client.js
+index 2ca0a5125d1ba73da9e35dca44e145b758c21db1..87661f64de67b30f43cacd004f99a130fdb70af7 100644
+--- a/client/client.js
++++ b/client/client.js
+@@ -9412,7 +9412,7 @@ window.__ModuleLoader__.load({ id: "dshmarket", factory: (require) => {
+ 					return next;
+ 				});
+ 			}, []);
+-			const selfName = installed["dshmarket"] !== void 0 ? "dshmarket" : "dsh-market";
++			const selfName = installed["dshmarket"] !== void 0 || updates["dshmarket"] !== void 0 ? "dshmarket" : "dsh-market";
+ 			const updatableNames = Object.keys(installed).filter((name) => name !== selfName && !effectiveDisabledSet.has(name) && isPluginUpdatable(name, String(installed[name]), updates[name], updatedNames));
+ 			const batchUpdatableNames = updatableNames.filter((name) => updates[name]?.restoreRequired !== true);
+ 			const ignoredUpdateSet = (0, react.useMemo)(() => new Set(ignoredUpdateNames), [ignoredUpdateNames]);
+@@ -10465,18 +10465,17 @@ window.__ModuleLoader__.load({ id: "dshmarket", factory: (require) => {
+ 										children: ["v", version]
+ 									}),
+ 									(() => {
+-										const self = installed["dshmarket"] !== void 0 ? "dshmarket" : "dsh-market";
+-										const status = updates[self];
+-										return status && status.updateAvailable && !updatedNames.includes(self) && !ignoredUpdateSet.has(self) && /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
++										const status = updates[selfName];
++										return status && status.updateAvailable && !updatedNames.includes(selfName) && !ignoredUpdateSet.has(selfName) && /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
+ 											variant: "primary",
+ 											size: "sm",
+ 											disabled: updatingName !== null || busyUrl !== null,
+ 											onClick: () => {
+ 												setTab("installed");
+-												if (status.restoreRequired === true) askRestore(self);
+-												else doUpdate(self);
++												if (status.restoreRequired === true) askRestore(selfName);
++												else doUpdate(selfName);
+ 											},
+-											children: updatingName === self ? t("updating") : status.restoreRequired === true ? t("restoreOnline") : t("marketUpdate")
++											children: updatingName === selfName ? t("updating") : status.restoreRequired === true ? t("restoreOnline") : t("marketUpdate")
+ 										});
+ 									})(),
+ 									reminderBatchUpdatableNames.length >= 1 && /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
+diff --git a/lib/routes.js b/lib/routes.js
+index 43fc5a02cb5bb9fcd1470b81edab21a21e4994d7..63ebb9cd893582b2f0d89c1164db817bf66ecb1a 100644
+--- a/lib/routes.js
++++ b/lib/routes.js
+@@ -70,28 +70,40 @@ function isGitHubReleaseTarballSpec(spec) {
+         return false;
+     }
+ }
++/** The market's own package names, as they appear in a profile manifest. */
++const SELF_NAMES = new Set(['dshmarket', 'dsh-market']);
+ /**
+- * The market's own version, read once from its installed package.json.
++ * The market's own package identity, read once from its installed package.json.
+  *
+- * The UI puts this in the page heading so a user's screenshot carries it:
+- * most bug reports arrive as a photo of the screen, and without a version
++ * The UI puts the version in the page heading so a user's screenshot carries
++ * it: most bug reports arrive as a photo of the screen, and without a version
+  * in frame the first reply always has to ask which one it was.
++ *
++ * The NAME matters as much as the version here. A Desktop host ships this
++ * package as a dependency of its launcher generation instead of a Profile
++ * dependency, so the profile manifest has no row to read either half from —
++ * and the two spellings (`dshmarket`, `dsh-market`) mean the answer decides
++ * which identity a host-provided update is offered against.
+  */
+-let cachedVersion = null;
+-export function marketVersion() {
+-    if (cachedVersion !== null)
+-        return cachedVersion;
++let cachedIdentity = null;
++function marketIdentity() {
++    if (cachedIdentity !== null)
++        return cachedIdentity;
+     try {
+         const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+-        cachedVersion = manifest.version ?? 'unknown';
++        cachedIdentity = {
++            name: typeof manifest.name === 'string' && SELF_NAMES.has(manifest.name) ? manifest.name : 'dshmarket',
++            version: manifest.version ?? 'unknown',
++        };
+     }
+     catch {
+-        cachedVersion = 'unknown';
++        cachedIdentity = { name: 'dshmarket', version: 'unknown' };
+     }
+-    return cachedVersion;
++    return cachedIdentity;
++}
++export function marketVersion() {
++    return marketIdentity().version;
+ }
+-/** The market's own package names, as they appear in a profile manifest. */
+-const SELF_NAMES = new Set(['dshmarket', 'dsh-market']);
+ /**
+  * Rebuild a GitHub target for an update.
+  *
+@@ -1306,9 +1318,17 @@ export function mountMarketRoutes(host, config, commandRuntime, agentsLookup, ho
+         // unreleased work.
+         const channel = activeChannel();
+         const installed = readInstalled(config.profile, activeProfileDir);
+-        const channelFor = new Map(Object.keys(installed)
+-            .filter(name => SELF_NAMES.has(name))
+-            .map(name => [name, channel]));
++        // A Desktop host supplies this package outside the profile manifest, so
++        // there is no row here for it and no version to compare. Its own manifest
++        // stands in for both: without that, the one install the user most needs to
++        // be able to update — this one — is the one the market cannot see.
++        const identity = marketIdentity();
++        const installedSelfNames = Object.keys(installed).filter(name => SELF_NAMES.has(name));
++        const selfNames = installedSelfNames.length > 0 ? installedSelfNames : [identity.name];
++        const hostProvidedNpmVersions = installedSelfNames.length === 0
++            ? new Map([[identity.name, identity.version]])
++            : new Map();
++        const channelFor = new Map(selfNames.map(name => [name, channel]));
+         const onlineSourceFor = new Map();
+         try {
+             const registry = await loadRegistry();
+@@ -1321,7 +1341,7 @@ export function mountMarketRoutes(host, config, commandRuntime, agentsLookup, ho
+         catch (error) {
+             logEvent('warn', 'updates', `package source lookup failed — ${error instanceof Error ? error.message : String(error)}`);
+         }
+-        return { channelFor, onlineSourceFor };
++        return { channelFor, onlineSourceFor, hostProvidedNpmVersions };
+     }
+     /**
+      * Pre-install host compatibility refusal, shared by the update route and
+@@ -1440,8 +1460,8 @@ export function mountMarketRoutes(host, config, commandRuntime, agentsLookup, ho
+                     return;
+                 }
+                 try {
+-                    const { channelFor, onlineSourceFor } = await updateCheckInputs();
+-                    const updates = await checkUpdates(config.profile, forceCheckFrom(request), activeProfileDir, channelFor, onlineSourceFor);
++                    const { channelFor, onlineSourceFor, hostProvidedNpmVersions } = await updateCheckInputs();
++                    const updates = await checkUpdates(config.profile, forceCheckFrom(request), activeProfileDir, channelFor, onlineSourceFor, hostProvidedNpmVersions);
+                     // `packages` carries the same objects the single-package endpoint
+                     // returns, so one parser serves both. Only updatable ones: a badge
+                     // wants the count, a panel wants the rows, and neither wants to
+@@ -1458,8 +1478,9 @@ export function mountMarketRoutes(host, config, commandRuntime, agentsLookup, ho
+                         schema: UPDATE_API_V1_SCHEMA,
+                         // The denominator, so a caller can tell "nothing to update" from
+                         // "nothing was looked at" — which is the difference between a
+-                        // badge that is right and one that is merely quiet.
+-                        checked: Object.keys(readInstalled(config.profile, activeProfileDir)).length,
++                        // badge that is right and one that is merely quiet. A host-provided
++                        // package is checked too, so it is counted too.
++                        checked: Object.keys(readInstalled(config.profile, activeProfileDir)).length + hostProvidedNpmVersions.size,
+                         updatable: packages.length,
+                         packages,
+                     });
+@@ -1487,8 +1508,8 @@ export function mountMarketRoutes(host, config, commandRuntime, agentsLookup, ho
+                         // The same inputs the market page builds, so a generation (#497)
+                         // or a catalog-matched local package answers here with the
+                         // release it can be compared against rather than with nothing.
+-                        const { channelFor, onlineSourceFor } = await updateCheckInputs();
+-                        const update = (await checkUpdates(config.profile, force, activeProfileDir, channelFor, onlineSourceFor))[name];
++                        const { channelFor, onlineSourceFor, hostProvidedNpmVersions } = await updateCheckInputs();
++                        const update = (await checkUpdates(config.profile, force, activeProfileDir, channelFor, onlineSourceFor, hostProvidedNpmVersions))[name];
+                         if (update === undefined) {
+                             sendJson(response, 404, { schema: UPDATE_API_V1_SCHEMA, error: 'plugin is not installed' });
+                             return;
+@@ -2948,7 +2969,7 @@ export function mountMarketRoutes(host, config, commandRuntime, agentsLookup, ho
+                 }
+                 try {
+                     const force = (request.url ?? '').includes('force=1');
+-                    const { channelFor, onlineSourceFor } = await updateCheckInputs();
++                    const { channelFor, onlineSourceFor, hostProvidedNpmVersions } = await updateCheckInputs();
+                     // Migration hints are this listing's own business: the market page
+                     // is where "this could come from npm now" is offered, and no other
+                     // caller acts on it.
+@@ -2965,7 +2986,7 @@ export function mountMarketRoutes(host, config, commandRuntime, agentsLookup, ho
+                     catch (error) {
+                         logEvent('warn', 'updates', `package source lookup failed — ${error instanceof Error ? error.message : String(error)}`);
+                     }
+-                    const updates = await checkUpdates(config.profile, force, activeProfileDir, channelFor, onlineSourceFor);
++                    const updates = await checkUpdates(config.profile, force, activeProfileDir, channelFor, onlineSourceFor, hostProvidedNpmVersions);
+                     for (const [name, migration] of sourceMigrationFor) {
+                         const status = updates[name];
+                         if (status !== undefined)
+@@ -3234,7 +3255,13 @@ export function mountMarketRoutes(host, config, commandRuntime, agentsLookup, ho
+                             });
+                             return;
+                         }
+-                        let spec = manifestCapture.snapshot.dependencies[name];
++                        const identity = marketIdentity();
++                        let spec = manifestCapture.snapshot.dependencies[name]
++                            // A Desktop host installs this package outside the Profile, so
++                            // the manifest has no row to update. Its own version is the
++                            // install being replaced, which is what makes the market able to
++                            // repair itself from inside the page it renders.
++                            ?? (name === identity.name ? identity.version : undefined);
+                         if (spec === undefined || INBOX_BUNDLES.has(name)) {
+                             sendJson(response, 400, { error: 'plugin is not installed' });
+                             return;
+@@ -3374,7 +3401,8 @@ export function mountMarketRoutes(host, config, commandRuntime, agentsLookup, ho
+                         // Desktop boundary; it is what turns a silent skip into a
+                         // failure with a name.
+                         if (usesNpmUpdateTarget) {
+-                            const installedVersion = readInstalledVersion(config.profile, name, activeProfileDir);
++                            const installedVersion = readInstalledVersion(config.profile, name, activeProfileDir)
++                                ?? (name === identity.name ? identity.version : null);
+                             // The requested release replaces the resolved one, and with it
+                             // every check below that exists to judge `latest`: re-running
+                             // them would refuse the version the dialog just found, in a loop
+@@ -3523,7 +3551,8 @@ export function mountMarketRoutes(host, config, commandRuntime, agentsLookup, ho
+                         // one needs a refresh, not a restart.
+                         const wasLive = verifyActivation(config.profile, name, liveNames(), activeProfileDir, disabled.has(name)).state === 'live'
+                             && hasHostHalf(config.profile, name, activeProfileDir);
+-                        const beforeVersion = readInstalledVersion(config.profile, name, activeProfileDir);
++                        const beforeVersion = readInstalledVersion(config.profile, name, activeProfileDir)
++                            ?? (name === identity.name ? identity.version : null);
+                         const beforePackageName = readInstalledPackageName(config.profile, name, activeProfileDir);
+                         // A durable manifest pin is independently authoritative. When its
+                         // captured lock is missing or stale, the exact OLD re-add repairs
+@@ -3567,6 +3596,10 @@ export function mountMarketRoutes(host, config, commandRuntime, agentsLookup, ho
+                         // well as after.
+                         const bundlesBefore = brokenClientBundles(config.profile, activeProfileDir);
+                         const manifestBefore = manifestCapture.snapshot;
++                        // The composition as it stood BEFORE the add: an update is only
++                        // ever blamed for what it introduced (see the trial check below).
++                        const trialBeforeStack = readBundleStack(activeProfileDir);
++                        const trialBefore = trialValidate(activeProfileDir, trialBeforeStack.community);
+                         const lockfileCapture = captureProfileLockfile();
+                         const previousVersionZh = beforeVersion === null ? '更新前版本未知' : `更新前版本为 v${beforeVersion}`;
+                         const previousVersionEn = beforeVersion === null ? 'the previous version is unknown' : `the previous version was v${beforeVersion}`;
+@@ -3920,14 +3953,21 @@ export function mountMarketRoutes(host, config, commandRuntime, agentsLookup, ho
+                         if (ok) {
+                             const stack = readBundleStack(activeProfileDir);
+                             const trial = trialValidate(activeProfileDir, stack.community);
+-                            if (!trial.ok) {
++                            // Blame this run only for what this run broke. A composition that
++                            // was already broken when the update started — a bundle layer
++                            // that was missing before anything was touched — is not this
++                            // update's doing, and refusing over it left a profile that could
++                            // not be repaired from the page offering the repair.
++                            const baselineErrors = new Set(trialBefore.errors.map(error => `${error.layer}\0${error.message}`));
++                            const introducedErrors = trial.errors.filter(error => !baselineErrors.has(`${error.layer}\0${error.message}`));
++                            if (introducedErrors.length > 0) {
+                                 ok = false;
+                                 // Name the LAYER, not only the message: the first error is
+                                 // often about a different bundle than the one being updated
+                                 // (#688 — the official dsh-web-app's patch list, blamed on
+                                 // whatever plugin the user happened to update), and a message
+                                 // without the layer reads as an accusation of the wrong package.
+-                                const firstIssue = trial.errors[0];
++                                const firstIssue = introducedErrors[0];
+                                 const first = firstIssue === undefined
+                                     ? 'the composition would not boot'
+                                     : `${firstIssue.layer}: ${firstIssue.message}`;
+diff --git a/lib/types/updates.d.ts b/lib/types/updates.d.ts
+index 4df8579fca07855af48b17057e39adf50bf95134..0f6ab962eeed991236f85f432cd3b4bede565720 100644
+--- a/lib/types/updates.d.ts
++++ b/lib/types/updates.d.ts
+@@ -134,4 +134,11 @@ channelFor?: ReadonlyMap<string, Channel>,
+  * the generations the desktop host links in (#497). Any other `link:` is
+  * a development workspace and is never opted into online updates.
+  */
+-onlineSourceFor?: ReadonlyMap<string, string>): Promise<Record<string, UpdateStatus>>;
++onlineSourceFor?: ReadonlyMap<string, string>, 
++/**
++ * npm packages the host supplies outside the profile manifest — today the
++ * Desktop-bundled market itself. They are compared against the registry
++ * like any other npm install, and the host's version stands in for an
++ * installed version the manifest cannot carry.
++ */
++hostProvidedNpmVersions?: ReadonlyMap<string, string>): Promise<Record<string, UpdateStatus>>;
+diff --git a/lib/updates.js b/lib/updates.js
+index 1d0e02005bdb37c2cf718de466c6ac9190646fd2..35acf36f92e40a886887c6d86acda9d8e5d9a1dd 100644
+--- a/lib/updates.js
++++ b/lib/updates.js
+@@ -271,21 +271,38 @@ channelFor = new Map(),
+  * the generations the desktop host links in (#497). Any other `link:` is
+  * a development workspace and is never opted into online updates.
+  */
+-onlineSourceFor = new Map()) {
++onlineSourceFor = new Map(), 
++/**
++ * npm packages the host supplies outside the profile manifest — today the
++ * Desktop-bundled market itself. They are compared against the registry
++ * like any other npm install, and the host's version stands in for an
++ * installed version the manifest cannot carry.
++ */
++hostProvidedNpmVersions = new Map()) {
+     const activeProfileDir = profileDir(profile, explicitDir);
+     // The channel is part of the key: switching to betas has to change the
+     // answer immediately, and a cache keyed on the profile alone would serve
+     // the stable verdict for the rest of the TTL — reading as "the setting did
+     // nothing".
+-    const cacheKey = `${activeProfileDir}\u0000${[...channelFor].map(([n, c]) => `${n}:${c}`).sort().join(',')}\u0000${[...onlineSourceFor].map(([n, s]) => `${n}:${s}`).sort().join(',')}`;
++    const cacheKey = `${activeProfileDir}\u0000${[...channelFor].map(([n, c]) => `${n}:${c}`).sort().join(',')}\u0000${[...onlineSourceFor].map(([n, s]) => `${n}:${s}`).sort().join(',')}\u0000${[...hostProvidedNpmVersions].map(([n, v]) => `${n}:${v}`).sort().join(',')}`;
+     if (!force && updatesCache?.key === cacheKey && Date.now() - updatesCache.at < UPDATES_TTL_MS) {
+         return updatesCache.data;
+     }
+     const installed = readInstalled(profile, activeProfileDir);
++    // A host-provided package is checked like an installed one. It stays out of
++    // the manifest's own reading — nothing here writes it back — so its version
++    // travels beside the spec map rather than inside it.
++    const provided = new Map();
++    for (const [name, version] of hostProvidedNpmVersions) {
++        if (installed[name] !== undefined)
++            continue;
++        installed[name] = version;
++        provided.set(name, version);
++    }
+     const lockCommits = readLockCommits(profile, activeProfileDir);
+     const result = {};
+     await Promise.all(Object.entries(installed).map(async ([name, spec]) => {
+-        const version = readInstalledVersion(profile, name, activeProfileDir);
++        const version = provided.get(name) ?? readInstalledVersion(profile, name, activeProfileDir);
+         const normalizedSpec = spec.toLowerCase();
+         if (normalizedSpec.startsWith('file:')) {
+             const onlineSource = onlineSourceFor.get(name);
+diff --git a/src/client/MarketSection.tsx b/src/client/MarketSection.tsx
+index 0d891301cf255c2188e3e944cfe5d99248e9fde0..15cc44fcdbb59bb95c2380c9373015c411c6e608 100644
+--- a/src/client/MarketSection.tsx
++++ b/src/client/MarketSection.tsx
+@@ -3592,7 +3592,14 @@ export function MarketSection(props: MarketSectionProps) {
+ 
+   // The market itself stays out of the batch: its update reloads this page
+   // mid-run, which would strand the remaining items.
+-  const selfName = installed['dshmarket'] !== undefined ? 'dshmarket' : 'dsh-market'
++  //
++  // Which identity is ours comes from the listing as well as the manifest. A
++  // Desktop host supplies this package outside the Profile, so `installed`
++  // has no row for it while `updates` does — and reading only the manifest
++  // made "the market" the name nobody installed, hiding its own update.
++  const selfName = installed['dshmarket'] !== undefined || updates['dshmarket'] !== undefined
++    ? 'dshmarket'
++    : 'dsh-market'
+   const updatableNames = Object.keys(installed).filter(
+     name => name !== selfName
+       && !effectiveDisabledSet.has(name)
+@@ -4591,10 +4598,9 @@ export function MarketSection(props: MarketSectionProps) {
+           <a className={css.repoLink} href="https://github.com/dsh-market/dsh-market" target="_blank" rel="noreferrer" title="dsh-market · GitHub">dsh-market</a>
+           {version !== null && <span className={css.version} title={t('versionHint')}>v{version}</span>}
+           {(() => {
+-            const self = installed['dshmarket'] !== undefined ? 'dshmarket' : 'dsh-market'
+-            const status = updates[self]
+-            return status && status.updateAvailable && !updatedNames.includes(self)
+-              && !ignoredUpdateSet.has(self)
++            const status = updates[selfName]
++            return status && status.updateAvailable && !updatedNames.includes(selfName)
++              && !ignoredUpdateSet.has(selfName)
+               && (
+                 <Button
+                   variant="primary"
+@@ -4602,10 +4608,10 @@ export function MarketSection(props: MarketSectionProps) {
+                   disabled={updatingName !== null || busyUrl !== null}
+                   onClick={() => {
+                     setTab('installed')
+-                    if (status.restoreRequired === true) askRestore(self)
+-                    else doUpdate(self)
++                    if (status.restoreRequired === true) askRestore(selfName)
++                    else doUpdate(selfName)
+                   }}
+-                >{updatingName === self ? t('updating') : status.restoreRequired === true ? t('restoreOnline') : t('marketUpdate')}</Button>
++                >{updatingName === selfName ? t('updating') : status.restoreRequired === true ? t('restoreOnline') : t('marketUpdate')}</Button>
+               )
+           })()}
+           {reminderBatchUpdatableNames.length >= 1 && (
+diff --git a/src/routes.ts b/src/routes.ts
+index 9d8ef2c5585c57d65b7e3044009b08d88e8f6809..47b7e02d1bf9c1ed0a629a74ebeab47ea74c53bb 100644
+--- a/src/routes.ts
++++ b/src/routes.ts
+@@ -162,27 +162,48 @@ export interface MarketConfig {
+   buildEnv?: Record<string, string>
+ }
+ 
++/** The market's own package names, as they appear in a profile manifest. */
++const SELF_NAMES = new Set(['dshmarket', 'dsh-market'])
++
++interface MarketIdentity {
++  name: string
++  version: string
++}
++
+ /**
+- * The market's own version, read once from its installed package.json.
++ * The market's own package identity, read once from its installed package.json.
+  *
+- * The UI puts this in the page heading so a user's screenshot carries it:
+- * most bug reports arrive as a photo of the screen, and without a version
++ * The UI puts the version in the page heading so a user's screenshot carries
++ * it: most bug reports arrive as a photo of the screen, and without a version
+  * in frame the first reply always has to ask which one it was.
++ *
++ * The NAME matters as much as the version here. A Desktop host ships this
++ * package as a dependency of its launcher generation instead of a Profile
++ * dependency, so the profile manifest has no row to read either half from —
++ * and the two spellings (`dshmarket`, `dsh-market`) mean the answer decides
++ * which identity a host-provided update is offered against.
+  */
+-let cachedVersion: string | null = null
+-export function marketVersion(): string {
+-  if (cachedVersion !== null) return cachedVersion
++let cachedIdentity: MarketIdentity | null = null
++function marketIdentity(): MarketIdentity {
++  if (cachedIdentity !== null) return cachedIdentity
+   try {
+-    const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version?: string }
+-    cachedVersion = manifest.version ?? 'unknown'
++    const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as {
++      name?: string
++      version?: string
++    }
++    cachedIdentity = {
++      name: typeof manifest.name === 'string' && SELF_NAMES.has(manifest.name) ? manifest.name : 'dshmarket',
++      version: manifest.version ?? 'unknown',
++    }
+   } catch {
+-    cachedVersion = 'unknown'
++    cachedIdentity = { name: 'dshmarket', version: 'unknown' }
+   }
+-  return cachedVersion
++  return cachedIdentity
+ }
+ 
+-/** The market's own package names, as they appear in a profile manifest. */
+-const SELF_NAMES = new Set(['dshmarket', 'dsh-market'])
++export function marketVersion(): string {
++  return marketIdentity().version
++}
+ 
+ /**
+  * Rebuild a GitHub target for an update.
+@@ -1455,6 +1476,7 @@ export function mountMarketRoutes(
+   async function updateCheckInputs(): Promise<{
+     channelFor: Map<string, Channel>
+     onlineSourceFor: Map<string, string>
++    hostProvidedNpmVersions: Map<string, string>
+   }> {
+     // Only the market itself follows the channel setting (see
+     // MarketSettings.channel): a user opting into betas is volunteering to
+@@ -1462,10 +1484,18 @@ export function mountMarketRoutes(
+     // unreleased work.
+     const channel = activeChannel()
+     const installed = readInstalled(config.profile, activeProfileDir)
++    // A Desktop host supplies this package outside the profile manifest, so
++    // there is no row here for it and no version to compare. Its own manifest
++    // stands in for both: without that, the one install the user most needs to
++    // be able to update — this one — is the one the market cannot see.
++    const identity = marketIdentity()
++    const installedSelfNames = Object.keys(installed).filter(name => SELF_NAMES.has(name))
++    const selfNames = installedSelfNames.length > 0 ? installedSelfNames : [identity.name]
++    const hostProvidedNpmVersions = installedSelfNames.length === 0
++      ? new Map([[identity.name, identity.version]])
++      : new Map<string, string>()
+     const channelFor = new Map(
+-      Object.keys(installed)
+-        .filter(name => SELF_NAMES.has(name))
+-        .map(name => [name, channel] as const),
++      selfNames.map(name => [name, channel] as const),
+     )
+     const onlineSourceFor = new Map<string, string>()
+     try {
+@@ -1477,7 +1507,7 @@ export function mountMarketRoutes(
+     } catch (error) {
+       logEvent('warn', 'updates', `package source lookup failed — ${error instanceof Error ? error.message : String(error)}`)
+     }
+-    return { channelFor, onlineSourceFor }
++    return { channelFor, onlineSourceFor, hostProvidedNpmVersions }
+   }
+ 
+   /**
+@@ -1608,8 +1638,8 @@ export function mountMarketRoutes(
+           return
+         }
+         try {
+-          const { channelFor, onlineSourceFor } = await updateCheckInputs()
+-          const updates = await checkUpdates(config.profile, forceCheckFrom(request), activeProfileDir, channelFor, onlineSourceFor)
++          const { channelFor, onlineSourceFor, hostProvidedNpmVersions } = await updateCheckInputs()
++          const updates = await checkUpdates(config.profile, forceCheckFrom(request), activeProfileDir, channelFor, onlineSourceFor, hostProvidedNpmVersions)
+           // `packages` carries the same objects the single-package endpoint
+           // returns, so one parser serves both. Only updatable ones: a badge
+           // wants the count, a panel wants the rows, and neither wants to
+@@ -1626,8 +1656,9 @@ export function mountMarketRoutes(
+             schema: UPDATE_API_V1_SCHEMA,
+             // The denominator, so a caller can tell "nothing to update" from
+             // "nothing was looked at" — which is the difference between a
+-            // badge that is right and one that is merely quiet.
+-            checked: Object.keys(readInstalled(config.profile, activeProfileDir)).length,
++            // badge that is right and one that is merely quiet. A host-provided
++            // package is checked too, so it is counted too.
++            checked: Object.keys(readInstalled(config.profile, activeProfileDir)).length + hostProvidedNpmVersions.size,
+             updatable: packages.length,
+             packages,
+           })
+@@ -1655,8 +1686,8 @@ export function mountMarketRoutes(
+             // The same inputs the market page builds, so a generation (#497)
+             // or a catalog-matched local package answers here with the
+             // release it can be compared against rather than with nothing.
+-            const { channelFor, onlineSourceFor } = await updateCheckInputs()
+-            const update = (await checkUpdates(config.profile, force, activeProfileDir, channelFor, onlineSourceFor))[name]
++            const { channelFor, onlineSourceFor, hostProvidedNpmVersions } = await updateCheckInputs()
++            const update = (await checkUpdates(config.profile, force, activeProfileDir, channelFor, onlineSourceFor, hostProvidedNpmVersions))[name]
+             if (update === undefined) {
+               sendJson(response, 404, { schema: UPDATE_API_V1_SCHEMA, error: 'plugin is not installed' })
+               return
+@@ -3115,7 +3146,7 @@ export function mountMarketRoutes(
+         }
+         try {
+           const force = (request.url ?? '').includes('force=1')
+-          const { channelFor, onlineSourceFor } = await updateCheckInputs()
++          const { channelFor, onlineSourceFor, hostProvidedNpmVersions } = await updateCheckInputs()
+           // Migration hints are this listing's own business: the market page
+           // is where "this could come from npm now" is offered, and no other
+           // caller acts on it.
+@@ -3130,7 +3161,7 @@ export function mountMarketRoutes(
+           } catch (error) {
+             logEvent('warn', 'updates', `package source lookup failed — ${error instanceof Error ? error.message : String(error)}`)
+           }
+-          const updates = await checkUpdates(config.profile, force, activeProfileDir, channelFor, onlineSourceFor)
++          const updates = await checkUpdates(config.profile, force, activeProfileDir, channelFor, onlineSourceFor, hostProvidedNpmVersions)
+           for (const [name, migration] of sourceMigrationFor) {
+             const status = updates[name]
+             if (status !== undefined) updates[name] = { ...status, sourceMigration: migration }
+@@ -3412,7 +3443,13 @@ sendJson(response, 200, { updates })
+               })
+               return
+             }
++            const identity = marketIdentity()
+             let spec = manifestCapture.snapshot.dependencies[name]
++              // A Desktop host installs this package outside the Profile, so
++              // the manifest has no row to update. Its own version is the
++              // install being replaced, which is what makes the market able to
++              // repair itself from inside the page it renders.
++              ?? (name === identity.name ? identity.version : undefined)
+             if (spec === undefined || INBOX_BUNDLES.has(name)) {
+               sendJson(response, 400, { error: 'plugin is not installed' })
+               return
+@@ -3552,6 +3589,7 @@ sendJson(response, 200, { updates })
+             // failure with a name.
+             if (usesNpmUpdateTarget) {
+               const installedVersion = readInstalledVersion(config.profile, name, activeProfileDir)
++                ?? (name === identity.name ? identity.version : null)
+               // The requested release replaces the resolved one, and with it
+               // every check below that exists to judge `latest`: re-running
+               // them would refuse the version the dialog just found, in a loop
+@@ -3699,6 +3737,7 @@ sendJson(response, 200, { updates })
+             const wasLive = verifyActivation(config.profile, name, liveNames(), activeProfileDir, disabled.has(name)).state === 'live'
+               && hasHostHalf(config.profile, name, activeProfileDir)
+             const beforeVersion = readInstalledVersion(config.profile, name, activeProfileDir)
++              ?? (name === identity.name ? identity.version : null)
+             const beforePackageName = readInstalledPackageName(config.profile, name, activeProfileDir)
+             // A durable manifest pin is independently authoritative. When its
+             // captured lock is missing or stale, the exact OLD re-add repairs
+@@ -3742,6 +3781,10 @@ sendJson(response, 200, { updates })
+             // well as after.
+             const bundlesBefore = brokenClientBundles(config.profile, activeProfileDir)
+             const manifestBefore = manifestCapture.snapshot
++            // The composition as it stood BEFORE the add: an update is only
++            // ever blamed for what it introduced (see the trial check below).
++            const trialBeforeStack = readBundleStack(activeProfileDir)
++            const trialBefore = trialValidate(activeProfileDir, trialBeforeStack.community)
+             const lockfileCapture = captureProfileLockfile()
+             const previousVersionZh = beforeVersion === null ? '更新前版本未知' : `更新前版本为 v${beforeVersion}`
+             const previousVersionEn = beforeVersion === null ? 'the previous version is unknown' : `the previous version was v${beforeVersion}`
+@@ -4096,14 +4139,21 @@ sendJson(response, 200, { updates })
+             if (ok) {
+               const stack = readBundleStack(activeProfileDir)
+               const trial = trialValidate(activeProfileDir, stack.community)
+-              if (!trial.ok) {
++              // Blame this run only for what this run broke. A composition that
++              // was already broken when the update started — a bundle layer
++              // that was missing before anything was touched — is not this
++              // update's doing, and refusing over it left a profile that could
++              // not be repaired from the page offering the repair.
++              const baselineErrors = new Set(trialBefore.errors.map(error => `${error.layer}\0${error.message}`))
++              const introducedErrors = trial.errors.filter(error => !baselineErrors.has(`${error.layer}\0${error.message}`))
++              if (introducedErrors.length > 0) {
+                 ok = false
+                 // Name the LAYER, not only the message: the first error is
+                 // often about a different bundle than the one being updated
+                 // (#688 — the official dsh-web-app's patch list, blamed on
+                 // whatever plugin the user happened to update), and a message
+                 // without the layer reads as an accusation of the wrong package.
+-                const firstIssue = trial.errors[0]
++                const firstIssue = introducedErrors[0]
+                 const first = firstIssue === undefined
+                   ? 'the composition would not boot'
+                   : `${firstIssue.layer}: ${firstIssue.message}`
+diff --git a/src/updates.ts b/src/updates.ts
+index 67917314e1a90ed4b5e9296877b044b495ea8856..13f50d255faa3734fe9d99f78f91c70607be0ca9 100644
+--- a/src/updates.ts
++++ b/src/updates.ts
+@@ -317,21 +317,37 @@ export async function checkUpdates(
+    * a development workspace and is never opted into online updates.
+    */
+   onlineSourceFor: ReadonlyMap<string, string> = new Map(),
++  /**
++   * npm packages the host supplies outside the profile manifest — today the
++   * Desktop-bundled market itself. They are compared against the registry
++   * like any other npm install, and the host's version stands in for an
++   * installed version the manifest cannot carry.
++   */
++  hostProvidedNpmVersions: ReadonlyMap<string, string> = new Map(),
+ ): Promise<Record<string, UpdateStatus>> {
+   const activeProfileDir = profileDir(profile, explicitDir)
+   // The channel is part of the key: switching to betas has to change the
+   // answer immediately, and a cache keyed on the profile alone would serve
+   // the stable verdict for the rest of the TTL — reading as "the setting did
+   // nothing".
+-  const cacheKey = `${activeProfileDir}\u0000${[...channelFor].map(([n, c]) => `${n}:${c}`).sort().join(',')}\u0000${[...onlineSourceFor].map(([n, s]) => `${n}:${s}`).sort().join(',')}`
++  const cacheKey = `${activeProfileDir}\u0000${[...channelFor].map(([n, c]) => `${n}:${c}`).sort().join(',')}\u0000${[...onlineSourceFor].map(([n, s]) => `${n}:${s}`).sort().join(',')}\u0000${[...hostProvidedNpmVersions].map(([n, v]) => `${n}:${v}`).sort().join(',')}`
+   if (!force && updatesCache?.key === cacheKey && Date.now() - updatesCache.at < UPDATES_TTL_MS) {
+     return updatesCache.data
+   }
+   const installed = readInstalled(profile, activeProfileDir)
++  // A host-provided package is checked like an installed one. It stays out of
++  // the manifest's own reading — nothing here writes it back — so its version
++  // travels beside the spec map rather than inside it.
++  const provided = new Map<string, string>()
++  for (const [name, version] of hostProvidedNpmVersions) {
++    if (installed[name] !== undefined) continue
++    installed[name] = version
++    provided.set(name, version)
++  }
+   const lockCommits = readLockCommits(profile, activeProfileDir)
+   const result: Record<string, UpdateStatus> = {}
+   await Promise.all(Object.entries(installed).map(async ([name, spec]) => {
+-    const version = readInstalledVersion(profile, name, activeProfileDir)
++    const version = provided.get(name) ?? readInstalledVersion(profile, name, activeProfileDir)
+     const normalizedSpec = spec.toLowerCase()
+     if (normalizedSpec.startsWith('file:')) {
+       const onlineSource = onlineSourceFor.get(name)

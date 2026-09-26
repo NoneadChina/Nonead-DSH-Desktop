@@ -1,0 +1,4 @@
+# Bilingual-pair consistency record: the git blob hash of each side as of the last
+# confirmed-consistent state. Both languages carry equal authority.
+2026-08-15-packaged-profile-fallback.md: be11331a126032b5803851e718a4fd318397f7fa
+2026-08-15-packaged-profile-fallback.zh.md: bbe1f5df236b7eecde6e898fb0d987fa658adf78
