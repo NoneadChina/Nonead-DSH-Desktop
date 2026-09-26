@@ -2,9 +2,11 @@
 
 [中文说明](README.zh.md)
 
-DSH Community Market is the open plugin market built into [Nonead DSH Desktop](../README.en.md). It discovers plugins from user-selected catalog sources and performs simple npm package operations against the active Desktop Profile.
+DSH Community Market is the open plugin market built into [DSH Desktop](../README.en.md). It discovers plugins from user-selected catalog sources and performs simple npm package operations against the active Desktop Profile.
 
 > A catalog listing or an installable result is not a security review, compatibility guarantee, or endorsement. Installed plugins run locally with the user's permissions.
+
+The package declares a standard `dsh.bundle.patch`. Desktop Next exposes it in the official Plugins page alongside independently selectable dshmarket and Agents Anywhere. Stable/Beta retain their existing market selectors.
 
 ## Product behavior
 
@@ -44,7 +46,7 @@ Anyone may publish a source implementing the public [`catalog-source`](docs/sche
 
 [dshfind](https://dshfind.com) is another optional cooperating source. Its adapter walks the provider's versioned REST pages and normalizes structured npm identity without executing provider command text. Any provider-supplied version remains informational; automatic installation still resolves npm `latest`.
 
-Source requests are HTTPS-only, credential-free, bounded, and protected against unsafe redirects and private-network destinations. A source failure never changes the user's selected source or blocks Nonead DSH Desktop startup.
+Source requests are HTTPS-only, credential-free, bounded, and protected against unsafe redirects and private-network destinations. A source failure never changes the user's selected source or blocks DSH Desktop startup.
 
 ## Manual installation
 

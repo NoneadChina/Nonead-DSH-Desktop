@@ -117,12 +117,48 @@ function prepare() {
     console.log(`Using pinned AA ${currentProvenance.commit}`)
     return
   }
-  const commit = resolveCommit()
-  console.log(`Selected AA ${sourceRef} at ${commit}`)
   if (process.argv.includes('--check')) {
-    console.log(commit === currentProvenance.commit ? 'AA is up to date.' : `Bundled AA is ${currentProvenance.commit}; an update is available.`)
+    // The bundled artifact's identity hash derives from the runtime peer ranges
+    // and its recorded checksum, so drift there makes the artifact unreproducible
+    // and breaks the verified-reuse path below. Those facts are local, so they
+    // fail the check; the remote commit comparison can legitimately lag, needs
+    // network access, and is only reported.
+    const peerRanges = runtimePeerRanges()
+    const recorded = currentProvenance.runtimePeers ?? {}
+    const drifted = Object.keys(peerRanges).filter(name => recorded[name] !== peerRanges[name])
+    for (const name of drifted) {
+      console.error(`Bundled AA records ${name} peer ${String(recorded[name])} but the desktop manifests require ${peerRanges[name]}`)
+    }
+    if (drifted.length > 0) {
+      throw new Error(
+        'Bundled AA runtime peer ranges drifted from the desktop manifests; '
+        + 're-run `yarn aa:prepare-release` in the change that moved the DSH runtime',
+      )
+    }
+    for (const path of ['dsh-plugin-desktop/package.json', 'dsh-plugin-desktop-beta/package.json']) {
+      const range = readJson(join(root, path)).dependencies?.['@agents-anywhere/dsh-bridge-next']
+      if (range !== `file:../vendor/agents-anywhere/${currentProvenance.artifact}`) {
+        throw new Error(`${path} must depend on the bundled AA artifact ${String(currentProvenance.artifact)}`)
+      }
+    }
+    const artifact = join(vendorRoot, currentProvenance.artifact)
+    if (!existsSync(artifact)) throw new Error(`Bundled AA artifact is missing: ${currentProvenance.artifact}`)
+    if (sha256(artifact) !== currentProvenance.sha256) throw new Error('Bundled AA artifact checksum mismatch')
+
+    let commit
+    try {
+      commit = resolveCommit()
+    } catch (cause) {
+      console.log(`Bundled AA ${currentProvenance.commit} is internally consistent; remote comparison skipped (${cause instanceof Error ? cause.message : String(cause)})`)
+      return
+    }
+    console.log(commit === currentProvenance.commit
+      ? `AA is up to date at ${commit}.`
+      : `Bundled AA is ${currentProvenance.commit}; ${sourceRef} is at ${commit}.`)
     return
   }
+  const commit = resolveCommit()
+  console.log(`Selected AA ${sourceRef} at ${commit}`)
   const packagePaths = ['dsh-plugin-desktop/package.json', 'dsh-plugin-desktop-beta/package.json']
   const peerRanges = runtimePeerRanges()
   if (currentProvenance.commit === commit && JSON.stringify(currentProvenance.runtimePeers) === JSON.stringify(peerRanges)

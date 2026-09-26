@@ -10,7 +10,7 @@ DSH profile 插件通过 `$DSH_HOME/profiles/node_modules` 下的符号链接解
 
 ## 决策
 
-Electron Builder 将 desktop deployment manifest、Cordis patch、运行时模块与资产，以及 `node_modules` 一起解包。Desktop Host 在调用 `healProfilesModuleFallback` 前，把安装锚点从 `app.asar/package.json` 映射到 `app.asar.unpacked/package.json`；普通源码与 npm 启动仍保留原有物理路径。Packaged-runtime hook 会在签名前同时要求物理 manifest、desktop 插件子路径与原生资产，以及运行时依赖哨兵存在。
+Electron Builder 将 desktop deployment manifest、Cordis patch、运行时模块与资产，以及 `node_modules` 一起解包。Desktop Host 在调用 `healDesktopProfileModuleFallback` 前，把安装锚点从 `app.asar/package.json` 映射到 `app.asar.unpacked/package.json`；普通源码与 npm 启动仍保留原有物理路径。Packaged-runtime hook 会在签名前同时要求物理 manifest、desktop 插件子路径与原生资产，以及运行时依赖哨兵存在。
 
 ## 验证
 

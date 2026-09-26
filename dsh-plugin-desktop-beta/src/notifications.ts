@@ -1,16 +1,20 @@
 /** Privacy-safe desktop attention for completed user turns and background jobs. */
 
 import type { Context } from '@deepseek-ai/cordis'
-import type { JobSnapshot } from '@deepseek-ai/dsh-jobs'
+import type { JobView } from '@deepseek-ai/dsh-jobs'
 import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
+import type {} from '@deepseek-ai/dsh-settings'
 import z from '@deepseek-ai/schemastery'
 import type { DesktopLocale, DesktopNotification } from './runtime.ts'
+import { volatileField } from './settings.ts'
 
 export const name = 'desktop-notifications'
 export const inject = ['desktopRuntime']
 
+/** Profile patch row id, which is also the upstream settings entry id. */
 export const DESKTOP_NOTIFICATIONS_SETTINGS_NAMESPACE = 'dsh-desktop-notifications'
 
+/** Notification preferences owned by the `dsh-desktop-notifications` row. */
 export interface DesktopNotificationSettings {
   enabled: boolean
   notifyOnTurnCompletion: boolean
@@ -19,15 +23,60 @@ export interface DesktopNotificationSettings {
   notifyOnJobFailure: boolean
 }
 
-export const DesktopNotificationSettingsSchema: z<DesktopNotificationSettings> = z.object({
-  enabled: z.boolean().default(true),
-  notifyOnTurnCompletion: z.boolean().default(true),
-  notifyOnTurnFailure: z.boolean().default(true),
-  notifyOnJobCompletion: z.boolean().default(true),
-  notifyOnJobFailure: z.boolean().default(true),
+/** Editable notification preferences; every field is user-editable. */
+export const DesktopNotificationSettingsSchema = z.object({
+  enabled: volatileField(z.boolean().default(true)),
+  notifyOnTurnCompletion: volatileField(z.boolean().default(true)),
+  notifyOnTurnFailure: volatileField(z.boolean().default(true)),
+  notifyOnJobCompletion: volatileField(z.boolean().default(true)),
+  notifyOnJobFailure: volatileField(z.boolean().default(true)),
 })
 
-const DEFAULT_SETTINGS = DesktopNotificationSettingsSchema({} as DesktopNotificationSettings)
+/** Configurable plugin entry schema read by the upstream settings document. */
+export const Config = DesktopNotificationSettingsSchema
+
+const DEFAULT_SETTINGS: DesktopNotificationSettings = Object.freeze({
+  enabled: true,
+  notifyOnTurnCompletion: true,
+  notifyOnTurnFailure: true,
+  notifyOnJobCompletion: true,
+  notifyOnJobFailure: true,
+})
+
+/** Narrow one projected settings value to a plain record. */
+function plainRecord(value: unknown): Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {}
+}
+
+/** Narrow one projected preference, falling back to its default. */
+function parsePreference(value: unknown, fallback: boolean): boolean {
+  return typeof value === 'boolean' ? value : fallback
+}
+
+/**
+ * Read the effective notification preferences of this context.
+ *
+ * The value comes from the settings projection rather than the resolved plugin
+ * config so it stays plain and version independent.
+ * @param ctx - host context carrying the optional `settings` service.
+ * @returns complete preferences with the schema defaults applied.
+ */
+export function readDesktopNotificationSettings(ctx: Context): DesktopNotificationSettings {
+  const descriptor = ctx.get('settings')
+    ?.describe()
+    .find(entry => entry.ns === DESKTOP_NOTIFICATIONS_SETTINGS_NAMESPACE)
+  if (descriptor === undefined) return DEFAULT_SETTINGS
+  const value = plainRecord(descriptor.value)
+  return {
+    enabled: parsePreference(value.enabled, DEFAULT_SETTINGS.enabled),
+    notifyOnTurnCompletion: parsePreference(value.notifyOnTurnCompletion, DEFAULT_SETTINGS.notifyOnTurnCompletion),
+    notifyOnTurnFailure: parsePreference(value.notifyOnTurnFailure, DEFAULT_SETTINGS.notifyOnTurnFailure),
+    notifyOnJobCompletion: parsePreference(value.notifyOnJobCompletion, DEFAULT_SETTINGS.notifyOnJobCompletion),
+    notifyOnJobFailure: parsePreference(value.notifyOnJobFailure, DEFAULT_SETTINGS.notifyOnJobFailure),
+  }
+}
 
 type NotificationOutcome = 'turn-completed' | 'turn-failed' | 'job-completed' | 'job-failed'
 
@@ -54,12 +103,12 @@ interface OpenTurn {
 function notifyJob(
   runtime: Context['desktopRuntime'],
   settings: DesktopNotificationSettings,
-  snapshot: JobSnapshot,
+  job: JobView,
 ): void {
   if (!settings.enabled) return
-  if (snapshot.status === 'completed' && settings.notifyOnJobCompletion) {
+  if (job.status === 'completed' && settings.notifyOnJobCompletion) {
     runtime.notifyAttention(NOTIFICATION_COPY[runtime.locale]['job-completed'])
-  } else if (snapshot.status === 'failed' && settings.notifyOnJobFailure) {
+  } else if (job.status === 'failed' && settings.notifyOnJobFailure) {
     runtime.notifyAttention(NOTIFICATION_COPY[runtime.locale]['job-failed'])
   }
 }
@@ -105,15 +154,13 @@ export function apply(ctx: Context): void {
 
   ctx.inject(['settings'], (settingsCtx) => {
     settingsCtx.effect(() => {
-      const scope = settingsCtx.settings.register(
-        DESKTOP_NOTIFICATIONS_SETTINGS_NAMESPACE,
-        DesktopNotificationSettingsSchema,
-        { applies: 'live' },
-      )
-      settings = scope.get()
-      const stopWatching = scope.watch((next) => { settings = next })
+      settings = readDesktopNotificationSettings(settingsCtx)
+      const stopUpdated = settingsCtx.on('settings/document-updated', (namespace) => {
+        if (namespace !== DESKTOP_NOTIFICATIONS_SETTINGS_NAMESPACE) return
+        settings = readDesktopNotificationSettings(settingsCtx)
+      })
       return () => {
-        stopWatching()
+        stopUpdated()
         settings = DEFAULT_SETTINGS
       }
     }, 'dsh-plugin-desktop: native notification settings')
@@ -121,7 +168,10 @@ export function apply(ctx: Context): void {
 
   ctx.inject(['jobs'], (jobsCtx) => {
     jobsCtx.effect(
-      () => jobsCtx.jobs.onJobDone(snapshot => { notifyJob(jobsCtx.desktopRuntime, settings, snapshot) }),
+      () => jobsCtx.jobs.events.subscribe({ owners: 'all' }, (event) => {
+        if (event.type !== 'settled') return
+        notifyJob(jobsCtx.desktopRuntime, settings, event.job)
+      }),
       'dsh-plugin-desktop: background job attention',
     )
   })

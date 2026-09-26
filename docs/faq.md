@@ -14,7 +14,7 @@ Nonead DSH Desktop 是面向 Windows 和 macOS 的开源 DeepSeek Harness 桌面
 
 ## 支持哪些操作系统？
 
-当前正式安装包支持 Windows x64 和 universal macOS（Intel 与 Apple Silicon）。当前没有 Linux 安装包；不要根据源码中存在跨平台兼容代码推断已经发布了对应安装包。
+当前正式安装包支持 Windows x64。当前没有 macOS 与 Linux 安装包；不要根据源码中存在跨平台兼容代码推断已经发布了对应安装包。
 
 ## 需要安装 Node.js、pnpm 或 DSH 吗？
 

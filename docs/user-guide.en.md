@@ -2,7 +2,7 @@
 
 ## Installation and first launch
 
-Download the macOS or Windows installer from the [product download page](https://www.nonead.com). Nonead DSH Desktop includes Electron, Node, and its pinned DSH dependencies, so normal users do not need to install Node.js or pnpm separately.
+Download the Windows installer from the [product download page](https://www.nonead.com). Nonead DSH Desktop includes Electron, Node, and its pinned DSH dependencies, so normal users do not need to install Node.js or pnpm separately.
 
 On first launch, the application prepares the default profile and starts the official DSH Web surface locally. Closing the window normally hides it; use **Quit** from the tray when you want to stop the application and Host process.
 
@@ -24,11 +24,13 @@ macOS custom-window modes can turn the transparent material on or off. Windows c
 
 ## Local Web port
 
-Desktop lets the operating system choose a random local Web port by default (`dsh-desktop.port: 0`), which avoids collisions with other services. Browser `localStorage` is isolated by origin, so UI plugins that store settings there need a fixed port to read the same settings after Desktop restarts:
+Desktop lets the operating system choose a random local Web port by default (`port: 0`), which avoids collisions with other services. Browser `localStorage` is isolated by origin, so UI plugins that store settings there need a fixed port to read the same settings after Desktop restarts. Set one in Desktop settings; it is written into the active profile's patch document:
 
 ```yaml
-dsh-desktop:
-  port: 43189
+- id: dsh-desktop
+  name: dsh-plugin-desktop/settings
+  config:
+    port: 43189
 ```
 
 The port must be an integer from `0` through `65535`. Changing it performs an orderly restart. The service binds only to `127.0.0.1` by default; it listens on all network interfaces only after you acknowledge the danger prompt and explicitly allow LAN access in Desktop settings. If another program already uses a fixed port, Desktop cannot start; release that port or change the setting back to `0` or another available port.
@@ -67,7 +69,7 @@ Packaged macOS and Windows applications check `https://www.dshdesktop.cn/api/des
 
 **Check for Updates…** in the tray checks the current release channel: stable receives only stable updates, while Beta receives only Beta updates. It shows a result even when the installed version is current and reports a retry message when the check fails. Beta also provides **Install Stable Edition…**, which installs stable alongside Beta. Cancelling never requests the counted download endpoint.
 
-After confirmation, the app first opens the native **Save Update Installer** dialog, defaulting to the Downloads directory. You can choose another directory and filename; cancelling the dialog does not start a download. After the destination is confirmed, the app requests the fixed platform download URL and remembers the installer location. macOS opens the DMG for the user to replace the application in Applications; Windows prepares the NSIS installer and then asks whether to quit and start installation. After the upgrade completes and the app starts again, it asks whether to delete the installer to free disk space or keep it. Download or installer failures do not damage the current version, and the tray operation can be retried.
+After confirmation, the app first opens the native **Save Update Installer** dialog, defaulting to the Downloads directory. You can choose another directory and filename; cancelling the dialog does not start a download. After the destination is confirmed, the app requests the fixed platform download URL and remembers the installer location. macOS opens the DMG for the user to replace the application in Applications; Windows prepares the NSIS installer and then asks whether to quit and start installation. After the upgrade completes and the app starts again, it asks whether to delete the installer to free disk space or keep it. Download or installer failures do not damage the current version, and the tray operation can be retried: the download is streamed into a hidden temporary file and only becomes the installer you selected after it is complete and validated, while a failure removes that temporary file and shows the reason.
 
 ## Troubleshooting
 

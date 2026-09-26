@@ -3,7 +3,7 @@
 import {
   useCallback, useEffect, useId, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode,
 } from 'react'
-import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
+import type { ConfigForm, ConfigFormSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {
   DesktopMarketProvider, DesktopProfileView, DesktopSettingsApi, DesktopSettingsView,
@@ -42,8 +42,8 @@ export interface DesktopSettingsSectionInjected {
   readonly initialMode: DesktopShellSettings['mode']
   readonly micaSupported: boolean
   readonly setMode: (mode: DesktopShellSettings['mode']) => Promise<void>
-  readonly desktopSettings: SettingsScope<DesktopShellSettings>
-  readonly notificationSettings: SettingsScope<DesktopNotificationSettings>
+  readonly desktopSettings: ConfigForm<DesktopShellSettings>
+  readonly notificationSettings: ConfigForm<DesktopNotificationSettings>
 }
 
 /** Renderer-composed props for the official settings section entry. */
@@ -110,7 +110,7 @@ export async function readDesktopSettingsUntilLanSettled(
 
 /** Persist ordinary-browser permission and refresh the already-running edge. */
 export async function persistDesktopBrowserAccessHot(
-  settings: Pick<SettingsScope<DesktopShellSettings>, 'set'>,
+  settings: Pick<ConfigForm<DesktopShellSettings>, 'set'>,
   checked: boolean,
   currentExposure: DesktopShellSettings['networkExposure'],
   refresh: () => Promise<DesktopSettingsView>,
@@ -124,7 +124,7 @@ export async function persistDesktopBrowserAccessHot(
 
 /** Persist LAN intent and refresh its hot HTTPS ingress state. */
 export async function persistDesktopNetworkExposureHot(
-  settings: Pick<SettingsScope<DesktopShellSettings>, 'set'>,
+  settings: Pick<ConfigForm<DesktopShellSettings>, 'set'>,
   exposure: DesktopShellSettings['networkExposure'],
   refresh: () => Promise<DesktopSettingsView>,
 ): Promise<DesktopSettingsView> {
@@ -150,9 +150,9 @@ export function resolveDesktopLanConfirmation(
   if (confirmed) enableLan()
 }
 
-function useScope<T>(scope: SettingsScope<T>) {
-  const subscribe = useCallback((listener: () => void) => scope.subscribe(listener), [scope])
-  const snapshot = useCallback(() => scope.getSnapshot(), [scope])
+function useConfigForm<T>(form: ConfigForm<T>): ConfigFormSnapshot<T> {
+  const subscribe = useCallback((listener: () => void) => form.subscribe(listener), [form])
+  const snapshot = useCallback(() => form.getSnapshot(), [form])
   return useSyncExternalStore(subscribe, snapshot)
 }
 
@@ -309,8 +309,8 @@ export function DesktopSettingsSection({
   desktopSettings,
   notificationSettings,
 }: DesktopSettingsSectionProps) {
-  const desktop = useScope(desktopSettings)
-  const notifications = useScope(notificationSettings)
+  const desktop = useConfigForm(desktopSettings)
+  const notifications = useConfigForm(notificationSettings)
   const [view, setView] = useState<DesktopSettingsView>()
   const [profileName, setProfileName] = useState('')
   const [busy, setBusy] = useState<BusyOperation | undefined>('load')

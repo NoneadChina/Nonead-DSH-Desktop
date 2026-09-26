@@ -1,8 +1,6 @@
 /** Host-independent Electron recovery window for profile startup failures. */
 
 import { app, dialog, screen, shell, type BrowserWindow } from 'electron'
-import { execFile } from 'node:child_process'
-import { mkdir, writeFile } from 'node:fs/promises'
 import { basename, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
@@ -109,7 +107,7 @@ export interface DesktopStartupRecoveryDataActions {
 }
 
 export interface DesktopStartupRecoveryConfigurationPaths {
-  readonly settingsDocument: string
+  /** Profile patch document holding every configurable plugin entry, Desktop settings included. */
   readonly profilePatch: string
   readonly profileManifest: string
   readonly profileDirectory: string
@@ -227,7 +225,6 @@ export function parseDesktopStartupRecoveryAction(
     'open-checkpoint',
     'export-diagnostics',
     'show-diagnostics',
-    'open-settings-document',
     'open-profile-patch',
     'open-profile-manifest',
     'open-profile-directory',
@@ -508,9 +505,6 @@ export class DesktopStartupRecoveryWindow {
           this.finish('restart')
           return
         }
-      } else if (action.action === 'open-settings-document') {
-        this.activeTab = 'diagnostics'
-        await this.openConfigurationPath('settingsDocument')
       } else if (action.action === 'open-profile-patch') {
         this.activeTab = 'diagnostics'
         await this.openConfigurationPath('profilePatch')
@@ -858,23 +852,6 @@ export class DesktopStartupRecoveryWindow {
   ): Promise<void> {
     const path = this.options.configurationPaths?.[kind]
     if (path === undefined) throw new Error('Desktop profile configuration is unavailable for this startup stage.')
-    if (kind === 'settingsDocument') {
-      await mkdir(dirname(path), { recursive: true, mode: 0o700 })
-      try {
-        await writeFile(path, '', { flag: 'wx', mode: 0o600 })
-      } catch (cause) {
-        if ((cause as NodeJS.ErrnoException).code !== 'EEXIST') throw cause
-      }
-    }
-    if (kind === 'settingsDocument' && process.platform === 'darwin') {
-      await new Promise<void>((resolve, reject) => {
-        execFile('/usr/bin/open', ['-t', path], { windowsHide: true }, cause => {
-          if (cause === null) resolve()
-          else reject(cause)
-        })
-      })
-      return
-    }
     const error = await shell.openPath(path)
     if (error.length > 0) throw new Error(error)
   }

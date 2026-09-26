@@ -155,10 +155,14 @@ export async function checkForDesktopUpdate(
   const latest = parseVersionResponse(body, options.channel)
   if (latest === null) return null
   const comparison = compareParsedSemVer(latest, current)
+  // `allowDowngrade` is the caller explicitly opting into an older release, so it
+  // asks only that the versions differ. Spelling that as `!== 0` keeps the
+  // direction decision in one place instead of hiding it behind a redundant
+  // `> 0` term.
+  const updateAvailable = comparison > 0
+    || (options.allowDowngrade === true && comparison !== 0)
   return {
-    status: comparison > 0 || (options.allowDowngrade === true && comparison !== 0)
-      ? 'update-available'
-      : 'up-to-date',
+    status: updateAvailable ? 'update-available' : 'up-to-date',
     currentVersion: current.version,
     latestVersion: latest.version,
   }

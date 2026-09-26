@@ -18,7 +18,7 @@ Status: implemented
 - `log-files.ts` —— 同步追加式 sink（`appendFileSync`），写 `dsh-YYYY-MM-DD.log`（全部级别）与 `dsh-YYYY-MM-DD.error.log`（warn 与 error）；单文件超过 10MB 滚到 `.1`、`.2` …；本地日期变化时切换文件；重启后从磁盘恢复当前分段；目录超过 200MB 时删除最旧的自有文件。
 - `file-exporter.ts` —— `FileExporter implements Exporter`，把每条 `Message` 渲染成 `<本地时间戳> [LEVEL] [name] <body>`（经 `Logger.format`），按阈值过滤后路由到 sink。
 
-`dsh-desktop.logLevel` 设置字段（`debug | info | warn | error`，默认 `info`）扩展已有的 `dsh-desktop` 命名空间。bootstrap 在 `boot()` 后读一次，并订阅 `settings/updated` 就地更新 exporter 阈值。
+`dsh-desktop.logLevel` 设置字段（`debug | info | warn | error`，默认 `info`）扩展已有的 `dsh-desktop` 命名空间。bootstrap 在 `boot()` 后读一次，并订阅 `settings/document-updated` 就地更新 exporter 阈值。
 
 ## Alternatives considered
 
@@ -30,7 +30,7 @@ Status: implemented
 
 ## Consequences
 
-日志持久化到桌面用户数据目录，打包运行后也能排查。verbosity 阈值走标准设置服务配置，同时作用于全量文件与错误文件。`logLevel` 字段在启动时与 `settings/updated` 时读取，改动无需重启即生效。
+日志持久化到桌面用户数据目录，打包运行后也能排查。verbosity 阈值走标准设置服务配置，同时作用于全量文件与错误文件。`logLevel` 字段在启动时与 `settings/document-updated` 时读取，改动无需重启即生效。
 
 每天日志以一条启动 header（app 版本、平台、Node 版本、运行时间戳）开头，并在启动时清理 7 天前的文件，配合 200MB 目录上限。写入过程中会持续执行容量上限，大小按 UTF-8 字节计算，过大的单条记录会在 Unicode code point 边界截断。清理只管理 `dsh-*.log` 命名，并容忍文件消失或被 Windows 临时锁定。日志目录如果是链接会被拒绝，链接或非文件占位项会被跳过；日志初始化失败时退化到脱敏后的 stderr，不阻断应用启动。
 

@@ -8,7 +8,7 @@ import Module, {
   type ResolveHookSync,
 } from 'node:module'
 import { realpathSync } from 'node:fs'
-import { basename, dirname, isAbsolute, join, relative, sep } from 'node:path'
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import {
   findOverlayPackage,
@@ -26,6 +26,10 @@ const DESKTOP_ENTRY_URL = pathToFileURL(fileURLToPath(new URL('../lib/index.js',
 const DESKTOP_PACKAGE_URL = pathToFileURL(fileURLToPath(new URL('../package.json', import.meta.url))).href
 const DESKTOP_REQUIRE = createRequire(DESKTOP_ENTRY_URL)
 const PROCESS_RESOLVER = Symbol.for('dsh-plugin-desktop.profile-package-resolver.v1')
+// The packaged installation is the only owner of the ordinary installation
+// closure, so it is also the only place where an unowned parent may fall back
+// to it. A source checkout keeps Node's ordinary failure for such a parent.
+const PACKAGED_INSTALL = isAsarPath(fileURLToPath(DESKTOP_ENTRY_URL))
 
 type ModuleSource = 'install' | 'profile'
 
@@ -609,8 +613,43 @@ function resolveWithState(
   if (state.bypassDepth > 0 || isBuiltin(specifier)) return nextResolve(specifier, context)
   const parentRegistration = registrationForParent(state, context.parentURL)
   return parentRegistration === undefined
-    ? nextResolve(specifier, context)
+    ? resolveUnownedSpecifier(state, specifier, context, nextResolve)
     : resolveForRegistration(state, parentRegistration, specifier, context, nextResolve)
+}
+
+/**
+ * Resolve one bare specifier whose resolved parent owns no registration.
+ *
+ * The Cordis Loader can evaluate a plugin import through a referrer that
+ * carries no resolvable module identity. Node then anchors that request at the
+ * Profile directory, which owns no packages of its own, so a packaged
+ * installation fails with a bare `ERR_MODULE_NOT_FOUND`. Only the install side
+ * can answer such a request, and only while one Profile registration is live;
+ * installation and Profile-owned parents never reach this fallback.
+ */
+function resolveUnownedSpecifier(
+  state: ProcessResolverState,
+  specifier: string,
+  context: Parameters<ResolveHookSync>[1],
+  nextResolve: Parameters<ResolveHookSync>[2],
+): ReturnType<ResolveHookSync> {
+  const parentURL = context.parentURL
+  if (state.registrations.size === 0
+    || !PACKAGED_INSTALL
+    || !isBarePackageSpecifier(specifier)
+    || (parentURL !== undefined && isLegacyDesktopInstallUrl(parentURL))) {
+    return nextResolve(specifier, context)
+  }
+  const registration = newestRegistration(state, () => true)!
+  // The specifier is not attributable to a Profile or an installation parent,
+  // so the ordinary Desktop-over-Profile overlay rule selects its owner.
+  return resolveForRegistration(
+    state,
+    { registration, boundary: true },
+    specifier,
+    context,
+    nextResolve,
+  )
 }
 
 function migrateResolverState(state: ProcessResolverState): void {
@@ -702,10 +741,22 @@ export function installProfilePackageResolver(profileBaseUrl: string): () => voi
   if (parsed.protocol !== 'file:' || parsed.search.length > 0 || parsed.hash.length > 0) {
     throw new Error('dsh-plugin-desktop: Profile package resolver requires a plain file URL')
   }
-  const profileManifestPath = fileURLToPath(parsed)
+  // `fileURLToPath` throws for a file URL that cannot name a local path (for
+  // example a POSIX-style `file:///tmp/...` URL read on Windows). Translate that
+  // into this resolver's own contract error instead of leaking a raw TypeError.
+  let profileManifestPath: string
+  try {
+    profileManifestPath = fileURLToPath(parsed)
+  } catch {
+    throw new Error('dsh-plugin-desktop: Profile package resolver requires a package.json anchor')
+  }
   if (basename(profileManifestPath) !== 'package.json') {
     throw new Error('dsh-plugin-desktop: Profile package resolver requires a package.json anchor')
   }
+  // A URL that named no drive is resolved against the filesystem root rather
+  // than the process working directory, so the Profile never resolves to a path
+  // that shifts with the launcher's cwd.
+  profileManifestPath = resolve(profileManifestPath)
   const normalizedBaseUrl = pathToFileURL(profileManifestPath).href
   const profileDirectory = dirname(profileManifestPath)
   const state = ensureResolverState()

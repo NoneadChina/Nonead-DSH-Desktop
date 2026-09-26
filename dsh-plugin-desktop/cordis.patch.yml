@@ -5,12 +5,19 @@
       name: dsh-plugin-desktop
       config:
         mode: compatibility
+
+    # Upstream exposes every configurable plugin entry as a row of the Profile
+    # patch document, so the Desktop settings panel edits this row instead of a
+    # provider-owned settings file.
+    - id: dsh-desktop
+      name: dsh-plugin-desktop/settings
+
     - id: desktop-terminal
       name: dsh-plugin-desktop/terminal
       disabled: !!js process.platform === 'linux'
     - id: desktop-diagnostics
       name: dsh-plugin-desktop/diagnostics
-    - id: desktop-notifications
+    - id: dsh-desktop-notifications
       name: dsh-plugin-desktop/notifications
     - id: desktop-pnpm
       name: dsh-plugin-desktop/pnpm
@@ -35,3 +42,9 @@
     printUrl: false
     surfaceContext: true
     trustedHosts: []
+
+# The Desktop Host deliberately drops `loader.internal` so Host imports and
+# browser bundle discovery keep using the packaged profile-overlay resolver, and
+# the HMR service cannot start without it.
+- id: hmr
+  disabled: true

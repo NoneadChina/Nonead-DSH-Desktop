@@ -66,7 +66,6 @@ export interface DesktopRecoveryCopy {
   readonly privacy: string
   readonly configurationFiles: string
   readonly configurationFilesBody: string
-  readonly openSettingsDocument: string
   readonly openProfilePatch: string
   readonly openProfileManifest: string
   readonly openProfileDirectory: string
@@ -207,7 +206,6 @@ const COPY: Record<DesktopLocale, DesktopRecoveryCopy> = {
     privacy: 'The archive may contain local paths, logs, system information, and crash-memory fragments. Review it before sharing.',
     configurationFiles: 'Configuration files',
     configurationFilesBody: 'View or edit the current Profile configuration and shared configuration in the DSH data directory. Restart the app to apply changes.',
-    openSettingsDocument: 'Open settings.yaml',
     openProfilePatch: 'Edit Profile patch',
     openProfileManifest: 'Edit plugin manifest',
     openProfileDirectory: 'Open Profile folder',
@@ -350,7 +348,6 @@ const COPY: Record<DesktopLocale, DesktopRecoveryCopy> = {
     privacy: '诊断包可能包含本地路径、日志、系统信息和崩溃内存片段，分享前请先检查。',
     configurationFiles: '配置文件',
     configurationFilesBody: '查看或编辑当前 Profile 的配置与 DSH 数据目录中的共享配置。更改后需重启应用才能生效。',
-    openSettingsDocument: '打开 settings.yaml',
     openProfilePatch: '编辑 Profile 补丁',
     openProfileManifest: '编辑插件清单',
     openProfileDirectory: '打开 Profile 目录',

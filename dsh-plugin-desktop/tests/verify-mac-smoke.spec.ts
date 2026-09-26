@@ -56,7 +56,9 @@ function options(
   const value: MacSmokeVerificationOptions = {
     distDir: '/release/dist',
     productName: 'Nonead DSH Desktop',
-    listDmgs: () => ['/release/dist/Nonead DSH Desktop-2.0.1.dmg'],
+    // Must match the version named by the injected DMG fixture below.
+    version: '2.0.1',
+    listDmgs: () => ['/release/dist/Nonead-DSH-Desktop-Beta-2.0.1.dmg'],
     makeMountPoint: () => '/private/tmp/dsh-desktop-dmg-smoke-test',
     run: (command, args) => { calls.push({ command, args: [...args] }) },
     removeMountPoint,
@@ -102,14 +104,14 @@ describe('macOS DMG smoke artifact verification', () => {
 
     expect(verifyMacSmoke(harness.value)).toEqual({
       appPath,
-      dmgPath: '/release/dist/Nonead DSH Desktop-2.0.1.dmg',
+      dmgPath: '/release/dist/Nonead-DSH-Desktop-Beta-2.0.1.dmg',
     })
 
     expect(harness.calls).toEqual([
       {
         command: 'hdiutil',
         args: [
-          'attach', '/release/dist/Nonead DSH Desktop-2.0.1.dmg',
+          'attach', '/release/dist/Nonead-DSH-Desktop-Beta-2.0.1.dmg',
           '-mountpoint', value.root, '-nobrowse', '-readonly',
         ],
       },
@@ -126,6 +128,16 @@ describe('macOS DMG smoke artifact verification', () => {
       { command: 'hdiutil', args: ['detach', value.root] },
     ])
     expect(harness.removeMountPoint).toHaveBeenCalledWith(value.root)
+  })
+
+  it('rejects a DMG whose name does not carry the packaged version', () => {
+    // A wrong `${version}` in `mac.artifactName` must fail here, not pass on
+    // "exactly one DMG exists".
+    const harness = options({ listDmgs: () => ['/release/dist/Nonead-DSH-Desktop-Beta-1.5.4.dmg'] })
+
+    expect(() => verifyMacSmoke(harness.value)).toThrow('does not name the packaged version 2.0.1')
+    expect(harness.calls).toEqual([])
+    expect(harness.removeMountPoint).not.toHaveBeenCalled()
   })
 
   it('rejects the mount when no DMG is present', () => {
@@ -145,7 +157,7 @@ describe('macOS DMG smoke artifact verification', () => {
     expect(harness.calls).toEqual([
       {
         command: 'hdiutil',
-        args: ['attach', '/release/dist/Nonead DSH Desktop-2.0.1.dmg', '-mountpoint', value.root, '-nobrowse', '-readonly'],
+        args: ['attach', '/release/dist/Nonead-DSH-Desktop-Beta-2.0.1.dmg', '-mountpoint', value.root, '-nobrowse', '-readonly'],
       },
       { command: 'hdiutil', args: ['detach', value.root] },
     ])

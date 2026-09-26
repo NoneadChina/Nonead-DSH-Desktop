@@ -30,7 +30,7 @@
 
 生产环境来源请求仅允许 HTTPS 且不携带凭据，并限制重定向、超时、并发、解码后响应大小、条目数、嵌套和字符串长度。每次重定向和 DNS 目标都会检查 loopback、私有网络、link-local 和云 metadata 地址。JSON 必须先通过公开 Schema 再进入标准化。
 
-同一时间只选择一个来源浏览。来源故障不会静默选择兜底、修改当前 Profile 或阻止 Nonead DSH Desktop 启动。
+同一时间只选择一个来源浏览。来源故障不会静默选择兜底、修改当前 Profile 或阻止 DSH Desktop 启动。
 
 ## 报告安全问题
 

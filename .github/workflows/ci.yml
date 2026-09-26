@@ -5,6 +5,10 @@ on:
     branches: [master]
   push:
     branches: [master]
+  # Nightly run of the live update-service contract check, which reads a
+  # production endpoint and therefore does not gate pull requests.
+  schedule:
+    - cron: '17 3 * * *'
   workflow_dispatch:
 
 permissions:
@@ -202,3 +206,26 @@ jobs:
       - run: corepack enable
       - run: yarn check:layout
       - run: yarn upstream:version
+
+  # Live update-service contract: the shipped client must still accept the
+  # published release response and installer. It reads a production endpoint, so
+  # it runs on demand and on the nightly schedule instead of gating every pull
+  # request, and it never modifies the service.
+  # `yarn check:update-service --full` additionally downloads each installer.
+  update-service:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.23.2
+      - run: corepack enable
+      - run: yarn install --immutable
+      # The check imports the compiled client so it reuses the shipped parser,
+      # SemVer comparison, and installer validation.
+      - run: yarn workspace dsh-plugin-desktop build
+      - run: yarn check:update-service

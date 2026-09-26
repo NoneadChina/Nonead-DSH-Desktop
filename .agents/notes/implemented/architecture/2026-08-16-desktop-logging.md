@@ -18,7 +18,7 @@ Three modules implement it:
 - `log-files.ts` — a synchronous append-only sink (`appendFileSync`) that writes `dsh-YYYY-MM-DD.log` (all levels) and `dsh-YYYY-MM-DD.error.log` (warn and error), rotates a file past 10MB into `.1`, `.2`, …, switches files when the local date changes, restores the active segment from disk after a restart, and deletes oldest owned files while the directory exceeds 200MB.
 - `file-exporter.ts` — `FileExporter implements Exporter`, rendering each `Message` as `<local timestamp> [LEVEL] [name] <body>` via `Logger.format`, filtering by the configured threshold, and routing to the sink.
 
-The `dsh-desktop.logLevel` settings field (`debug | info | warn | error`, default `info`) extends the existing `dsh-desktop` namespace. The bootstrap reads it once after `boot()` and subscribes to `settings/updated` to update the exporter threshold in place.
+The `dsh-desktop.logLevel` settings field (`debug | info | warn | error`, default `info`) extends the existing `dsh-desktop` namespace. The bootstrap reads it once after `boot()` and subscribes to `settings/document-updated` to update the exporter threshold in place.
 
 ## Alternatives considered
 
@@ -30,7 +30,7 @@ The `dsh-desktop.logLevel` settings field (`debug | info | warn | error`, defaul
 
 ## Consequences
 
-Logs persist under the desktop user-data directory and can be inspected after a packaged run. The verbosity threshold is configurable per the standard settings service and applies to both the full and error files. The `logLevel` field is read at startup and on `settings/updated`, so a change applies without a restart.
+Logs persist under the desktop user-data directory and can be inspected after a packaged run. The verbosity threshold is configurable per the standard settings service and applies to both the full and error files. The `logLevel` field is read at startup and on `settings/document-updated`, so a change applies without a restart.
 
 A startup header line (app version, platform, Node version, run timestamp) opens each day's log, and files older than seven days are purged at launch alongside the 200MB directory cap. The cap is re-enforced while records are written, byte accounting uses UTF-8 bytes, and an oversized record is truncated on a code-point boundary. Cleanup only owns `dsh-*.log` names and tolerates disappearing or temporarily locked Windows files. A linked log directory is rejected, linked or non-file occupants are skipped, and logging initialization failure degrades to masked stderr rather than blocking application startup.
 

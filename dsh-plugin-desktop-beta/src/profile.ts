@@ -1,6 +1,5 @@
 /** Compatibility profile composition over the official Web bundle and user plugins. */
 
-import { createRequire } from 'node:module'
 import {
   existsSync,
   lstatSync,
@@ -21,8 +20,7 @@ import { evaluate, isJsExpr, type EntryOptions } from '@deepseek-ai/cordis-plugi
 import type { PatchOptions } from '@deepseek-ai/cordis-plugin-include'
 import {
   composeEntries,
-  DEFAULT_PROFILE_PATCH_RELOAD,
-  healProfilesModuleFallback,
+  createRuntimeResolution,
   initProfile,
   loadOptionalPatches,
   loadOverlayPatches,
@@ -32,14 +30,10 @@ import {
   resolveProfileDir,
   writeProfileManifest,
   type Profile,
+  type ProfileContext,
   type ProfileManifest,
-  type ProfileTemplate,
 } from '@deepseek-ai/dsh-app-boot'
 import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
-import FileSettingsProvider, {
-  resolveSpec as resolveSettingsFileSpec,
-  type Config as SettingsFileConfig,
-} from '@deepseek-ai/dsh-settings-file'
 import { parseAllDocuments, parseDocument } from 'yaml'
 import { findOverlayPackage, resolveOverlayPackage } from './package-overlay.ts'
 import { withAsarModuleResolver } from './asar-module-resolver-state.ts'
@@ -76,6 +70,7 @@ import {
   type DesktopMarketProvider,
   type DesktopMarketSnapshot,
 } from './desktop-market.ts'
+import { DESKTOP_SETTINGS_ENTRY_ID } from './settings.ts'
 
 /** Persistent profile managed by the desktop launcher and the ordinary dsh plugin command. */
 export const DESKTOP_PROFILE_NAME = 'desktop'
@@ -112,15 +107,11 @@ const PWSH_SANDBOX_ROW_ID = 'pwsh-sandbox'
 const UPSTREAM_PWSH_SANDBOX_PACKAGE = '@deepseek-ai/dsh-pwsh-sandbox'
 const DESKTOP_WINDOWS_PWSH_SANDBOX_ROW_ID = 'desktop-windows-pwsh-sandbox'
 const DESKTOP_WINDOWS_PWSH_SANDBOX_PACKAGE = `${DESKTOP_PACKAGE_NAME}/windows-pwsh-sandbox`
-const AGENT_PRESETS_ROW_ID = 'agent-presets'
-/** Harness-home directory holding locally authored presets (`agent-presets/discovery`). */
-const USER_PRESET_DIRNAME = '.agent-presets'
 const DEFAULT_DESKTOP_SHELL_MODE: DesktopShellMode = 'compatibility'
 const DEFAULT_DESKTOP_PORT = DESKTOP_DEFAULT_WEB_PORT
 const DESKTOP_WEB_SERVER_ROW_ID = 'desktop-webserver'
 const DESKTOP_WEB_SERVER_PACKAGE = `${DESKTOP_PACKAGE_NAME}/webserver`
-const SETTINGS_FILE_PACKAGE = '@deepseek-ai/dsh-settings-file'
-const DESKTOP_SETTINGS_NAMESPACE = 'dsh-desktop'
+const DESKTOP_SETTINGS_NAMESPACE = DESKTOP_SETTINGS_ENTRY_ID
 const MAX_FALLBACK_MANIFEST_BYTES = 1024 * 1024
 const UI_LAYOUT_PACKAGE = '@deepseek-ai/dsh-client-ui-layout'
 const UI_SIDEBAR_PACKAGE = '@deepseek-ai/dsh-client-ui-sidebar'
@@ -217,55 +208,15 @@ export function desktopShellModeFromSettings(document: unknown): DesktopShellMod
 }
 
 /**
- * Read startup settings from the same file resolved by the settings provider.
- * @param config - validated settings-file row config.
- * @returns the values projected into the startup Loader graph.
+ * Resolve the public Web template once and reject an incompatible DSH release.
+ * @returns the bundle list every Desktop profile inherits.
  */
-export function readDesktopStartupSettings(config: SettingsFileConfig): DesktopStartupSettings {
-  const spec = resolveSettingsFileSpec(config)
-  let text: string
-  try {
-    text = readFileSync(spec.filename, 'utf8')
-  } catch (cause) {
-    if ((cause as NodeJS.ErrnoException).code === 'ENOENT') {
-      return { ...DEFAULT_DESKTOP_STARTUP_SETTINGS }
-    }
-    throw cause
-  }
-  let document: unknown
-  if (spec.format === 'yaml') {
-    const parsed = parseDocument(text, { prettyErrors: true })
-    if (parsed.errors.length > 0) {
-      throw new Error(`${BIN_NAME}: invalid settings document at ${spec.filename}: ${parsed.errors.map(error => error.message).join('; ')}`)
-    }
-    document = parsed.toJS() ?? {}
-  } else {
-    document = text.trim().length === 0 ? {} : JSON.parse(text)
-  }
-  return desktopStartupSettingsFromSettings(document)
-}
-
-/** Read only the shell mode from the settings provider's resolved file. */
-export function readDesktopShellMode(config: SettingsFileConfig): DesktopShellMode {
-  return readDesktopStartupSettings(config).mode
-}
-
-/** Resolve the public Web template once and reject an incompatible DSH release. */
 function requiredWebBundles(): string[] {
   const template = PROFILE_TEMPLATES.web
   if (template === undefined) {
     throw new Error(`${BIN_NAME}: installed dsh-app-boot has no web profile template`)
   }
   return [...template.bundles]
-}
-
-/** User patch lifecycle inherited from the matching upstream Web profile. */
-function requiredWebPatchReload(): ProfileTemplate['patchReload'] {
-  const template = PROFILE_TEMPLATES.web
-  if (template === undefined) {
-    throw new Error(`${BIN_NAME}: installed dsh-app-boot has no web profile template`)
-  }
-  return template.patchReload
 }
 
 /** Prepared profile inputs consumed by app-boot. */
@@ -280,6 +231,12 @@ export interface PreparedDesktopProfile {
   bareModuleBaseUrl: string
   /** Complete ordered patch list for this desktop generation. */
   patches: PatchOptions[]
+  /**
+   * Launcher-generated patches that the on-disk profile does not carry. Published
+   * as `ProfileContext.overlays`, because upstream recomposes from that field
+   * after the profile and home patch files.
+   */
+  overlays: PatchOptions[]
   /** Optional Client UI entries skipped because this profile cannot resolve them. */
   skippedOptionalEntries: SkippedOptionalEntry[]
   /** Persisted shell mode applied after every user-owned patch. */
@@ -313,8 +270,6 @@ export interface DesktopProfilePreparationHooks {
   /** Explicit Profile choice; false also enforces safe-mode exclusion. */
   aaEnabled?: boolean
 
-  /** Receive the trusted settings path before its contents are parsed. */
-  onSettingsDocumentResolved?: (path: string) => void
   /** LAN IPv4 literals sampled once before this profile generation is composed. */
   lanAddresses?: readonly string[]
 }
@@ -353,7 +308,7 @@ function sameList(left: readonly string[], right: readonly string[]): boolean {
 export function ensureDesktopProfile(home: string = resolveDshHome()): string {
   const dir = resolveProfileDir(DESKTOP_PROFILE_NAME, home)
   if (!existsSync(join(dir, 'package.json'))) {
-    initProfile(dir, REQUIRED_BUNDLES, requiredWebPatchReload())
+    initProfile(dir, REQUIRED_BUNDLES)
   }
   const manifest = readProfileManifest(BIN_NAME, dir)
   const rawBundles = (manifest.dsh?.profile as { bundles?: unknown } | undefined)?.bundles
@@ -363,8 +318,7 @@ export function ensureDesktopProfile(home: string = resolveDshHome()): string {
   }
   const current = rawBundles === undefined ? [] : rawBundles as string[]
   const bundles = desktopBundleList(current)
-  const patchReload = requiredWebPatchReload()
-  if (!sameList(current, bundles) || manifest.dsh?.profile?.patchReload !== patchReload) {
+  if (!sameList(current, bundles)) {
     writeProfileManifest(dir, {
       ...manifest,
       dsh: {
@@ -372,7 +326,6 @@ export function ensureDesktopProfile(home: string = resolveDshHome()): string {
         profile: {
           ...manifest.dsh?.profile,
           bundles,
-          patchReload,
         },
       },
     })
@@ -508,7 +461,7 @@ function loadRecoveryFilteredProfile(
     if (template === undefined) {
       throw new Error(`${BIN_NAME}: profile ${JSON.stringify(profileName)} does not exist`)
     }
-    initProfile(profileDir, template.bundles, template.patchReload)
+    initProfile(profileDir, template.bundles)
   }
   const manifest = readProfileManifest(BIN_NAME, profileDir)
   const rawBundles = (manifest.dsh?.profile as { bundles?: unknown } | undefined)?.bundles
@@ -517,11 +470,6 @@ function loadRecoveryFilteredProfile(
     throw new Error(`${BIN_NAME}: dsh.profile.bundles must be an array of package names`)
   }
   const bundles = (rawBundles ?? []) as string[]
-  const rawPatchReload: unknown = manifest.dsh?.profile?.patchReload
-  if (rawPatchReload !== undefined && rawPatchReload !== 'live' && rawPatchReload !== 'startup') {
-    throw new Error(`${BIN_NAME}: dsh.profile.patchReload must be "live" or "startup"`)
-  }
-  const patchReload = rawPatchReload ?? PROFILE_TEMPLATES[profileName]?.patchReload ?? DEFAULT_PROFILE_PATCH_RELOAD
   const selectedBundles = bundles.filter(packageName =>
     (aaEnabled || packageName !== AA_PACKAGE_NAME) &&
     packageName !== DESKTOP_MARKET_IDENTITIES.community.packageName
@@ -556,15 +504,21 @@ function loadRecoveryFilteredProfile(
       const declared = bundleManifest !== null && typeof bundleManifest === 'object'
         ? (bundleManifest as { dsh?: { bundle?: { patch?: unknown } } }).dsh?.bundle?.patch
         : undefined
-      if (typeof declared !== 'string' || declared.length === 0) {
+      const declaredFiles = typeof declared === 'string'
+        ? [declared]
+        : Array.isArray(declared) ? declared : []
+      const patchFiles = declaredFiles.filter(
+        (file): file is string => typeof file === 'string' && file.length > 0,
+      )
+      if (patchFiles.length === 0 || patchFiles.length !== declaredFiles.length) {
         throw new Error(`${BIN_NAME}: profile bundle ${JSON.stringify(packageName)} declares no dsh.bundle in its package.json`)
       }
-      const patchPath = join(packageDir, declared)
+      const patchPaths = patchFiles.map(file => join(packageDir, file))
       layers.push({
         packageName,
         packageDir,
-        patchPath,
-        patches: loadOverlayPatches(BIN_NAME, patchPath),
+        patchPaths,
+        patches: patchPaths.flatMap(file => loadOverlayPatches(BIN_NAME, file)),
       })
     } catch (cause) {
       if (isAa) aaFailure = marketFailureMessage(cause)
@@ -580,17 +534,14 @@ function loadRecoveryFilteredProfile(
       layers,
       patchPath,
       patches: existsSync(patchPath) ? loadOverlayPatches(BIN_NAME, patchPath) : [],
-      patchReload,
+      // Upstream records bundles it selected but could not load. This loader
+      // never skips one silently: an ordinary bundle failure throws, and the
+      // optional AA and dshmarket rows report through their own failure fields.
+      skippedBundles: [],
     },
     ...(dshMarketFailure === undefined ? {} : { dshMarketFailure }),
     ...(aaFailure === undefined ? {} : { aaFailure }),
   }
-}
-
-/** Resolve the agent presets shipped by the matching presets dependency. */
-export function shippedPresetRoot(moduleUrl: string = import.meta.url): string {
-  const require = createRequire(moduleUrl)
-  return join(dirname(require.resolve('@deepseek-ai/dsh-agent-presets/package.json')), 'presets')
 }
 
 /** Read a row's object config without trusting arbitrary YAML values. */
@@ -988,6 +939,14 @@ export function prepareDesktopProfile(
     }
   }
   const patches: PatchOptions[] = [...ordinary.patches, ...aaPatches]
+  // The Desktop profile is not a bundle: `dsh-plugin-desktop/cordis.patch.yml`
+  // and every override appended below exist only in the launcher's memory, so a
+  // disk-only recomposition would drop the shell, the settings row and the
+  // provider rows. Upstream reads them back through `ProfileContext.overlays`
+  // (`readProfilePatches` concatenates it after the profile and home patch
+  // files), so the launcher publishes the same additions it hands to `boot`.
+  const overlayPatches: PatchOptions[] = [...desktopPatches, ...providerPatches, ...aaPatches]
+  const overrideStart = patches.length
   const composedRows = composeEntries([patches])
   assertUniqueEntryIds(composedRows)
   assertEffectiveMarketRows(composedRows, effectiveMarket)
@@ -995,16 +954,14 @@ export function prepareDesktopProfile(
   for (const row of composedRows) {
     if (typeof row.id === 'string') rows.set(row.id, row)
   }
-  const settings = rows.get('settings')
-  if (settings?.name !== SETTINGS_FILE_PACKAGE) {
-    throw new Error(`${BIN_NAME}: desktop profile must use ${SETTINGS_FILE_PACKAGE} in the settings row`)
+  // Upstream 0.1.7 keeps no settings-file plugin: every configurable plugin
+  // entry is edited through its own row in the profile patch document, so the
+  // Desktop settings live in the `dsh-desktop` row of that same document.
+  const desktopSettings = rows.get(DESKTOP_SETTINGS_ENTRY_ID)
+  if (desktopSettings === undefined) {
+    throw new Error(`${BIN_NAME}: desktop profile has no ${DESKTOP_SETTINGS_ENTRY_ID} row`)
   }
-  const settingsConfig = FileSettingsProvider.Config({
-    dshHome: home,
-    ...rowConfig(settings),
-  } as SettingsFileConfig)
-  const settingsDocument = resolveSettingsFileSpec(settingsConfig).filename
-  hooks.onSettingsDocumentResolved?.(settingsDocument)
+  const settingsDocument = join(profileDir, PROFILE_PATCH_FILENAME)
   const {
     mode,
     port,
@@ -1012,10 +969,8 @@ export function prepareDesktopProfile(
     windowsMaterial,
     openBrowser,
     networkExposure,
-  } = readDesktopStartupSettings(settingsConfig)
-  patches.push({
-    id: 'settings',
-    config: settingsConfig,
+  } = desktopStartupSettingsFromSettings({
+    [DESKTOP_SETTINGS_NAMESPACE]: rowConfig(desktopSettings),
   })
   const webRuntime = rows.get('web-runtime')
   if (webRuntime === undefined) {
@@ -1047,18 +1002,6 @@ export function prepareDesktopProfile(
       { id: 'ui-sidebar', disabled: false },
       { id: 'ui-conversation', disabled: false },
     )
-  }
-  const presets = rows.get(AGENT_PRESETS_ROW_ID)
-  if (presets !== undefined) {
-    const shippedRoot = shippedPresetRoot()
-    const roots: Array<{ path: string, trust: 'system' | 'user' }> = [
-      { path: shippedRoot, trust: 'system' },
-      { path: join(home, USER_PRESET_DIRNAME), trust: 'user' },
-    ]
-    patches.push({
-      id: AGENT_PRESETS_ROW_ID,
-      config: { ...rowConfig(presets), roots, includeUserRoot: false },
-    })
   }
   const webserver = rows.get('webserver')
   if (webserver === undefined) {
@@ -1168,12 +1111,25 @@ export function prepareDesktopProfile(
       windowsMaterial,
     },
   })
+  overlayPatches.push(...patches.slice(overrideStart), {
+    id: 'desktop-shell',
+    disabled: false,
+    config: {
+      ...rowConfig(desktopShell),
+      mode,
+      port,
+      networkExposure,
+      macosMaterial,
+      windowsMaterial,
+    },
+  })
   return {
     homeDir: home,
     profile,
     rootConfig,
     bareModuleBaseUrl,
     patches: structuredClone(patches),
+    overlays: structuredClone(overlayPatches),
     skippedOptionalEntries,
     mode,
     port,
@@ -1191,16 +1147,28 @@ export function prepareDesktopProfile(
   }
 }
 
-/** Maintain the upstream module fallback for one fully resolved Desktop profile. */
+/**
+ * Compute the runtime resolution for one fully resolved Desktop profile.
+ *
+ * Upstream 0.1.7 resolves the profile through its own interception at boot, so
+ * the launcher only primes the same resolution early: a packaged Desktop owns
+ * the ordinary installation closure under its ASAR bridge, which the patched
+ * `createRuntimeResolution` applies whenever the resolver marker is held.
+ * @param home - Harness home owning the profiles directory.
+ * @param profile - loaded profile whose bundles contribute profile-scope packages.
+ * @returns a promise resolving once the resolution was computed.
+ */
 export function healDesktopProfileModuleFallback(home: string, profile?: Profile): Promise<void> {
-  const heal = () => healProfilesModuleFallback({
-    installAnchor: INSTALL_ANCHOR,
-    home,
-    ...(profile === undefined ? {} : { profile }),
-  })
-  if (!/([\\/])app\.asar\1/u.test(INSTALL_ANCHOR)) return heal()
+  const resolveProfile = async () => {
+    await createRuntimeResolution({
+      installAnchor: INSTALL_ANCHOR,
+      home,
+      ...(profile === undefined ? {} : { profile }),
+    })
+  }
+  if (!/([\\/])app\.asar\1/u.test(INSTALL_ANCHOR)) return resolveProfile()
   removeObsoleteDesktopSharedModuleFallback(home)
-  return withAsarModuleResolver(heal)
+  return withAsarModuleResolver(resolveProfile)
 }
 
 function isDshManagedModuleProxy(directory: string): boolean {
@@ -1302,6 +1270,29 @@ export function removeObsoleteDesktopSharedModuleFallback(home: string): number 
 /** Expose the package anchor for focused resolution tests. */
 export function desktopInstallAnchor(): string {
   return INSTALL_ANCHOR
+}
+
+/**
+ * Publishes the reserved `desktop` profile to the Cordis Loader. Both Host paths
+ * (the isolated utility process and the in-process fallback) mount the same
+ * prepared generation, so they must publish the same context: `overlays` carries
+ * the launcher-generated patches that the on-disk profile does not record.
+ */
+export function desktopProfileContext(
+  prepared: PreparedDesktopProfile,
+  homeDir: string,
+): ProfileContext {
+  return {
+    name: 'desktop',
+    dir: prepared.profile.dir,
+    patchPath: prepared.profile.patchPath,
+    installAnchor: desktopInstallAnchor(),
+    cwd: process.cwd(),
+    home: homeDir,
+    startedBundles: prepared.profile.layers.map(layer => layer.packageName),
+    overlays: prepared.overlays,
+    telemetryDisabledEnv: process.env.DSH_TELEMETRY_DISABLED,
+  }
 }
 
 /** Preserve the public manifest type in the declaration graph used by plugin tooling. */

@@ -5,7 +5,6 @@ import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { Readable } from 'node:stream'
 import { Context } from '@deepseek-ai/cordis'
-import { FileSettingsProvider } from '@deepseek-ai/dsh-settings-file'
 import type { SubprocessHandle, SubprocessRuntime, SubprocessSpawnSpec } from '@deepseek-ai/dsh-subprocess'
 import { describe, expect, it, vi } from 'vitest'
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
@@ -20,11 +19,20 @@ const PACKAGE_NAME = 'dsh-plugin-market-integration'
 const PACKAGE_VERSION = '1.2.3'
 const INTEGRITY = `sha512-${Buffer.alloc(64).toString('base64')}`
 const BUNDLE_ID = 'bundle_market_integration'
+const MARKET_PACKAGE_NAME = 'dsh-community-market'
+
+/** Live settings fields of the market entry, as the loader resolves its volatile config. */
+interface MarketSettingsConfig {
+  readonly sources: { get(): readonly unknown[] }
+  readonly catalogCache?: { get(): unknown }
+}
 
 interface CommunityMarketModule {
   readonly name: string
   readonly inject: string[]
-  readonly apply: (ctx: Context) => void
+  readonly apply: (ctx: Context, config: MarketSettingsConfig) => void
+  readonly Config: (raw: Record<string, unknown>) => MarketSettingsConfig
+  readonly MARKET_SETTINGS_ENTRY_ID: string
   readonly marketRoutes: {
     readonly operationPreview: string
     readonly operationExecute: string
@@ -148,14 +156,19 @@ describe('desktop pnpm and community market integration', () => {
     const market = await import(marketModuleUrl) as CommunityMarketModule
     const root = await mkdtemp(join(tmpdir(), 'dsh-market-desktop-pnpm-'))
     const profileDir = join(root, 'profiles', 'web')
-    const settingsPath = join(root, 'settings.yaml')
+    // 0.1.7 keeps plugin settings in the profile patch document: a sequence of
+    // Loader rows addressed by entry id, not a `settings.yaml` namespace document.
+    const profilePatchPath = join(profileDir, 'cordis.patch.yml')
+    const marketEntry = {
+      id: market.MARKET_SETTINGS_ENTRY_ID,
+      name: MARKET_PACKAGE_NAME,
+      config: { sources: [] },
+    }
     const ctx = new Context()
     const webServer = await createWebServer()
     try {
       await writeInstalledProfile(profileDir)
-      await writeFile(settingsPath, stringifyYaml({
-        'dsh-community-market': { sources: [] },
-      }))
+      await writeFile(profilePatchPath, stringifyYaml([marketEntry]))
 
       const selectedBootstrap = bootstrap(root, profileDir)
       const spawn = vi.fn<(spec: SubprocessSpawnSpec) => SubprocessHandle>((_spec) => ({
@@ -163,6 +176,7 @@ describe('desktop pnpm and community market integration', () => {
         stdin: undefined,
         stdout: Readable.from([]),
         stderr: Readable.from([]),
+        control: undefined,
         collected: {},
         done: (async () => {
           await removeInstalledProfilePlugin(profileDir)
@@ -184,9 +198,20 @@ describe('desktop pnpm and community market integration', () => {
       })
       ctx.provide('desktopPnpmBootstrap', selectedBootstrap)
       ctx.provide('subprocess', { spawn } as unknown as SubprocessRuntime)
-      await ctx.plugin(FileSettingsProvider, { path: settingsPath, watch: false })
+      // `dsh-settings` addresses a plugin's config by its entry id; the market
+      // registers a settings presentation, so the stand-in must expose both.
+      const settingsWrites: { ns: string; patch: Record<string, unknown> }[] = []
+      ctx.provide('settings', {
+        update: async (ns: string, patch: Record<string, unknown>) => {
+          settingsWrites.push({ ns, patch })
+        },
+        configure: () => () => {},
+      })
       await ctx.plugin({ name: desktopPnpmName, inject: desktopPnpmInject, apply: applyDesktopPnpm })
-      await ctx.plugin({ name: market.name, inject: market.inject, apply: market.apply })
+      await ctx.plugin(
+        { name: market.name, inject: market.inject, apply: market.apply },
+        market.Config(marketEntry.config),
+      )
 
       const preview = await webServer.post(market.marketRoutes.operationPreview, {
         action: 'uninstall',
@@ -223,10 +248,17 @@ describe('desktop pnpm and community market integration', () => {
         env: { ELECTRON_RUN_AS_NODE: '1', DSH_HOME: selectedBootstrap.homeDir },
       })
 
-      const persisted = parseYaml(await readFile(settingsPath, 'utf8')) as {
-        'dsh-community-market': { sources: unknown[]; installReceipts?: unknown[] }
-      }
-      expect(persisted['dsh-community-market']).toEqual({ sources: [] })
+      const persisted = parseYaml(await readFile(profilePatchPath, 'utf8')) as {
+        id: string
+        name: string
+        config?: { sources: unknown[]; installReceipts?: unknown[] }
+      }[]
+      expect(persisted).toEqual([{
+        id: market.MARKET_SETTINGS_ENTRY_ID,
+        name: MARKET_PACKAGE_NAME,
+        config: { sources: [] },
+      }])
+      expect(settingsWrites).toEqual([])
       const manifest = JSON.parse(await readFile(join(profileDir, 'package.json'), 'utf8')) as {
         dependencies: Record<string, string>
       }

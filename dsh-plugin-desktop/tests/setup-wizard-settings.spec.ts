@@ -14,6 +14,7 @@ import { parseDocument } from 'yaml'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   defaultDesktopSetupWizardSettings,
+  importDesktopLegacySettingsDocument,
   migrateDesktopBrowserAccessSettings,
   migrateDesktopWindowMaterialSettings,
   readDesktopSetupWizardSettings,
@@ -21,6 +22,14 @@ import {
   updateDesktopSetupWizardSettings,
   type DesktopSetupWizardSettings,
 } from '../src/setup-wizard-settings.ts'
+
+/**
+ * Patch-entry names this edition declares for the two rows it owns. They appear
+ * in fixtures only: the store looks rows up by `id`, and a pre-existing row
+ * keeps its own `name` because no writer assigns one over it.
+ */
+const DESKTOP_ROW_NAME = 'dsh-plugin-desktop/settings'
+const NOTIFICATIONS_ROW_NAME = 'dsh-plugin-desktop/notifications'
 
 const temporaryDirectories: string[] = []
 
@@ -52,6 +61,27 @@ function values(overrides: Partial<DesktopSetupWizardSettings> = {}): DesktopSet
     },
     ...overrides,
   }
+}
+
+/** One entry of the profile patch document as it was persisted. */
+interface RawPatchRow {
+  id?: unknown
+  name?: unknown
+  config?: Record<string, unknown>
+}
+
+function patchRows(path: string): RawPatchRow[] {
+  return parseDocument(readFileSync(path, 'utf8')).toJS() as RawPatchRow[]
+}
+
+function jsonRows(path: string): RawPatchRow[] {
+  return JSON.parse(readFileSync(path, 'utf8')) as RawPatchRow[]
+}
+
+function findRow(rows: readonly RawPatchRow[], id: string): RawPatchRow {
+  const row = rows.find(candidate => candidate.id === id)
+  if (row === undefined) throw new Error(`patch document has no entry with id ${id}`)
+  return row
 }
 
 describe('Desktop Setup Wizard settings document', () => {
@@ -88,20 +118,26 @@ describe('Desktop Setup Wizard settings document', () => {
     const path = join(root, 'settings.yaml')
     writeFileSync(path, [
       '# settings owner comment',
-      'other-plugin:',
-      '  token: keep-me',
-      'dsh-desktop:',
-      '  # presentation comment',
-      '  mode: compatibility',
-      '  macosMaterial: transparent',
-      '  windowsMaterial: acrylic',
-      '  port: 61201',
-      '  logLevel: warn',
-      '  futureField: preserved',
-      'dsh-desktop-notifications:',
-      '  enabled: false',
-      '  notifyOnTurnCompletion: true',
-      '  futureNotification: keep',
+      '- id: other-plugin',
+      '  name: other-plugin',
+      '  config:',
+      '    token: keep-me',
+      '- id: dsh-desktop',
+      `  name: ${DESKTOP_ROW_NAME}`,
+      '  config:',
+      '    # presentation comment',
+      '    mode: compatibility',
+      '    macosMaterial: transparent',
+      '    windowsMaterial: acrylic',
+      '    port: 61201',
+      '    logLevel: warn',
+      '    futureField: preserved',
+      '- id: dsh-desktop-notifications',
+      `  name: ${NOTIFICATIONS_ROW_NAME}`,
+      '  config:',
+      '    enabled: false',
+      '    notifyOnTurnCompletion: true',
+      '    futureNotification: keep',
       '',
     ].join('\n'), { mode: 0o600 })
 
@@ -111,9 +147,14 @@ describe('Desktop Setup Wizard settings document', () => {
     const text = readFileSync(path, 'utf8')
     expect(text).toContain('# settings owner comment')
     expect(text).toContain('# presentation comment')
-    const document = parseDocument(text).toJS() as Record<string, Record<string, unknown>>
-    expect(document['other-plugin']).toEqual({ token: 'keep-me' })
-    expect(document['dsh-desktop']).toMatchObject({
+    const rows = patchRows(path)
+    expect(rows.map(row => row.id)).toEqual(['other-plugin', 'dsh-desktop', 'dsh-desktop-notifications'])
+    expect(findRow(rows, 'other-plugin')).toEqual({
+      id: 'other-plugin',
+      name: 'other-plugin',
+      config: { token: 'keep-me' },
+    })
+    expect(findRow(rows, 'dsh-desktop').config).toMatchObject({
       mode: 'compatibility',
       macosMaterial: 'transparent',
       windowsMaterial: 'mica',
@@ -123,7 +164,7 @@ describe('Desktop Setup Wizard settings document', () => {
       openBrowser: true,
       networkExposure: 'lan',
     })
-    expect(document['dsh-desktop-notifications']).toEqual({
+    expect(findRow(rows, 'dsh-desktop-notifications').config).toEqual({
       enabled: true,
       notifyOnTurnCompletion: false,
       notifyOnTurnFailure: true,
@@ -139,16 +180,20 @@ describe('Desktop Setup Wizard settings document', () => {
   it('creates and updates JSON without dropping unrelated namespaces or unknown leaves', async () => {
     const root = temporaryDirectory()
     const path = join(root, 'custom-settings.json')
-    writeFileSync(path, `${JSON.stringify({
-      custom: { retained: ['a', 'b'] },
-      'dsh-desktop': {
-        mode: 'extended',
-        macosMaterial: 'off',
-        windowsMaterial: 'acrylic',
-        future: 42,
+    writeFileSync(path, `${JSON.stringify([
+      { id: 'custom', name: 'custom', config: { retained: ['a', 'b'] } },
+      {
+        id: 'dsh-desktop',
+        name: DESKTOP_ROW_NAME,
+        config: {
+          mode: 'extended',
+          macosMaterial: 'off',
+          windowsMaterial: 'acrylic',
+          future: 42,
+        },
       },
-      'dsh-desktop-notifications': { future: 'yes' },
-    }, undefined, 2)}\n`, { mode: 0o600 })
+      { id: 'dsh-desktop-notifications', name: NOTIFICATIONS_ROW_NAME, config: { future: 'yes' } },
+    ], undefined, 2)}\n`, { mode: 0o600 })
     const next = values({
       mode: 'compatibility',
       macosMaterial: 'transparent',
@@ -157,9 +202,15 @@ describe('Desktop Setup Wizard settings document', () => {
 
     await updateDesktopSetupWizardSettings(path, next)
 
-    const output = JSON.parse(readFileSync(path, 'utf8')) as Record<string, Record<string, unknown>>
-    expect(output.custom).toEqual({ retained: ['a', 'b'] })
-    expect(output['dsh-desktop']).toMatchObject({
+    const rows = jsonRows(path)
+    expect(rows.map(row => row.id))
+      .toEqual(['custom', 'dsh-desktop', 'dsh-desktop-notifications'])
+    expect(findRow(rows, 'custom')).toEqual({
+      id: 'custom',
+      name: 'custom',
+      config: { retained: ['a', 'b'] },
+    })
+    expect(findRow(rows, 'dsh-desktop').config).toMatchObject({
       mode: 'compatibility',
       macosMaterial: 'transparent',
       windowsMaterial: 'off',
@@ -167,7 +218,7 @@ describe('Desktop Setup Wizard settings document', () => {
       openBrowser: true,
       networkExposure: 'lan',
     })
-    expect(output['dsh-desktop-notifications']).toMatchObject({ future: 'yes' })
+    expect(findRow(rows, 'dsh-desktop-notifications').config).toMatchObject({ future: 'yes' })
     expect(readDesktopSetupWizardSettings(path)).toEqual(next)
   })
 
@@ -185,6 +236,8 @@ describe('Desktop Setup Wizard settings document', () => {
 
     expect(lstatSync(path).isFile()).toBe(true)
     expect(readDesktopSetupWizardSettings(path)).toEqual(next)
+    expect(patchRows(path).map(row => row.id))
+      .toEqual(['dsh-desktop', 'dsh-desktop-notifications'])
   })
 
   it('does not overwrite malformed syntax, invalid roots, or invalid known values', async () => {
@@ -192,9 +245,10 @@ describe('Desktop Setup Wizard settings document', () => {
     const path = join(root, 'settings.yaml')
     for (const text of [
       'dsh-desktop: [unterminated\n',
-      '- not\n- a namespace map\n',
-      'dsh-desktop:\n  mode: impossible\n',
-      'dsh-desktop-notifications:\n  enabled: sometimes\n',
+      'dsh-desktop:\n  mode: compatibility\n',
+      '- not\n- a profile patch entry map\n',
+      '- id: dsh-desktop\n  config:\n    mode: impossible\n',
+      '- id: dsh-desktop-notifications\n  config:\n    enabled: sometimes\n',
     ]) {
       writeFileSync(path, text, { mode: 0o600 })
       await expect(updateDesktopSetupWizardSettings(path, values())).rejects.toThrow()
@@ -210,6 +264,8 @@ describe('Desktop Setup Wizard settings document', () => {
       Buffer.from(''),
       Buffer.from('{not-json}\n'),
       Buffer.from([0xff]),
+      Buffer.from('{"dsh-desktop": {"mode": "compatibility"}}\n'),
+      Buffer.from('["not a profile patch entry"]\n'),
     ]
     for (const contents of invalidDocuments) {
       writeFileSync(path, contents, { mode: 0o600 })
@@ -254,9 +310,11 @@ describe('Desktop Setup Wizard settings document', () => {
   it('projects legacy LAN exposure as explicit compatibility browser access', () => {
     const path = join(temporaryDirectory(), 'settings.yaml')
     writeFileSync(path, [
-      'dsh-desktop:',
-      '  openBrowser: false',
-      '  networkExposure: lan',
+      '- id: dsh-desktop',
+      `  name: ${DESKTOP_ROW_NAME}`,
+      '  config:',
+      '    openBrowser: false',
+      '    networkExposure: lan',
       '',
     ].join('\n'))
 
@@ -272,11 +330,13 @@ describe('Desktop Setup Wizard settings document', () => {
     const yamlPath = join(root, 'legacy.yaml')
     writeFileSync(yamlPath, [
       '# preserve browser migration comments',
-      'dsh-desktop:',
-      '  mode: advanced',
-      '  openBrowser: false',
-      '  networkExposure: lan',
-      '  future: keep',
+      '- id: dsh-desktop',
+      `  name: ${DESKTOP_ROW_NAME}`,
+      '  config:',
+      '    mode: advanced',
+      '    openBrowser: false',
+      '    networkExposure: lan',
+      '    future: keep',
       '',
     ].join('\n'))
 
@@ -284,53 +344,58 @@ describe('Desktop Setup Wizard settings document', () => {
     await expect(migrateDesktopBrowserAccessSettings(yamlPath)).resolves.toBe(false)
     const migrated = readFileSync(yamlPath, 'utf8')
     expect(migrated).toContain('# preserve browser migration comments')
-    expect(parseDocument(migrated).toJS()).toMatchObject({
-      'dsh-desktop': {
-        mode: 'advanced',
-        openBrowser: false,
-        networkExposure: 'loopback',
-        future: 'keep',
-      },
+    expect(findRow(patchRows(yamlPath), 'dsh-desktop').config).toMatchObject({
+      mode: 'advanced',
+      openBrowser: false,
+      networkExposure: 'loopback',
+      future: 'keep',
     })
 
     const jsonPath = join(root, 'legacy.json')
-    writeFileSync(jsonPath, `${JSON.stringify({
-      'dsh-desktop': {
-        mode: 'extended',
-        openBrowser: true,
-        networkExposure: 'loopback',
+    writeFileSync(jsonPath, `${JSON.stringify([
+      {
+        id: 'dsh-desktop',
+        name: DESKTOP_ROW_NAME,
+        config: {
+          mode: 'extended',
+          openBrowser: true,
+          networkExposure: 'loopback',
+        },
       },
-      untouched: { value: 1 },
-    })}\n`)
+      { id: 'untouched', name: 'other-plugin', config: { value: 1 } },
+    ], undefined, 2)}\n`)
     await expect(migrateDesktopBrowserAccessSettings(jsonPath)).resolves.toBe(true)
-    expect(JSON.parse(readFileSync(jsonPath, 'utf8'))).toMatchObject({
-      'dsh-desktop': {
-        mode: 'extended',
-        openBrowser: false,
-        networkExposure: 'loopback',
-      },
-      untouched: { value: 1 },
+    const rows = jsonRows(jsonPath)
+    expect(findRow(rows, 'dsh-desktop').config).toMatchObject({
+      mode: 'extended',
+      openBrowser: false,
+      networkExposure: 'loopback',
+    })
+    expect(findRow(rows, 'untouched')).toEqual({
+      id: 'untouched',
+      name: 'other-plugin',
+      config: { value: 1 },
     })
   })
 
   it('preserves legacy LAN intent by materializing compatibility browser access', async () => {
     const path = join(temporaryDirectory(), 'legacy.yaml')
     writeFileSync(path, [
-      'dsh-desktop:',
-      '  mode: compatibility',
-      '  openBrowser: false',
-      '  networkExposure: lan',
+      '- id: dsh-desktop',
+      `  name: ${DESKTOP_ROW_NAME}`,
+      '  config:',
+      '    mode: compatibility',
+      '    openBrowser: false',
+      '    networkExposure: lan',
       '',
     ].join('\n'))
 
     await expect(migrateDesktopBrowserAccessSettings(path)).resolves.toBe(true)
     await expect(migrateDesktopBrowserAccessSettings(path)).resolves.toBe(false)
-    expect(parseDocument(readFileSync(path, 'utf8')).toJS()).toMatchObject({
-      'dsh-desktop': {
-        mode: 'compatibility',
-        openBrowser: true,
-        networkExposure: 'lan',
-      },
+    expect(findRow(patchRows(path), 'dsh-desktop').config).toMatchObject({
+      mode: 'compatibility',
+      openBrowser: true,
+      networkExposure: 'lan',
     })
   })
 
@@ -338,7 +403,14 @@ describe('Desktop Setup Wizard settings document', () => {
     const root = temporaryDirectory()
     const path = join(root, 'settings.yaml')
     const lockPath = `${path}.lock`
-    const contents = 'dsh-desktop:\n  mode: compatibility\n  macosMaterial: transparent\n'
+    const contents = [
+      '- id: dsh-desktop',
+      `  name: ${DESKTOP_ROW_NAME}`,
+      '  config:',
+      '    mode: compatibility',
+      '    macosMaterial: transparent',
+      '',
+    ].join('\n')
     writeFileSync(path, contents)
     writeFileSync(lockPath, 'owner\n')
 
@@ -351,7 +423,14 @@ describe('Desktop Setup Wizard settings document', () => {
     const root = temporaryDirectory()
     const path = join(root, 'settings.yaml')
     const lockPath = `${path}.lock`
-    const contents = 'dsh-desktop:\n  mode: compatibility\n  macosMaterial: transparent\n'
+    const contents = [
+      '- id: dsh-desktop',
+      `  name: ${DESKTOP_ROW_NAME}`,
+      '  config:',
+      '    mode: compatibility',
+      '    macosMaterial: transparent',
+      '',
+    ].join('\n')
     writeFileSync(path, contents)
     writeFileSync(lockPath, 'owner\n')
 
@@ -365,7 +444,13 @@ describe('Desktop Setup Wizard settings document', () => {
     const root = temporaryDirectory()
     const path = join(root, 'settings.yaml')
     const lockPath = `${path}.lock`
-    writeFileSync(path, 'dsh-desktop:\n  mode: compatibility\n')
+    writeFileSync(path, [
+      '- id: dsh-desktop',
+      `  name: ${DESKTOP_ROW_NAME}`,
+      '  config:',
+      '    mode: compatibility',
+      '',
+    ].join('\n'))
     writeFileSync(lockPath, 'owner\n')
     const next = values({
       mode: 'advanced',
@@ -382,7 +467,14 @@ describe('Desktop Setup Wizard settings document', () => {
     const root = temporaryDirectory()
     const path = join(root, 'settings.yaml')
     const lockPath = `${path}.lock`
-    const contents = 'dsh-desktop:\n  mode: advanced\n  openBrowser: true\n'
+    const contents = [
+      '- id: dsh-desktop',
+      `  name: ${DESKTOP_ROW_NAME}`,
+      '  config:',
+      '    mode: advanced',
+      '    openBrowser: true',
+      '',
+    ].join('\n')
     writeFileSync(path, contents)
     writeFileSync(lockPath, 'owner\n')
 
@@ -413,12 +505,16 @@ describe('Desktop Setup Wizard settings document', () => {
     const path = join(root, 'settings.yaml')
     writeFileSync(path, [
       '# preserve material migration comments',
-      'unrelated:',
-      '  keep: true',
-      'dsh-desktop:',
-      '  mode: extended',
-      '  windowsMaterial: acrylic',
-      '  future: retained',
+      '- id: unrelated',
+      '  name: other-plugin',
+      '  config:',
+      '    keep: true',
+      '- id: dsh-desktop',
+      `  name: ${DESKTOP_ROW_NAME}`,
+      '  config:',
+      '    mode: extended',
+      '    windowsMaterial: acrylic',
+      '    future: retained',
       '',
     ].join('\n'), { mode: 0o600 })
 
@@ -428,20 +524,29 @@ describe('Desktop Setup Wizard settings document', () => {
 
     const migrated = readFileSync(path, 'utf8')
     expect(migrated).toContain('# preserve material migration comments')
-    expect(parseDocument(migrated).toJS()).toMatchObject({
-      unrelated: { keep: true },
-      'dsh-desktop': {
-        mode: 'extended',
-        windowsMaterial: 'off',
-        future: 'retained',
-      },
+    const rows = patchRows(path)
+    expect(findRow(rows, 'unrelated')).toEqual({
+      id: 'unrelated',
+      name: 'other-plugin',
+      config: { keep: true },
+    })
+    expect(findRow(rows, 'dsh-desktop').config).toMatchObject({
+      mode: 'extended',
+      windowsMaterial: 'off',
+      future: 'retained',
     })
   })
 
   it('serializes concurrent complete updates without producing a torn document', async () => {
     const root = temporaryDirectory()
     const path = join(root, 'settings.yaml')
-    writeFileSync(path, 'unrelated:\n  keep: true\n', { mode: 0o600 })
+    writeFileSync(path, [
+      '- id: unrelated',
+      '  name: other-plugin',
+      '  config:',
+      '    keep: true',
+      '',
+    ].join('\n'), { mode: 0o600 })
     const first = values({ mode: 'extended', windowsMaterial: 'off', openBrowser: false, networkExposure: 'loopback' })
     const second = values({ mode: 'compatibility', windowsMaterial: 'mica', networkExposure: 'loopback' })
 
@@ -452,9 +557,122 @@ describe('Desktop Setup Wizard settings document', () => {
 
     const result = readDesktopSetupWizardSettings(path)
     expect([first, second]).toContainEqual(result)
-    expect(parseDocument(readFileSync(path, 'utf8')).toJS()).toMatchObject({
-      unrelated: { keep: true },
+    expect(findRow(patchRows(path), 'unrelated')).toEqual({
+      id: 'unrelated',
+      name: 'other-plugin',
+      config: { keep: true },
     })
     expect(readdirSync(root)).toEqual(['settings.yaml'])
+  })
+
+  it('imports both retired namespace sections into the desktop patch rows', async () => {
+    const root = temporaryDirectory()
+    const legacyPath = join(root, 'legacy-settings.yaml')
+    const documentPath = join(root, 'profile.yaml')
+    writeFileSync(legacyPath, [
+      '# legacy settings owner comment',
+      'other-plugin:',
+      '  token: keep-me',
+      'dsh-desktop:',
+      '  mode: extended',
+      '  windowsMaterial: mica',
+      'dsh-desktop-notifications:',
+      '  enabled: false',
+      '',
+    ].join('\n'), { mode: 0o600 })
+    writeFileSync(documentPath, [
+      '- id: other-plugin',
+      '  name: other-plugin',
+      '  config:',
+      '    token: keep-me',
+      '',
+    ].join('\n'), { mode: 0o600 })
+
+    await expect(importDesktopLegacySettingsDocument(legacyPath, documentPath)).resolves.toBe(true)
+    // The retired sections are already gone, so a second import changes nothing.
+    await expect(importDesktopLegacySettingsDocument(legacyPath, documentPath)).resolves.toBe(false)
+
+    const rows = patchRows(documentPath)
+    expect(rows.map(row => row.id)).toEqual(['other-plugin', 'dsh-desktop', 'dsh-desktop-notifications'])
+    expect(findRow(rows, 'other-plugin')).toEqual({
+      id: 'other-plugin',
+      name: 'other-plugin',
+      config: { token: 'keep-me' },
+    })
+    expect(findRow(rows, 'dsh-desktop').config).toEqual({ mode: 'extended', windowsMaterial: 'mica' })
+    expect(findRow(rows, 'dsh-desktop-notifications').config).toEqual({ enabled: false })
+    expect(readDesktopSetupWizardSettings(documentPath)).toMatchObject({
+      mode: 'extended',
+      windowsMaterial: 'mica',
+      notifications: { enabled: false },
+    })
+
+    const legacyText = readFileSync(legacyPath, 'utf8')
+    expect(legacyText).toContain('# legacy settings owner comment')
+    expect(parseDocument(legacyText).toJS()).toEqual({ 'other-plugin': { token: 'keep-me' } })
+  })
+
+  it('keeps existing patch row values when the legacy document disagrees', async () => {
+    const root = temporaryDirectory()
+    const legacyPath = join(root, 'legacy-settings.json')
+    const documentPath = join(root, 'profile.json')
+    writeFileSync(legacyPath, `${JSON.stringify({
+      'dsh-desktop': { mode: 'extended', windowsMaterial: 'mica' },
+      'dsh-desktop-notifications': { enabled: true, notifyOnTurnCompletion: false },
+    }, undefined, 2)}\n`, { mode: 0o600 })
+    writeFileSync(documentPath, `${JSON.stringify([
+      { id: 'dsh-desktop', name: DESKTOP_ROW_NAME, config: { mode: 'advanced' } },
+      {
+        id: 'dsh-desktop-notifications',
+        name: NOTIFICATIONS_ROW_NAME,
+        config: { enabled: false, notifyOnJobFailure: false },
+      },
+    ], undefined, 2)}\n`, { mode: 0o600 })
+
+    await expect(importDesktopLegacySettingsDocument(legacyPath, documentPath)).resolves.toBe(true)
+
+    const rows = jsonRows(documentPath)
+    const desktop = findRow(rows, 'dsh-desktop')
+    expect(desktop.name).toBe(DESKTOP_ROW_NAME)
+    expect(desktop.config).toEqual({ mode: 'advanced', windowsMaterial: 'mica' })
+    expect(findRow(rows, 'dsh-desktop-notifications').config).toEqual({
+      enabled: false,
+      notifyOnJobFailure: false,
+      notifyOnTurnCompletion: false,
+    })
+    expect(readDesktopSetupWizardSettings(documentPath)).toMatchObject({
+      mode: 'advanced',
+      windowsMaterial: 'mica',
+      notifications: { enabled: false, notifyOnTurnCompletion: false },
+    })
+    expect(JSON.parse(readFileSync(legacyPath, 'utf8'))).toEqual({})
+  })
+
+  it('ignores an absent legacy document and refuses invalid legacy input', async () => {
+    const root = temporaryDirectory()
+    const documentPath = join(root, 'profile.yaml')
+
+    await expect(importDesktopLegacySettingsDocument(join(root, 'missing.yaml'), documentPath))
+      .resolves.toBe(false)
+    expect(readdirSync(root)).toEqual([])
+
+    const malformedPath = join(root, 'malformed.yaml')
+    writeFileSync(malformedPath, 'dsh-desktop: [unterminated\n', { mode: 0o600 })
+    await expect(importDesktopLegacySettingsDocument(malformedPath, documentPath))
+      .rejects.toThrow('YAML could not be parsed')
+    expect(readFileSync(malformedPath, 'utf8')).toBe('dsh-desktop: [unterminated\n')
+
+    const invalidPath = join(root, 'invalid.yaml')
+    writeFileSync(invalidPath, 'dsh-desktop:\n  mode: impossible\n', { mode: 0o600 })
+    await expect(importDesktopLegacySettingsDocument(invalidPath, documentPath))
+      .rejects.toThrow('must be compatibility')
+    expect(readFileSync(invalidPath, 'utf8')).toBe('dsh-desktop:\n  mode: impossible\n')
+
+    const foreignPath = join(root, 'foreign.yaml')
+    writeFileSync(foreignPath, 'other-plugin:\n  token: keep-me\n', { mode: 0o600 })
+    await expect(importDesktopLegacySettingsDocument(foreignPath, documentPath)).resolves.toBe(false)
+    expect(readFileSync(foreignPath, 'utf8')).toBe('other-plugin:\n  token: keep-me\n')
+    // Nothing valid was imported, so the live profile patch document was never created.
+    expect(readdirSync(root).sort()).toEqual(['foreign.yaml', 'invalid.yaml', 'malformed.yaml'])
   })
 })

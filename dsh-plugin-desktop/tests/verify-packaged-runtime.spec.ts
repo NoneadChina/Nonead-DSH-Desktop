@@ -31,6 +31,7 @@ import {
   REQUIRED_POSIX_FS_EXT_ENTRIES,
   REQUIRED_UNPACKED_RUNTIME_ENTRIES,
   REQUIRED_WINDOWS_X64_NODE_PTY_ENTRIES,
+  REQUIRED_WINDOWS_X64_OFFICE_ENGINE_ENTRIES,
   resolvePackagedAsarPath,
   resolvePackagedExecutablePath,
   resolvePackagedUnpackedRoot,
@@ -133,6 +134,7 @@ function completeArchiveEntries(): string[] {
     ...DESKTOP_RUNTIME_ENTRIES,
     ...REQUIRED_UNPACKED_RUNTIME_ENTRIES,
     ...REQUIRED_WINDOWS_X64_NODE_PTY_ENTRIES,
+    ...REQUIRED_WINDOWS_X64_OFFICE_ENGINE_ENTRIES,
     ...Object.values(REQUIRED_POSIX_FS_EXT_ENTRIES.darwin),
     ...Object.values(REQUIRED_POSIX_FS_EXT_ENTRIES.linux),
     ...REQUIRED_MACOS_UNIVERSAL_ENTRIES,
@@ -147,6 +149,7 @@ function requiredPhysicalEntries(runtimeContext: PackagedRuntimeContext): string
     return [
       ...desktopAssets,
       ...REQUIRED_WINDOWS_X64_NODE_PTY_ENTRIES,
+      ...REQUIRED_WINDOWS_X64_OFFICE_ENGINE_ENTRIES,
     ]
   }
   if (runtimeContext.electronPlatformName === 'darwin' && runtimeContext.arch === 4) {
@@ -214,8 +217,7 @@ describe('packaged desktop runtime verification', () => {
 
   it('keeps the shipped PTC preset present and integrity-protected in app.asar', () => {
     expect(REQUIRED_AGENT_PRESET_RUNTIME_ENTRIES).toEqual([
-      'node_modules/@deepseek-ai/dsh-agent-presets/presets/ptc/agent.cordis.yml',
-      'node_modules/@deepseek-ai/dsh-agent-presets/presets/ptc/preset.yml',
+      'node_modules/@deepseek-ai/dsh-web-app/presets/ptc.patch.yml',
     ])
     for (const entry of REQUIRED_AGENT_PRESET_RUNTIME_ENTRIES) {
       expect(REQUIRED_PACKAGED_RUNTIME_ENTRIES).toContain(entry)
@@ -281,7 +283,7 @@ describe('packaged desktop runtime verification', () => {
     expect(calls).toEqual(['static', 'report'])
   })
 
-  it('tracks ripgrep and the ConPTY native surface required on Windows', () => {
+  it('tracks the selected Office engine and the other Windows x64 native surfaces', () => {
     expect(REQUIRED_WINDOWS_X64_NODE_PTY_ENTRIES).toEqual([
       'node_modules/@vscode/ripgrep-win32-x64/bin/rg.exe',
       'node_modules/node-pty/prebuilds/win32-x64/conpty.node',
@@ -289,6 +291,27 @@ describe('packaged desktop runtime verification', () => {
       'node_modules/node-pty/prebuilds/win32-x64/conpty/OpenConsole.exe',
       'node_modules/node-pty/prebuilds/win32-x64/conpty/conpty.dll',
     ])
+    expect(REQUIRED_WINDOWS_X64_OFFICE_ENGINE_ENTRIES).toEqual([
+      'node_modules/@deepseek-ai/libreoffice-kit-win32-x64/package.json',
+      'node_modules/@deepseek-ai/libreoffice-kit-win32-x64/prebuilds.json',
+      'node_modules/@deepseek-ai/libreoffice-kit-win32-x64/bin/libreoffice-kit.exe',
+    ])
+  })
+
+  it('rejects a Windows package whose selected Office engine is missing', () => {
+    const runtimeContext = context('/build', 'win32', 1)
+    const missing = REQUIRED_WINDOWS_X64_OFFICE_ENGINE_ENTRIES[0]
+    const fixture = physicalFixture(runtimeContext, { missing })
+    const readHeader = vi.fn<ArchiveHeaderReader>(
+      headerReader(completeArchiveEntries(), fixture.paths),
+    )
+
+    expect(() => verifyPackagedRuntime(
+      runtimeContext,
+      readHeader,
+      fixture.exists,
+      () => fixture.files,
+    )).toThrow(`missing required physical entries: ${missing}`)
   })
 
   it.each([
@@ -513,6 +536,7 @@ describe('packaged desktop runtime verification', () => {
     expect(requiredPhysicalEntries(windows)).toEqual([
       ...REQUIRED_NON_MACOS_UNPACKED_RUNTIME_ENTRIES,
       ...REQUIRED_WINDOWS_X64_NODE_PTY_ENTRIES,
+      ...REQUIRED_WINDOWS_X64_OFFICE_ENGINE_ENTRIES,
     ])
     expect(requiredPhysicalEntries(mac)).not.toContain('build/app-icon.png')
     expect(requiredPhysicalEntries(windows)).not.toContain('build/app-icon-mac.png')
@@ -558,6 +582,9 @@ describe('packaged desktop runtime verification', () => {
     expect(ALLOWED_SMART_UNPACK_PACKAGE_ROOTS).toContain('node_modules/pnpm')
     expect(ALLOWED_SMART_UNPACK_PACKAGE_PREFIXES).toContain('node_modules/@vscode/ripgrep-')
     expect(ALLOWED_SMART_UNPACK_PACKAGE_PREFIXES).toContain('node_modules/@img/sharp-')
+    expect(ALLOWED_SMART_UNPACK_PACKAGE_PREFIXES)
+      .toContain('node_modules/@deepseek-ai/libreoffice-kit-')
+    expect(ALLOWED_SMART_UNPACK_PACKAGE_PREFIXES).toContain('node_modules/sherpa-onnx-')
   })
 
   it('accepts pnpm as an indivisible smart-unpacked package with native helpers', () => {

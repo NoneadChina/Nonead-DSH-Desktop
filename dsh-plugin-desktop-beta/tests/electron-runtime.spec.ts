@@ -1,6 +1,7 @@
-import { readFileSync, unlinkSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, unlinkSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DesktopShellSpec } from '../src/runtime.ts'
 import { desktopTrayLabel } from '../src/tray-locale.ts'
 import { DESKTOP_FRAME_HEIGHT } from '../src/window-chrome.ts'
@@ -40,10 +41,18 @@ const childProcess = vi.hoisted(() => {
   }
 })
 
-const MAIN_WINDOW_STATE_PATH = '/tmp/dsh-desktop-user-data/main-window-state.json'
+// A per-run private directory. The window-state and update tests really write to
+// disk, so a shared hard-coded path made concurrent spec files race on the same
+// file (EPERM on rename) and let one file observe another's state.
+const USER_DATA_DIR = mkdtempSync(join(tmpdir(), 'dsh-desktop-user-data-'))
+const MAIN_WINDOW_STATE_PATH = join(USER_DATA_DIR, 'main-window-state.json')
 const PRODUCT_VERSION = (JSON.parse(
   readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
 ) as { readonly version: string }).version
+
+afterAll(() => {
+  rmSync(USER_DATA_DIR, { recursive: true, force: true })
+})
 
 function clearMainWindowState(): void {
   try {
@@ -228,9 +237,9 @@ const electron = vi.hoisted(() => {
       getLocale: vi.fn(() => 'en-US'),
       getPreferredSystemLanguages: vi.fn(() => ['en-US']),
       getPath: vi.fn((name: string) => {
-        if (name === 'crashDumps') return '/tmp/dsh-desktop-user-data/Crashpad'
+        if (name === 'crashDumps') return join(USER_DATA_DIR, 'Crashpad')
         if (name === 'downloads') return '/tmp/Downloads'
-        return '/tmp/dsh-desktop-user-data'
+        return USER_DATA_DIR
       }),
       getVersion: vi.fn(() => '43.4.0'),
       isPackaged: false,
@@ -426,7 +435,8 @@ describe('Electron desktop runtime', () => {
     expect(options).not.toHaveProperty('titleBarOverlay')
     expect(electron.contentViews).toHaveLength(2)
     expect(electron.contentViews[1]?.options).toEqual({ webPreferences: {
-      preload: expect.stringMatching(/\/preload\.cjs$/),
+      // Compared against a real filesystem path, so accept either separator.
+      preload: expect.stringMatching(/[\\/]preload\.cjs$/u),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
@@ -651,7 +661,7 @@ describe('Electron desktop runtime', () => {
     vi.useFakeTimers()
     vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
     const { FileMainWindowStateStore } = await import('../src/main-window-state.ts')
-    const store = new FileMainWindowStateStore('/tmp/dsh-desktop-user-data')
+    const store = new FileMainWindowStateStore(USER_DATA_DIR)
     store.write({ x: 260, y: 140, width: 1440, height: 900 })
     const { ElectronDesktopRuntime } = await import('../src/electron-runtime.ts')
     const runtime = new ElectronDesktopRuntime(async () => {})
@@ -689,7 +699,7 @@ describe('Electron desktop runtime', () => {
   it('fits stale saved bounds into the current display work area', async () => {
     vi.spyOn(process, 'platform', 'get').mockReturnValue('darwin')
     const { FileMainWindowStateStore } = await import('../src/main-window-state.ts')
-    const store = new FileMainWindowStateStore('/tmp/dsh-desktop-user-data')
+    const store = new FileMainWindowStateStore(USER_DATA_DIR)
     const stale = { x: 5_000, y: -2_000, width: 2_000, height: 1_400 }
     store.write(stale)
     electron.screen.getDisplayMatching.mockReturnValueOnce({
@@ -2347,7 +2357,7 @@ describe('Electron desktop runtime', () => {
       isPackaged: false,
       canDownload: false,
       currentVersion: PRODUCT_VERSION,
-      statePath: join('/tmp/dsh-desktop-user-data', 'updates', 'state.json'),
+      statePath: join(USER_DATA_DIR, 'updates', 'state.json'),
     })
     electron.app.isPackaged = true
     expect(runtime.updates).toMatchObject({ isPackaged: true, canDownload: true })
@@ -2402,7 +2412,7 @@ describe('Electron desktop runtime', () => {
       signal: controller.signal,
     })
     expect(electron.shell.openPath).toHaveBeenCalledWith('/tmp/Nonead-DSH-Desktop-2.1.0-mac.dmg')
-    expect(updater.record).toHaveBeenCalledWith('/tmp/dsh-desktop-user-data', {
+    expect(updater.record).toHaveBeenCalledWith(USER_DATA_DIR, {
       platform: 'darwin',
       version: '2.1.0',
       path: '/tmp/Nonead-DSH-Desktop-2.1.0-mac.dmg',
@@ -2430,6 +2440,48 @@ describe('Electron desktop runtime', () => {
     click()
     expect(activeWindow?.show).toHaveBeenCalledTimes(2)
     expect(activeWindow?.focus).toHaveBeenCalledTimes(2)
+
+    await release()
+  })
+
+  it('reports a failed installer download with its reason instead of staying silent', async () => {
+    vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
+    const { ElectronDesktopRuntime } = await import('../src/electron-runtime.ts')
+    const runtime = new ElectronDesktopRuntime(async () => {})
+    const release = runtime.schedule(spec)
+    await runtime.mountScheduled()
+    const activeWindow = electron.browserWindows[0]
+
+    await runtime.updates.reportDownloadFailure('2.1.0', { code: 'stalled' })
+
+    expect(electron.dialog.showMessageBox).toHaveBeenLastCalledWith(
+      activeWindow,
+      expect.objectContaining({
+        type: 'error',
+        title: 'Update Failed',
+        message: 'The update to Nonead DSH Desktop 2.1.0 could not be completed.',
+        detail: expect.stringContaining('No incomplete file was kept.'),
+        buttons: ['OK'],
+      }),
+    )
+
+    await runtime.updates.reportDownloadFailure('2.1.0', { code: 'http-status', status: 503 })
+    expect(electron.dialog.showMessageBox).toHaveBeenLastCalledWith(
+      activeWindow,
+      expect.objectContaining({
+        title: 'Update Failed',
+        detail: expect.stringContaining('(HTTP 503)'),
+      }),
+    )
+
+    await runtime.updates.reportDownloadFailure('2.1.0', { code: 'unknown' })
+    expect(electron.dialog.showMessageBox).toHaveBeenLastCalledWith(
+      activeWindow,
+      expect.objectContaining({
+        title: 'Update Failed',
+        detail: expect.stringContaining('Choose the save location again to retry the update.'),
+      }),
+    )
 
     await release()
   })
@@ -2463,7 +2515,7 @@ describe('Electron desktop runtime', () => {
     await pending
 
     expect(childProcess.child.unref).toHaveBeenCalledOnce()
-    expect(updater.record).toHaveBeenCalledWith('/tmp/dsh-desktop-user-data', {
+    expect(updater.record).toHaveBeenCalledWith(USER_DATA_DIR, {
       platform: 'win32',
       version: '2.1.0',
       path: 'C:\\Updates\\Nonead-DSH-Desktop-2.1.0-windows.exe',
@@ -2488,7 +2540,7 @@ describe('Electron desktop runtime', () => {
     childProcess.emit('error', new Error('blocked'))
 
     await expect(pending).rejects.toThrow('blocked')
-    expect(updater.record).toHaveBeenCalledWith('/tmp/dsh-desktop-user-data', {
+    expect(updater.record).toHaveBeenCalledWith(USER_DATA_DIR, {
       platform: 'win32',
       version: '2.1.0',
       path: 'C:\\Updates\\Nonead-DSH-Desktop-2.1.0-windows.exe',
@@ -2575,7 +2627,7 @@ describe('Electron desktop runtime', () => {
         buttons: ['Delete Installer', 'Keep Installer'],
       }),
     )
-    expect(updater.resolve).toHaveBeenCalledWith('/tmp/dsh-desktop-user-data', artifact, remove)
+    expect(updater.resolve).toHaveBeenCalledWith(USER_DATA_DIR, artifact, remove)
   })
 
   it('rejects a macOS handoff when the operating system cannot open the DMG', async () => {

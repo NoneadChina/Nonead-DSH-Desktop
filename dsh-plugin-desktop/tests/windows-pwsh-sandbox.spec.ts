@@ -1,12 +1,18 @@
-import type { ShellExecSpec } from '@deepseek-ai/dsh-shell'
+import { fileURLToPath } from 'node:url'
+import { Context } from '@deepseek-ai/cordis'
+import type { ShellExecSpec, ShellExecution } from '@deepseek-ai/dsh-shell'
+import type { SubprocessHandle, SubprocessSpawnSpec } from '@deepseek-ai/dsh-subprocess'
+import type { Config as PwshConfig } from '@deepseek-ai/dsh-pwsh-local'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   adaptWindowsAclExecution,
+  DesktopWindowsPwshSandbox,
   desktopWindowsPwshConfig,
   desktopWindowsPwshPath,
   type WindowsAclAdaptation,
 } from '../src/windows-pwsh-sandbox.ts'
 const RUN_AS_NODE = 'ELECTRON_RUN_AS_NODE'
+const SYSTEM_POWERSHELL = 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe'
 
 function shellSpec(env?: Record<string, string>): ShellExecSpec {
   return {
@@ -14,8 +20,22 @@ function shellSpec(env?: Record<string, string>): ShellExecSpec {
     workdir: 'C:\\workspace',
     timeoutMs: 60_000,
     stdoutMaxBytes: 64_000,
+    onExpiry: 'kill',
     sandboxPolicy: undefined,
     ...(env === undefined ? {} : { env }),
+  }
+}
+
+/** A resolved pwsh-local configuration: every volatile field is read through `get()`. */
+function pwshConfig(declaredPwshPath?: string): PwshConfig {
+  return {
+    cwd: { get: () => undefined },
+    timeoutMs: { get: () => 120_000 },
+    maxTimeoutMs: { get: () => 600_000 },
+    maxOutputBytes: { get: () => 64_000 },
+    maxSpillBytes: { get: () => 64 * 1024 * 1024 },
+    graceMs: { get: () => 5_000 },
+    pwshPath: { get: () => declaredPwshPath },
   }
 }
 
@@ -48,24 +68,37 @@ describe('Windows Electron PowerShell sandbox adaptation', () => {
   })
 
   it('keeps explicit pwshPath config and non-Windows config unchanged', () => {
-    const explicit = { cwd: 'C:\\workspace', pwshPath: 'D:\\tools\\pwsh\\pwsh.exe' }
+    const explicit = pwshConfig('D:\\tools\\pwsh\\pwsh.exe')
     expect(desktopWindowsPwshConfig(explicit, {}, 'win32')).toBe(explicit)
 
-    const nonWindows = { cwd: '/workspace' }
+    const nonWindows = pwshConfig()
     expect(desktopWindowsPwshConfig(nonWindows, {}, 'darwin')).toBe(nonWindows)
   })
 
   it('defaults Windows sandbox config to a stable system PowerShell when available', () => {
-    const result = desktopWindowsPwshConfig({ cwd: 'C:\\workspace' }, {
+    const configured = pwshConfig()
+    const result = desktopWindowsPwshConfig(configured, {
       ProgramFiles: 'C:\\missing',
       SystemRoot: 'C:\\Windows',
       PATH: 'D:\\portable\\pwsh',
-    }, 'win32', path => path === 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe')
+    }, 'win32', path => path === SYSTEM_POWERSHELL)
 
-    expect(result).toEqual({
-      cwd: 'C:\\workspace',
-      pwshPath: 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',
-    })
+    expect(result).not.toBe(configured)
+    expect(result.cwd).toBe(configured.cwd)
+    expect(result.pwshPath.get()).toBe(SYSTEM_POWERSHELL)
+  })
+
+  it('lets a pwshPath declared after startup override the derived Windows default', () => {
+    let declared: string | undefined
+    const configured: PwshConfig = { ...pwshConfig(), pwshPath: { get: () => declared } }
+    const result = desktopWindowsPwshConfig(configured, {
+      ProgramFiles: 'C:\\missing',
+      SystemRoot: 'C:\\Windows',
+    }, 'win32', path => path === SYSTEM_POWERSHELL)
+
+    expect(result.pwshPath.get()).toBe(SYSTEM_POWERSHELL)
+    declared = 'D:\\tools\\pwsh\\pwsh.exe'
+    expect(result.pwshPath.get()).toBe('D:\\tools\\pwsh\\pwsh.exe')
   })
 
   it('adapts only the exact Electron-hosted win32 ACL runner argv', () => {
@@ -185,6 +218,82 @@ describe('Windows Electron PowerShell sandbox adaptation', () => {
       if (previousRunAsNode === undefined) delete process.env[RUN_AS_NODE]
       else process.env[RUN_AS_NODE] = previousRunAsNode
     }
+  })
+})
+
+describe('desktop Windows PowerShell sandbox executor', () => {
+  class ExposedSandbox extends DesktopWindowsPwshSandbox {
+    runArgv(spec: ShellExecSpec, argv: readonly string[]): Promise<ShellExecution> {
+      return this.executeArgv(spec, argv)
+    }
+
+    runPrepare(
+      spec: ShellExecSpec,
+      prepare: (signal: AbortSignal) => Promise<readonly string[]>,
+    ): Promise<ShellExecution> {
+      return this.executeArgv(spec, prepare)
+    }
+  }
+
+  function harness(): { executor: ExposedSandbox; specs: SubprocessSpawnSpec[] } {
+    const specs: SubprocessSpawnSpec[] = []
+    const ctx = new Context()
+    ctx.provide('sandboxPolicy', { defaultMode: 'danger-full-access' })
+    ctx.provide('subprocess', {
+      spawn: (spec: SubprocessSpawnSpec): SubprocessHandle => {
+        specs.push(spec)
+        const emptyReader = { readFrom: () => ({ text: '', lossy: false, nextOffset: 0 }) }
+        return {
+          stdin: undefined,
+          stdout: undefined,
+          stderr: undefined,
+          control: undefined,
+          collected: { stdout: emptyReader, stderr: emptyReader },
+          done: Promise.resolve({ exitCode: 0, signal: null }),
+          terminate: () => {},
+          waitForExit: async () => true,
+        }
+      },
+    })
+    return { executor: new ExposedSandbox(ctx, pwshConfig()), specs }
+  }
+
+  const versions: { electron?: string } = process.versions
+  const originalElectron = versions.electron
+
+  afterEach(() => {
+    if (originalElectron === undefined) delete versions.electron
+    else versions.electron = originalElectron
+  })
+
+  it.runIf(process.platform === 'win32')(
+    'inserts the Node-mode trampoline for a confined argv before the spawn reads the environment',
+    async () => {
+      Object.defineProperty(process.versions, 'electron', { value: '43.4.0', configurable: true, writable: true })
+      const { executor, specs } = harness()
+      const upstreamRunner = fileURLToPath(import.meta.resolve('@deepseek-ai/dsh-sandbox-windows-acl/runner'))
+      const trampoline = fileURLToPath(new URL('../src/windows-acl-runner.js', import.meta.url))
+      const spec = shellSpec({ KEEP: 'value' })
+
+      await executor.runPrepare(spec, async () => [process.execPath, upstreamRunner, '--', 'powershell.exe'])
+
+      expect(specs).toHaveLength(1)
+      expect(specs[0]?.argv).toEqual([process.execPath, trampoline, upstreamRunner, '--', 'powershell.exe'])
+      expect(specs[0]?.env).toMatchObject({ KEEP: 'value', [RUN_AS_NODE]: '1' })
+      expect(specs[0]?.cwd).toBe('C:\\workspace')
+      expect(spec.env).toEqual({ KEEP: 'value' })
+    },
+  )
+
+  it('passes a direct PowerShell argv through without Node-mode environment', async () => {
+    const { executor, specs } = harness()
+    const argv = [SYSTEM_POWERSHELL, '-NoLogo', '-NoProfile', '-NonInteractive', '-Command', 'Write-Output ok']
+
+    await executor.runArgv(shellSpec({ KEEP: 'value' }), argv)
+
+    expect(specs).toHaveLength(1)
+    expect(specs[0]?.argv).toEqual(argv)
+    expect(specs[0]?.env).not.toHaveProperty(RUN_AS_NODE)
   })
 })
 

@@ -16,7 +16,7 @@ desktop package 拥有普通 Host 与 Web Client 两个 face。它的 Client fac
 
 托盘中的 profile 选择器会列出现有 profile，以及可延迟创建的 `desktop` 与 `web` 默认项。可选 profile 必须直接按顺序组合 `dsh-base` 与 `dsh-web-app`；headless、损坏或已经内嵌 desktop bundle 的 profile 仍会显示，但不可选择。只有 `desktop` 是 Launcher 管理的 profile：它会修复安装方拥有的前缀，同时保留第三方 bundle 的相对顺序。其他被选 profile 的 manifest、用户 patch 与依赖均保持不变。Launcher 只会为当前 generation 在 `dsh-web-app` 后插入自有 desktop layer，不会把该 layer 持久化到被选 bundle 列表。
 
-Profile 选择保存在 Electron user data 下的 desktop 自有状态中，而不是被选 profile 内的另一个字段。被接受的切换会直接持久化精确的激活 profile，并通过有序重启生效。启动失败时不会替换成 last-known-good profile，也不会自动改写配置。每次健康启动都会写入三个轮转 checkpoint 之一，其中同时包含激活 Profile 的声明式 package 与 patch 文件，以及共享 DSH home 中的 `settings.yaml` 和 `cordis.patch.yml`；恢复时始终打开恢复页面，由用户选择精确槽位。执行恢复后的下一次健康启动会跳过一次 checkpoint 替换。版本 2 的旧槽位仍可恢复，但只影响原有五个 Profile 文件。凭据、`.env`、sessions、storage、缓存和生成的依赖状态绝不会写入 checkpoint。官方 profile 默认共用同一个 DSH home 中的 sessions、settings 与 storage，因此除非用户明确恢复 checkpoint，切换 Profile 不会复制或迁移这些记录；自定义 profile patch 仍可主动重定向其中某个持久化根。
+Profile 选择保存在 Electron user data 下的 desktop 自有状态中，而不是被选 profile 内的另一个字段。被接受的切换会直接持久化精确的激活 profile，并通过有序重启生效。启动失败时不会替换成 last-known-good profile，也不会自动改写配置。每次健康启动都会写入三个轮转 checkpoint 之一，其中同时包含激活 Profile 的声明式 package 与 patch 文件，以及共享 DSH home 中的 `cordis.patch.yml`，以及仍然存在时的已废弃 `settings.yaml`；恢复时始终打开恢复页面，由用户选择精确槽位。执行恢复后的下一次健康启动会跳过一次 checkpoint 替换。版本 2 的旧槽位仍可恢复，但只影响原有五个 Profile 文件。凭据、`.env`、sessions、storage、缓存和生成的依赖状态绝不会写入 checkpoint。官方 profile 默认共用同一个 DSH home 中的 sessions 与 storage，Launcher 的机器级 DSH home patch 对两者同样生效，因此除非用户明确恢复 checkpoint，切换 Profile 不会复制或迁移这些记录；settings row 并不共享，每个 profile 都把它们保存在自己的 patch 文档中。自定义 profile patch 仍可主动重定向其中某个持久化根。
 
 Launcher 会在 Loader entry 挂载前注册作用于当前 generation 的 `ctx.desktopProfiles` service。其不可变 `current` 值包含激活 profile 的 `name` 与绝对 `dir`；`list()` 只读执行发现，`select(name)` 会串行化“先持久化、再重启”的切换，而不会就地改变当前 generation。该 service 是 Desktop Host capability，不是 renderer bridge，也不是当前上游 DSH 已提供的 active-profile API。
 
@@ -36,18 +36,20 @@ Login-shell 恢复完成后，Launcher 才创建 layered launch-environment snap
 
 ## 模式设置与重启边界
 
-DSH home `settings.yaml` 文档中的 `dsh-desktop.mode` 字段是单一事实源：
+当前 profile patch 文档 `dsh-desktop` row 中的 `dsh-desktop.mode` 字段是单一事实源：
 
 ```yaml
-dsh-desktop:
-  mode: compatibility # compatibility、extended 或 advanced
-  macosMaterial: transparent # off 或 transparent
-  windowsMaterial: acrylic # off、acrylic，系统支持时还可用 mica
+- id: dsh-desktop
+  name: dsh-plugin-desktop-beta/settings
+  config:
+    mode: compatibility # compatibility、extended 或 advanced
+    macosMaterial: transparent # off 或 transparent
+    windowsMaterial: acrylic # off、acrylic，系统支持时还可用 mica
 ```
 
-Launcher 会在组合一个 generation 之前，读取当前 `@deepseek-ai/dsh-settings-file` row 解析到的同一份文件。Host 通过标准 settings service 注册 `dsh-desktop` namespace。profile manifest 中没有平行的模式值。
+Launcher 会在组合一个 generation 之前，从 profile patch 文档读取该 row。Host 会把该 row 作为标准 settings service 的一个 form 暴露出来，并以 `dsh-desktop` plugin entry id 寻址。profile manifest 中没有平行的模式值。
 
-用户可以从托盘选择另一种模式，也可以手工编辑 DSH home 中的 `settings.yaml` 文档。托盘会更新已注册的 `dsh-desktop` settings namespace，手工编辑则修改 settings provider 观察的同一文件。修改提交后会请求一次有序重启：先 dispose 当前 Cordis 树，仅当零退出码的 shutdown 成功时才让 Electron relaunch。应用绝不会在存活的 renderer generation 中热切换 root slot、原生窗口材质或 Loader row。
+用户可以从托盘选择另一种模式，也可以手工编辑该 row。托盘会通过 Host settings service 更新它，手工编辑则修改 settings service 读取的同一份 patch 文档。修改提交后会请求一次有序重启：先 dispose 当前 Cordis 树，仅当零退出码的 shutdown 成功时才让 Electron relaunch。应用绝不会在存活的 renderer generation 中热切换 root slot、原生窗口材质或 Loader row。
 
 Linux 只支持兼容模式。其托盘模式命令会被禁用，自定义窗口模式值会被拒绝，而不会静默降级。
 
@@ -263,5 +265,5 @@ corepack.cmd yarn dist:win-portable
 - `dshmarket@1.2.3` 仍是用户可选安装的第三方 package，而不是内置 marketplace。只有重新审计的版本同时消费可选 Desktop service、保留普通 DSH fallback，并包含再分发所需的完整 license notice 后，才会重新评估预装。
 - 更新交接只验证下载容器，不验证 publisher 身份。macOS 仍要求用户从已打开的 DMG 替换应用；Windows 会运行已下载的 NSIS 安装器，但本地 `dist:win` 产物没有签名。签名产物、Authenticode/publisher 校验、SmartScreen 信誉与原生升级测试仍是发布 gate。
 - 共享 carrier 使用 HTTP 与 WebSocket，而不是 Electron IPC；默认只绑定 loopback，并支持经过明确确认的全接口局域网监听。替换 carrier 需要上游 DSH 提供 transport 扩展点，不属于该独立包的范围。
-- Beta 使用固定官方 release 源码构建的 DSH `0.1.5-rc.1` 运行时分发包；桌面构建解析这些包接口，不直接链接源码 checkout。历史会话由上游迁移到 V3，自动转换旧 PTC 事件和 `code` 预设引用并保留原日志，桌面端不再生成预设别名。旧运行时无法读取 V3 会话。扩展和增强模式接入右侧 Sidebar 的文档预览、分栏和全屏，并通过 keyed `main` 槽位支持独立于会话选择的全局插件面板。
+- Beta 使用固定官方 release 源码构建的 DSH `0.1.7-rc.2` 运行时分发包；桌面构建解析这些包接口，不直接链接源码 checkout。历史会话由上游迁移到 V3，自动转换旧 PTC 事件和 `code` 预设引用并保留原日志，桌面端不再生成预设别名。旧运行时无法读取 V3 会话。扩展和增强模式接入右侧 Sidebar 的文档预览、分栏和全屏，并通过 keyed `main` 槽位支持独立于会话选择的全局插件面板。
 - `package:dir` 是用于 smoke 的未封装产物。`dist:win` 会额外生成未签名的 NSIS 测试安装包，但不会建立 Authenticode 身份或 SmartScreen 信誉。安装与升级行为、原生通知与终端、Windows ACL sandbox，以及每台目标机器上的原生材质外观仍属于目标平台验证边界。

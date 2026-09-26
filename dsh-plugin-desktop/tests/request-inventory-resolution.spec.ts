@@ -24,7 +24,7 @@ it('prepares request inventory for Desktop-owned entries and private-manifest pl
         const tree = { ctx: { baseUrl }, entries: () => names.map(name => ({
           options: { name }, fiber: { state: 2 }, parent: { tree }
         })) };
-        apply({ baseUrl, loader: tree, deepseekLlmApiExtensions: {
+        apply({ baseUrl, get: () => undefined, loader: tree, deepseekLlmApiExtensions: {
           register: (key, value) => { assert.equal(key, 'dsh_plugin_packages'); provider = value; }
         } }, {});
         return (await provider.prepare({})).value.packages;

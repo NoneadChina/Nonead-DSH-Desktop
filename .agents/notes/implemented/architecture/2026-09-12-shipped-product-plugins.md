@@ -4,7 +4,9 @@ Status: implemented
 
 English | [中文](2026-09-12-shipped-product-plugins.zh.md)
 
-> **Update (2026-09-21):** `dsh-nonead-universal-robots` left the shipped set. The launcher no longer inserts its loader row, neither desktop edition depends on or packages it, and `desktopBundleList()` no longer filters it out of a Profile bundle list. Only [`dsh-nonead-client-skin/`](../../../../dsh-nonead-client-skin/) still rides the launcher generation as described below. The package remains a member of the outer Yarn workspace.
+> **Update (2026-09-21):** `dsh-nonead-universal-robots` left the shipped set. The launcher no longer inserts its loader row, neither desktop edition depends on or packages it, and `desktopBundleList()` no longer filters it out of a Profile bundle list. Only [`dsh-nonead-client-skin/`](../../../../dsh-nonead-client-skin/) still rides the launcher generation as described below.
+>
+> **Update (2026-09-26):** `dsh-nonead-universal-robots` was then removed from the repository entirely: its sources are gone and the root Yarn workspace no longer declares it. Where the text below still names it as a workspace member or a production dependency, read that as the state before this update; the skin is now the only product-owned plugin workspace member.
 
 ## Problem
 
@@ -24,7 +26,7 @@ The skin needs no extra wiring for the browser: `dsh-client-modules` scans Host 
 
 Both packages were absorbed from their private corporate repositories as ordinary content. The nested `.git` directories were moved into the already ignored `.build/nonead-source-git/` so the outer repository owns the files; provenance — `git@git.corp.nonead.com:tonyke/dsh-nonead-client-skin.git` at `c8461da5c0cdd51f8552ce8266fd95476d57e267` (master, 2026-09-08) and `git@git.corp.nonead.com:tonyke/dsh-nonead-universal-robots.git` at `a2474aa775cc61e6558e596d8546ed7f3514774c` (main, 2026-09-09) — is recorded here because those directories no longer carry their own history.
 
-Their peer ranges were narrowed to the vendored runtime family (`0.1.5-rc.1` for the DSH packages, `4.0.2` for Cordis) so the outer install resolves inside `vendor/dsh-runtime` instead of the registry and does not trip the release-age gate. The skin's `@deepseek-ai/dsh-client-runtime` peer stays optional: this repository consumes the prebuilt browser bundle and never compiles the skin, so that type-only dependency must not be resolved here.
+Their peer ranges were narrowed to the vendored runtime family (`0.1.7-rc.1` for the DSH packages, `4.0.4` for Cordis) so the outer install resolves inside `vendor/dsh-runtime` instead of the registry and does not trip the release-age gate. The skin's `@deepseek-ai/dsh-client-runtime` peer stays optional: this repository consumes the prebuilt browser bundle and never compiles the skin, so that type-only dependency must not be resolved here.
 
 ## Verification
 

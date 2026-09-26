@@ -16,7 +16,7 @@ import {
   unlinkSync,
   writeFileSync,
 } from 'node:fs'
-import { basename, dirname, join } from 'node:path'
+import { basename, dirname, join, resolve } from 'node:path'
 import {
   PROFILE_TEMPLATES,
   initProfile,
@@ -181,7 +181,7 @@ export function createDesktopWebProfile(home: string, name: string): DesktopProf
 
   const staging = join(profilesDir, `.${basename(target)}.creating-${process.pid}-${randomUUID()}`)
   try {
-    initProfile(staging, template.bundles, template.patchReload)
+    initProfile(staging, template.bundles)
     const manifest = readProfileManifest(BIN_NAME, staging)
     writeProfileManifest(staging, { ...manifest, name: `dsh-profile-${name}` })
     // The target is checked again immediately before publication. `renameSync`
@@ -290,15 +290,33 @@ function selectableProfile(home: string, name: string): DesktopProfileSummary {
   return summary
 }
 
+/**
+ * Canonical Profile directory identity for comparison.
+ *
+ * Windows compares paths case-insensitively, so `Work` and `work` resolve to one
+ * directory. The deletion guards must compare identities rather than name
+ * spellings, otherwise a directory whose case changed can be deleted while it is
+ * the Profile the launcher is actually running.
+ */
+function profileIdentity(path: string): string {
+  const normalized = resolve(path)
+  return process.platform === 'win32' ? normalized.toLowerCase() : normalized
+}
+
 function deletionTarget(options: DesktopProfileDeletionOptions, name: string): string {
   assertDesktopProfileName(name)
-  if (name === options.currentProfileName) {
+  const target = resolveProfileDir(name, options.home)
+  const targetIdentity = profileIdentity(target)
+  // Compare resolved identities: a name-only comparison would miss a directory
+  // that differs from the active Profile by case alone.
+  if (targetIdentity === profileIdentity(resolveProfileDir(options.currentProfileName, options.home))) {
     throw new Error(`${BIN_NAME}: current profile ${JSON.stringify(name)} cannot be deleted`)
   }
-  if (name === readDesktopProfileState(options.selectionStatePath).active) {
+  const active = readDesktopProfileState(options.selectionStatePath).active
+  if (active !== undefined
+    && targetIdentity === profileIdentity(resolveProfileDir(active, options.home))) {
     throw new Error(`${BIN_NAME}: selected profile ${JSON.stringify(name)} cannot be deleted`)
   }
-  const target = resolveProfileDir(name, options.home)
   let item
   try {
     item = lstatSync(target)

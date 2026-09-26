@@ -21,7 +21,9 @@ it.each([false, true])('boots a separate Web Host with client plugins (AA enable
   let pnpm: ReturnType<typeof installDesktopPnpmRuntime> | undefined
   let stderr = ''
   try {
-    writeFileSync(join(home, 'settings.yaml'), 'dsh-desktop:\n  mode: advanced\nagent-presets:\n  default: minimal\n')
+    // The generation under test already carries its Desktop rows: from 0.1.7 on,
+    // settings live in the profile patch document that `prepared.patches` feeds to
+    // the Loader, and a leftover `home/settings.yaml` no longer configures it.
     const prepared = prepareDesktopProfile('1', home, 'win32', undefined, undefined, undefined, { aaEnabled })
     if (aaEnabled) prepared.patches.push({ id: 'agents-anywhere-bridge-next', config: { dshHome: home, stateRoot: join(home, 'aa-state') } })
     prepared.port = 0

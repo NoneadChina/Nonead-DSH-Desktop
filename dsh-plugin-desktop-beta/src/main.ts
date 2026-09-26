@@ -37,6 +37,7 @@ import {
   ElectronStderrLogger,
   installDesktopChildProcessLogging,
   installDesktopUncaughtExceptionLogging,
+  logDesktopMessage,
   type DesktopLogger,
 } from './desktop-logger.ts'
 import {
@@ -52,7 +53,8 @@ import type {
   DesktopLifecycleRendererFailureReason,
 } from './lifecycle-events.ts'
 import { FileExporter } from './file-exporter.ts'
-import { DESKTOP_SETTINGS_NAMESPACE, type DesktopSettings } from './index.ts'
+import { DESKTOP_SETTINGS_NAMESPACE } from './index.ts'
+import { readDesktopSettings } from './settings.ts'
 import {
   desktopLanBrowserUrls,
   desktopLoopbackBrowserUrl,
@@ -120,6 +122,7 @@ import { routeDesktopStartupFailure } from './startup-failure-routing.ts'
 import { DesktopStartupGeneration } from './startup-generation.ts'
 import {
   desktopInstallAnchor,
+  desktopProfileContext,
   healDesktopProfileModuleFallback,
   prepareDesktopProfile,
   type SkippedOptionalEntry,
@@ -132,6 +135,7 @@ import {
   readDesktopSetupWizardState,
 } from './setup-wizard-state.ts'
 import {
+  importDesktopLegacySettingsDocument,
   migrateDesktopBrowserAccessSettings,
   migrateDesktopWindowMaterialSettings,
   readDesktopSetupWizardSettings,
@@ -175,7 +179,7 @@ import { desktopLocaleFromLanguageTag, desktopTrayLabel } from './tray-locale.ts
 import { desktopNativeCopy } from './native-dialog-copy.ts'
 import {
   DESKTOP_NOTIFICATIONS_SETTINGS_NAMESPACE,
-  type DesktopNotificationSettings,
+  readDesktopNotificationSettings,
 } from './notifications.ts'
 import {
   desktopDefaultRelaunchArguments,
@@ -425,6 +429,14 @@ async function start(): Promise<void> {
   const safeModeRequested = desktopSafeModeRequested()
   const inheritedDshHome = process.env.DSH_HOME
   const safeModeHomeDir = desktopSafeModePaths(desktopUserDataDir).homeDir
+  if (safeModeRequested) {
+    // Redirect Electron's own user-data directory before anything derives a path
+    // from it. Safe Mode otherwise shares the durable run marker, logs, update
+    // state, and installation id with the normal profile, so a killed Safe Mode
+    // run would make the next ordinary launch report a fabricated unclean exit.
+    safeModePaths = ensureDesktopSafeModeEnvironment(desktopUserDataDir)
+    app.setPath('userData', safeModePaths.userDataDir)
+  }
   try {
     logSink = new LogFileSink(join(app.getPath('userData'), 'logs'), {
       maxFileBytes: 10 * 1024 * 1024,
@@ -439,9 +451,7 @@ async function start(): Promise<void> {
     logSink = undefined
   }
   const electronLogger = new ElectronStderrLogger(logSink)
-  if (safeModeRequested) {
-    safeModePaths = ensureDesktopSafeModeEnvironment(desktopUserDataDir)
-  } else {
+  if (safeModePaths === undefined) {
     if (process.env.DSH_HOME === safeModeHomeDir) delete process.env.DSH_HOME
     try {
       cleanupDesktopSafeModeEnvironment(desktopUserDataDir)
@@ -908,7 +918,6 @@ async function start(): Promise<void> {
       )
     }
     startupRecoveryConfigurationPaths = {
-      settingsDocument: join(homeDir, 'settings.yaml'),
       profilePatch: join(activeProfileDir, PROFILE_PATCH_FILENAME),
       profileManifest: join(activeProfileDir, 'package.json'),
       profileDirectory: activeProfileDir,
@@ -1100,16 +1109,22 @@ async function start(): Promise<void> {
     let marketSelection = profilePreferences === undefined
       ? legacyMarketSelection
       : desktopProfileMarketSnapshot(profilePreferences.market)
+    // Upstream 0.1.7 stores every configurable plugin entry in the Profile
+    // patch document, so the launcher's own legacy sections move there before
+    // the first composition and the very first post-upgrade boot sees them.
+    try {
+      await importDesktopLegacySettingsDocument(
+        join(homeDir, 'settings.yaml'),
+        join(activeProfileDir, PROFILE_PATCH_FILENAME),
+      )
+    } catch (cause) {
+      electronLogger.error(
+        `${BIN_NAME}: failed to import the legacy settings document: ${cause instanceof Error ? cause.message : String(cause)}`,
+      )
+    }
     const preparationHooks = {
       get aaEnabled() { return safeModePaths === undefined && profilePreferences?.aaEnabled === true },
       lanAddresses,
-      onSettingsDocumentResolved: (settingsDocument: string) => {
-        if (startupRecoveryConfigurationPaths === undefined) return
-        startupRecoveryConfigurationPaths = {
-          ...startupRecoveryConfigurationPaths,
-          settingsDocument,
-        }
-      },
     }
     await healDesktopProfileModuleFallback(homeDir)
     let prepared = prepareDesktopProfile(
@@ -1416,6 +1431,15 @@ async function start(): Promise<void> {
           electronLogger.error(error.message)
           runtime.notifyAttention({ title: PRODUCT_NAME, body: error.message })
         },
+        // A packaged GUI process has no console, so the Host child's piped
+        // streams must reach the durable log or a bootstrap failure would leave
+        // no cause anywhere. Log entries are masked by the sink.
+        onHostOutput: (stream, chunk) => {
+          for (const line of chunk.split(/\r?\n/u)) {
+            if (line.length === 0) continue
+            logDesktopMessage(electronLogger, stream === 'stderr' ? 'error' : 'info', `DSH Host ${stream}: ${line}`)
+          }
+        },
       })
     } else {
       let currentProfilePreferences: DesktopProfilePreferences = profilePreferences
@@ -1474,6 +1498,10 @@ async function start(): Promise<void> {
             () => releasePackageResolver,
             'dsh-plugin-desktop: profile package resolution',
           )
+          // The in-process fallback mounts the same generation as the isolated
+          // Host, so it publishes the same reserved `desktop` context; without it
+          // the config-editor and settings rows never leave `pending`.
+          hostCtx.provide('profileContext', desktopProfileContext(prepared, homeDir))
           hostCtx.provide(DSH_LAUNCH_ENVIRONMENT_KEY, desktopLaunchEnvironment)
           hostCtx.provide('desktopBrowserAccess', browserAccess)
           hostCtx.provide('desktopLanHttps', lanHttps)
@@ -1617,20 +1645,16 @@ async function start(): Promise<void> {
         throw cause
       })
       generation.bindHost(ctx)
-      fileExporter?.setThreshold((ctx.settings.get(DESKTOP_SETTINGS_NAMESPACE) as DesktopSettings | undefined)?.logLevel ?? 'info')
-      ctx.on('settings/updated', (namespace, next) => {
+      fileExporter?.setThreshold(readDesktopSettings(ctx).logLevel)
+      ctx.on('settings/document-updated', (namespace) => {
         if (namespace === DESKTOP_SETTINGS_NAMESPACE) {
-          fileExporter?.setThreshold((next as DesktopSettings).logLevel)
+          fileExporter?.setThreshold(readDesktopSettings(ctx).logLevel)
         }
         if (namespace !== DESKTOP_SETTINGS_NAMESPACE
           && namespace !== DESKTOP_NOTIFICATIONS_SETTINGS_NAMESPACE) return
         const write = enqueueProfilePreferencesWrite(current => desktopProfilePreferencesFromSettings(
-          namespace === DESKTOP_SETTINGS_NAMESPACE
-            ? next as DesktopSettings
-            : ctx.settings.get(DESKTOP_SETTINGS_NAMESPACE) as DesktopSettings,
-          namespace === DESKTOP_NOTIFICATIONS_SETTINGS_NAMESPACE
-            ? next as DesktopNotificationSettings
-            : ctx.settings.get(DESKTOP_NOTIFICATIONS_SETTINGS_NAMESPACE) as DesktopNotificationSettings,
+          readDesktopSettings(ctx),
+          readDesktopNotificationSettings(ctx),
           current.market,
           current.aaEnabled === true,
         ))
@@ -1672,7 +1696,10 @@ async function start(): Promise<void> {
     lifecycleRecorder.completeStartup(startupStage, rendererReport)
     notifySkippedOptionalEntries(runtime, electronLogger, prepared.skippedOptionalEntries)
     notifyWindowsVolumeConcerns(runtime, electronLogger, windowsVolumeConcerns)
-    if (safeModePaths !== undefined && DESKTOP_SAFE_MODE_DEFAULTS.settings.notifications.enabled) {
+    // Safe Mode always explains itself: it deliberately ships with notifications
+    // disabled, so gating this on that preference made the notice unreachable and
+    // left the user in an empty environment with no explanation.
+    if (safeModePaths !== undefined) {
       notifyDesktopSafeModeActive(runtime, electronLogger)
     }
     if (sessionProjectionCacheRecovery !== undefined) {

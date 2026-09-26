@@ -2,8 +2,12 @@
 
 import { chmodSync, existsSync } from 'node:fs'
 import { join, resolve } from 'node:path'
+import { pinnedElectronAbi } from './electron-abi.ts'
 
 export type MacUniversalArch = 'arm64' | 'x86_64'
+
+/** fs-ext binding file name for the Electron release this workspace pins. */
+const FS_EXT_BINDING = `electron.abi${pinnedElectronAbi()}.node`
 
 /** Thin native files that must be present for each CPU inside app.asar.unpacked. */
 export const MACOS_UNIVERSAL_NATIVE_ENTRIES = [
@@ -33,7 +37,7 @@ export const MACOS_UNIVERSAL_NATIVE_ENTRIES = [
   },
   {
     arch: 'arm64',
-    path: 'node_modules/fs-ext/prebuilds/darwin-arm64/electron.abi148.node',
+    path: `node_modules/fs-ext/prebuilds/darwin-arm64/${FS_EXT_BINDING}`,
   },
   {
     arch: 'arm64',
@@ -65,7 +69,7 @@ export const MACOS_UNIVERSAL_NATIVE_ENTRIES = [
   },
   {
     arch: 'x86_64',
-    path: 'node_modules/fs-ext/prebuilds/darwin-x64/electron.abi148.node',
+    path: `node_modules/fs-ext/prebuilds/darwin-x64/${FS_EXT_BINDING}`,
   },
   {
     arch: 'x86_64',

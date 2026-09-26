@@ -1,7 +1,7 @@
 /** Headless, confirmation-gated downloads for Nonead DSH Desktop installers. */
 
 import { randomUUID } from 'node:crypto'
-import { chmod, lstat, mkdir, open, readFile, rename, unlink } from 'node:fs/promises'
+import { chmod, lstat, mkdir, open, readFile, readdir, rename, unlink } from 'node:fs/promises'
 import { basename, dirname, extname, isAbsolute, join, resolve } from 'node:path'
 import { writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
 import {
@@ -26,6 +26,13 @@ export const DESKTOP_TARGET_VERSION_HEADER = 'X-Nonead-DSH-Desktop-Target-Versio
 /** Maximum accepted installer size, in bytes. */
 export const MAX_UPDATE_DOWNLOAD_BYTES = 1024 * 1024 * 1024
 
+/**
+ * Longest silence tolerated between two streamed installer chunks.
+ * A CDN that stops delivering bytes without closing the connection would otherwise keep one
+ * downloaded-into `.partial` file and one pending download alive until the process exits.
+ */
+export const UPDATE_DOWNLOAD_STALL_TIMEOUT_MS = 120_000
+
 /** Failure categories exposed to the update coordinator. */
 export type UpdateDownloadErrorCode =
   | 'aborted'
@@ -35,6 +42,7 @@ export type UpdateDownloadErrorCode =
   | 'invalid-options'
   | 'network'
   | 'response-too-large'
+  | 'stalled'
 
 /** Fetch-compatible request boundary supplied by the Electron adapter or a test. */
 export type UpdateArtifactRequest = (url: string, init: RequestInit) => Promise<Response>
@@ -53,6 +61,8 @@ export interface DownloadDesktopUpdateOptions {
   readonly request: UpdateArtifactRequest
   /** Optional cancellation signal owned by the update coordinator. */
   readonly signal?: AbortSignal
+  /** Optional override of the streamed-body stall deadline, in milliseconds. */
+  readonly stallTimeoutMs?: number
 }
 
 /** Typed failure from installer request, validation, or cancellation. */
@@ -88,6 +98,13 @@ const DMG_TRAILER_MAGIC = Buffer.from('koly', 'ascii')
 const DOS_HEADER_BYTES = 64
 const PE_OFFSET_POSITION = 0x3c
 const PE_MAGIC = Buffer.from([0x50, 0x45, 0x00, 0x00])
+const TEMPORARY_ARTIFACT_SUFFIX = '.partial'
+/** Grace for cancelling an errored response stream before its reader is released. */
+const READER_CANCEL_GRACE_MS = 1_000
+/** Bounded attempts for deleting a private file that a Windows handle may still hold. */
+const UNLINK_ATTEMPTS = 5
+const UNLINK_RETRY_MS = 100
+const REGEXP_METACHARACTERS = /[.*+?^${}()|[\]\\]/gu
 
 interface DownloadPaths {
   readonly completed: string
@@ -105,6 +122,46 @@ const UPDATE_ARTIFACT_STATE_VERSION = 1
 const UPDATE_ARTIFACT_STATE_BYTES = 4 * 1024
 const UPDATE_ARTIFACT_STATE_FILENAME = 'pending-installer.json'
 
+/** Release-version token carried in an installer URL path, when it names one. */
+const RELEASE_VERSION_IN_PATH = /(?<![\d.])(\d+\.\d+\.\d+(?:-beta\.\d+)?)(?!\d)/u
+
+/**
+ * Reject an installer the service resolved to a different release.
+ *
+ * The version has to travel through both the request path and the
+ * target-version header, so a redirect that resolves to another release's file
+ * is a real failure mode: the client never inspects which build it received, and
+ * the Windows installer would happily replace a newer build with an older one.
+ *
+ * This is the strongest check available today. The update service provides no
+ * `Content-Digest` or sidecar hash, so the client cannot verify that an
+ * installer's *contents* match the published artifact — it validates only the
+ * PE/DMG format, the size, and (here) the served version. A file swapped in at
+ * the correct address with a matching version in its name would be accepted;
+ * CDN/origin integrity, HTTPS, and the release process own that risk. If the
+ * service ever exposes a hash, verify it here.
+ * @param response - the artifact response, whose final URL reflects redirects.
+ * @param requestedVersion - the release the service reported and the client asked for.
+ */
+function assertServedVersionMatches(response: Response, requestedVersion: string): void {
+  const finalUrl = response.url
+  if (finalUrl === undefined || finalUrl.length === 0) return
+  let pathname: string
+  try {
+    pathname = new URL(finalUrl).pathname
+  } catch {
+    return
+  }
+  const served = RELEASE_VERSION_IN_PATH.exec(pathname)?.[1]
+  // An unversioned file name cannot be checked here; the service-side release
+  // check owns that, and the download stays available for older deployments.
+  if (served === undefined || served === requestedVersion) return
+  throw new UpdateDownloadError(
+    'invalid-artifact',
+    `The update download service resolved to ${served} while ${requestedVersion} was requested.`,
+  )
+}
+
 /**
  * Download one installer after its caller has obtained user confirmation.
  * @param options - Fixed platform, release version, selected destination, request, and cancellation inputs.
@@ -116,7 +173,11 @@ export async function downloadDesktopUpdate(options: DownloadDesktopUpdateOption
   const channel = options.channel ?? 'stable'
   validatedVersion(options.version, channel)
   const destinationPath = validatedArtifactPath(options.destinationPath, platform)
+  const stallTimeoutMs = validatedStallTimeout(options.stallTimeoutMs)
   const paths = await prepareDownloadPaths(destinationPath)
+  // A killed or force-exited earlier run cannot clean up its own private stream, so the next
+  // attempt removes those leftovers instead of leaving one hidden `.partial` beside the installer.
+  await removeAbandonedTemporaryArtifacts(dirname(destinationPath), basename(destinationPath))
   throwIfAborted(options.signal)
 
   let response: Response
@@ -143,6 +204,7 @@ export async function downloadDesktopUpdate(options: DownloadDesktopUpdateOption
       { status: response.status },
     )
   }
+  assertServedVersionMatches(response, options.version)
   if (response.body === null) {
     throw new UpdateDownloadError('empty-body', 'The update download service returned an empty body.')
   }
@@ -150,7 +212,7 @@ export async function downloadDesktopUpdate(options: DownloadDesktopUpdateOption
 
   let failure: unknown
   try {
-    await writeResponseBody(paths.temporary, response.body, options.signal)
+    await writeResponseBody(paths.temporary, response.body, options.signal, stallTimeoutMs)
     throwIfAborted(options.signal)
     await validateArtifact(paths.temporary, platform)
     throwIfAborted(options.signal)
@@ -162,7 +224,7 @@ export async function downloadDesktopUpdate(options: DownloadDesktopUpdateOption
     throw failure
   } finally {
     try {
-      await unlinkIfPresent(paths.temporary)
+      await removeTemporaryArtifact(paths.temporary)
     } catch (cleanupCause) {
       if (failure === undefined) throw cleanupCause
       throw new AggregateError([failure, cleanupCause], 'Failed to download and clean up the update installer.')
@@ -286,6 +348,14 @@ function validatedVersion(version: string, channel: DesktopReleaseChannel = 'sta
     throw new UpdateDownloadError('invalid-options', `The update version must match the ${channel} channel.`)
   }
   return version
+}
+
+function validatedStallTimeout(stallTimeoutMs: number | undefined): number {
+  if (stallTimeoutMs === undefined) return UPDATE_DOWNLOAD_STALL_TIMEOUT_MS
+  if (!Number.isSafeInteger(stallTimeoutMs) || stallTimeoutMs <= 0) {
+    throw new UpdateDownloadError('invalid-options', 'The update download stall deadline must be a positive integer.')
+  }
+  return stallTimeoutMs
 }
 
 function validatedReleaseVersion(version: string): string {
@@ -429,14 +499,16 @@ async function writeResponseBody(
   filename: string,
   body: ReadableStream<Uint8Array>,
   signal: AbortSignal | undefined,
+  stallTimeoutMs: number,
 ): Promise<void> {
   const handle = await open(filename, 'wx', PRIVATE_FILE_MODE)
   const reader = body.getReader()
   let bytesWritten = 0
+  let failure: unknown
   try {
     while (true) {
       throwIfAborted(signal)
-      const chunk = await reader.read()
+      const chunk = await readChunk(reader, stallTimeoutMs)
       throwIfAborted(signal)
       if (chunk.done) break
       if (chunk.value.byteLength > MAX_UPDATE_DOWNLOAD_BYTES - bytesWritten) {
@@ -453,11 +525,80 @@ async function writeResponseBody(
     }
     await handle.sync()
   } catch (cause) {
-    await reader.cancel(cause).catch(() => undefined)
+    failure = cause
+    // Cancelling an errored Chromium stream can stay pending forever, so the grace period keeps
+    // this function settling: the caller must always reach the cleanup below.
+    await cancelReader(reader, cause)
     throw cause
   } finally {
-    reader.releaseLock()
-    await handle.close()
+    // A stalled read still owns the stream, and a failed release must never skip closing the
+    // handle: on Windows one open handle makes deleting the private file impossible.
+    try {
+      reader.releaseLock()
+    } catch {
+      // The abandoned read keeps its lock; the enclosing finally still removes the file.
+    }
+    try {
+      await handle.close()
+    } catch (closeCause) {
+      if (failure === undefined) throw closeCause
+    }
+  }
+}
+
+/** Read one streamed chunk, reporting a torn-down response as one typed transport failure. */
+async function readChunk(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  stallTimeoutMs: number,
+): Promise<ReadableStreamReadResult<Uint8Array>> {
+  try {
+    return await readBeforeStall(reader, stallTimeoutMs)
+  } catch (cause) {
+    if (cause instanceof UpdateDownloadError || isAbortFailure(cause)) throw cause
+    throw new UpdateDownloadError(
+      'network',
+      'The update installer download was interrupted before it finished.',
+      { cause },
+    )
+  }
+}
+
+/** Read one streamed chunk, failing once the body stops delivering bytes. */
+async function readBeforeStall(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  stallTimeoutMs: number,
+): Promise<ReadableStreamReadResult<Uint8Array>> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const stalled = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => {
+      reject(new UpdateDownloadError(
+        'stalled',
+        `The update download service stopped sending data for ${String(stallTimeoutMs)} ms.`,
+      ))
+    }, stallTimeoutMs)
+    timer.unref?.()
+  })
+  try {
+    return await Promise.race([reader.read(), stalled])
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+/** Cancel an errored stream within one bounded grace period. */
+async function cancelReader(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  cause: unknown,
+): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const grace = new Promise<void>((resolve) => {
+    timer = setTimeout(resolve, READER_CANCEL_GRACE_MS)
+    timer.unref?.()
+  })
+  try {
+    await Promise.race([reader.cancel(cause).catch(() => undefined), grace])
+  } finally {
+    clearTimeout(timer)
   }
 }
 
@@ -541,4 +682,94 @@ async function unlinkIfPresent(filename: string): Promise<void> {
   } catch (cause) {
     if ((cause as NodeJS.ErrnoException).code !== 'ENOENT') throw cause
   }
+}
+
+/**
+ * Delete one private streaming artifact, retrying the handle-release races that Windows reports
+ * as EBUSY, EPERM, or ENOTEMPTY for a file another process has only just closed.
+ * @param filename - absolute private streaming path.
+ */
+async function removeTemporaryArtifact(filename: string): Promise<void> {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      await unlinkIfPresent(filename)
+      return
+    } catch (cause) {
+      if (attempt >= UNLINK_ATTEMPTS - 1 || !isTransientUnlinkFailure(cause)) throw cause
+      await delay(UNLINK_RETRY_MS)
+    }
+  }
+}
+
+/**
+ * Remove private streaming artifacts abandoned by a process that no longer exists.
+ * A killed, crashed, or force-exited Desktop process cannot run its own cleanup, and its leftovers
+ * would otherwise sit next to the destination installer forever.
+ * @param directory - real destination directory that received the abandoned stream.
+ * @param destinationName - destination file name whose private streams are abandoned.
+ * @param isAlive - process liveness probe, injectable for tests.
+ * @returns absolute paths that were removed.
+ */
+export async function removeAbandonedTemporaryArtifacts(
+  directory: string,
+  destinationName: string,
+  isAlive: (pid: number) => boolean = isProcessAlive,
+): Promise<readonly string[]> {
+  let entries: string[]
+  try {
+    entries = await readdir(directory)
+  } catch {
+    return []
+  }
+  const pattern = temporaryArtifactPattern(destinationName)
+  const removed: string[] = []
+  for (const entry of entries) {
+    const pid = abandonedProcessId(entry, pattern)
+    if (pid === undefined || pid === process.pid || isAlive(pid)) continue
+    const filename = join(directory, entry)
+    try {
+      await removeTemporaryArtifact(filename)
+      removed.push(filename)
+    } catch {
+      // An abandoned private stream is best-effort cleanup; the download itself must proceed.
+    }
+  }
+  return removed
+}
+
+function temporaryArtifactPattern(destinationName: string): RegExp {
+  const escaped = destinationName.replace(REGEXP_METACHARACTERS, '\\$&')
+  return new RegExp(
+    `^\\.${escaped}\\.(\\d+)\\.([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\\.partial$`,
+    'u',
+  )
+}
+
+function abandonedProcessId(entry: string, pattern: RegExp): number | undefined {
+  const match = pattern.exec(entry)
+  if (match === null || !entry.endsWith(TEMPORARY_ARTIFACT_SUFFIX)) return undefined
+  const value = Number(match[1]!)
+  return Number.isSafeInteger(value) && value > 0 ? value : undefined
+}
+
+/** Report whether one process id still exists; an unpermitted probe still means it exists. */
+function isProcessAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch (cause) {
+    return (cause as NodeJS.ErrnoException).code === 'EPERM'
+  }
+}
+
+function isTransientUnlinkFailure(cause: unknown): boolean {
+  const code = (cause as NodeJS.ErrnoException).code
+  return code === 'EBUSY' || code === 'EPERM' || code === 'ENOTEMPTY' || code === 'EACCES'
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise<void>((resolve) => {
+    const timer = setTimeout(resolve, ms)
+    timer.unref?.()
+  })
 }

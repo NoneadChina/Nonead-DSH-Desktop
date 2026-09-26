@@ -4,9 +4,9 @@ English | [中文](2026-08-15-desktop-profile-management.zh.md)
 
 ## Problem
 
-DSH Desktop originally always prepared and launched the product-owned `desktop` profile. Existing DSH users may already have a `web` profile or several purpose-specific Web profiles with different bundle and patch compositions. Sessions, settings, and storage in the ordinary shipped profiles already use the same DSH home by default, so copying records between profiles would duplicate data and misrepresent what a profile owns. The missing capability is selecting which plugin composition backs the desktop generation.
+DSH Desktop originally always prepared and launched the product-owned `desktop` profile. Existing DSH users may already have a `web` profile or several purpose-specific Web profiles with different bundle and patch compositions. Sessions and storage in the ordinary shipped profiles already use the same DSH home by default, so copying records between profiles would duplicate data and misrepresent what a profile owns. The missing capability is selecting which plugin composition backs the desktop generation.
 
-Selection happens before the Host Cordis tree and its settings provider exist. It therefore cannot be stored inside the selected profile's settings namespace. A failed selection must also remain recoverable when no renderer or tray can mount.
+Selection happens before the Host Cordis tree and the selected profile's settings rows are composed. It therefore cannot be stored inside the selected profile's settings namespace. A failed selection must also remain recoverable when no renderer or tray can mount.
 
 ## Decision
 
@@ -26,9 +26,9 @@ The packaged terminal is configured only after the selected profile boots. Its w
 
 ## Records and settings
 
-The shipped `desktop` and `web` compositions default to the same `$DSH_HOME/sessions`, `$DSH_HOME/settings.yaml`, and `$DSH_HOME/storages`. Profile switching performs no record migration or copy. A custom profile can intentionally redirect those roots through its own patch, so the product only promises shared records for the ordinary composition.
+The shipped `desktop` and `web` compositions default to the same `$DSH_HOME/sessions` and `$DSH_HOME/storages`. Settings are not shared through a home-level document: each profile keeps its plugin rows, including `dsh-desktop`, in its own `cordis.patch.yml`, while the launcher applies the machine-wide `$DSH_HOME/cordis.patch.yml` layer to either profile. Profile switching performs no record migration or copy. A custom profile can intentionally redirect the session or storage roots through its own patch, so the product only promises shared records for the ordinary composition.
 
-The shell mode remains in the active file-settings provider's `dsh-desktop` namespace. Profile selection is separate because it must be resolved before that provider can be composed.
+The shell mode remains in the `dsh-desktop` settings row of the active profile's patch document. Profile selection is separate because it must be resolved before that document can be composed.
 
 ## Verification
 
@@ -40,7 +40,7 @@ Target-platform release verification still has to exercise profile switching and
 
 **Copy plugins or records from `web` into `desktop`.** This creates two compositions that drift and duplicates data that the shipped profiles already share.
 
-**Store selection in `settings.yaml`.** The selected profile can change the settings provider and must be known before that provider starts, making this circular.
+**Store selection in the selected profile's settings document.** That document lives inside the profile that must be chosen first, making this circular.
 
 **Launch `dsh web` as a child process.** The desktop Host capability and launcher-owned Cordis plugins cannot cross that process boundary without a second control protocol.
 

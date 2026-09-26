@@ -39,7 +39,7 @@ describe('desktop client environment', () => {
       effect,
       slots: { inject },
       locale: { bind: () => (key: string) => key },
-      settingsScope: { bind: () => ({}) },
+      configForms: { get: () => ({ getSnapshot: () => ({ status: 'loading', value: undefined, base: undefined, user: undefined, revision: undefined, writable: false, mode: 'host' }), subscribe: () => () => {}, set: async () => true, unset: async () => {}, mutate: async () => {} }) },
     } as unknown as ClientContext
     try {
       apply(ctx)

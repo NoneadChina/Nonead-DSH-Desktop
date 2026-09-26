@@ -8,6 +8,7 @@ import type {
   DesktopTrayItem,
   DesktopTrayItemRegistration,
   DesktopUpdateAdapter,
+  DesktopUpdateDownloadFailure,
 } from './runtime.ts'
 import { desktopTrayLabel } from './tray-locale.ts'
 import {
@@ -111,9 +112,12 @@ class DesktopUpdateLifecycleOwner implements DesktopUpdateLifecycle {
     this.downloadController?.abort()
     this.registration.dispose()
     this.stableRegistration?.dispose()
-    // Native dialogs are not cancellable. Await only file state and the abortable version request.
+    // Native dialogs are not cancellable. Await only file state, the abortable version request,
+    // and the aborted download: the download owns a private `.partial` file that must be removed
+    // before the launcher force-exits the process.
     const pending: Promise<unknown>[] = [this.stateReady]
     if (this.checkTask !== undefined) pending.push(this.checkTask)
+    if (this.downloadTask !== undefined) pending.push(this.downloadTask)
     this.disposeTask = Promise.allSettled(pending).then(() => {})
     return this.disposeTask
   }
@@ -252,24 +256,39 @@ class DesktopUpdateLifecycleOwner implements DesktopUpdateLifecycle {
       this.downloadController = controller
       this.downloadingVersion = version
       this.registration.refresh()
+      let failure: unknown
       try {
         if (this.options.adapter.releaseChannel === undefined && channel === 'stable') {
           await this.options.adapter.downloadAndOpen(version, controller.signal)
         } else {
           await this.options.adapter.downloadAndOpen(version, controller.signal, channel)
         }
-      } catch {
-        // Network, filesystem, and installer-opening failures are deliberately silent.
+      } catch (cause) {
+        failure = cause
       } finally {
         if (this.downloadController === controller) this.downloadController = undefined
         this.downloadingVersion = undefined
         this.registration.refresh()
+      }
+      // A confirmed download must not fail silently: the user chose a save location and has to
+      // learn that no installer was produced. Disposal and cancellation stay quiet.
+      if (failure !== undefined && !this.disposed && !isAbortedDownload(failure, controller.signal)) {
+        await this.reportDownloadFailure(version, failure)
       }
     })().finally(() => {
       if (this.downloadTask === task) this.downloadTask = undefined
     })
     this.downloadTask = task
     return task
+  }
+
+  /** Surface one rejected download without letting a reporting failure escape. */
+  private async reportDownloadFailure(version: string, cause: unknown): Promise<void> {
+    try {
+      await this.options.adapter.reportDownloadFailure(version, downloadFailureSummary(cause))
+    } catch {
+      // Reporting is best effort: a missing or failing dialog must not break the update flow.
+    }
   }
 
   private async offerDownload(version: string): Promise<void> {
@@ -351,6 +370,23 @@ function parseState(text: string): ParsedUpdateState {
     }
   }
   throw new Error('invalid update state')
+}
+
+/** Reduce any rejected download to the serializable summary the native adapter reports. */
+function downloadFailureSummary(cause: unknown): DesktopUpdateDownloadFailure {
+  if (isRecord(cause) && typeof cause.code === 'string' && cause.code.length > 0) {
+    return typeof cause.status === 'number'
+      ? { code: cause.code, status: cause.status }
+      : { code: cause.code }
+  }
+  return { code: 'unknown' }
+}
+
+/** Recognize a download rejection that belongs to cancellation instead of a real failure. */
+function isAbortedDownload(cause: unknown, signal: AbortSignal): boolean {
+  if (signal.aborted) return true
+  if (isRecord(cause) && cause.code === 'aborted') return true
+  return isRecord(cause) && cause.name === 'AbortError'
 }
 
 function updateAvailableNotification(locale: DesktopLocale, version: string): DesktopNotification {

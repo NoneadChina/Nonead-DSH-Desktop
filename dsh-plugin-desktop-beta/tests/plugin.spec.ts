@@ -5,20 +5,24 @@ import type {
   ConnectionRequestRejection,
   ConnectionTrustRequest,
 } from '@deepseek-ai/dsh-client-connection'
-import type { LocaleId } from '@deepseek-ai/dsh-client-locale'
+import { LOCALE_SETTINGS_NAMESPACE, type LocaleId } from '@deepseek-ai/dsh-client-locale'
 import type { WebRoute } from '@deepseek-ai/dsh-host-webserver'
-import type { ThemePreference } from '@deepseek-ai/dsh-client-ui-theme'
+import { THEME_SETTINGS_NAMESPACE, type ThemePreference } from '@deepseek-ai/dsh-client-ui-theme'
+import type {} from '@deepseek-ai/dsh-settings'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   apply,
   Config,
   DESKTOP_SETTINGS_NAMESPACE,
   desktopRendererUrl,
-  DesktopSettingsSchema,
   inject,
   type Config as DesktopConfig,
-  type DesktopSettings,
 } from '../src/index.ts'
+import {
+  Config as DesktopSettingsSchema,
+  DESKTOP_SETTINGS_ENTRY_ID,
+  type DesktopSettings,
+} from '../src/settings.ts'
 import {
   DESKTOP_DIRECTORY_PICKER_PATH,
   DESKTOP_DIRECTORY_VALIDATOR_PATH,
@@ -60,7 +64,7 @@ interface PluginHarness {
   ctx: Context
   runtime: DesktopRuntime
   shell(): DesktopShellSpec | undefined
-  update: ReturnType<typeof vi.fn<(patch: object) => Promise<void>>>
+  update: ReturnType<typeof vi.fn<(entryId: string, patch: object) => Promise<void>>>
   restart: ReturnType<typeof vi.fn<() => Promise<void>>>
   setLocalePreference: ReturnType<typeof vi.fn<(locale: LocaleId | undefined) => void>>
   setThemeSource: ReturnType<typeof vi.fn<(source: ThemePreference) => void>>
@@ -73,9 +77,10 @@ interface PluginHarness {
   requestRejection: ReturnType<typeof vi.fn<(request: ConnectionTrustRequest) => ConnectionRequestRejection>>
   route(path: string): WebRoute | undefined
   routes(): readonly WebRoute[]
-  notify(next: DesktopSettings, prev: DesktopSettings): Promise<void>
+  notifySettings(overrides?: Partial<DesktopSettings>): void
   notifyLocale(preference: LocaleId | undefined): void
   notifyTheme(preference: ThemePreference): void
+  documentListenerCount(): number
 }
 
 function createHarness(
@@ -83,8 +88,7 @@ function createHarness(
   ordinaryBrowserEnabled = false,
 ): PluginHarness {
   let shell: DesktopShellSpec | undefined
-  let watcher: ((next: DesktopSettings, prev: DesktopSettings) => void | Promise<void>) | undefined
-  const update = vi.fn(async (_patch: object) => {})
+  const update = vi.fn(async (_entryId: string, _patch: object) => {})
   const restart = vi.fn(async () => {})
   const setLocalePreference = vi.fn<(locale: LocaleId | undefined) => void>()
   const setThemeSource = vi.fn<(source: ThemePreference) => void>()
@@ -95,7 +99,7 @@ function createHarness(
     request: ConnectionTrustRequest,
   ) => ConnectionRequestRejection>(() => undefined)
   const routes = new Map<string, WebRoute>()
-  const settingsUpdated = new Set<(namespace: unknown, next: unknown) => void>()
+  const settingsUpdated = new Set<(namespace: string) => void>()
   let localePreference: LocaleId | undefined
   let themePreference: ThemePreference = 'system'
   const browserAccess = createDesktopBrowserAccess(
@@ -121,6 +125,7 @@ function createHarness(
       statePath: '/tmp/dsh-desktop-update-state.json',
       request: async () => new Response(null, { status: 304 }),
       confirmDownload: async () => false,
+      reportDownloadFailure: async () => {},
       showManualCheckResult: async () => {},
       downloadAndOpen: async () => {},
       notify: () => {},
@@ -147,29 +152,30 @@ function createHarness(
     requestRecoveryRestart: restart,
     prepareToQuit: () => {},
   }
+  const currentDesktopSettings = (): DesktopSettings => ({
+    mode: config.mode,
+    macosMaterial: config.macosMaterial,
+    windowsMaterial: config.windowsMaterial,
+    port: config.port,
+    openBrowser: browserAccess.ordinaryBrowserEnabled,
+    networkExposure: config.networkExposure,
+    logLevel: 'info',
+    width: config.width,
+    height: config.height,
+    minWidth: config.minWidth,
+    minHeight: config.minHeight,
+  })
+  let desktopSettings: DesktopSettings = currentDesktopSettings()
   const settings = {
-    get: vi.fn((namespace: unknown) => {
-      if (String(namespace) === 'ui-theme') return { preference: themePreference }
-      if (String(namespace) === 'locale') return { preference: localePreference }
-      return undefined
-    }),
-    register: vi.fn(() => ({
-      get: () => ({
-        mode: config.mode,
-        macosMaterial: config.macosMaterial,
-        windowsMaterial: config.windowsMaterial,
-        port: config.port,
-        openBrowser: ordinaryBrowserEnabled,
-        networkExposure: config.networkExposure,
-        logLevel: 'info' as const,
-      }),
-      watch: (callback: typeof watcher) => {
-        watcher = callback
-        return () => { watcher = undefined }
+    update,
+    describe: vi.fn(() => [
+      { ns: DESKTOP_SETTINGS_ENTRY_ID, value: desktopSettings },
+      { ns: THEME_SETTINGS_NAMESPACE, value: { preference: themePreference } },
+      {
+        ns: LOCALE_SETTINGS_NAMESPACE,
+        value: localePreference === undefined ? {} : { preference: localePreference },
       },
-      update,
-      replace: vi.fn(async () => {}),
-    })),
+    ]),
   }
   const ctx = {
     desktopRuntime: runtime,
@@ -188,11 +194,12 @@ function createHarness(
       if (String(key) === 'desktopRuntime') return runtime
       if (String(key) === 'desktopBrowserAccess') return browserAccess
       if (String(key) === 'desktopLanHttps') return lanHttps
+      if (String(key) === 'settings') return settings
       return () => {}
     }),
     effect: vi.fn((register: () => unknown) => register()),
-    on: vi.fn((event: string, listener: (namespace: unknown, next: unknown) => void) => {
-      if (event === 'settings/updated') settingsUpdated.add(listener)
+    on: vi.fn((event: string, listener: (namespace: string) => void) => {
+      if (event === 'settings/document-updated') settingsUpdated.add(listener)
       return () => { settingsUpdated.delete(listener) }
     }),
   } as unknown as Context
@@ -213,15 +220,19 @@ function createHarness(
     requestRejection,
     route: path => routes.get(path),
     routes: () => [...routes.values()],
-    notify: async (next, prev) => { await watcher?.(next, prev) },
+    notifySettings: (overrides = {}) => {
+      desktopSettings = { ...currentDesktopSettings(), ...overrides }
+      for (const listener of settingsUpdated) listener(DESKTOP_SETTINGS_ENTRY_ID)
+    },
     notifyLocale: (preference) => {
       localePreference = preference
-      for (const listener of settingsUpdated) listener('locale', { preference })
+      for (const listener of settingsUpdated) listener(LOCALE_SETTINGS_NAMESPACE)
     },
     notifyTheme: (preference) => {
       themePreference = preference
-      for (const listener of settingsUpdated) listener('ui-theme', { preference })
+      for (const listener of settingsUpdated) listener(THEME_SETTINGS_NAMESPACE)
     },
+    documentListenerCount: () => settingsUpdated.size,
   }
 }
 
@@ -229,15 +240,22 @@ describe('desktop Host plugin', () => {
   it('defaults to compatibility mode and validates both schemas', () => {
     expect(Config({} as DesktopConfig)).toEqual(config)
     expect(Config({ mode: 'advanced' } as DesktopConfig)).toEqual({ ...config, mode: 'advanced' })
-    expect(DesktopSettingsSchema({} as DesktopSettings)).toEqual({
-      mode: 'compatibility',
-      macosMaterial: 'transparent',
-      windowsMaterial: 'off',
-      port: 43_120,
-      openBrowser: false,
-      networkExposure: 'loopback',
-      logLevel: 'info',
-    })
+    // Volatile fields parse into stable references read with `.get()`; the
+    // settings document and the settings service project them back to plain
+    // values, so the entry defaults stay ordinary data.
+    const defaults = DesktopSettingsSchema({} as DesktopSettings)
+    expect(Object.keys(defaults)).toHaveLength(11)
+    expect(defaults.mode.get()).toBe('compatibility')
+    expect(defaults.macosMaterial.get()).toBe('transparent')
+    expect(defaults.windowsMaterial.get()).toBe('off')
+    expect(defaults.port.get()).toBe(43_120)
+    expect(defaults.openBrowser.get()).toBe(false)
+    expect(defaults.networkExposure.get()).toBe('loopback')
+    expect(defaults.logLevel.get()).toBe('info')
+    expect(defaults.width.get()).toBe(1280)
+    expect(defaults.height.get()).toBe(840)
+    expect(defaults.minWidth.get()).toBe(900)
+    expect(defaults.minHeight.get()).toBe(640)
     expect(() => DesktopSettingsSchema({ port: -1 } as DesktopSettings)).toThrow()
     expect(() => DesktopSettingsSchema({ port: 1.5 } as DesktopSettings)).toThrow()
     expect(() => DesktopSettingsSchema({ port: 65_536 } as DesktopSettings)).toThrow()
@@ -276,9 +294,7 @@ describe('desktop Host plugin', () => {
     const ctx = {
       webServer: { host: '127.0.0.1', port: 43120, register: registerRoute },
       settings: {
-        register: vi.fn(),
-        get: vi.fn(() => undefined),
-        watch: vi.fn(() => () => {}),
+        describe: vi.fn(() => []),
         update: vi.fn(async () => {}),
       },
       logger: { warn: vi.fn(), error: vi.fn() },
@@ -291,7 +307,7 @@ describe('desktop Host plugin', () => {
 
     expect(stderr).toHaveBeenCalledWith(expect.stringContaining('desktop launcher'))
     expect(registerRoute).not.toHaveBeenCalled()
-    expect(vi.mocked(ctx.settings.register)).not.toHaveBeenCalled()
+    expect(vi.mocked(ctx.settings.describe)).not.toHaveBeenCalled()
     stderr.mockRestore()
   })
 
@@ -328,7 +344,7 @@ describe('desktop Host plugin', () => {
     )).searchParams)).not.toHaveProperty('dsh-desktop-titlebar-inset')
   })
 
-  it('registers settings and the active Web port without re-entering Loader settlement', async () => {
+  it('watches the settings document and the active Web port without re-entering Loader settlement', async () => {
     const harness = createHarness()
     const loaderAwait = vi.fn(() => new Promise<void>(() => {}))
     Object.assign(harness.ctx, { loader: { await: loaderAwait } })
@@ -338,9 +354,7 @@ describe('desktop Host plugin', () => {
     expect(inject).toContain('settings')
     expect(inject).toContain('connection')
     expect(inject).not.toContain('loader')
-    const register = vi.mocked(harness.ctx.settings.register)
-    expect(register.mock.calls[0]?.[2]).toEqual(expect.objectContaining({ applies: 'restart' }))
-    expect(register.mock.calls[0]?.[2]).not.toHaveProperty('base')
+    expect(harness.documentListenerCount()).toBeGreaterThan(0)
     expect(loaderAwait).not.toHaveBeenCalled()
     expect(harness.shell()).toEqual(expect.objectContaining({
       mode: 'compatibility',
@@ -362,7 +376,7 @@ describe('desktop Host plugin', () => {
     expect(harness.setThemeSource).toHaveBeenCalledWith('dark')
 
     await harness.shell()?.requestModeChange('advanced')
-    expect(harness.update).toHaveBeenCalledWith({ mode: 'advanced' })
+    expect(harness.update).toHaveBeenCalledWith(DESKTOP_SETTINGS_ENTRY_ID, { mode: 'advanced' })
   })
 
   it('atomically withdraws browser access when the native tray selects a custom mode', async () => {
@@ -371,7 +385,7 @@ describe('desktop Host plugin', () => {
 
     await harness.shell()?.requestModeChange('advanced')
 
-    expect(harness.update).toHaveBeenCalledWith({
+    expect(harness.update).toHaveBeenCalledWith(DESKTOP_SETTINGS_ENTRY_ID, {
       mode: 'advanced',
       openBrowser: false,
       networkExposure: 'loopback',
@@ -516,22 +530,16 @@ describe('desktop Host plugin', () => {
     },
   )
 
-  it('requests one orderly restart after the settings scope commits another mode', async () => {
+  it('requests one orderly restart after the settings document commits another mode', async () => {
     vi.useFakeTimers()
     const harness = createHarness()
     apply(harness.ctx, config)
 
-    await harness.notify(
-      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'acrylic', port: 0, openBrowser: false, networkExposure: 'loopback', logLevel: 'info' },
-      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'acrylic', port: 0, openBrowser: false, networkExposure: 'loopback', logLevel: 'info' },
-    )
+    harness.notifySettings()
     expect(harness.restart).not.toHaveBeenCalled()
 
     harness.restart.mockImplementation(() => new Promise<void>(() => {}))
-    await harness.notify(
-      { mode: 'advanced', macosMaterial: 'transparent', windowsMaterial: 'acrylic', port: 0, openBrowser: false, networkExposure: 'loopback', logLevel: 'info' },
-      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'acrylic', port: 0, openBrowser: false, networkExposure: 'loopback', logLevel: 'info' },
-    )
+    harness.notifySettings({ mode: 'advanced' })
     await vi.runAllTimersAsync()
     expect(harness.restart).toHaveBeenCalledOnce()
   })
@@ -542,10 +550,7 @@ describe('desktop Host plugin', () => {
     apply(harness.ctx, config)
     harness.restart.mockImplementation(() => new Promise<void>(() => {}))
 
-    await harness.notify(
-      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'off', port: 43_120, openBrowser: true, networkExposure: 'lan', logLevel: 'info' },
-      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'off', port: 43_120, openBrowser: false, networkExposure: 'loopback', logLevel: 'info' },
-    )
+    harness.notifySettings({ openBrowser: true, networkExposure: 'lan' })
     await vi.runAllTimersAsync()
     expect(harness.restart).not.toHaveBeenCalled()
     expect(harness.browserAccess.ordinaryBrowserEnabled).toBe(true)
@@ -553,10 +558,8 @@ describe('desktop Host plugin', () => {
 
     const enabledHarness = createHarness('darwin', true)
     apply(enabledHarness.ctx, config)
-    await enabledHarness.notify(
-      { mode: 'advanced', macosMaterial: 'transparent', windowsMaterial: 'acrylic', port: 43_120, openBrowser: true, networkExposure: 'loopback', logLevel: 'info' },
-      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'acrylic', port: 43_120, openBrowser: true, networkExposure: 'loopback', logLevel: 'info' },
-    )
+    enabledHarness.restart.mockImplementation(() => new Promise<void>(() => {}))
+    enabledHarness.notifySettings({ mode: 'advanced' })
     await vi.runAllTimersAsync()
     expect(enabledHarness.restart).toHaveBeenCalledOnce()
     expect(enabledHarness.browserAccess.ordinaryBrowserEnabled).toBe(false)
@@ -568,17 +571,11 @@ describe('desktop Host plugin', () => {
     const harness = createHarness()
     apply(harness.ctx, config)
 
-    await harness.notify(
-      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'acrylic', port: 0, openBrowser: false, networkExposure: 'loopback', logLevel: 'debug' },
-      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'acrylic', port: 0, openBrowser: false, networkExposure: 'loopback', logLevel: 'info' },
-    )
+    harness.notifySettings({ logLevel: 'debug' })
     expect(harness.restart).not.toHaveBeenCalled()
 
     harness.restart.mockImplementation(() => new Promise<void>(() => {}))
-    await harness.notify(
-      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'acrylic', port: 43_189, openBrowser: false, networkExposure: 'loopback', logLevel: 'debug' },
-      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'acrylic', port: 0, openBrowser: false, networkExposure: 'loopback', logLevel: 'debug' },
-    )
+    harness.notifySettings({ port: 43_189, logLevel: 'debug' })
     await vi.runAllTimersAsync()
     expect(harness.restart).toHaveBeenCalledOnce()
   })
@@ -589,10 +586,7 @@ describe('desktop Host plugin', () => {
     apply(harness.ctx, config)
 
     harness.restart.mockImplementation(() => new Promise<void>(() => {}))
-    await harness.notify(
-      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'mica', port: 0, openBrowser: false, networkExposure: 'loopback', logLevel: 'info' },
-      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'acrylic', port: 0, openBrowser: false, networkExposure: 'loopback', logLevel: 'info' },
-    )
+    harness.notifySettings({ windowsMaterial: 'mica' })
     await vi.runAllTimersAsync()
 
     expect(harness.restart).toHaveBeenCalledOnce()
@@ -632,55 +626,5 @@ describe('desktop Host plugin', () => {
 
     Object.assign(harness.ctx.webServer, { host: '127.0.0.1' })
     expect(() => apply(harness.ctx, { ...config, networkExposure: 'lan' })).not.toThrow()
-  })
-
-  it('validates the effective Linux mode while a browser migration is deferred', () => {
-    const harness = createHarness('linux')
-    apply(harness.ctx, config)
-    const register = vi.mocked(harness.ctx.settings.register)
-    const options = register.mock.calls[0]?.[2]
-
-    const settings: DesktopSettings = {
-      mode: 'compatibility',
-      macosMaterial: 'transparent',
-      windowsMaterial: 'acrylic',
-      port: 43_120,
-      openBrowser: false,
-      networkExposure: 'loopback',
-      logLevel: 'info',
-    }
-    expect(() => options?.validate?.({ ...settings, mode: 'advanced' })).toThrow(
-      'supported on macOS and Windows',
-    )
-    expect(() => options?.validate?.({ ...settings, mode: 'extended' })).toThrow(
-      'supported on macOS and Windows',
-    )
-    expect(() => options?.validate?.({ ...settings, mode: 'compatibility' })).not.toThrow()
-    expect(() => options?.validate?.({
-      ...settings,
-      mode: 'advanced',
-      openBrowser: true,
-    })).toThrow('browser access requires compatibility mode')
-    expect(() => options?.validate?.({
-      ...settings,
-      mode: 'advanced',
-      networkExposure: 'lan',
-    })).toThrow('supported on macOS and Windows')
-  })
-
-  it('accepts a deferred LAN preference independently of browser mode on supported platforms', () => {
-    const harness = createHarness('darwin')
-    apply(harness.ctx, config)
-    const options = vi.mocked(harness.ctx.settings.register).mock.calls[0]?.[2]
-
-    expect(() => options?.validate?.({
-      mode: 'advanced',
-      macosMaterial: 'transparent',
-      windowsMaterial: 'off',
-      port: 43_120,
-      openBrowser: false,
-      networkExposure: 'lan',
-      logLevel: 'info',
-    })).not.toThrow()
   })
 })

@@ -18,6 +18,7 @@ import {
   FORBIDDEN_MACOS_UNIVERSAL_ENTRIES,
   MACOS_UNIVERSAL_NATIVE_ENTRIES,
 } from './mac-universal.ts'
+import { pinnedElectronAbi } from './electron-abi.ts'
 
 /** Resolve a package root even when its exports hide `package.json`. */
 export function resolveRuntimePackageRoot(
@@ -66,10 +67,15 @@ const DSH_RUNTIME_VERSION = packageVersion(DSH_PACKAGE_ROOT)
 const PNPM_RUNTIME_VERSION = packageVersion(PNPM_PACKAGE_ROOT)
 
 /** Maximum physical file count accepted beside ASAR after smart unpack. */
-export const MAX_UNPACKED_RUNTIME_FILES = 1_500
+export const MAX_UNPACKED_RUNTIME_FILES = 3_000
 
-/** Maximum physical payload accepted beside ASAR after smart unpack. */
-export const MAX_UNPACKED_RUNTIME_BYTES = 128 * 1024 * 1024
+/**
+ * Maximum physical payload accepted beside ASAR after smart unpack. The Office
+ * engine selected for the packaged target alone accounts for roughly 341 MB on
+ * Windows x64, so the ceiling tracks one engine per platform rather than the
+ * pre-1.7 payload shape.
+ */
+export const MAX_UNPACKED_RUNTIME_BYTES = 512 * 1024 * 1024
 
 /** Narrow ceiling for pnpm's smart-unpacked native-helper package root. */
 export const MAX_PNPM_SMART_UNPACK_FILES = 32
@@ -92,10 +98,14 @@ export const ALLOWED_SMART_UNPACK_PACKAGE_PREFIXES = [
   // ships one executable per platform and rides the smart-unpack heuristic.
   'node_modules/@dataiku/uv-',
   'node_modules/@deepseek-ai/node-addon-system-',
+  // Office conversion engine and speech runtime: both ship prebuilt native
+  // payloads, and Desktop installs exactly one Office engine per platform.
+  'node_modules/@deepseek-ai/libreoffice-kit-',
   'node_modules/@img/sharp-',
   'node_modules/@koromix/koffi-',
   'node_modules/@vscode/ripgrep-',
   'node_modules/node-addon-require-builtin-',
+  'node_modules/sherpa-onnx-',
 ] as const
 
 /**
@@ -108,6 +118,19 @@ export const ALLOWED_UNPACKED_PACKAGE_PAYLOADS = [
   'node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/',
 ] as const
 
+/**
+ * Payload that must be a *physical* file whenever the AA connector ships.
+ *
+ * The connector is an external Python payload, so an `asarUnpack` regression
+ * would leave it inside the archive where the interpreter cannot read it: the
+ * runtime fails closed with "AA Connector payload is unavailable" and no
+ * packaged-runtime check would notice, because zero physical files also means
+ * zero mismatches. `src/profile.ts` probes this exact file.
+ */
+export const REQUIRED_AA_CONNECTOR_UNPACKED_ENTRIES = [
+  'node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/pyproject.toml',
+] as const
+
 /** Every generated JavaScript file shipped by the installed DSH CLI package. */
 export const REQUIRED_DSH_CLI_RUNTIME_ENTRIES = Object.freeze(
   readdirSync(join(DSH_PACKAGE_ROOT, 'lib'), { withFileTypes: true })
@@ -116,10 +139,9 @@ export const REQUIRED_DSH_CLI_RUNTIME_ENTRIES = Object.freeze(
     .sort(),
 )
 
-/** PTC preset inputs selected by upstream's historical Session migration. */
+/** PTC preset payload shipped by the `dsh-web-app` bundle patch chain (0.1.7+). */
 export const REQUIRED_AGENT_PRESET_RUNTIME_ENTRIES = [
-  'node_modules/@deepseek-ai/dsh-agent-presets/presets/ptc/agent.cordis.yml',
-  'node_modules/@deepseek-ai/dsh-agent-presets/presets/ptc/preset.yml',
+  'node_modules/@deepseek-ai/dsh-web-app/presets/ptc.patch.yml',
 ] as const
 
 /** AfterPack fields consumed without importing Electron Builder's incomplete declaration graph. */
@@ -201,15 +223,27 @@ export const REQUIRED_WINDOWS_X64_NODE_PTY_ENTRIES = [
   'node_modules/node-pty/prebuilds/win32-x64/conpty/conpty.dll',
 ] as const
 
+/**
+ * Office engine payload selected for Windows x64. Desktop packaging filters the
+ * installed kit to this engine, so a package without it is incomplete and is
+ * rejected here instead of failing at the first document conversion.
+ */
+export const REQUIRED_WINDOWS_X64_OFFICE_ENGINE_ENTRIES = [
+  'node_modules/@deepseek-ai/libreoffice-kit-win32-x64/package.json',
+  'node_modules/@deepseek-ai/libreoffice-kit-win32-x64/prebuilds.json',
+  'node_modules/@deepseek-ai/libreoffice-kit-win32-x64/bin/libreoffice-kit.exe',
+] as const
+
 /** ABI-pinned fs-ext bindings selected by non-universal macOS and Linux packages. */
+const POSIX_FS_EXT_BINDING = `electron.abi${pinnedElectronAbi()}.node`
 export const REQUIRED_POSIX_FS_EXT_ENTRIES = {
   darwin: {
-    x64: 'node_modules/fs-ext/prebuilds/darwin-x64/electron.abi148.node',
-    arm64: 'node_modules/fs-ext/prebuilds/darwin-arm64/electron.abi148.node',
+    x64: `node_modules/fs-ext/prebuilds/darwin-x64/${POSIX_FS_EXT_BINDING}`,
+    arm64: `node_modules/fs-ext/prebuilds/darwin-arm64/${POSIX_FS_EXT_BINDING}`,
   },
   linux: {
-    x64: 'node_modules/fs-ext/prebuilds/linux-x64/electron.abi148.node',
-    arm64: 'node_modules/fs-ext/prebuilds/linux-arm64/electron.abi148.node',
+    x64: `node_modules/fs-ext/prebuilds/linux-x64/${POSIX_FS_EXT_BINDING}`,
+    arm64: `node_modules/fs-ext/prebuilds/linux-arm64/${POSIX_FS_EXT_BINDING}`,
   },
 } as const
 
@@ -780,16 +814,24 @@ export function verifyPackagedRuntime(
         ? REQUIRED_POSIX_FS_EXT_ENTRIES[context.electronPlatformName].arm64
         : undefined
     : undefined
-  const requiredPhysicalEntries = context.electronPlatformName === 'win32'
+  const physicalEntriesForContext = context.electronPlatformName === 'win32'
     ? [
         ...desktopPhysicalEntries,
         ...REQUIRED_WINDOWS_X64_NODE_PTY_ENTRIES,
+        ...REQUIRED_WINDOWS_X64_OFFICE_ENGINE_ENTRIES,
       ]
     : context.electronPlatformName === 'darwin' && context.arch === 4
       ? [...desktopPhysicalEntries, ...REQUIRED_MACOS_UNIVERSAL_ENTRIES]
       : posixFsExtEntry === undefined
         ? desktopPhysicalEntries
         : [...desktopPhysicalEntries, posixFsExtEntry]
+  // The AA connector is an optional bundled plugin: require its physical payload
+  // only when this build actually carries the package, so removing AA stays
+  // supported while a regressed `asarUnpack` glob fails loudly.
+  const aaConnectorEntries = exists(join(unpackedRoot, dirname(REQUIRED_AA_CONNECTOR_UNPACKED_ENTRIES[0])))
+    ? REQUIRED_AA_CONNECTOR_UNPACKED_ENTRIES
+    : []
+  const requiredPhysicalEntries = [...physicalEntriesForContext, ...aaConnectorEntries]
   const missing = requiredPhysicalEntries.filter(entry => !exists(join(unpackedRoot, entry)))
   if (missing.length > 0) {
     throw new Error(

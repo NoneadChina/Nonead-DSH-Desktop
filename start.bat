@@ -109,7 +109,7 @@ set "YARN=corepack yarn"
 rem The root "dev" script starts with "aa:prepare-release", which refreshes the
 rem Agents Anywhere bridge from the upstream AA main branch. That refresh only
 rem succeeds while upstream main still typechecks against the vendored
-rem 0.1.5-rc.1 runtime, so starting the app must not depend on it: reuse the
+rem 0.1.7-rc.2 runtime, so starting the app must not depend on it: reuse the
 rem checksum-verified vendored artifact, which is what DSH_AA_SOURCE_REF=pinned
 rem selects. Set DSH_AA_SOURCE_REF=main (or a commit) before running this file
 rem to refresh the bridge from upstream on purpose.

@@ -30,6 +30,7 @@ import type {
   DesktopTrayItemGroup,
   DesktopTrayItemRegistration,
   DesktopUpdateAdapter,
+  DesktopUpdateDownloadFailure,
 } from './runtime.ts'
 import type { RendererBootReport } from './renderer-boot-contract.ts'
 import {
@@ -65,7 +66,7 @@ import {
 import { ElectronWorkspaceAdmission } from './workspace-admission.ts'
 import { ProfileCreateWindow, type ProfileCreateWindowOptions } from './profile-create-window.ts'
 import { windowsBuildNumber } from './window-material.ts'
-import { desktopNativeCopy } from './native-dialog-copy.ts'
+import { desktopNativeCopy, desktopUpdateDownloadFailureDetail } from './native-dialog-copy.ts'
 import {
   FileMainWindowStateStore,
   type MainWindowStateStore,
@@ -150,6 +151,7 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
       confirmDownload: (version, channel) => this.confirmUpdateDownload(version, channel),
       showManualCheckResult: result => this.showManualUpdateCheckResult(result),
       downloadAndOpen: (version, signal, channel) => this.downloadAndOpenUpdate(version, signal, channel),
+      reportDownloadFailure: (version, failure) => this.showUpdateDownloadFailure(version, failure),
       notify: notification => { this.showNotification(notification) },
     }
   }
@@ -681,6 +683,24 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
       title: copy.updateAvailableTitle,
       message: copy.updateAvailableMessage(result.latestVersion),
       detail: copy.installerUnavailable,
+      buttons: [copy.ok],
+      defaultId: 0,
+      noLink: true,
+    })
+  }
+
+  /** Tell the user that a confirmed update produced no installer, and why. */
+  private async showUpdateDownloadFailure(
+    version: string,
+    failure: DesktopUpdateDownloadFailure,
+  ): Promise<void> {
+    const copy = desktopNativeCopy(this.currentLocale)
+    this.logError(`dsh-plugin-desktop: update download for ${version} failed (${failure.code}${failure.status === undefined ? '' : ` HTTP ${String(failure.status)}`})`)
+    await this.showUpdateMessageBox({
+      type: 'error',
+      title: copy.updateFailedTitle,
+      message: copy.updateFailedMessage(version),
+      detail: desktopUpdateDownloadFailureDetail(this.currentLocale, failure),
       buttons: [copy.ok],
       defaultId: 0,
       noLink: true,

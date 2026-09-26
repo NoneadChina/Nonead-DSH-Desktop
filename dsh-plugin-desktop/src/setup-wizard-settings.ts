@@ -16,7 +16,7 @@ import {
 } from 'node:fs'
 import { dirname, extname, isAbsolute, resolve } from 'node:path'
 import { writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
-import { parseDocument } from 'yaml'
+import { parseDocument, isMap, isSeq, type YAMLSeq } from 'yaml'
 import {
   DEFAULT_MACOS_WINDOW_MATERIAL,
   DEFAULT_WINDOWS_WINDOW_MATERIAL,
@@ -34,6 +34,8 @@ import type {
 const BIN_NAME = 'dsh-plugin-desktop'
 const DESKTOP_NAMESPACE = 'dsh-desktop'
 const NOTIFICATIONS_NAMESPACE = 'dsh-desktop-notifications'
+const DESKTOP_ROW_NAME = `${BIN_NAME}/settings`
+const NOTIFICATIONS_ROW_NAME = `${BIN_NAME}/notifications`
 const MAX_DOCUMENT_BYTES = 4 * 1024 * 1024
 const DOCUMENT_FILE_MODE = 0o600
 const DOCUMENT_DIRECTORY_MODE = 0o700
@@ -60,6 +62,13 @@ export interface DesktopSetupWizardSettings {
 interface LoadedSettingsDocument {
   readonly format: SettingsFormat
   readonly root: Record<string, unknown>
+  readonly yaml?: ReturnType<typeof parseDocument>
+}
+
+/** Parsed profile patch document: the list of entries the Loader composes. */
+interface LoadedPatchDocument {
+  readonly format: SettingsFormat
+  readonly rows: readonly Record<string, unknown>[]
   readonly yaml?: ReturnType<typeof parseDocument>
 }
 
@@ -160,6 +169,54 @@ function section(root: Record<string, unknown>, namespace: string): Record<strin
   return value
 }
 
+/**
+ * Load the profile patch document, whose root is a list of patch entries.
+ *
+ * Upstream composes the active profile from these entries, so the desktop owns
+ * the two rows it edits and leaves every other entry untouched.
+ */
+function loadPatchDocument(path: string): LoadedPatchDocument {
+  const format = formatOf(path)
+  const text = readDocumentText(path)
+  const project = (value: unknown): readonly Record<string, unknown>[] => {
+    if (value === undefined || value === null) return []
+    if (!Array.isArray(value)) throw invalid('root must be a list of profile patch entries')
+    return value.map((entry) => {
+      if (!isRecord(entry)) throw invalid('every profile patch entry must be a map')
+      return entry
+    })
+  }
+  if (format === 'json') {
+    let value: unknown
+    if (text !== undefined) {
+      try {
+        value = JSON.parse(text) as unknown
+      } catch {
+        throw invalid('JSON could not be parsed')
+      }
+    }
+    return { format, rows: project(value) }
+  }
+  const yaml = parseDocument(text ?? '', { prettyErrors: true })
+  if (yaml.errors.length > 0) {
+    throw invalid(`YAML could not be parsed: ${yaml.errors.map(error => error.message).join('; ')}`)
+  }
+  return { format, rows: project(yaml.toJS()), yaml }
+}
+
+/** Read the `config` map of the last entry with the given id. */
+function rowConfig(rows: readonly Record<string, unknown>[], id: string): Record<string, unknown> {
+  for (let index = rows.length - 1; index >= 0; index -= 1) {
+    const row = rows[index]
+    if (row === undefined || row.id !== id) continue
+    const config = row.config
+    if (config === undefined) return {}
+    if (!isRecord(config)) throw invalid(`${id} config must be a map`)
+    return config
+  }
+  return {}
+}
+
 function optionalBoolean(values: Record<string, unknown>, key: string, fallback: boolean): boolean {
   const value = values[key]
   if (value === undefined) return fallback
@@ -189,11 +246,10 @@ function notificationSettings(values: Record<string, unknown>): DesktopSetupWiza
   })
 }
 
-function projectSettings(
-  root: Record<string, unknown>,
+function projectSections(
+  desktop: Record<string, unknown>,
+  notifications: Record<string, unknown>,
 ): DesktopSetupWizardSettings {
-  const desktop = section(root, DESKTOP_NAMESPACE)
-  const notifications = section(root, NOTIFICATIONS_NAMESPACE)
   const mode = parseMode(desktop.mode)
   const networkExposure = parseExposure(desktop.networkExposure)
   const openBrowser = desktopBrowserAccessEnabled(
@@ -209,6 +265,26 @@ function projectSettings(
     networkExposure: desktopNetworkExposureForBrowserAccess(openBrowser, networkExposure),
     notifications: notificationSettings(notifications),
   })
+}
+
+/** Project the two owned namespace sections of a legacy settings document. */
+function projectSettings(
+  root: Record<string, unknown>,
+): DesktopSetupWizardSettings {
+  return projectSections(
+    section(root, DESKTOP_NAMESPACE),
+    section(root, NOTIFICATIONS_NAMESPACE),
+  )
+}
+
+/** Project the two owned rows of the profile patch document. */
+function projectPatchSettings(
+  rows: readonly Record<string, unknown>[],
+): DesktopSetupWizardSettings {
+  return projectSections(
+    rowConfig(rows, DESKTOP_NAMESPACE),
+    rowConfig(rows, NOTIFICATIONS_NAMESPACE),
+  )
 }
 
 function normalizedUpdate(
@@ -277,37 +353,86 @@ export function sameDesktopSetupWizardSettings(
     && current.notifications.notifyOnJobFailure === next.notifications.notifyOnJobFailure
 }
 
+/** Editable leaves of the Desktop settings row. */
+function desktopRowConfig(next: DesktopSetupWizardSettings): Record<string, unknown> {
+  return {
+    mode: next.mode,
+    macosMaterial: next.macosMaterial,
+    windowsMaterial: next.windowsMaterial,
+    openBrowser: next.openBrowser,
+    networkExposure: next.networkExposure,
+  }
+}
+
+/** Write one owned row into the live YAML document, appending it when absent. */
+function writeYamlRow(
+  document: NonNullable<LoadedPatchDocument['yaml']>,
+  contents: YAMLSeq,
+  id: string,
+  name: string,
+  values: Record<string, unknown>,
+): void {
+  for (let index = contents.items.length - 1; index >= 0; index -= 1) {
+    const item = contents.items[index]
+    if (!isMap(item) || item.get('id') !== id) continue
+    for (const [key, value] of Object.entries(values)) {
+      document.setIn([index, 'config', key], value)
+    }
+    return
+  }
+  document.add(document.createNode({ id, name, config: values }))
+}
+
+/** Prepare the live YAML document for row writes, creating an empty list. */
+function patchYamlSequence(
+  document: NonNullable<LoadedPatchDocument['yaml']>,
+): YAMLSeq {
+  if (document.contents === null) document.contents = document.createNode([])
+  const contents = document.contents
+  if (!isSeq(contents)) throw invalid('root must be a list of profile patch entries')
+  return contents
+}
+
 function applyYamlUpdate(
-  document: NonNullable<LoadedSettingsDocument['yaml']>,
+  document: NonNullable<LoadedPatchDocument['yaml']>,
   next: DesktopSetupWizardSettings,
 ): string {
-  document.setIn([DESKTOP_NAMESPACE, 'mode'], next.mode)
-  document.setIn([DESKTOP_NAMESPACE, 'macosMaterial'], next.macosMaterial)
-  document.setIn([DESKTOP_NAMESPACE, 'windowsMaterial'], next.windowsMaterial)
-  document.setIn([DESKTOP_NAMESPACE, 'openBrowser'], next.openBrowser)
-  document.setIn([DESKTOP_NAMESPACE, 'networkExposure'], next.networkExposure)
-  for (const [key, value] of Object.entries(next.notifications)) {
-    document.setIn([NOTIFICATIONS_NAMESPACE, key], value)
-  }
+  const contents = patchYamlSequence(document)
+  writeYamlRow(document, contents, DESKTOP_NAMESPACE, DESKTOP_ROW_NAME, desktopRowConfig(next))
+  writeYamlRow(
+    document,
+    contents,
+    NOTIFICATIONS_NAMESPACE,
+    NOTIFICATIONS_ROW_NAME,
+    { ...next.notifications },
+  )
   return document.toString()
 }
 
+/** Write one owned row into the plain JSON projection, appending it when absent. */
+function writeJsonRow(
+  rows: Record<string, unknown>[],
+  id: string,
+  name: string,
+  values: Record<string, unknown>,
+): void {
+  for (let index = rows.length - 1; index >= 0; index -= 1) {
+    const row = rows[index]
+    if (row === undefined || row.id !== id) continue
+    const existing = isRecord(row.config) ? row.config : {}
+    row.config = { ...existing, ...values }
+    return
+  }
+  rows.push({ id, name, config: values })
+}
+
 function applyJsonUpdate(
-  root: Record<string, unknown>,
+  rows: readonly Record<string, unknown>[],
   next: DesktopSetupWizardSettings,
 ): string {
-  const output = structuredClone(root)
-  const desktop = { ...section(output, DESKTOP_NAMESPACE) }
-  desktop.mode = next.mode
-  desktop.macosMaterial = next.macosMaterial
-  desktop.windowsMaterial = next.windowsMaterial
-  desktop.openBrowser = next.openBrowser
-  desktop.networkExposure = next.networkExposure
-  output[DESKTOP_NAMESPACE] = desktop
-  output[NOTIFICATIONS_NAMESPACE] = {
-    ...section(output, NOTIFICATIONS_NAMESPACE),
-    ...next.notifications,
-  }
+  const output = rows.map(row => structuredClone(row))
+  writeJsonRow(output, DESKTOP_NAMESPACE, DESKTOP_ROW_NAME, desktopRowConfig(next))
+  writeJsonRow(output, NOTIFICATIONS_NAMESPACE, NOTIFICATIONS_ROW_NAME, { ...next.notifications })
   return `${JSON.stringify(output, undefined, 2)}\n`
 }
 
@@ -320,16 +445,17 @@ function ensureDocumentDirectory(path: string): void {
   }
 }
 
-/** Read defaults or validated current values from the exact prepared settings file. */
+/** Read defaults or validated current values from the prepared profile patch document. */
 export function readDesktopSetupWizardSettings(
   documentPath: string,
 ): DesktopSetupWizardSettings {
   const path = settingsPath(documentPath)
-  return projectSettings(loadSettingsDocument(path).root)
+  return projectPatchSettings(loadPatchDocument(path).rows)
 }
 
 /**
- * Atomically update only Wizard-owned leaves, preserving every other setting.
+ * Atomically update only the leaves owned by the desktop rows, preserving every
+ * other entry of the profile patch document.
  * Setup runs before the Host and never creates or waits for a settings writer
  * lock; the same-directory rename still keeps readers from seeing torn bytes.
  */
@@ -342,20 +468,41 @@ export async function updateDesktopSetupWizardSettings(
   // Explicit default leaves do not need to be materialized. Apart from making
   // Setup idempotent, this lets an unchanged first-run choice proceed while an
   // unrelated or orphaned settings writer lock exists.
-  if (sameDesktopSetupWizardSettings(projectSettings(loadSettingsDocument(path).root), next)) return next
+  if (sameDesktopSetupWizardSettings(projectPatchSettings(loadPatchDocument(path).rows), next)) return next
   ensureDocumentDirectory(path)
-  const loaded = loadSettingsDocument(path)
+  const loaded = loadPatchDocument(path)
   // Refuse to cover an invalid known value, including the inactive platform's
   // material, before touching the user's document.
-  projectSettings(loaded.root)
+  projectPatchSettings(loaded.rows)
   const output = loaded.format === 'yaml'
     ? applyYamlUpdate(loaded.yaml!, next)
-    : applyJsonUpdate(loaded.root, next)
+    : applyJsonUpdate(loaded.rows, next)
   await writeFileAtomic(path, output, {
     mode: DOCUMENT_FILE_MODE,
     dirMode: DOCUMENT_DIRECTORY_MODE,
   })
   return next
+}
+
+/** Row-level view the browser-access migration reads before it writes. */
+function browserAccessMigration(loaded: LoadedPatchDocument): {
+  browserAccess: boolean
+  networkExposure: DesktopSetupWizardNetworkExposure
+  needed: boolean
+} {
+  // Validate every known desktop value before migrating any leaf.
+  projectPatchSettings(loaded.rows)
+  const desktop = rowConfig(loaded.rows, DESKTOP_NAMESPACE)
+  const storedMode = parseMode(desktop.mode)
+  const storedOpenBrowser = optionalBoolean(desktop, 'openBrowser', false)
+  const storedExposure = parseExposure(desktop.networkExposure)
+  const browserAccess = desktopBrowserAccessEnabled(storedMode, storedOpenBrowser, storedExposure)
+  const networkExposure = desktopNetworkExposureForBrowserAccess(browserAccess, storedExposure)
+  return {
+    browserAccess,
+    networkExposure,
+    needed: storedOpenBrowser !== browserAccess || storedExposure !== networkExposure,
+  }
 }
 
 /**
@@ -370,44 +517,29 @@ export async function migrateDesktopBrowserAccessSettings(
 ): Promise<boolean> {
   const path = settingsPath(documentPath)
 
-  const migrationValues = (loaded: LoadedSettingsDocument) => {
-    // Validate every known Wizard-owned value before migrating any leaf.
-    projectSettings(loaded.root)
-    const desktop = section(loaded.root, DESKTOP_NAMESPACE)
-    const storedMode = parseMode(desktop.mode)
-    const storedOpenBrowser = optionalBoolean(desktop, 'openBrowser', false)
-    const storedExposure = parseExposure(desktop.networkExposure)
-    const browserAccess = desktopBrowserAccessEnabled(storedMode, storedOpenBrowser, storedExposure)
-    const networkExposure = desktopNetworkExposureForBrowserAccess(browserAccess, storedExposure)
-    return {
-      browserAccess,
-      needed: storedOpenBrowser !== browserAccess || storedExposure !== networkExposure,
-      networkExposure,
-    }
-  }
-
   // Most Profiles are already normalized. Keep their startup entirely
   // read-only so an unrelated or orphaned settings writer lock cannot block
   // Desktop from opening.
-  if (!migrationValues(loadSettingsDocument(path)).needed) return false
+  if (!browserAccessMigration(loadPatchDocument(path)).needed) return false
 
   ensureDocumentDirectory(path)
-  const loaded = loadSettingsDocument(path)
-  const migration = migrationValues(loaded)
+  const loaded = loadPatchDocument(path)
+  const migration = browserAccessMigration(loaded)
   if (!migration.needed) return false
 
+  const values = {
+    openBrowser: migration.browserAccess,
+    networkExposure: migration.networkExposure,
+  }
   let output: string
   if (loaded.format === 'yaml') {
-    loaded.yaml!.setIn([DESKTOP_NAMESPACE, 'openBrowser'], migration.browserAccess)
-    loaded.yaml!.setIn([DESKTOP_NAMESPACE, 'networkExposure'], migration.networkExposure)
-    output = loaded.yaml!.toString()
+    const document = loaded.yaml!
+    writeYamlRow(document, patchYamlSequence(document), DESKTOP_NAMESPACE, DESKTOP_ROW_NAME, values)
+    output = document.toString()
   } else {
-    const root = structuredClone(loaded.root)
-    const nextDesktop = { ...section(root, DESKTOP_NAMESPACE) }
-    nextDesktop.openBrowser = migration.browserAccess
-    nextDesktop.networkExposure = migration.networkExposure
-    root[DESKTOP_NAMESPACE] = nextDesktop
-    output = `${JSON.stringify(root, undefined, 2)}\n`
+    const rows = loaded.rows.map(row => structuredClone(row))
+    writeJsonRow(rows, DESKTOP_NAMESPACE, DESKTOP_ROW_NAME, values)
+    output = `${JSON.stringify(rows, undefined, 2)}\n`
   }
   await writeFileAtomic(path, output, {
     mode: DOCUMENT_FILE_MODE,
@@ -417,38 +549,121 @@ export async function migrateDesktopBrowserAccessSettings(
 }
 
 /**
- * Replace the removed Acrylic preference without making an old settings file
- * a startup failure. Runtime parsing already treats Acrylic as off, so a
- * read-only document remains safe even when this durable migration cannot run.
+ * Replace the removed Acrylic preference without making an old settings
+ * document a startup failure. Runtime parsing already treats Acrylic as off, so
+ * a read-only document remains safe even when this durable migration cannot run.
  */
 export async function migrateDesktopWindowMaterialSettings(
   documentPath: string,
 ): Promise<boolean> {
   const path = settingsPath(documentPath)
 
-  const needsMigration = (loaded: LoadedSettingsDocument): boolean => {
-    // Validate every known Wizard-owned value before changing the legacy leaf.
-    projectSettings(loaded.root)
-    return section(loaded.root, DESKTOP_NAMESPACE).windowsMaterial === 'acrylic'
+  const needsMigration = (loaded: LoadedPatchDocument): boolean => {
+    // Validate every known desktop value before changing the legacy leaf.
+    projectPatchSettings(loaded.rows)
+    return rowConfig(loaded.rows, DESKTOP_NAMESPACE).windowsMaterial === 'acrylic'
   }
 
-  if (!needsMigration(loadSettingsDocument(path))) return false
+  if (!needsMigration(loadPatchDocument(path))) return false
 
   ensureDocumentDirectory(path)
-  const loaded = loadSettingsDocument(path)
+  const loaded = loadPatchDocument(path)
   if (!needsMigration(loaded)) return false
 
+  const values = { windowsMaterial: 'off' }
   let output: string
   if (loaded.format === 'yaml') {
-    loaded.yaml!.setIn([DESKTOP_NAMESPACE, 'windowsMaterial'], 'off')
-    output = loaded.yaml!.toString()
+    const document = loaded.yaml!
+    writeYamlRow(document, patchYamlSequence(document), DESKTOP_NAMESPACE, DESKTOP_ROW_NAME, values)
+    output = document.toString()
   } else {
-    const root = structuredClone(loaded.root)
-    const desktop = { ...section(root, DESKTOP_NAMESPACE), windowsMaterial: 'off' }
-    root[DESKTOP_NAMESPACE] = desktop
-    output = `${JSON.stringify(root, undefined, 2)}\n`
+    const rows = loaded.rows.map(row => structuredClone(row))
+    writeJsonRow(rows, DESKTOP_NAMESPACE, DESKTOP_ROW_NAME, values)
+    output = `${JSON.stringify(rows, undefined, 2)}\n`
   }
   await writeFileAtomic(path, output, {
+    mode: DOCUMENT_FILE_MODE,
+    dirMode: DOCUMENT_DIRECTORY_MODE,
+  })
+  return true
+}
+
+/**
+ * Move the retired namespace sections into the desktop's own profile patch rows.
+ *
+ * Upstream 0.1.7 renames a legacy `<home>/settings.yaml` and imports each of its
+ * sections into the entry whose id equals the section key. The desktop rows
+ * carry exactly those ids, so their sections are copied into the patch document
+ * and then removed from the legacy document to keep the user's values from being
+ * imported twice. Existing row values win, because the patch document is the
+ * newer store. Returns whether the legacy document changed.
+ */
+export async function importDesktopLegacySettingsDocument(
+  legacyPath: string,
+  documentPath: string,
+): Promise<boolean> {
+  const path = settingsPath(legacyPath)
+  if (readDocumentText(path) === undefined) return false
+  const legacy = loadSettingsDocument(path)
+  const ownsDesktop = legacy.root[DESKTOP_NAMESPACE] !== undefined
+  const ownsNotifications = legacy.root[NOTIFICATIONS_NAMESPACE] !== undefined
+  if (!ownsDesktop && !ownsNotifications) return false
+  // Refuse to copy an invalid legacy value into the live document.
+  projectSettings(legacy.root)
+
+  const desktop = settingsPath(documentPath)
+  const loaded = loadPatchDocument(desktop)
+  const desktopValues = ownsDesktop ? section(legacy.root, DESKTOP_NAMESPACE) : {}
+  const notificationValues = ownsNotifications ? section(legacy.root, NOTIFICATIONS_NAMESPACE) : {}
+  const rowsConfig: { id: string; name: string; values: Record<string, unknown> }[] = [
+    { id: DESKTOP_NAMESPACE, name: DESKTOP_ROW_NAME, values: desktopValues },
+    { id: NOTIFICATIONS_NAMESPACE, name: NOTIFICATIONS_ROW_NAME, values: notificationValues },
+  ].filter(entry => Object.keys(entry.values).length > 0)
+
+  if (rowsConfig.length > 0) {
+    ensureDocumentDirectory(desktop)
+    let output: string
+    if (loaded.format === 'yaml') {
+      const document = loaded.yaml!
+      const contents = patchYamlSequence(document)
+      for (const entry of rowsConfig) {
+        const existing = rowConfig(loaded.rows, entry.id)
+        const missing = Object.fromEntries(
+          Object.entries(entry.values).filter(([key]) => existing[key] === undefined),
+        )
+        if (Object.keys(missing).length === 0) continue
+        writeYamlRow(document, contents, entry.id, entry.name, missing)
+      }
+      output = document.toString()
+    } else {
+      const rows = loaded.rows.map(row => structuredClone(row))
+      for (const entry of rowsConfig) {
+        const existing = rowConfig(rows, entry.id)
+        const missing = Object.fromEntries(
+          Object.entries(entry.values).filter(([key]) => existing[key] === undefined),
+        )
+        if (Object.keys(missing).length === 0) continue
+        writeJsonRow(rows, entry.id, entry.name, missing)
+      }
+      output = `${JSON.stringify(rows, undefined, 2)}\n`
+    }
+    await writeFileAtomic(desktop, output, {
+      mode: DOCUMENT_FILE_MODE,
+      dirMode: DOCUMENT_DIRECTORY_MODE,
+    })
+  }
+
+  delete legacy.root[DESKTOP_NAMESPACE]
+  delete legacy.root[NOTIFICATIONS_NAMESPACE]
+  let legacyOutput: string
+  if (legacy.format === 'yaml') {
+    legacy.yaml!.delete(DESKTOP_NAMESPACE)
+    legacy.yaml!.delete(NOTIFICATIONS_NAMESPACE)
+    legacyOutput = legacy.yaml!.toString()
+  } else {
+    legacyOutput = `${JSON.stringify(legacy.root, undefined, 2)}\n`
+  }
+  await writeFileAtomic(path, legacyOutput, {
     mode: DOCUMENT_FILE_MODE,
     dirMode: DOCUMENT_DIRECTORY_MODE,
   })

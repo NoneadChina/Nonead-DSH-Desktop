@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { maskSecrets } from '../src/mask-secrets.ts'
 
 describe('maskSecrets', () => {
-  it('masks API key values', () => {
+  it('masks API key values together with their provider prefix', () => {
+    // The prefix is not a secret, but keeping it identifies the credential family
+    // and can be account-identifying, so the whole token is replaced.
     const masked = maskSecrets('key is sk-1234abcd5678')
-    expect(masked).toContain('sk-****')
+    expect(masked).toBe('key is ****')
     expect(masked).not.toContain('sk-1234abcd')
   })
 
@@ -65,5 +67,42 @@ describe('maskSecrets', () => {
 
   it('leaves ordinary prose untouched', () => {
     expect(maskSecrets('hello world, profile "desktop"')).toBe('hello world, profile "desktop"')
+  })
+
+  it('preserves diagnostic codes in prose so failure reports stay actionable', () => {
+    expect(maskSecrets('error code: ENOENT operation-in-progress'))
+      .toBe('error code: ENOENT operation-in-progress')
+    expect(maskSecrets('Profile dependency migration failed: exit code: EPERM'))
+      .toBe('Profile dependency migration failed: exit code: EPERM')
+    expect(maskSecrets('child process gone (reason: crashed, exitCode: 9 / 0x00000009)'))
+      .toBe('child process gone (reason: crashed, exitCode: 9 / 0x00000009)')
+  })
+
+  it('masks prefixed credential families without leaking their prefix', () => {
+    for (const secret of [
+      'sk-proj-abcdefghijklmnopqrstuvwxyz',
+      'ghp_abcdefghijklmnopqrstuvwxyz012345',
+      'github_pat_11ABCDEFG0abcdefghijklmnop',
+      'AKIAIOSFODNN7EXAMPLE',
+      'xoxb-123456789012-abcdefghijklmnop',
+      'npm_abcdefghijklmnopqrstuvwx',
+      'glpat-abcdefghijklmnopqrst',
+    ]) {
+      const masked = maskSecrets(`installing with ${secret}`)
+      expect(masked).toBe('installing with ****')
+      expect(masked).not.toContain(secret.slice(4))
+    }
+  })
+
+  it('masks JSON Web Tokens and long opaque tokens', () => {
+    const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dBjftJeZ4CVPmB92K27uhbUJU1p1r_wW1gFWFOEjXk'
+    expect(maskSecrets(`token ${jwt}`)).toBe('token ****')
+    const opaque = 'aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789+/aB'
+    expect(maskSecrets(`digest ${opaque}`)).toBe('digest ****')
+  })
+
+  it('masks authorization schemes that bypass the named-field rule', () => {
+    expect(maskSecrets('sent Bearer abc123def456')).toBe('sent Bearer ****')
+    expect(maskSecrets('sent Basic dXNlcjpwYXNzd29yZA==')).toBe('sent Basic ****')
   })
 })

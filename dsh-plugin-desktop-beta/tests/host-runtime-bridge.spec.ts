@@ -18,6 +18,7 @@ it('preserves the Web URL and authentication while projecting shell and tray cal
     platform: 'win32', windowsBuild: 22631, locale: 'en',
     updates: { isPackaged: true, canDownload: true, currentVersion: '2.0.7-beta.1', statePath: '/tmp/update',
       request: vi.fn(async () => new Response('{"version":"2.0.8-beta.1"}', { headers: { 'x-test': 'yes' } })),
+      reportDownloadFailure: vi.fn(async () => {}),
     },
     schedule: (value: DesktopShellSpec) => { shell = value; return disposeShell },
     registerTrayItem: (value: DesktopTrayItem) => { tray = value; return { refresh() {}, dispose: disposeTray } },
@@ -56,6 +57,8 @@ it('preserves the Web URL and authentication while projecting shell and tray cal
     const response = await runtime.updates.request('https://example.invalid', { headers: { accept: 'application/json' } })
     expect(response.headers.get('x-test')).toBe('yes')
     expect(await response.json()).toEqual({ version: '2.0.8-beta.1' })
+    await runtime.updates.reportDownloadFailure('2.0.8-beta.1', { code: 'network' })
+    expect(native.updates.reportDownloadFailure).toHaveBeenCalledWith('2.0.8-beta.1', { code: 'network' })
     await stopShell()
     expect(disposeShell).toHaveBeenCalledOnce()
   } finally { await release(); parent.close(); child.close(); port1.close(); port2.close() }

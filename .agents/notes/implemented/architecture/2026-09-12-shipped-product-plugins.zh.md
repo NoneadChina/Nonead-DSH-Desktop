@@ -4,7 +4,9 @@ Status: implemented
 
 [English](2026-09-12-shipped-product-plugins.md) | 中文
 
-> **更新（2026-09-21）：** `dsh-nonead-universal-robots` 已退出随产品内置集合。launcher 不再插入它的 loader 行，两个桌面发行版都不再依赖或打包它，`desktopBundleList()` 也不再把它从 Profile bundle 列表中剔除。只有 [`dsh-nonead-client-skin/`](../../../../dsh-nonead-client-skin/) 仍按下文所述随 launcher 代次承载。该包仍是外层 Yarn 工作区的成员。
+> **更新（2026-09-21）：** `dsh-nonead-universal-robots` 已退出随产品内置集合。launcher 不再插入它的 loader 行，两个桌面发行版都不再依赖或打包它，`desktopBundleList()` 也不再把它从 Profile bundle 列表中剔除。只有 [`dsh-nonead-client-skin/`](../../../../dsh-nonead-client-skin/) 仍按下文所述随 launcher 代次承载。
+>
+> **更新（2026-09-26）：** `dsh-nonead-universal-robots` 随后被整体移出本仓库：其源码已删除，根 Yarn 工作区也不再声明该成员。下文凡仍将其称为工作区成员或 production dependency 之处，均应读作本次更新之前的状态；皮肤现在是唯一由产品所有的插件工作区成员。
 
 ## Problem
 
@@ -24,7 +26,7 @@ Nonead DSH Desktop 必须在启动时就已装好并生效 Universal Robots 工�
 
 两个包都以普通内容形式并入本仓库。内层 `.git` 目录被移动到已忽略的 `.build/nonead-source-git/`，因此文件由外层仓库拥有；由于这两个目录不再自带历史，来源记录在此：`git@git.corp.nonead.com:tonyke/dsh-nonead-client-skin.git` 的 `c8461da5c0cdd51f8552ce8266fd95476d57e267`（master，2026-09-08）与 `git@git.corp.nonead.com:tonyke/dsh-nonead-universal-robots.git` 的 `a2474aa775cc61e6558e596d8546ed7f3514774c`（main，2026-09-09）。
 
-两者的 peer 范围被收紧到内置运行时 family（DSH 各包为 `0.1.5-rc.1`，Cordis 为 `4.0.2`），使外层安装解析到 `vendor/dsh-runtime` 而不是 registry，也不会触发 release-age 门禁。皮肤的 `@deepseek-ai/dsh-client-runtime` peer 保持 optional：本仓库只消费预构建的浏览器产物、从不编译该皮肤，因此这个仅用于类型的依赖绝不能在这里被解析。
+两者的 peer 范围被收紧到内置运行时 family（DSH 各包为 `0.1.7-rc.1`，Cordis 为 `4.0.4`），使外层安装解析到 `vendor/dsh-runtime` 而不是 registry，也不会触发 release-age 门禁。皮肤的 `@deepseek-ai/dsh-client-runtime` peer 保持 optional：本仓库只消费预构建的浏览器产物、从不编译该皮肤，因此这个仅用于类型的依赖绝不能在这里被解析。
 
 ## Verification
 

@@ -441,7 +441,11 @@ describe('desktop Host pnpm runtime', () => {
     expect(environment).toEqual({ PATH: '/usr/bin' })
   })
 
-  it('publishes a clean sibling instead of trusting a contaminated generation', () => {
+  // These cases emulate a POSIX runtime plan while editing a real process PATH.
+  // On Windows that PATH uses `;` and drive-letter entries, so the POSIX fixtures
+  // below do not describe it; the Windows counterparts in this file cover the
+  // same PATH-replacement contract natively.
+  it.runIf(process.platform !== 'win32')('publishes a clean sibling instead of trusting a contaminated generation', () => {
     const root = temporaryDirectory()
     const stateDir = join(root, 'runtime')
     const environment: NodeJS.ProcessEnv = { PATH: '/usr/bin' }
@@ -465,7 +469,7 @@ describe('desktop Host pnpm runtime', () => {
     second.dispose()
   })
 
-  it('leaves legacy unknown files untouched and excludes their directories from PATH', () => {
+  it.runIf(process.platform !== 'win32')('leaves legacy unknown files untouched and excludes their directories from PATH', () => {
     const root = temporaryDirectory()
     const stateDir = join(root, 'runtime')
     const legacyPathDir = join(stateDir, 'bin')

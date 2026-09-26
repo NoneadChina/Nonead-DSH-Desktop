@@ -1,12 +1,26 @@
 import type { LogFileSink } from './log-files.ts'
+import type { LogType } from './log-level.ts'
 import { maskSecrets } from './mask-secrets.ts'
 
 /** Logger for Electron-main-scope messages that bypass Cordis `ctx.logger`. */
 export interface DesktopLogger {
   /** Log an error message to the sink (and stderr for dev visibility). */
   error(message: string): void
+  /**
+   * Log one message at an explicit level.
+   *
+   * Optional so a focused test double only has to provide the calls it observes;
+   * use {@link logDesktopMessage} to record at a level safely.
+   */
+  log?(type: LogType, message: string): void
   /** Log an unknown cause, normalizing errors/objects/strings. */
   errorCause(cause: unknown): void
+}
+
+/** Record one message at a level, falling back to `error` for a partial double. */
+export function logDesktopMessage(logger: DesktopLogger, type: LogType, message: string): void {
+  if (logger.log !== undefined) logger.log(type, message)
+  else logger.error(message)
 }
 
 /** Process events needed to make uncaught exceptions observable and fatal. */
@@ -82,9 +96,13 @@ export class ElectronStderrLogger implements DesktopLogger {
   }
 
   error(message: string): void {
+    this.log('error', message)
+  }
+
+  log(type: LogType, message: string): void {
     const masked = maskSecrets(message)
     try {
-      this.sink?.write('error', masked)
+      this.sink?.write(type, masked)
     } catch {
       // Persistent diagnostics are best-effort; stderr must remain available.
     }

@@ -98,6 +98,14 @@ export interface DesktopNotification {
   body: string
 }
 
+/** Serializable failure summary for one rejected installer download. */
+export interface DesktopUpdateDownloadFailure {
+  /** Stable failure category reported by the download owner. */
+  readonly code: string
+  /** HTTP status of an unsuccessful response, when the failure came from one. */
+  readonly status?: number
+}
+
 /** Electron capabilities used by the headless update plugin. */
 export interface DesktopUpdateAdapter {
   /** Whether the running executable came from an Electron package. */
@@ -120,6 +128,12 @@ export interface DesktopUpdateAdapter {
   showManualCheckResult(result: UpdateCheckResult | null): Promise<void>
   /** Download and hand one confirmed update to the platform installer. */
   downloadAndOpen(version: string, signal: AbortSignal, channel?: DesktopReleaseChannel): Promise<void>
+  /**
+   * Report one rejected installer download so the user can retry deliberately.
+   * A confirmed download leaves no installer behind on failure, so silence would look like
+   * "nothing happened" while a hidden partial file may still sit in the chosen folder.
+   */
+  reportDownloadFailure(version: string, failure: DesktopUpdateDownloadFailure): Promise<void>
   /** Present a native status notification without blocking the Host tree. */
   notify(notification: DesktopNotification): void
 }

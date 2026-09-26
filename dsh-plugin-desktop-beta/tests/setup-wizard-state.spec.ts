@@ -25,6 +25,15 @@ import {
   type DesktopSetupWizardVersions,
 } from '../src/setup-wizard-state.ts'
 
+/**
+ * Mirror the production Profile identity rule: Windows compares paths
+ * case-insensitively, so the stored hash is computed from the folded spelling.
+ */
+function expectedIdentity(path: string): string {
+  const normalized = resolve(path)
+  return process.platform === 'win32' ? normalized.toLowerCase() : normalized
+}
+
 const temporaryDirectories: string[] = []
 const RECORDED_AT = '2026-08-28T04:05:06.789Z'
 const CURRENT_VERSIONS: DesktopSetupWizardVersions = Object.freeze({
@@ -73,7 +82,7 @@ describe('Desktop Setup Wizard state', () => {
     mkdirSync(work)
     mkdirSync(personal)
 
-    const expectedHash = createHash('sha256').update(resolve(work)).digest('hex')
+    const expectedHash = createHash('sha256').update(expectedIdentity(work)).digest('hex')
     expect(desktopSetupWizardProfileHash(work)).toBe(expectedHash)
     expect(desktopSetupWizardStatePath(userData, work)).toBe(
       join(userData, 'profile-setup', expectedHash, 'state.json'),

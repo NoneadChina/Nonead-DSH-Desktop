@@ -4,17 +4,22 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, write
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { boot } from '@deepseek-ai/dsh-app-boot'
+import { boot, PROFILE_PATCH_FILENAME } from '@deepseek-ai/dsh-app-boot'
 import { provideCmdline } from '@deepseek-ai/dsh-cmdline'
 import {
   createLaunchEnvironmentSnapshot,
   DSH_LAUNCH_ENVIRONMENT_KEY,
 } from '@deepseek-ai/dsh-launch-environment'
-import { DESKTOP_SETTINGS_NAMESPACE } from '../lib/index.js'
 import { installDesktopPnpmRuntime } from '../lib/desktop-runtime-environment.js'
 import { installProfilePackageResolver } from '../lib/module-resolution.js'
-import { prepareDesktopProfile } from '../lib/profile.js'
+import {
+  DESKTOP_PACKAGE_NAME,
+  DESKTOP_PROFILE_NAME,
+  desktopInstallAnchor,
+  prepareDesktopProfile,
+} from '../lib/profile.js'
 import { DesktopProfileService } from '../lib/profile-service.js'
+import { readDesktopSettings } from '../lib/settings.js'
 
 const BIN_NAME = 'dsh-plugin-desktop-profile-smoke'
 const HOST_SERVICE_PLUGIN_NAME = 'dsh-desktop-host-services-smoke-plugin'
@@ -51,18 +56,25 @@ let nativeThemeSource = 'system'
 const trayItems = []
 
 try {
-  writeFileSync(join(home, 'settings.yaml'), [
-    'dsh-desktop:',
-    '  mode: advanced',
-    'agent-presets:',
-    '  default: minimal',
+  // Desktop startup settings live in the profile patch document, not in a
+  // settings file: prepare the profile once to create its directory, seed the
+  // rows this smoke selects, then compose it again. The development-only profile
+  // reload row is off because the smoke clears `loader.internal` exactly as the
+  // packaged Electron Host does, which `@deepseek-ai/dsh-hmr` requires.
+  const seeded = prepareDesktopProfile('1', home, 'win32')
+  writeFileSync(join(seeded.profile.dir, PROFILE_PATCH_FILENAME), [
+    '- id: dsh-desktop',
+    `  name: ${DESKTOP_PACKAGE_NAME}/settings`,
+    '  config:',
+    '    mode: advanced',
+    '- id: hmr',
+    '  disabled: true',
     '',
   ].join('\n'))
   const aaRequested = process.env.DSH_VERIFY_AA === '1'
   const brokenAa = process.env.DSH_VERIFY_AA_BROKEN === '1'
   if (brokenAa) {
-    const initial = prepareDesktopProfile('1', home, 'win32')
-    const brokenPackage = join(initial.profile.dir, 'node_modules', '@agents-anywhere', 'dsh-bridge-next')
+    const brokenPackage = join(seeded.profile.dir, 'node_modules', '@agents-anywhere', 'dsh-bridge-next')
     mkdirSync(brokenPackage, { recursive: true })
     writeFileSync(join(brokenPackage, 'package.json'), JSON.stringify({
       name: '@agents-anywhere/dsh-bridge-next', version: '99.0.0',
@@ -122,6 +134,7 @@ try {
       statePath: join(home, 'update-state.json'),
       request: async () => { throw new Error('profile smoke must not perform update requests') },
       confirmDownload: async () => false,
+      reportDownloadFailure: async () => {},
       showManualCheckResult: async () => {},
       downloadAndOpen: async () => {},
       notify: () => {},
@@ -159,6 +172,21 @@ try {
     async (host) => {
       // Match the public resolver path used by packaged Electron.
       host.loader.internal = undefined
+      // 0.1.7 gates the profile-backed rows (`settings`, `config-editor`,
+      // `plugin-manager`, `hmr`) behind the launcher's profile context: without
+      // it the desktop shell waits forever on the `settings` service. Publish
+      // the same facts `dsh` publishes for a profile launch.
+      host.provide('profileContext', {
+        name: DESKTOP_PROFILE_NAME,
+        dir: prepared.profile.dir,
+        patchPath: prepared.profile.patchPath,
+        installAnchor: desktopInstallAnchor(),
+        cwd: process.cwd(),
+        home,
+        startedBundles: prepared.profile.layers.map(layer => layer.packageName),
+        overlays: [],
+        telemetryDisabledEnv: process.env.DSH_TELEMETRY_DISABLED,
+      })
       host.provide(DSH_LAUNCH_ENVIRONMENT_KEY, createLaunchEnvironmentSnapshot([]))
       host.provide('desktopBrowserAccess', BROWSER_ACCESS)
       host.provide('desktopLanHttps', LAN_HTTPS)
@@ -206,6 +234,10 @@ try {
     || ctx.desktopProfiles.current.dir !== prepared.profile.dir) {
     throw new Error('assembled desktop profile service has the wrong active identity')
   }
+  // 0.1.7 replaced the `dsh-agent-presets` settings namespace with the
+  // `@deepseek-ai/dsh-agent-preset-registry` roster. The web-app bundle inserts
+  // the registry with `default: standard` and declares the shipped presets as
+  // separate rows, so the deployment default is the built-in `standard`.
   const agentPresets = ctx.get('agentPresets')
   if (agentPresets === undefined) {
     throw new Error('assembled Windows profile is missing the agent preset roster')
@@ -214,12 +246,12 @@ try {
   if (!presetIds.includes('minimal') || !presetIds.includes('standard')) {
     throw new Error(`assembled Windows profile exposes unexpected presets: ${presetIds.join(', ')}`)
   }
-  if (agentPresets.defaultId !== 'minimal') {
+  if (agentPresets.defaultId !== 'standard') {
     throw new Error(`assembled Windows profile selected unexpected default ${agentPresets.defaultId}`)
   }
   const minimalPreset = await agentPresets.resolve('minimal')
-  if (minimalPreset.id !== 'minimal') {
-    throw new Error(`assembled Windows profile remapped minimal preset to ${minimalPreset.id}`)
+  if (minimalPreset.id !== 'minimal' || minimalPreset.broken !== undefined) {
+    throw new Error(`assembled Windows profile cannot select the minimal preset: ${JSON.stringify(minimalPreset)}`)
   }
   const hostServiceProbe = ctx.get(HOST_SERVICE_PROBE_KEY)
   if (hostServiceProbe?.current?.name !== 'desktop'
@@ -232,12 +264,15 @@ try {
     )
   }
 
-  // Shipped product plugins ride the launcher generation. The Universal Robots
-  // row registers every ur_* tool during boot because its Python worker starts
-  // lazily on the first command, so this holds without a local interpreter.
+  // Shipped product plugins ride the launcher generation. 1.5.3 dropped the
+  // bundled Universal Robots plugin, so this launcher generation must not
+  // register its `ur_*` tools; a re-added loader row fails here.
   const tools = ctx.get('tools')
-  if (tools?.get('ur_connect') === undefined || tools.get('ur_ping') === undefined) {
-    throw new Error('assembled desktop profile is missing the shipped Universal Robots tools')
+  if (tools === undefined) {
+    throw new Error('assembled desktop profile is missing the tool registry')
+  }
+  if (tools.get('ur_connect') !== undefined || tools.get('ur_ping') !== undefined) {
+    throw new Error('assembled desktop profile registered the retired Universal Robots tools')
   }
 
   const picker = ctx.directoryPicker.capability()
@@ -262,8 +297,10 @@ try {
   if (nativeThemeSource !== 'system') {
     throw new Error(`desktop plugin produced an unexpected native theme source: ${nativeThemeSource}`)
   }
-  const desktopSettings = ctx.settings.get(DESKTOP_SETTINGS_NAMESPACE)
-  if (desktopSettings?.mode !== 'advanced') {
+  // 0.1.7 dropped the settings file: `ctx.get('settings')` is the SettingsForms
+  // service with no `get(ns)` accessor, so the effective mode is read through
+  // the same descriptor query the desktop settings module itself uses.
+  if (readDesktopSettings(ctx).mode !== 'advanced') {
     throw new Error('assembled Host settings are missing the advanced dsh-desktop mode')
   }
   if (!trayItems.some(item => item.label() === 'Check for Updates…')) {
@@ -309,9 +346,18 @@ try {
     redirect: 'manual',
   })
   await exchange.body?.cancel()
-  if (exchange.status !== 303 || exchange.headers.get('location') !== '/') {
+  // 0.1.7 answers with the directory-relative clean `./`, which resolves to the
+  // root of the exchange URL rather than the literal `/` the 0.1.5 flow sent.
+  const exchangeLocation = exchange.headers.get('location')
+  const exchangeRedirect = exchangeLocation === null
+    ? undefined
+    : new URL(exchangeLocation, authenticationUrl)
+  if (exchange.status !== 303
+    || exchangeRedirect?.origin !== rendererUrl.origin
+    || exchangeRedirect.pathname !== '/'
+    || exchangeRedirect.hash !== '') {
     throw new Error(
-      `browser authentication exchange returned HTTP ${String(exchange.status)} instead of a root redirect`,
+      `browser authentication exchange returned HTTP ${String(exchange.status)} to ${String(exchangeLocation)} instead of a root redirect`,
     )
   }
   const setCookie = exchange.headers.get('set-cookie')
@@ -337,10 +383,36 @@ try {
   const ids = new Set(graph.entries.map(entry => entry.id))
   const aaEnabled = aaRequested && !brokenAa
   if (ids.has('@agents-anywhere/dsh-bridge-next') !== aaEnabled) throw new Error('AA client graph does not match explicit selection')
-  if (aaEnabled && (!ctx.get('agentsAnywhereRuntime') || !ctx.get('agentsAnywhereOnboarding'))) {
-    throw new Error('AA Host services did not activate in the actual Desktop profile')
-  }
   if (aaEnabled) {
+    // 0.1.7 publishes the bridge asynchronously: the runtime service appears
+    // once the plugin's init resolves and only reaches `ready` after the local
+    // connector server has bound its port and published the endpoint file.
+    const aaDeadline = Date.now() + 60_000
+    let aaRuntime
+    while (aaRuntime === undefined && Date.now() < aaDeadline) {
+      aaRuntime = ctx.get('agentsAnywhereRuntime')
+      if (aaRuntime === undefined) await new Promise(resolve => setTimeout(resolve, 100))
+    }
+    if (aaRuntime === undefined) {
+      throw new Error(
+        'AA Host services did not activate in the actual Desktop profile: agentsAnywhereRuntime',
+      )
+    }
+    if (!ctx.get('agentsAnywhereOnboarding')) {
+      throw new Error(
+        'AA Host services did not activate in the actual Desktop profile: agentsAnywhereOnboarding',
+      )
+    }
+    let aaStatus = aaRuntime.status()
+    while (aaStatus.state === 'starting' && Date.now() < aaDeadline) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+      aaStatus = aaRuntime.status()
+    }
+    if (aaStatus.state !== 'ready') {
+      throw new Error(
+        `AA bridge never became ready: ${aaStatus.state} ${String(aaStatus.message)}`,
+      )
+    }
     const endpoint = join(home, 'agents-anywhere', 'bridge', 'endpoint.json')
     if (!existsSync(endpoint)) throw new Error('AA did not publish its native DSH home endpoint')
     const snapshot = await ctx.get('agentsAnywhereOnboarding').inspect()

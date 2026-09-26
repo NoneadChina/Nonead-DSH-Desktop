@@ -4,9 +4,9 @@
 
 ## 问题
 
-DSH Desktop 原本始终准备并启动产品自有的 `desktop` profile。已有 DSH 用户可能已经拥有 `web` profile，或者拥有多个由不同 bundle 与 patch 组成的专用 Web profile。普通官方 profile 中的 sessions、settings 与 storage 默认已经使用同一个 DSH home；在 profile 之间复制记录既会重复数据，也会错误表达 profile 的职责。真正缺少的能力，是选择由哪套插件组合承载 desktop generation。
+DSH Desktop 原本始终准备并启动产品自有的 `desktop` profile。已有 DSH 用户可能已经拥有 `web` profile，或者拥有多个由不同 bundle 与 patch 组成的专用 Web profile。普通官方 profile 中的 sessions 与 storage 默认已经使用同一个 DSH home；在 profile 之间复制记录既会重复数据，也会错误表达 profile 的职责。真正缺少的能力，是选择由哪套插件组合承载 desktop generation。
 
-Profile 选择发生在 Host Cordis 树及其 settings provider 创建之前，因此不能存放在被选 profile 的 settings namespace 中。若被选 profile 启动失败，在 renderer 与托盘都无法挂载时也必须能够恢复。
+Profile 选择发生在 Host Cordis 树与被选 profile 的 settings row 组合之前，因此不能存放在被选 profile 的 settings namespace 中。若被选 profile 启动失败，在 renderer 与托盘都无法挂载时也必须能够恢复。
 
 ## 决策
 
@@ -26,9 +26,9 @@ Electron launcher 会在自身 user-data 目录下拥有一份私有且带版本
 
 ## 记录与设置
 
-官方 `desktop` 与 `web` 组合默认共用 `$DSH_HOME/sessions`、`$DSH_HOME/settings.yaml` 与 `$DSH_HOME/storages`。Profile 切换不会迁移或复制记录。自定义 profile 可以通过自身 patch 主动重定向这些根，因此产品只对普通组合承诺记录共享。
+官方 `desktop` 与 `web` 组合默认共用 `$DSH_HOME/sessions` 与 `$DSH_HOME/storages`。Settings 并不通过 home 级文档共享：每个 profile 都把包括 `dsh-desktop` 在内的插件 row 保存在自己的 `cordis.patch.yml` 中，而 Launcher 会把机器级 `$DSH_HOME/cordis.patch.yml` layer 同样应用到两者。Profile 切换不会迁移或复制记录。自定义 profile 可以通过自身 patch 主动重定向 session 或 storage 根，因此产品只对普通组合承诺记录共享。
 
-Shell 模式仍存放在当前 file-settings provider 的 `dsh-desktop` namespace 中。Profile 选择必须在该 provider 组合之前解析，因此单独存储。
+Shell 模式仍存放在当前 profile patch 文档的 `dsh-desktop` settings row 中。Profile 选择必须在该文档组合之前解析，因此单独存储。
 
 ## 验证
 
@@ -40,7 +40,7 @@ Focused test 覆盖只读发现、bundle 顺序、损坏与重复 desktop layer�
 
 **把 `web` 的插件或记录复制到 `desktop`。** 这会形成两套持续漂移的组合，并重复复制官方 profile 原本就共享的数据。
 
-**把选择保存在 `settings.yaml`。** 被选 profile 可以改变 settings provider，而 profile 又必须在 provider 启动之前确定，因此会形成循环依赖。
+**把选择保存在被选 profile 的 settings 文档。** 该文档位于必须先被选中的 profile 内，因此会形成循环依赖。
 
 **以子进程方式启动 `dsh web`。** 若不新增第二套控制协议，desktop Host capability 与 launcher 自有 Cordis 插件无法跨越该进程边界。
 

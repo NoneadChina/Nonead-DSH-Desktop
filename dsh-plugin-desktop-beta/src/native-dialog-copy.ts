@@ -28,6 +28,8 @@ export interface DesktopNativeCopy {
   readonly installerUnavailable: string
   readonly updateDownloadedTitle: string
   readonly updateReady: (version: string) => string
+  readonly updateFailedTitle: string
+  readonly updateFailedMessage: (version: string) => string
   readonly macInstallInstructions: string
   readonly windowsInstallQuestion: string
   readonly restartAndInstall: string
@@ -96,6 +98,8 @@ const COPY: Record<DesktopLocale, DesktopNativeCopy> = {
     installerUnavailable: 'This version cannot download installers from within the app.',
     updateDownloadedTitle: 'Nonead DSH Desktop Update Downloaded',
     updateReady: version => `Nonead DSH Desktop ${version} is ready to install.`,
+    updateFailedTitle: 'Update Failed',
+    updateFailedMessage: version => `The update to Nonead DSH Desktop ${version} could not be completed.`,
     macInstallInstructions: 'The disk image has opened. Replace Nonead DSH Desktop in Applications, then reopen it.',
     windowsInstallQuestion: 'Restart Nonead DSH Desktop and run the installer now?',
     restartAndInstall: 'Restart and Install',
@@ -157,6 +161,8 @@ const COPY: Record<DesktopLocale, DesktopNativeCopy> = {
     installerUnavailable: '当前版本不支持在应用内下载安装包。',
     updateDownloadedTitle: 'Nonead DSH Desktop 更新已下载',
     updateReady: version => `Nonead DSH Desktop ${version} 已可安装。`,
+    updateFailedTitle: '更新失败',
+    updateFailedMessage: version => `Nonead DSH Desktop ${version} 的更新未能完成。`,
     macInstallInstructions: '磁盘映像已打开。请替换“应用程序”中的 Nonead DSH Desktop，然后重新打开。',
     windowsInstallQuestion: '现在重启 Nonead DSH Desktop 并运行安装程序？',
     restartAndInstall: '重启并安装',
@@ -196,4 +202,53 @@ const COPY: Record<DesktopLocale, DesktopNativeCopy> = {
 
 export function desktopNativeCopy(locale: DesktopLocale): DesktopNativeCopy {
   return COPY[locale]
+}
+
+const DOWNLOAD_FAILURE_REASON: Record<DesktopLocale, Record<string, string>> = {
+  en: {
+    aborted: 'The download was cancelled before it finished.',
+    'empty-body': 'The update service returned an empty response.',
+    'http-status': 'The update service rejected the request.',
+    'invalid-artifact': 'The downloaded file was not a valid installer.',
+    'invalid-options': 'The selected save location is not usable.',
+    network: 'The download was interrupted by a network problem.',
+    'response-too-large': 'The installer is larger than the 1 GiB limit.',
+    stalled: 'The update service stopped sending data.',
+    unknown: 'The update could not be completed.',
+  },
+  zh: {
+    aborted: '下载在完成前被取消。',
+    'empty-body': '更新服务返回了空内容。',
+    'http-status': '更新服务拒绝了本次请求。',
+    'invalid-artifact': '下载到的文件不是有效的安装包。',
+    'invalid-options': '选择的保存位置不可用。',
+    network: '网络中断导致下载未能完成。',
+    'response-too-large': '安装包体积超过 1 GiB 上限。',
+    stalled: '更新服务长时间没有继续传输数据。',
+    unknown: '更新流程未能完成。',
+  },
+}
+
+/**
+ * Explain one rejected installer download, including that no incomplete file was kept.
+ * @param locale - active native locale.
+ * @param failure - serializable failure summary from the download owner.
+ * @returns localized detail text for the failure dialog.
+ */
+export function desktopUpdateDownloadFailureDetail(
+  locale: DesktopLocale,
+  failure: { readonly code: string; readonly status?: number | undefined },
+): string {
+  const reasons = DOWNLOAD_FAILURE_REASON[locale]
+  const status = failure.status === undefined ? '' : ` (HTTP ${String(failure.status)})`
+  const reason = reasons[failure.code] ?? reasons.unknown!
+  const downloadFailure = failure.code !== 'unknown'
+  const advice = downloadFailure
+    ? locale === 'zh'
+      ? '没有保留任何不完整的文件。请重新选择保存位置并再次下载。'
+      : 'No incomplete file was kept. Choose the save location again to retry the download.'
+    : locale === 'zh'
+      ? '请重新选择保存位置后再试一次。'
+      : 'Choose the save location again to retry the update.'
+  return `${reason}${status}\n${advice}`
 }

@@ -62,18 +62,23 @@ operations:
       - { id: update-check.response.oversized, test: tests/update-checker.spec.ts, title: silently ignores declared and streamed oversized responses }
   - id: update-download-handoff
     owner: downloadDesktopUpdate (src/update-download.ts)
-    entrypoints: [downloadDesktopUpdate, recordDesktopUpdateArtifact, resolveDesktopUpdateArtifact]
-    deadline: { owner: caller, maximum: caller request deadline }
-    cancellation: { owner: caller, behavior: abort removes partial artifact }
+    entrypoints: [downloadDesktopUpdate, removeAbandonedTemporaryArtifacts, recordDesktopUpdateArtifact, resolveDesktopUpdateArtifact]
+    deadline: { owner: downloadDesktopUpdate, maximum: 120000ms without a streamed chunk, override: caller stallTimeoutMs }
+    cancellation: { owner: caller, behavior: abort removed the partial artifact within a bounded cancel grace }
     exclusivity: atomic destination replacement
     idempotency: validated destination may replace only after complete download
-    persistedState: { owner: update-download.ts, atomic: true, corruption: typed failure, cleanup: download operation }
+    persistedState: { owner: update-download.ts, atomic: true, corruption: typed failure, cleanup: download operation and next-attempt sweep of abandoned streams }
     retry: { policy: caller-controlled, authority: caller after partial cleanup }
-    recovery: preserve existing installer until replacement validates; never hand off partial artifact
+    recovery: preserve existing installer until replacement validates; never hand off partial artifact; report every rejected download instead of staying silent
     evidence: validated artifact and pending installer receipt
     faultContracts:
       - { id: update-download-handoff.network.cancelled, test: tests/update-download.spec.ts, title: passes the caller signal and removes a partial file when aborted during streaming }
       - { id: update-download-handoff.artifact.validation, test: tests/update-download.spec.ts, title: keeps an existing destination until its validated replacement is ready }
+      - { id: update-download-handoff.network.stalled, test: tests/update-download.spec.ts, title: removes the partial file and reports a stalled body when the service stops sending bytes }
+      - { id: update-download-handoff.network.cancel-hang, test: tests/update-download.spec.ts, title: removes the partial file when cancelling an errored stream never settles }
+      - { id: update-download-handoff.artifact.abandoned, test: tests/update-download.spec.ts, title: removes a private stream abandoned by a killed run and keeps one whose process is alive }
+      - { id: update-download-handoff.failure.reported, test: tests/updates.spec.ts, title: reports one download failure with its HTTP status and no installer path }
+      - { id: update-download-handoff.failure.unknown, test: tests/updates.spec.ts, title: reports an untyped download failure as an unknown category }
   - id: diagnostics-export
     owner: exportDiagnosticsZip (src/diagnostic-export.ts)
     entrypoints: [exportDiagnosticsZip, exportDesktopDiagnostics]

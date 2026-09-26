@@ -26,11 +26,11 @@ Nonead DSH Desktop integrates the local Web UI, Host service, and plugin system 
 
 ## Download and install
 
-Current release installers support Windows x64 and macOS Universal. No extra environment is needed — download, install, and start using it with one click.
+Current release installers support Windows x64. No extra environment is needed — download, install, and start using it with one click.
 
 | Platform | Download | Installation |
 | --- | --- | --- |
-| Windows x64 | [Download installer](https://www.nonead.com/software/ndsh-desktop/downloads/windows/Nonead-DSH-Desktop-1.5.4-windows.exe) | Run the NSIS installer and follow its prompts |
+| Windows x64 | [Download installer](https://www.nonead.com/software/ndsh-desktop/downloads/windows/Nonead-DSH-Desktop-1.7.2-windows.exe) | Run the NSIS installer and follow its prompts |
 
 See the [user guide](docs/user-guide.en.md) and [FAQ](docs/faq.en.md) for plugin commands, platform details, and troubleshooting.
 

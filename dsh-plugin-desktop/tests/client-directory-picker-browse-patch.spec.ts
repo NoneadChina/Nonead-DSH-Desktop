@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const patch = readFileSync(new URL(
-  '../../patches/dsh-client-ui-directory-picker-browse@0.1.5-rc.1.patch',
+  '../../patches/dsh-client-ui-directory-picker-browse@0.1.7-rc.2.patch',
   import.meta.url,
 ), 'utf8')
 
@@ -15,7 +15,7 @@ describe('RC1 browse directory-picker client patch', () => {
       'validateDirectory?: (path: string) => Promise<boolean>;',
       '"browser.nativePicker": "使用 Windows 选择文件夹"',
       '"browser.nativePicker": "Choose with Windows"',
-      'IconFolderOpen16',
+      '_deepseek_ai_dsh_client_ui_primitives.IconFolderOpenRegular, { size: 16 }',
     ]) {
       expect(patch).toContain(marker)
     }

@@ -3,8 +3,9 @@ import { boot, resolveProfileDir } from '@deepseek-ai/dsh-app-boot'
 import { provideCmdline } from '@deepseek-ai/dsh-cmdline'
 import { DSH_LAUNCH_ENVIRONMENT_KEY, type LaunchEnvironmentSnapshot } from '@deepseek-ai/dsh-launch-environment'
 import { DESKTOP_PACKAGE_NAME as BIN_NAME } from './product-identity.ts'
-import { DESKTOP_SETTINGS_NAMESPACE, type DesktopSettings } from './index.ts'
-import { DESKTOP_NOTIFICATIONS_SETTINGS_NAMESPACE, type DesktopNotificationSettings } from './notifications.ts'
+import { DESKTOP_SETTINGS_NAMESPACE } from './index.ts'
+import { readDesktopSettings } from './settings.ts'
+import { DESKTOP_NOTIFICATIONS_SETTINGS_NAMESPACE, readDesktopNotificationSettings } from './notifications.ts'
 import { installProfilePackageResolver } from './module-resolution.ts'
 import { createDesktopWebProfile, listDesktopProfiles, canDeleteDesktopProfile, deleteDesktopProfile, selectDesktopProfile } from './profile-manager.ts'
 import { DesktopProfileService } from './profile-service.ts'
@@ -14,7 +15,7 @@ import { desktopMarketSnapshotWithEffective, selectDesktopMarketProvider, type D
 import DesktopSettingsController from './desktop-settings-controller.ts'
 import { clearDesktopProfilePreferences, desktopProfilePreferencesFromSettings, writeDesktopProfilePreferences, type DesktopProfilePreferences, type DesktopProfilePreferencesStateV1 } from './profile-preferences.ts'
 import { clearDesktopProfileUsageHistory, type DesktopReleaseUserDataLocations } from './profile-channel-admission.ts'
-import { desktopInstallAnchor, type PreparedDesktopProfile } from './profile.ts'
+import { desktopInstallAnchor, desktopProfileContext, type PreparedDesktopProfile } from './profile.ts'
 import { desktopLanBrowserUrls, desktopLoopbackBrowserUrl } from './desktop-network.ts'
 import { DESKTOP_LAN_HTTPS_CA_PATH, type DesktopLanHttpsRuntime } from './lan-https-runtime.ts'
 import type { DesktopBrowserAccess } from './desktop-browser-access.ts'
@@ -107,6 +108,10 @@ export async function bootDesktopHost(options: DesktopHostOptions, runtime: Desk
           () => releasePackageResolver,
           'dsh-plugin-desktop: profile package resolution',
         )
+        // The Desktop application owns the reserved `desktop` profile: the base
+        // and web-app compositions switch platform behavior on this name, and the
+        // config-editor/settings rows mount only once a launcher published it.
+        hostCtx.provide('profileContext', desktopProfileContext(prepared, homeDir))
         hostCtx.provide(DSH_LAUNCH_ENVIRONMENT_KEY, desktopLaunchEnvironment)
         hostCtx.provide('desktopBrowserAccess', browserAccess)
         hostCtx.provide('desktopLanHttps', lanHttps)
@@ -250,20 +255,16 @@ export async function bootDesktopHost(options: DesktopHostOptions, runtime: Desk
       throw cause
     })
     bindHost(ctx)
-    fileExporter?.setThreshold((ctx.settings.get(DESKTOP_SETTINGS_NAMESPACE) as DesktopSettings | undefined)?.logLevel ?? 'info')
-    ctx.on('settings/updated', (namespace, next) => {
+    fileExporter?.setThreshold(readDesktopSettings(ctx).logLevel)
+    ctx.on('settings/document-updated', (namespace) => {
       if (namespace === DESKTOP_SETTINGS_NAMESPACE) {
-        fileExporter?.setThreshold((next as DesktopSettings).logLevel)
+        fileExporter?.setThreshold(readDesktopSettings(ctx).logLevel)
       }
       if (namespace !== DESKTOP_SETTINGS_NAMESPACE
         && namespace !== DESKTOP_NOTIFICATIONS_SETTINGS_NAMESPACE) return
       const write = enqueueProfilePreferencesWrite(current => desktopProfilePreferencesFromSettings(
-        namespace === DESKTOP_SETTINGS_NAMESPACE
-          ? next as DesktopSettings
-          : ctx.settings.get(DESKTOP_SETTINGS_NAMESPACE) as DesktopSettings,
-        namespace === DESKTOP_NOTIFICATIONS_SETTINGS_NAMESPACE
-          ? next as DesktopNotificationSettings
-          : ctx.settings.get(DESKTOP_NOTIFICATIONS_SETTINGS_NAMESPACE) as DesktopNotificationSettings,
+        readDesktopSettings(ctx),
+        readDesktopNotificationSettings(ctx),
         current.market,
         current.aaEnabled === true,
       ))

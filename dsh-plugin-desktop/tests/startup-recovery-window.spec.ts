@@ -718,7 +718,6 @@ describe('Desktop startup recovery action parser', () => {
     for (const action of [
       'export-diagnostics',
       'show-diagnostics',
-      'open-settings-document',
       'open-profile-patch',
       'open-profile-manifest',
       'open-profile-directory',

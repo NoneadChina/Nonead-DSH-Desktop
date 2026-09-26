@@ -161,11 +161,13 @@ describe('final Electron fuse verification', () => {
 
   it('fails when one requested architecture is missing even if a sibling exists', () => {
     const x64Executable = join('/build', 'win-unpacked', 'Nonead DSH Desktop.exe')
+    // The reported path is a native one, so build the expectation with `join`.
+    const missing = join('/build', 'win-arm64-unpacked', 'Nonead DSH Desktop.exe')
 
     expect(() => resolveFinalPackagedRuntimeContexts(
       result([{ key: 'win', archs: [Arch.x64, Arch.arm64] }]),
       filename => filename === x64Executable,
-    )).toThrow('win/arm64 at /build/win-arm64-unpacked/Nonead DSH Desktop.exe')
+    )).toThrow(`win/arm64 at ${missing}`)
   })
 
   it('resolves a real target-name map through the target archs retained by NSIS', () => {

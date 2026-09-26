@@ -81,7 +81,8 @@ describe('isolated compatibility shell', () => {
     const { shell, window, webContents, handler, event } = fixture('darwin', mode)
     await shell.load()
     expect(handler(event(), 'state')).toMatchObject({ mode })
-    expect(webContents.loadFile).toHaveBeenCalledWith(expect.stringMatching(/native-ui\/compatibility-chrome\.html$/))
+    // Compared against a native path, so accept either separator.
+    expect(webContents.loadFile).toHaveBeenCalledWith(expect.stringMatching(/native-ui[\\/]compatibility-chrome\.html$/u))
     expect(window.contentView.addChildView).toHaveBeenCalledWith(shell.content)
     expect(shell.content).toMatchObject({ options: { webPreferences: {
       partition: 'persist:dsh-desktop-renderer', preload: '/desktop/preload.cjs',

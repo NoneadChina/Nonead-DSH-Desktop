@@ -1,10 +1,11 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   FileMainWindowStateStore,
   fitMainWindowBounds,
+  setRenameAttemptFailure,
 } from '../src/main-window-state.ts'
 
 const temporaryDirectories: string[] = []
@@ -16,6 +17,7 @@ function temporaryDirectory(): string {
 }
 
 afterEach(() => {
+  setRenameAttemptFailure(undefined)
   for (const directory of temporaryDirectories.splice(0)) {
     rmSync(directory, { recursive: true, force: true })
   }
@@ -30,6 +32,37 @@ describe('main-window state', () => {
     store.write(bounds)
 
     expect(store.read()).toEqual(bounds)
+  })
+
+  it('survives one transient rename refusal instead of dropping the geometry', () => {
+    // Windows can refuse a rename onto a path another process momentarily holds
+    // (indexer, anti-virus, a viewer). One refusal must not lose the bounds.
+    let attempts = 0
+    setRenameAttemptFailure(() => {
+      attempts += 1
+      return attempts === 1 ? Object.assign(new Error('busy'), { code: 'EPERM' }) : undefined
+    })
+
+    const store = new FileMainWindowStateStore(temporaryDirectory())
+    const bounds = { x: 10, y: 20, width: 1280, height: 720 }
+    expect(() => store.write(bounds)).not.toThrow()
+    expect(store.read()).toEqual(bounds)
+    expect(attempts).toBeGreaterThan(1)
+  })
+
+  it('reports a persistent refusal instead of looping forever', () => {
+    let attempts = 0
+    setRenameAttemptFailure(() => {
+      attempts += 1
+      return Object.assign(new Error('persistently busy'), { code: 'EBUSY' })
+    })
+
+    const store = new FileMainWindowStateStore(temporaryDirectory())
+    expect(() => store.write({ x: 1, y: 2, width: 800, height: 600 })).toThrow('persistently busy')
+    expect(attempts).toBeGreaterThan(1)
+    expect(attempts).toBeLessThanOrEqual(10)
+    // The half-written temporary file must not survive the failed write.
+    expect(readdirSync(dirname(store.statePath))).toEqual([])
   })
 
   it('rejects malformed state instead of constructing an invalid BrowserWindow', () => {

@@ -76,20 +76,20 @@ For one update lifecycle generation:
 3. A confirmed version is checked again before download handoff.
 4. Background prompting records the version before opening confirmation and does not repeat it for the same persisted version.
 5. Disposal marks the generation inactive before clearing timers, aborting requests/downloads, and removing the tray item.
-6. Disposal waits only for state readiness and the abortable version request; native dialogs remain non-cancellable and do not block Host release.
+6. Disposal waits for state readiness, the abortable version request, and the aborted download, whose private partial file must be removed before the launcher force-exits; native dialogs remain non-cancellable and do not block Host release.
 7. Repeated disposal returns the same task, removes the tray item once, and cannot restart polling.
 
 ## Preserved behavior and limits
 
 - The update state remains version 2 with the same 4 KiB read limit and atomic best-effort persistence.
-- Manual failures remain visible only through the existing native result dialog. Scheduled, filesystem, download, and installer-opening failures retain their existing silent behavior.
+- Manual failures remain visible only through the existing native result dialog. Scheduled checks stay silent, while a download the user confirmed is reported through the native failure dialog so the user learns that no installer was produced.
 - Download endpoints, artifact validation, installer handoff, and update discovery are unchanged.
 - This refactor does not add cryptographic artifact identity, resumable downloads, automatic retries, or remote telemetry.
 - Native confirmation and result dialogs still cannot be cancelled. The owner prevents their late result from starting new work after disposal.
 
 ## Verification
 
-Existing update tests continue to cover scheduling, prompt persistence, manual/background check sharing, confirmation and recheck, download single-flight, cancellation, timeout, platform capability, and non-blocking native dialogs. A lifecycle test also verifies idempotent disposal and that polling does not restart afterward. The Desktop package build, type check, full test suite, runtime-closure check, and license check pass.
+Existing update tests continue to cover scheduling, prompt persistence, manual/background check sharing, confirmation and recheck, download single-flight, cancellation, timeout, platform capability, and non-blocking native dialogs. A lifecycle test also verifies idempotent disposal and that polling does not restart afterward. Download tests additionally cover a stalled body, a stream whose cancellation never settles, the removal of a private stream abandoned by a killed run, and the reported failure with its HTTP status; disposal is verified to stay quiet about a cancelled download. The Desktop package build, type check, full test suite, runtime-closure check, and license check pass.
 
 ## Consequences
 

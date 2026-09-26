@@ -1,7 +1,7 @@
 /** Verify the unsigned application structure sealed inside one macOS smoke DMG. */
 
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readdirSync, rmdirSync, statSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmdirSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -13,6 +13,8 @@ export interface MacSmokeVerificationOptions {
   readonly distDir: string
   /** Installed application name inside the mounted image. */
   readonly productName: string
+  /** Version the packaged application was built from. */
+  readonly version: string
   /** Return regular DMG files in the distribution directory. */
   readonly listDmgs: (distDir: string) => readonly string[]
   /** Create a private empty mount point. */
@@ -48,11 +50,17 @@ function run(command: string, args: readonly string[]): void {
 
 function defaultOptions(): MacSmokeVerificationOptions {
   const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+  const manifest: unknown = JSON.parse(readFileSync(join(packageRoot, 'package.json'), 'utf8'))
+  const version = (manifest as { version?: unknown }).version
+  if (typeof version !== 'string' || version.length === 0) {
+    throw new Error('dsh-plugin-desktop: cannot read the packaged version for macOS smoke verification')
+  }
   return {
     distDir: process.argv[2] === undefined
       ? join(packageRoot, 'dist', 'mac-smoke')
       : resolve(process.argv[2]),
     productName: 'Nonead DSH Desktop Beta',
+    version,
     listDmgs,
     makeMountPoint: () => mkdtempSync(join(tmpdir(), 'dsh-desktop-dmg-smoke-')),
     run,
@@ -83,6 +91,14 @@ export function verifyMacSmoke(
   }
 
   const dmgPath = dmgs[0]!
+  // The Windows verifiers rebuild the exact versioned file name, so a wrong
+  // `${version}` in `mac.artifactName` must fail here too instead of passing on
+  // "exactly one DMG exists".
+  if (!basename(dmgPath).includes(options.version)) {
+    throw new Error(
+      `macOS smoke DMG ${basename(dmgPath)} does not name the packaged version ${options.version}`,
+    )
+  }
   const mountPoint = options.makeMountPoint()
   const appPath = join(mountPoint, `${options.productName}.app`)
   let mounted = false

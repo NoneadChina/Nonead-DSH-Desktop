@@ -75,13 +75,22 @@ function clamp(value: number, min: number, max: number): number {
 
 /** Small observable panel controller used by the advanced root registration. */
 export class DesktopLayoutState implements ILayout {
-  private panelInfo: PanelInfo = Object.freeze({ activePanelId: null })
+  private panel: PanelInfo = Object.freeze({ activePanelId: null })
+  /**
+   * Selected central panel, exposed as the layout's own source so `ctx.layout`
+   * and the root `panelInfo` hook read one instance. Selection publishes
+   * through the same listeners as the column-geometry snapshot.
+   */
+  readonly panelInfo: ILayout['panelInfo'] = Object.freeze({
+    getSnapshot: () => this.panel,
+    subscribe: (listener: () => void) => this.subscribe(listener),
+  })
   private navigation = new AbortController()
 
   constructor(private readonly hasMainPanel: (id: MainPanelId) => boolean = () => false) {}
 
   /** Root selection remains independent of the active Session and column geometry. */
-  getPanelInfo(): PanelInfo { return this.panelInfo }
+  getPanelInfo(): PanelInfo { return this.panel }
 
   /** Select a registered global panel, or return to the Conversation. */
   selectPanel(panelId: MainPanelId | null): void {
@@ -89,14 +98,14 @@ export class DesktopLayoutState implements ILayout {
       throw new Error(`layout.selectPanel: main panel "${panelId}" is not registered`)
     }
     this.navigation.abort()
-    if (this.panelInfo.activePanelId === panelId) return
-    this.panelInfo = Object.freeze({ activePanelId: panelId })
+    if (this.panel.activePanelId === panelId) return
+    this.panel = Object.freeze({ activePanelId: panelId })
     for (const listener of this.listeners) listener()
   }
 
   /** Return to the Conversation when the selected plugin panel is unloaded. */
   retainMainPanels(): void {
-    const id = this.panelInfo.activePanelId
+    const id = this.panel.activePanelId
     if (id !== null && !this.hasMainPanel(id)) this.selectPanel(null)
   }
 

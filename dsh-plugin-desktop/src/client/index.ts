@@ -73,7 +73,7 @@ export const inject = [
   'locale',
   'connection',
   'remote',
-  'settingsScope',
+  'configForms',
   'sessions',
   'theme',
   'uiRenderer',

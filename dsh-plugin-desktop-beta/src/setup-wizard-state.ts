@@ -104,10 +104,36 @@ function assertAbsolutePath(label: string, value: string): string {
   return resolve(value)
 }
 
+/**
+ * Canonical Profile directory identity.
+ *
+ * Windows compares paths case-insensitively, so a Profile directory renamed from
+ * `work` to `Work` still denotes the same Profile. Hashing the raw spelling would
+ * strand the Setup decision under two different keys, which the launcher reads as
+ * "this Profile never completed Setup" and then re-opens the Wizard.
+ */
+function profileIdentity(profileDir: string): string {
+  const normalized = assertAbsolutePath('Setup Wizard Profile directory', profileDir)
+  return process.platform === 'win32' ? normalized.toLowerCase() : normalized
+}
+
+/** Identity spelling used only to read state written before case folding existed. */
+function legacyProfileIdentity(profileDir: string): string {
+  return assertAbsolutePath('Setup Wizard Profile directory', profileDir)
+}
+
+function hashProfileIdentity(identity: string): string {
+  return createHash('sha256').update(identity).digest('hex')
+}
+
 /** Stable Profile identity used only as a private user-data path component. */
 export function desktopSetupWizardProfileHash(profileDir: string): string {
-  const normalized = assertAbsolutePath('Setup Wizard Profile directory', profileDir)
-  return createHash('sha256').update(normalized).digest('hex')
+  return hashProfileIdentity(profileIdentity(profileDir))
+}
+
+/** Pre-case-folding Profile identity, retained so existing markers stay readable. */
+export function legacyDesktopSetupWizardProfileHash(profileDir: string): string {
+  return hashProfileIdentity(legacyProfileIdentity(profileDir))
 }
 
 /** Fixed marker path for one Profile under one Electron user-data directory. */
@@ -247,12 +273,11 @@ function parseState(text: string, expectedProfileHash: string): DesktopSetupWiza
   })
 }
 
-/** Read one Profile marker; absence means the Wizard still needs a decision. */
-export function readDesktopSetupWizardState(
-  userDataDir: string,
-  profileDir: string,
+/** Parse one Profile marker file, or report absence/malformation. */
+function readSetupWizardStateAt(
+  path: string,
+  profileHash: string,
 ): DesktopSetupWizardState | undefined {
-  const path = desktopSetupWizardStatePath(userDataDir, profileDir)
   const root = dirname(dirname(path))
   const profileRoot = dirname(path)
   if (existingPathInfo(root) === undefined) return undefined
@@ -261,7 +286,30 @@ export function readDesktopSetupWizardState(
   assertPrivateDirectory(profileRoot)
   const text = readStateBytes(path)
   if (text === undefined) return undefined
-  return parseState(text, desktopSetupWizardProfileHash(profileDir))
+  return parseState(text, profileHash)
+}
+
+/** Read one Profile marker; absence means the Wizard still needs a decision. */
+export function readDesktopSetupWizardState(
+  userDataDir: string,
+  profileDir: string,
+): DesktopSetupWizardState | undefined {
+  const profileHash = desktopSetupWizardProfileHash(profileDir)
+  const current = readSetupWizardStateAt(
+    desktopSetupWizardStatePath(userDataDir, profileDir),
+    profileHash,
+  )
+  if (current !== undefined) return current
+  // Desktop releases before case folding keyed the marker by the raw path
+  // spelling. Read that marker so a Windows Profile whose directory case changed
+  // does not re-open the first-run Setup Wizard.
+  const legacyHash = legacyDesktopSetupWizardProfileHash(profileDir)
+  if (legacyHash === profileHash) return undefined
+  const userData = assertAbsolutePath('Setup Wizard user-data directory', userDataDir)
+  return readSetupWizardStateAt(
+    join(userData, STATE_ROOT_DIRECTORY, legacyHash, STATE_FILENAME),
+    legacyHash,
+  )
 }
 
 /** Setup is a one-time Profile decision; recorded versions are diagnostic only. */

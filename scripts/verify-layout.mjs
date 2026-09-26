@@ -17,7 +17,6 @@ const stablePlugin = readJson('dsh-plugin-desktop/package.json')
 const betaPlugin = readJson('dsh-plugin-desktop-beta/package.json')
 const fabric = readJson('dsh-community-fabric/package.json')
 const market = readJson('dsh-community-market/package.json')
-const robots = readJson('dsh-nonead-universal-robots/package.json')
 const skin = readJson('dsh-nonead-client-skin/package.json')
 const upstreamPackage = readJson('deepseek-harness/package.json')
 
@@ -35,7 +34,6 @@ if (JSON.stringify(workspace.workspaces) !== JSON.stringify([
   'dsh-plugin-desktop-beta',
   'dsh-community-fabric',
   'dsh-community-market',
-  'dsh-nonead-universal-robots',
   'dsh-nonead-client-skin',
 ])) {
   fail('the root Yarn workspace must contain the desktop, community-fabric, community-market, and shipped product plugin packages')
@@ -45,7 +43,6 @@ for (const [name, manifest] of [
   ['dsh-plugin-desktop-beta', betaPlugin],
   ['dsh-community-fabric', fabric],
   ['dsh-community-market', market],
-  ['dsh-nonead-universal-robots', robots],
   ['dsh-nonead-client-skin', skin],
 ]) {
   if (manifest.packageManager !== undefined) fail(`${name} must inherit the root Yarn release`)
@@ -53,13 +50,20 @@ for (const [name, manifest] of [
 if (fabric.name !== 'dsh-community-fabric') fail('the Fabric workspace must own dsh-community-fabric')
 if (market.name !== 'dsh-community-market') fail('the market workspace must own dsh-community-market')
 const claudePath = resolve(root, 'CLAUDE.md')
+const agentsPath = resolve(root, 'AGENTS.md')
 const claudeStat = lstatSync(claudePath)
-// Windows checkouts materialize the symlink as a regular file holding the
-// target name; accept both forms so the pointer stays verified on every host.
-const claudeTarget = claudeStat.isSymbolicLink()
-  ? readlinkSync(claudePath)
-  : readFileSync(claudePath, 'utf8').trim()
-if (claudeTarget !== 'AGENTS.md') {
+const agentsSource = readFileSync(agentsPath, 'utf8')
+// Windows checkouts materialize the symlink as a regular file. That fallback may
+// hold either the pointer text or the linked document itself, depending on how
+// Git checked the entry out, so accept a symlink, a pointer file, or a regular
+// file whose content is byte-identical to AGENTS.md.
+const claudeLinksToAgents = claudeStat.isSymbolicLink()
+  ? readlinkSync(claudePath) === 'AGENTS.md'
+  : (() => {
+      const content = readFileSync(claudePath, 'utf8')
+      return content.trim() === 'AGENTS.md' || content === agentsSource
+    })()
+if (!claudeLinksToAgents) {
   fail('CLAUDE.md must link to the outer repository AGENTS.md')
 }
 for (const legacyFile of [
@@ -92,7 +96,6 @@ for (const [owner, manifest] of [
   ['beta desktop', betaPlugin],
   ['fabric', fabric],
   ['market', market],
-  ['universal-robots plugin', robots],
   ['client skin plugin', skin],
 ]) {
   for (const field of ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies', 'resolutions']) {

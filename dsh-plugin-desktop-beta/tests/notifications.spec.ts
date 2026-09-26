@@ -1,5 +1,5 @@
 import type { Context } from '@deepseek-ai/cordis'
-import type { JobId, JobSnapshot } from '@deepseek-ai/dsh-jobs'
+import type { JobEvent, JobId, JobView } from '@deepseek-ai/dsh-jobs'
 import type { Session, SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
 import { describe, expect, it, vi } from 'vitest'
 import {
@@ -16,16 +16,30 @@ type OptionalService = 'jobs' | 'sessions' | 'settings'
 
 interface NotificationHarness {
   readonly notifyAttention: ReturnType<typeof vi.fn>
-  readonly registerSettings: ReturnType<typeof vi.fn>
+  readonly describeSettings: ReturnType<typeof vi.fn>
   readonly stopJobs: ReturnType<typeof vi.fn>
   readonly stopSessions: ReturnType<typeof vi.fn>
-  jobDone(snapshot: JobSnapshot): Promise<void>
+  jobSettled(job: JobView): void
   sessionEvent(session: Session, event: SessionEvent): Promise<void>
   sessionDisposed(session: Session): Promise<void>
-  updateSettings(settings: DesktopNotificationSettings): Promise<void>
+  updateSettings(settings: DesktopNotificationSettings): void
   teardownSessions(): void
   reattachSessions(): void
   dispose(): void
+}
+
+/** One settled background job as the registry projects it. */
+function job(id: string, status: JobView['status'], label = 'build', detail?: string): JobView {
+  return {
+    id: id as JobId,
+    kind: 'bash',
+    label,
+    status,
+    startedAt: 1,
+    finishedAt: 2,
+    output: { total: 0, earliest: 0 },
+    ...(detail === undefined ? {} : { detail }),
+  }
 }
 
 function createHarness(available: readonly OptionalService[] = ['jobs', 'sessions', 'settings']): NotificationHarness {
@@ -35,14 +49,18 @@ function createHarness(available: readonly OptionalService[] = ['jobs', 'session
   const enabled = new Set(available)
   const injections = new Map<OptionalService, (ctx: Context) => void>()
   const disposers = new Map<OptionalService, Array<() => void>>()
+  const settingsListeners = new Set<(namespace: string) => void>()
   let activeService: OptionalService | undefined
-  let jobListener: ((snapshot: JobSnapshot) => void | PromiseLike<void>) | undefined
+  let jobListener: ((event: JobEvent) => void) | undefined
   let sessionListener: ((session: Session, event: SessionEvent) => void | PromiseLike<void>) | undefined
   let sessionDisposedListener: ((session: Session) => void | PromiseLike<void>) | undefined
-  let settingsWatcher:
-    | ((next: DesktopNotificationSettings, previous: DesktopNotificationSettings) => void | Promise<void>)
-    | undefined
-  let currentSettings = DesktopNotificationSettingsSchema({} as DesktopNotificationSettings)
+  let currentSettings: DesktopNotificationSettings = {
+    enabled: true,
+    notifyOnTurnCompletion: true,
+    notifyOnTurnFailure: true,
+    notifyOnJobCompletion: true,
+    notifyOnJobFailure: true,
+  }
 
   const runtime = {
     platform: 'darwin',
@@ -50,29 +68,33 @@ function createHarness(available: readonly OptionalService[] = ['jobs', 'session
     notifyAttention,
   } as unknown as DesktopRuntime
 
-  const registerSettings = vi.fn(() => ({
-    get: () => currentSettings,
-    watch: (watcher: typeof settingsWatcher) => {
-      settingsWatcher = watcher
-      return () => { settingsWatcher = undefined }
-    },
-    update: vi.fn(async () => {}),
-    replace: vi.fn(async () => {}),
-  }))
+  const describeSettings = vi.fn(() => [
+    { ns: DESKTOP_NOTIFICATIONS_SETTINGS_NAMESPACE, value: currentSettings },
+  ])
+  const settings = { describe: describeSettings }
 
   const ctx = {
     desktopRuntime: runtime,
-    settings: { register: registerSettings },
+    settings,
+    get: (key: string) => (key === 'settings' ? settings : undefined),
     jobs: {
-      onJobDone: (listener: typeof jobListener) => {
-        jobListener = listener
-        return () => {
-          jobListener = undefined
-          stopJobs()
-        }
+      events: {
+        subscribe: (filter: { owners: string }, listener: (event: JobEvent) => void) => {
+          void filter
+          jobListener = listener
+          return () => {
+            jobListener = undefined
+            stopJobs()
+          }
+        },
       },
     },
     on: (event: string, listener: typeof sessionListener | typeof sessionDisposedListener) => {
+      if (event === 'settings/document-updated') {
+        const updated = listener as unknown as (namespace: string) => void
+        settingsListeners.add(updated)
+        return () => { settingsListeners.delete(updated) }
+      }
       if (event === 'session/event') sessionListener = listener as typeof sessionListener
       else if (event === 'session/disposed') sessionDisposedListener = listener as typeof sessionDisposedListener
       else return () => {}
@@ -109,16 +131,17 @@ function createHarness(available: readonly OptionalService[] = ['jobs', 'session
 
   return {
     notifyAttention,
-    registerSettings,
+    describeSettings,
     stopJobs,
     stopSessions,
-    async jobDone(snapshot) { await jobListener?.(snapshot) },
+    jobSettled(job) {
+      jobListener?.({ type: 'settled', job, cause: 'producer', awaited: true })
+    },
     async sessionEvent(session, event) { await sessionListener?.(session, event) },
     async sessionDisposed(session) { await sessionDisposedListener?.(session) },
-    async updateSettings(next) {
-      const previous = currentSettings
+    updateSettings(next) {
       currentSettings = next
-      await settingsWatcher?.(next, previous)
+      for (const listener of settingsListeners) listener(DESKTOP_NOTIFICATIONS_SETTINGS_NAMESPACE)
     },
     teardownSessions() { teardown('sessions') },
     reattachSessions() {
@@ -171,37 +194,23 @@ describe('desktop notifications Host plugin', () => {
     expect(name).toBe('desktop-notifications')
     expect(inject).toEqual(['desktopRuntime'])
     expect(String(DESKTOP_NOTIFICATIONS_SETTINGS_NAMESPACE)).toBe('dsh-desktop-notifications')
-    expect(DesktopNotificationSettingsSchema({} as DesktopNotificationSettings)).toEqual({
-      enabled: true,
-      notifyOnTurnCompletion: true,
-      notifyOnTurnFailure: true,
-      notifyOnJobCompletion: true,
-      notifyOnJobFailure: true,
-    })
-    expect(harness.registerSettings).toHaveBeenCalledWith(
-      DESKTOP_NOTIFICATIONS_SETTINGS_NAMESPACE,
-      DesktopNotificationSettingsSchema,
-      { applies: 'live' },
-    )
+    const defaults = DesktopNotificationSettingsSchema({} as DesktopNotificationSettings)
+    expect(Object.keys(defaults)).toHaveLength(5)
+    expect(defaults.enabled.get()).toBe(true)
+    expect(defaults.notifyOnTurnCompletion.get()).toBe(true)
+    expect(defaults.notifyOnTurnFailure.get()).toBe(true)
+    expect(defaults.notifyOnJobCompletion.get()).toBe(true)
+    expect(defaults.notifyOnJobFailure.get()).toBe(true)
+    expect(harness.describeSettings).toHaveBeenCalled()
   })
 
-  it('notifies for completed and failed jobs without exposing job details', async () => {
+  it('notifies for completed and failed jobs without exposing job details', () => {
     const harness = createHarness(['jobs', 'settings'])
-    const snapshot = {
-      id: 'bash-1' as JobId,
-      kind: 'bash',
-      label: 'node /Users/example/private.js --token secret',
-      status: 'completed',
-      detail: 'session-123',
-      output: 'private output',
-      startedAt: 1,
-      finishedAt: 2,
-      reported: false,
-    } satisfies JobSnapshot & { output: string }
+    const secretLabel = 'node /Users/example/private.js --token secret'
 
-    await harness.jobDone(snapshot)
-    await harness.jobDone({ ...snapshot, status: 'failed' })
-    await harness.jobDone({ ...snapshot, status: 'killed' })
+    harness.jobSettled(job('bash-1', 'completed', secretLabel, 'session-123'))
+    harness.jobSettled(job('bash-1', 'failed', secretLabel, 'session-123'))
+    harness.jobSettled(job('bash-1', 'killed', secretLabel, 'session-123'))
 
     expect(harness.notifyAttention.mock.calls).toEqual([
       [{ title: 'Background Job Completed', body: 'A background job has finished.' }],
@@ -212,25 +221,17 @@ describe('desktop notifications Host plugin', () => {
 
   it('applies live settings independently to successful and failed outcomes', async () => {
     const harness = createHarness()
-    const snapshot = {
-      id: 'bash-2' as JobId,
-      kind: 'bash',
-      label: 'build',
-      status: 'completed',
-      startedAt: 1,
-      finishedAt: 2,
-      reported: false,
-    } satisfies JobSnapshot
+    const completed = job('bash-2', 'completed')
 
-    await harness.updateSettings({
+    harness.updateSettings({
       enabled: true,
       notifyOnTurnCompletion: false,
       notifyOnTurnFailure: true,
       notifyOnJobCompletion: false,
       notifyOnJobFailure: true,
     })
-    await harness.jobDone(snapshot)
-    await harness.jobDone({ ...snapshot, status: 'failed' })
+    harness.jobSettled(completed)
+    harness.jobSettled(job('bash-2', 'failed'))
 
     const active = session('session-1')
     await harness.sessionEvent(active, event('turn/start', { turn: 1 }, 1))
@@ -251,24 +252,15 @@ describe('desktop notifications Host plugin', () => {
 
   it('keeps fine-grained choices while the live global switch is disabled', async () => {
     const harness = createHarness()
-    const snapshot = {
-      id: 'bash-disabled' as JobId,
-      kind: 'bash',
-      label: 'build',
-      status: 'completed',
-      startedAt: 1,
-      finishedAt: 2,
-      reported: false,
-    } satisfies JobSnapshot
 
-    await harness.updateSettings({
+    harness.updateSettings({
       enabled: false,
       notifyOnTurnCompletion: true,
       notifyOnTurnFailure: true,
       notifyOnJobCompletion: true,
       notifyOnJobFailure: true,
     })
-    await harness.jobDone(snapshot)
+    harness.jobSettled(job('bash-disabled', 'completed'))
 
     const active = session('disabled')
     await harness.sessionEvent(active, event('turn/start', { turn: 1 }, 1))

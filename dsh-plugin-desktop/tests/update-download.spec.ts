@@ -1,19 +1,23 @@
 import { access, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises'
+import { randomUUID } from 'node:crypto'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   DESKTOP_DOWNLOAD_URLS,
+  DESKTOP_TARGET_VERSION_HEADER,
   MAX_UPDATE_DOWNLOAD_BYTES,
   UpdateDownloadError,
   desktopUpdateFilename,
   downloadDesktopUpdate,
   pendingDesktopUpdateArtifact,
   recordDesktopUpdateArtifact,
+  removeAbandonedTemporaryArtifacts,
   resolveDesktopUpdateArtifact,
   type DesktopDownloadPlatform,
   type UpdateArtifactRequest,
 } from '../src/update-download.ts'
+import { DESKTOP_RELEASE_CHANNEL_HEADER } from '../src/update-checker.ts'
 
 const temporaryRoots: string[] = []
 
@@ -77,6 +81,42 @@ afterEach(async () => {
 })
 
 describe('desktop update installer download', () => {
+  it('pins a Beta artifact request to its channel and target version', async () => {
+    const directory = await temporaryDirectory()
+    const artifact = dmgArtifact()
+    const destination = join(directory, 'Nonead-DSH-Desktop-Beta-2.0.6-beta.1-mac.dmg')
+    const result = await downloadDesktopUpdate({
+      platform: 'darwin',
+      version: '2.0.6-beta.1',
+      channel: 'beta',
+      destinationPath: destination,
+      request: async (_url, init) => {
+        const headers = new Headers(init.headers)
+        expect(headers.get(DESKTOP_RELEASE_CHANNEL_HEADER)).toBe('beta')
+    expect(headers.get(DESKTOP_TARGET_VERSION_HEADER)).toBe('2.0.6-beta.1')
+        return chunkedResponse([artifact], {
+          [DESKTOP_RELEASE_CHANNEL_HEADER]: 'beta',
+      [DESKTOP_TARGET_VERSION_HEADER]: '2.0.6-beta.1',
+        })
+      },
+    })
+    expect(result).toBe(destination)
+    expect(desktopUpdateFilename('darwin', '2.0.6-beta.1', 'beta'))
+      .toBe('Nonead-DSH-Desktop-Beta-2.0.6-beta.1-mac.dmg')
+  })
+
+  it('accepts a Beta artifact without response identity headers', async () => {
+    const directory = await temporaryDirectory()
+    const result = await downloadDesktopUpdate({
+      platform: 'darwin',
+      version: '2.0.6-beta.1',
+      channel: 'beta',
+      destinationPath: join(directory, 'Nonead-DSH-Desktop-Beta-2.0.6-beta.1-mac.dmg'),
+      request: async () => chunkedResponse([dmgArtifact()]),
+    })
+    expect(result).toBe(join(directory, 'Nonead-DSH-Desktop-Beta-2.0.6-beta.1-mac.dmg'))
+  })
+
   it('streams a macOS DMG from only the fixed endpoint and atomically completes it', async () => {
     const directory = await temporaryDirectory()
     const artifact = dmgArtifact()
@@ -175,6 +215,40 @@ describe('desktop update installer download', () => {
     await expectNoPartialFiles(directory)
   })
 
+  it('rejects an installer the service resolved to a different release', async () => {
+    // The version travels in both the request path and the target-version header,
+    // so a redirect that lands on another release's file must not be accepted:
+    // the client never inspects which build it received, and the Windows
+    // installer would replace a newer build with an older one.
+    const directory = await temporaryDirectory()
+    const served = chunkedResponse([windowsArtifact()])
+    Object.defineProperty(served, 'url', {
+      value: 'https://www.nonead.com/downloads/windows/Nonead-DSH-Desktop-1.5.4-windows.exe',
+    })
+    await expectFailure(downloadDesktopUpdate({
+      platform: 'win32',
+      version: '2.4.0',
+      destinationPath: destinationPath(directory, 'win32', '2.4.0'),
+      request: async () => served,
+    }), 'invalid-artifact')
+    await expectNoPartialFiles(directory)
+  })
+
+  it('accepts an installer whose final URL names the requested release', async () => {
+    const directory = await temporaryDirectory()
+    const served = chunkedResponse([windowsArtifact()])
+    Object.defineProperty(served, 'url', {
+      value: 'https://www.nonead.com/downloads/windows/Nonead-DSH-Desktop-2.4.0-windows.exe',
+    })
+    const saved = await downloadDesktopUpdate({
+      platform: 'win32',
+      version: '2.4.0',
+      destinationPath: destinationPath(directory, 'win32', '2.4.0'),
+      request: async () => served,
+    })
+    expect(await readFile(saved)).toEqual(Buffer.from(windowsArtifact()))
+  })
+
   it.each([
     ['an unsuccessful response', async () => new Response(null, { status: 503 }), 'http-status'],
     ['a missing response body', async () => new Response(null, { status: 200 }), 'empty-body'],
@@ -202,6 +276,65 @@ describe('desktop update installer download', () => {
       ),
     }), 'response-too-large')
     await expectNoPartialFiles(directory)
+  })
+
+  it('removes the partial file and reports a stalled body when the service stops sending bytes', async () => {
+    const directory = await temporaryDirectory()
+    const request: UpdateArtifactRequest = async () => new Response(new ReadableStream<Uint8Array>({
+      start(stream) {
+        stream.enqueue(windowsArtifact().subarray(0, 128))
+      },
+    }))
+
+    await expectFailure(downloadDesktopUpdate({
+      platform: 'win32',
+      version: '2.4.1',
+      destinationPath: destinationPath(directory, 'win32', '2.4.1'),
+      request,
+      stallTimeoutMs: 25,
+    }), 'stalled')
+    await expectNoPartialFiles(directory)
+    expect(await readdir(directory)).toEqual([])
+  })
+
+  it('removes the partial file when cancelling an errored stream never settles', async () => {
+    const directory = await temporaryDirectory()
+    const stream = {
+      getReader: () => ({
+        read: async () => { throw new Error('connection reset by peer') },
+        cancel: () => new Promise<never>(() => {}),
+        releaseLock: () => {},
+      }),
+    }
+    const request: UpdateArtifactRequest = async () => (
+      { status: 200, headers: new Headers(), body: stream } as unknown as Response
+    )
+
+    await expectFailure(downloadDesktopUpdate({
+      platform: 'darwin',
+      version: '2.4.2',
+      destinationPath: destinationPath(directory, 'darwin', '2.4.2'),
+      request,
+    }), 'network')
+    await expectNoPartialFiles(directory)
+    expect(await readdir(directory)).toEqual([])
+  })
+
+  it('removes a private stream abandoned by a killed run and keeps one whose process is alive', async () => {
+    const directory = await temporaryDirectory()
+    const name = desktopUpdateFilename('win32', '2.4.3')
+    const abandoned = join(directory, `.${name}.4242.${randomUUID()}.partial`)
+    const running = join(directory, `.${name}.4243.${randomUUID()}.partial`)
+    const unrelated = join(directory, `.${name}.4244.not-a-uuid.partial`)
+    await Promise.all([abandoned, running, unrelated].map(path => writeFile(path, 'incomplete')))
+
+    const removed = await removeAbandonedTemporaryArtifacts(directory, name, pid => pid === 4243)
+
+    expect(removed).toEqual([abandoned])
+    expect(await readdir(directory)).toEqual(expect.arrayContaining([running, unrelated].map(path => path.split(/[\\/]/u).at(-1))))
+    await expect(access(abandoned)).rejects.toMatchObject({ code: 'ENOENT' })
+    await expect(access(running)).resolves.toBeUndefined()
+    await expect(access(unrelated)).resolves.toBeUndefined()
   })
 
   it('passes the caller signal and removes a partial file when aborted during streaming', async () => {

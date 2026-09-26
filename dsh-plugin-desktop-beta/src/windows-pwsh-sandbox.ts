@@ -3,7 +3,7 @@
 import { fileURLToPath } from 'node:url'
 import { existsSync } from 'node:fs'
 import { win32 } from 'node:path'
-import type { ShellExecSpec, ShellProcess, ShellRunResult } from '@deepseek-ai/dsh-shell'
+import type { ShellExecSpec, ShellExecution } from '@deepseek-ai/dsh-shell'
 import { SandboxPwshExecutor } from '@deepseek-ai/dsh-pwsh-sandbox'
 import type { Config as PwshConfig } from '@deepseek-ai/dsh-pwsh-local'
 
@@ -49,16 +49,37 @@ export function desktopWindowsPwshPath(
   return candidates.find(candidate => exists(candidate))
 }
 
-/** Keep explicit user config, otherwise avoid PATH-resolved portable pwsh in the Windows ACL sandbox. */
+/**
+ * Keep explicit user config, otherwise avoid PATH-resolved portable pwsh in the
+ * Windows ACL sandbox. The substituted `pwshPath` stays a reference into the
+ * live configuration, so a later settings update that declares an executable
+ * wins on the next read instead of being masked by the derived default.
+ * @param config - the resolved pwsh-local configuration.
+ * @param env - the environment to probe on Windows.
+ * @param platform - the platform to resolve for.
+ * @param exists - existence probe for one candidate path.
+ * @returns the same configuration when the user declared an executable or no
+ *   stable system PowerShell exists, else a copy with the derived reference.
+ */
 export function desktopWindowsPwshConfig(
   config: PwshConfig,
   env: NodeJS.ProcessEnv,
   platform: NodeJS.Platform,
   exists: (path: string) => boolean = existsSync,
 ): PwshConfig {
-  if (config.pwshPath !== undefined && config.pwshPath.length > 0) return config
+  const declared = config.pwshPath.get()
+  if (declared !== undefined && declared.length > 0) return config
   const pwshPath = desktopWindowsPwshPath(env, platform, exists)
-  return pwshPath === undefined ? config : { ...config, pwshPath }
+  if (pwshPath === undefined) return config
+  return {
+    ...config,
+    pwshPath: {
+      get: () => {
+        const current = config.pwshPath.get()
+        return current === undefined || current.length === 0 ? pwshPath : current
+      },
+    },
+  }
 }
 
 /**
@@ -108,14 +129,31 @@ export class DesktopWindowsPwshSandbox extends SandboxPwshExecutor {
     })
   }
 
-  protected override async runArgv(spec: ShellExecSpec, argv: readonly string[]): Promise<ShellRunResult> {
-    const adapted = this.adapt(spec, argv)
-    return super.runArgv(adapted.spec, adapted.argv)
-  }
-
-  protected override startArgv(spec: ShellExecSpec, argv: readonly string[]): ShellProcess {
-    const adapted = this.adapt(spec, argv)
-    return super.startArgv(adapted.spec, adapted.argv)
+  /**
+   * Route every spawn through the desktop trampoline. A confining caller
+   * prepares its argv asynchronously and the executor spawns only after that
+   * preparation resolves, so the request spec is forwarded as an owned copy the
+   * preparation step fills with the runner-only environment.
+   * @param spec - resolved execution settings and caller-owned command metadata.
+   * @param argvOrPrepare - exact argv, or preparation using the execution cancellation signal.
+   * @param onStarted - installs provider facts synchronously before the handle can settle.
+   * @returns the live execution handle from the local executor.
+   */
+  protected override async executeArgv(
+    spec: ShellExecSpec,
+    argvOrPrepare: readonly string[] | ((signal: AbortSignal) => Promise<readonly string[]>),
+    onStarted?: (process: ShellExecution) => void,
+  ): Promise<ShellExecution> {
+    if (typeof argvOrPrepare !== 'function') {
+      const adapted = this.adapt(spec, argvOrPrepare)
+      return await super.executeArgv(adapted.spec, adapted.argv, onStarted)
+    }
+    const child: ShellExecSpec = { ...spec }
+    return await super.executeArgv(child, async (signal) => {
+      const adapted = this.adapt(spec, await argvOrPrepare(signal))
+      child.env = adapted.spec.env
+      return adapted.argv
+    }, onStarted)
   }
 }
 

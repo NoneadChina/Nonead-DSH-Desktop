@@ -26,11 +26,11 @@ Nonead DSH Desktop 将 [DeepSeek Harness](https://github.com/noneadchina) 的本
 
 ## 下载与安装
 
-当前正式安装包支持 Windows x64 和 macOS Universal。无需额外环境，下载安装，一键使用。
+当前正式安装包支持 Windows x64。无需额外环境，下载安装，一键使用。
 
 | 平台 | 下载 | 安装方式 |
 | --- | --- | --- |
-| Windows x64 | [下载安装程序](https://www.nonead.com/software/ndsh-desktop/downloads/windows/Nonead-DSH-Desktop-1.5.4-windows.exe) | 运行 NSIS 安装程序并按提示完成安装 |
+| Windows x64 | [下载安装程序](https://www.nonead.com/software/ndsh-desktop/downloads/windows/Nonead-DSH-Desktop-1.7.2-windows.exe) | 运行 NSIS 安装程序并按提示完成安装 |
 
 详细步骤、插件命令和故障排查见[用户指南](docs/user-guide.md)与[常见问题](docs/faq.md)。
 

@@ -8,7 +8,7 @@ Status: implemented
 
 DSH Desktop 需要在 macOS 与 Windows 上提供原生材质呈现，但不能编辑 pinned 上游 checkout，也不能复制官方 Web 应用。该呈现会同时改变多个维度：原生窗口构造、root/sidebar slot 所有权、`layout` service 与 document 级 theme 投影。如果只应用其中一部分，或在正在运行的 renderer 中改变它们，Host 组合与 Client 呈现就会不一致。
 
-无论用户选择应用托盘命令，还是手工编辑 settings 文件，模式选择都必须使用同一个持久化事实源，并让每次修改跨越相同的重启边界。
+无论用户选择应用托盘命令，还是手工编辑 settings 文档，模式选择都必须使用同一个持久化事实源，并让每次修改跨越相同的重启边界。
 
 ## Decision
 
@@ -16,9 +16,9 @@ DSH Desktop 需要在 macOS 与 Windows 上提供原生材质呈现，但不能�
 
 ### 一个 settings 事实源
 
-DSH home `settings.yaml` 文档是单一事实源。Launcher 通过当前 `@deepseek-ai/dsh-settings-file` row 解析该文件，并在生成最终 Loader patch 之前读取 `dsh-desktop.mode`。它不会在 profile manifest、Electron preference、命令行 flag 或其他 desktop 文件中持久化平行的模式值。
+当前 profile patch 文档中的 `dsh-desktop` row 是单一事实源。Launcher 会在生成最终 Loader patch 之前从该 row 读取 `dsh-desktop.mode`。它不会在 profile manifest、Electron preference、命令行 flag 或其他 desktop 文件中持久化平行的模式值。
 
-`desktop-shell` Host plugin 使用包含 `mode: compatibility | advanced` 的 schema 与 `applies: restart` 来注册 `settingsNamespace('dsh-desktop')`。托盘调用该已注册 scope 范围受限的 `settings.update({ mode })` 路径。用户也可以直接编辑同一份 `settings.yaml` 文档；file provider 与已注册 namespace 会观察这个唯一的持久化值。
+settings form 由 plugin entry id 寻址，因此 `dsh-desktop` 同时命名 patch row 与它在 Host `SettingsForms` service 中的 form。该 form 的 schema 包含 `mode: compatibility | extended | advanced`、原生材质字段，以及其余窗口与访问选项，其中每个可写字段都标记为 volatile。托盘调用 `ctx.settings.update(DESKTOP_SETTINGS_ENTRY_ID, { mode })`。用户也可以直接编辑 profile patch 文档中的同一 row，Host 会观察该 entry 产生的 `settings/document-updated` 事件。
 
 Linux 只支持兼容模式。托盘会在该平台禁用模式命令，advanced 值也会被拒绝，而不会映射到另一种呈现。
 
@@ -60,7 +60,7 @@ desktop sidebar surface 会把官方 sidebar-fill token 局部设为透明。官
 
 ## Verification
 
-Profile 测试会向临时 `settings.yaml` 写入 `dsh-desktop.mode: advanced`，并验证它被投影到 `desktop-shell`、官方 layout 已禁用，以及官方 sidebar 与 conversation row 已启用。Host 测试覆盖共享 settings namespace、值变化后重启、托盘更新路径，以及持久化前的 Linux 拒绝。Client 测试覆盖 environment 校验、作用域化 layout-service disposal、平台专属 rail 几何、Windows 外层 slot caption 几何与 theme 投影。类型检查会根据已发布 rc.6 slot 与 service contract 验证 desktop 声明。
+Profile 测试会向临时 profile patch 文档写入带 `mode: advanced` 的 `dsh-desktop` row，并验证它被投影到 `desktop-shell`、官方 layout 已禁用，以及官方 sidebar 与 conversation row 已启用。Host 测试覆盖 `dsh-desktop` entry 注册、值变化后重启、托盘更新路径，以及持久化前的 Linux 拒绝。Client 测试覆盖 environment 校验、作用域化 layout-service disposal、平台专属 rail 几何、Windows 外层 slot caption 几何与 theme 投影。类型检查会根据已发布 rc.6 slot 与 service contract 验证 desktop 声明。
 
 窗口选项与 Electron-runtime 测试验证 macOS hidden-inset vibrancy、Windows Mica/原生控件、内置原生 theme 初始化与实时更新、generation 范围的外观恢复、Linux 拒绝，以及托盘更新到相反模式。Shutdown 测试验证仅在成功零退出码 disposal 后 relaunch，且失败 generation 不会 relaunch。Client 与 Host bundle 均可 headless 构建；图形化原生材质外观仍是目标机器验证边界。
 
@@ -72,7 +72,7 @@ Profile 测试会向临时 `settings.yaml` 写入 `dsh-desktop.mode: advanced`�
 
 **把 conversation、workspace 或其他 feature surface 复制到 desktop package。** 这些是 feature surface，而非 desktop chrome。保持它们的官方 plugin 激活可避免重复状态，并让上游与第三方改进继续流入 desktop 组合。
 
-**从托盘写入单独 Electron preference。** 两个 store 可能不一致。因此，托盘会更新 Host 已注册的 `dsh-desktop` namespace，手工修改也会指向同一份 `settings.yaml` 文档。
+**从托盘写入单独 Electron preference。** 两个 store 可能不一致。因此，托盘会通过 Host settings service 更新 `dsh-desktop` patch row，手工修改也会指向同一个 row。
 
 **更改模式后热重载 Client shell。** 这无法原子地重建原生窗口材质、Loader row、service 所有权与 root 声明。有界 relaunch 是最小一致 transition。
 
@@ -80,6 +80,6 @@ Profile 测试会向临时 `settings.yaml` 写入 `dsh-desktop.mode: advanced`�
 
 ## Consequences
 
-DSH Desktop 在不修改上游 submodule、不复制 Web 应用，也不引入第二套插件或 transport 系统的前提下，获得了 macOS 与 Windows 原生材质呈现。托盘修改与手工编辑 `settings.yaml` 会聚合到一个持久化值，重启会创建一个一致的 Host、Client 与原生窗口 generation。
+DSH Desktop 在不修改上游 submodule、不复制 Web 应用，也不引入第二套插件或 transport 系统的前提下，获得了 macOS 与 Windows 原生材质呈现。托盘修改与手工编辑 profile patch 文档会聚合到一个持久化值，重启会创建一个一致的 Host、Client 与原生窗口 generation。
 
 desktop package 现在拥有真实 Client 呈现代码，并且必须跟踪它使用的已发布 slot、theme 与 service contract。高级模式按设计与浏览器 Web 及兼容模式具有不同的呈现 row 组合。原生外观也取决于操作系统支持，必须在真实目标机器上验证；Linux 仍只支持兼容模式。

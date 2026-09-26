@@ -1,0 +1,107 @@
+diff --git a/lib/index.js b/lib/index.js
+index 8f6041d..2d306ee 100644
+--- a/lib/index.js
++++ b/lib/index.js
+@@ -731,11 +731,29 @@ async function createRuntimeResolution(options) {
+ 	const { installAnchor, profile, home = resolveDshHome() } = options;
+ 	const profilesDir = join(home, PROFILES_DIR);
+ 	const manifest = readOptionalProfileManifest(profile);
+-	const { packageNames, packageDirs, declarers, versions } = collectInstallationScopePackages(installAnchor, new Set(profile?.skippedBundles.map((skipped) => skipped.packageName)));
++	const desktopResolverCount = globalThis[Symbol.for("dsh-plugin-desktop.asar-module-resolver")];
++	// Resolve installation membership only for dependencies of external
++	// bundles; the Desktop hook owns the ordinary installation closure.
++	const desktopResolverOwns = typeof desktopResolverCount === "number" && desktopResolverCount > 0 && /([\\/])app\.asar\1/u.test(installAnchor);
++	const installation = desktopResolverOwns ? {
++		packageNames: /* @__PURE__ */ new Set(),
++		packageDirs: /* @__PURE__ */ new Map(),
++		declarers: /* @__PURE__ */ new Map(),
++		versions: /* @__PURE__ */ new Map()
++	} : collectInstallationScopePackages(installAnchor, new Set(profile?.skippedBundles.map((skipped) => skipped.packageName)));
++	const { packageNames, packageDirs, declarers, versions } = installation;
+ 	const profileDeclarers = /* @__PURE__ */ new Map();
+ 	const profileVersions = /* @__PURE__ */ new Map();
+ 	const localPackageNames = profile === void 0 ? [] : installedProfilePackageNames(profile, manifest);
+-	const profilePackages = profile === void 0 ? /* @__PURE__ */ new Map() : collectProfileScopePackages(profile, packageNames, profileDeclarers, profileVersions);
++	const { links: profilePackages, declarers: profileEntryDeclarers, versions: profileEntryVersions } = profile === void 0 ? {
++		links: /* @__PURE__ */ new Map(),
++		declarers: profileDeclarers,
++		versions: profileVersions
++	} : desktopResolverOwns ? healProfileModuleFallback(profile, /* @__PURE__ */ new Set(), installAnchor) : {
++		links: collectProfileScopePackages(profile, packageNames, profileDeclarers, profileVersions),
++		declarers: profileDeclarers,
++		versions: profileVersions
++	};
+ 	const linkedRoots = profile === void 0 ? [] : linkedProfileRoots(profile, profilesDir);
+ 	return await Promise.resolve(Object.freeze({
+ 		profilesDir,
+@@ -751,8 +769,8 @@ async function createRuntimeResolution(options) {
+ 		})), ...[...profilePackages].map(([name, packageDir]) => Object.freeze({
+ 			name,
+ 			packageDir,
+-			version: profileVersions.get(name),
+-			declarer: profileDeclarers.get(name),
++			version: profileEntryVersions.get(name),
++			declarer: profileEntryDeclarers.get(name),
+ 			scope: "profile"
+ 		}))])
+ 	}));
+@@ -773,7 +791,7 @@ function installedProfilePackageNames(profile, manifest) {
+ 	return profileDependencyNames(manifest).filter((name) => existsSync(join(profile.dir, "node_modules", name, "package.json")));
+ }
+ /** Collect the first resolvable package directory for each dependency name. */
+-function dependencyClosure(anchors, reserved, declarers, versions) {
++function dependencyClosure(anchors, reserved, declarers, versions, isInstallationPackage = () => false) {
+ 	const links = /* @__PURE__ */ new Map();
+ 	const visited = new Set(reserved);
+ 	for (const anchor of anchors) {
+@@ -794,7 +812,10 @@ function dependencyClosure(anchors, reserved, declarers, versions) {
+ 		for (let next = queue.shift(); next !== void 0; next = queue.shift())
+  /* v8 ignore next -- an installable package manifest always declares dependencies or peers */
+ 		for (const dep of profileDependencyNames(next.manifest)) {
+-			if (visited.has(dep)) continue;
++			if (visited.has(dep) || isInstallationPackage(dep)) {
++				visited.add(dep);
++				continue;
++			}
+ 			const dir = packageDirFromAnchor(next.anchor, dep);
+ 			if (dir === void 0) continue;
+ 			visited.add(dep);
+@@ -812,12 +833,36 @@ function dependencyClosure(anchors, reserved, declarers, versions) {
+ 	return links;
+ }
+ /** Collect packages carried by the profile's selected bundles that the installation does not supply. */
+-function collectProfileScopePackages(profile, installationPackageNames, declarers, versions) {
+-	const bundleLinks = dependencyClosure(profile.layers.filter((layer) => !installationPackageNames.has(layer.packageName)).map((layer) => join(layer.packageDir, "package.json")), installationPackageNames, declarers, versions);
++function collectProfileScopePackages(profile, installationPackageNames, declarers, versions, isInstallationPackage = () => false) {
++	const bundleLinks = dependencyClosure(profile.layers.filter((layer) => !installationPackageNames.has(layer.packageName) && !isInstallationPackage(layer.packageName)).map((layer) => join(layer.packageDir, "package.json")), installationPackageNames, declarers, versions, isInstallationPackage);
+ 	for (const layer of profile.layers) bundleLinks.delete(layer.packageName);
+ 	return bundleLinks;
+ }
+ /**
++* Collect the packages a packaged profile resolves through the Desktop ASAR hook.
++* Installation membership is decided by the anchor because that hook owns the
++* ordinary installation closure.
++* @param profile - loaded profile whose external bundles need fallback packages.
++* @param installationPackageNames - package names the caller already owns.
++* @param installAnchor - installation manifest the profile resolves against.
++* @returns profile-scope package links with their declaring anchors and versions.
++*/
++function healProfileModuleFallback(profile, installationPackageNames, installAnchor) {
++	const installationPresence = /* @__PURE__ */ new Map();
++	const isInstallationPackage = (packageName) => {
++		if (installationPackageNames.has(packageName)) return true;
++		if (!installationPresence.has(packageName)) installationPresence.set(packageName, packageDirFromAnchor(installAnchor, packageName) !== void 0);
++		return installationPresence.get(packageName);
++	};
++	const declarers = /* @__PURE__ */ new Map();
++	const versions = /* @__PURE__ */ new Map();
++	return {
++		links: collectProfileScopePackages(profile, installationPackageNames, declarers, versions, isInstallationPackage),
++		declarers,
++		versions
++	};
++}
++/**
+ * Read a profile's manifest.
+ * @param binName - the diagnostic prefix on the thrown error.
+ * @param dir - the profile directory.
