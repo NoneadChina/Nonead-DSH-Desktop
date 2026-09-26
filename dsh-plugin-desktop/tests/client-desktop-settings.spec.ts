@@ -605,7 +605,6 @@ describe('Desktop settings Slot registration', () => {
       platform: 'darwin',
       initialMode: 'compatibility',
       micaSupported: false,
-      setMode: expect.any(Function),
     })
     expect(component).toBe(DesktopSettingsSection)
 

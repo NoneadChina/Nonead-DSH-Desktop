@@ -41,7 +41,6 @@ export interface DesktopSettingsSectionInjected {
   readonly platform: DesktopClientPlatform
   readonly initialMode: DesktopShellSettings['mode']
   readonly micaSupported: boolean
-  readonly setMode: (mode: DesktopShellSettings['mode']) => Promise<void>
   readonly desktopSettings: ConfigForm<DesktopShellSettings>
   readonly notificationSettings: ConfigForm<DesktopNotificationSettings>
 }
@@ -53,7 +52,7 @@ export type DesktopSettingsSectionProps =
   & InjectFace<DesktopSettingsSectionInjected>
 
 type Translate = DesktopSettingsSectionProps['t']
-type BusyOperation = 'load' | 'create-profile' | 'select-profile' | 'delete-profile' | 'select-aa' | 'select-market' | 'mode' | 'material' | 'web' | 'notification'
+type BusyOperation = 'load' | 'create-profile' | 'select-profile' | 'delete-profile' | 'select-aa' | 'select-market' | 'material' | 'web' | 'notification'
 type RestartState = 'none' | 'restarting' | 'required'
 type LanPollWait = (signal: AbortSignal) => Promise<void>
 
@@ -305,7 +304,6 @@ export function DesktopSettingsSection({
   platform,
   initialMode,
   micaSupported,
-  setMode: persistMode,
   desktopSettings,
   notificationSettings,
 }: DesktopSettingsSectionProps) {
@@ -377,7 +375,6 @@ export function DesktopSettingsSection({
     desktop.value?.openBrowser ?? false,
     configuredNetworkExposure,
   )
-  const mode = storedMode
   const networkExposure = browserAccess ? configuredNetworkExposure : 'loopback'
   const notificationValue = notifications.value ?? {
     enabled: true,
@@ -440,13 +437,6 @@ export function DesktopSettingsSection({
     })
   }
 
-  const setMode = (next: DesktopShellSettings['mode']): void => {
-    void run('mode', async () => {
-      await persistMode(next)
-      requestRestart()
-    })
-  }
-
   const setMaterial = (next: string): void => {
     void run('material', async () => {
       if (platform === 'darwin') {
@@ -471,7 +461,7 @@ export function DesktopSettingsSection({
   const setBrowserAccess = (checked: boolean): void => {
     void run('web', async () => {
       if (checked) {
-        if (!desktopBrowserAccessAvailable(mode)) return
+        if (!desktopBrowserAccessAvailable(storedMode)) return
         await persistDesktopBrowserAccessHot(desktopSettings, true, configuredNetworkExposure, refreshView)
         return
       }
@@ -481,7 +471,7 @@ export function DesktopSettingsSection({
 
   const setNetworkExposure = (exposure: DesktopShellSettings['networkExposure']): void => {
     void run('web', async () => {
-      if (exposure === 'lan' && (!desktopBrowserAccessAvailable(mode) || !browserAccess)) return
+      if (exposure === 'lan' && (!desktopBrowserAccessAvailable(storedMode) || !browserAccess)) return
       await persistDesktopNetworkExposureHot(desktopSettings, exposure, refreshView)
     })
   }
@@ -651,39 +641,8 @@ export function DesktopSettingsSection({
         </div>}
       </section>
 
-      <section className="dshDesktopSettingsGroup" aria-labelledby="dsh-desktop-presentation-title">
-        <div>
-          <h3 id="dsh-desktop-presentation-title">{t('presentationTitle')}</h3>
-          <p className="dshDesktopSettingsGroupIntro">{t('presentationIntro')}</p>
-        </div>
-        {desktop.status === 'unavailable' && <p className="dshDesktopSettingsNotice">{t('readOnly')}</p>}
-        <div className="dshDesktopSettingsList" role="radiogroup" aria-labelledby="dsh-desktop-presentation-title">
-          <Choice
-            title={t('compatibilityMode')}
-            body={t('compatibilityModeBody')}
-            selected={mode === 'compatibility'}
-            disabled={!settingsWritable || busy !== undefined || restart !== 'none'}
-            action={() => { setMode('compatibility') }}
-            status={mode === 'compatibility' ? t('selected') : undefined}
-          />
-          <Choice
-            title={t('extendedMode')}
-            body={platform === 'linux' ? t('extendedUnavailableLinux') : t('extendedModeBody')}
-            selected={mode === 'extended'}
-            disabled={platform === 'linux' || !settingsWritable || busy !== undefined || restart !== 'none'}
-            action={() => { setMode('extended') }}
-            status={mode === 'extended' ? t('selected') : undefined}
-          />
-          <Choice
-            title={t('advancedMode')}
-            body={platform === 'linux' ? t('advancedUnavailableLinux') : t('advancedModeBody')}
-            selected={mode === 'advanced'}
-            disabled={platform === 'linux' || !settingsWritable || busy !== undefined || restart !== 'none'}
-            action={() => { setMode('advanced') }}
-            status={mode === 'advanced' ? t('selected') : undefined}
-          />
-        </div>
-        {platform !== 'linux' && (
+      {platform !== 'linux' && (
+        <section className="dshDesktopSettingsGroup">
           <label className="dshDesktopSettingsMaterialField">
             <span className="dshDesktopSettingsMaterialCopy">
               <span className="dshDesktopSettingsChoiceTitle">{t('windowMaterial')}</span>
@@ -710,8 +669,8 @@ export function DesktopSettingsSection({
                   )}
             </select>
           </label>
-        )}
-      </section>
+        </section>
+      )}
 
       <section className="dshDesktopSettingsGroup" aria-labelledby="dsh-desktop-web-title">
         <div>
@@ -721,7 +680,7 @@ export function DesktopSettingsSection({
         <ToggleRow
           label={t('openBrowser')}
           checked={browserAccess}
-          disabled={!desktopBrowserAccessAvailable(mode) || !settingsWritable || busy !== undefined}
+          disabled={!desktopBrowserAccessAvailable(storedMode) || !settingsWritable || busy !== undefined}
           onChange={setBrowserAccess}
         />
         <p className="dshDesktopSettingsNotice">{t('browserCompatibilityNotice')}</p>
