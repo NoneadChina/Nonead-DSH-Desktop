@@ -12,7 +12,7 @@ This repository owns the desktop product around an unmodified DeepSeek Harness c
 
 - Start the desktop development workflow with `corepack yarn dev`.
 - Build the desktop package with `corepack yarn build`.
-- Run unit tests with `corepack yarn test`.
+- Run unit tests with `corepack yarn test`. Some Desktop specs launch the real Electron binary recorded in `dsh-plugin-desktop/node_modules/electron` — the Windows Electron Node-mode, browser-opener and Safe Mode cleanup checks — so run this from an ordinary terminal. A sandboxed agent session confines `electron.exe` to the workspace, and those specs then fail with `EPERM` on their system temp fixtures even though an equivalent `node.exe` child succeeds. The specs are correct; such a session is not a valid environment for them.
 - Run type checking with `corepack yarn typecheck`.
 - Run the complete headless gate with `corepack yarn check`.
 - Develop and validate Desktop feature changes in `dsh-plugin-desktop-beta/` first, then synchronize shared changes into `dsh-plugin-desktop/` while preserving declared variant differences. Before committing or pushing shared Desktop changes, run `corepack yarn check:desktop-variants` and validate both affected packages; neither package automatically inherits the other's source edits.

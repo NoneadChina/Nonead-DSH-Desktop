@@ -21,18 +21,13 @@ const INTEGRITY = `sha512-${Buffer.alloc(64).toString('base64')}`
 const BUNDLE_ID = 'bundle_market_integration'
 const MARKET_PACKAGE_NAME = 'dsh-community-market'
 
-/** Live settings fields of the market entry, as the loader resolves its volatile config. */
-interface MarketSettingsConfig {
-  readonly sources: { get(): readonly unknown[] }
-  readonly catalogCache?: { get(): unknown }
-}
+/** The Loader row the market occupies, as its own bundle patch declares it. */
+const MARKET_ENTRY_ID = 'community-market'
 
 interface CommunityMarketModule {
   readonly name: string
   readonly inject: string[]
-  readonly apply: (ctx: Context, config: MarketSettingsConfig) => void
-  readonly Config: (raw: Record<string, unknown>) => MarketSettingsConfig
-  readonly MARKET_SETTINGS_ENTRY_ID: string
+  readonly apply: (ctx: Context) => void
   readonly marketRoutes: {
     readonly operationPreview: string
     readonly operationExecute: string
@@ -160,9 +155,8 @@ describe('desktop pnpm and community market integration', () => {
     // Loader rows addressed by entry id, not a `settings.yaml` namespace document.
     const profilePatchPath = join(profileDir, 'cordis.patch.yml')
     const marketEntry = {
-      id: market.MARKET_SETTINGS_ENTRY_ID,
+      id: MARKET_ENTRY_ID,
       name: MARKET_PACKAGE_NAME,
-      config: { sources: [] },
     }
     const ctx = new Context()
     const webServer = await createWebServer()
@@ -198,20 +192,10 @@ describe('desktop pnpm and community market integration', () => {
       })
       ctx.provide('desktopPnpmBootstrap', selectedBootstrap)
       ctx.provide('subprocess', { spawn } as unknown as SubprocessRuntime)
-      // `dsh-settings` addresses a plugin's config by its entry id; the market
-      // registers a settings presentation, so the stand-in must expose both.
-      const settingsWrites: { ns: string; patch: Record<string, unknown> }[] = []
-      ctx.provide('settings', {
-        update: async (ns: string, patch: Record<string, unknown>) => {
-          settingsWrites.push({ ns, patch })
-        },
-        configure: () => () => {},
-      })
+      // The market injects only `webServer`; durable state arrives through the
+      // soft-injected storage domain, so this test needs no settings stand-in.
       await ctx.plugin({ name: desktopPnpmName, inject: desktopPnpmInject, apply: applyDesktopPnpm })
-      await ctx.plugin(
-        { name: market.name, inject: market.inject, apply: market.apply },
-        market.Config(marketEntry.config),
-      )
+      await ctx.plugin({ name: market.name, inject: market.inject, apply: market.apply })
 
       const preview = await webServer.post(market.marketRoutes.operationPreview, {
         action: 'uninstall',
@@ -251,14 +235,12 @@ describe('desktop pnpm and community market integration', () => {
       const persisted = parseYaml(await readFile(profilePatchPath, 'utf8')) as {
         id: string
         name: string
-        config?: { sources: unknown[]; installReceipts?: unknown[] }
       }[]
+      // Uninstalling a third-party bundle must leave the market's own Loader row intact.
       expect(persisted).toEqual([{
-        id: market.MARKET_SETTINGS_ENTRY_ID,
+        id: MARKET_ENTRY_ID,
         name: MARKET_PACKAGE_NAME,
-        config: { sources: [] },
       }])
-      expect(settingsWrites).toEqual([])
       const manifest = JSON.parse(await readFile(join(profileDir, 'package.json'), 'utf8')) as {
         dependencies: Record<string, string>
       }
