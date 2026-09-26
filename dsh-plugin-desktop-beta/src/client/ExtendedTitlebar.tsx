@@ -2,7 +2,7 @@ import { createPortal } from 'react-dom'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { DesktopFrameTitlebarView, type DesktopFrameTitlebarInjected } from './DesktopFrameTitlebarView.tsx'
 
-export { DesktopVersionControl, DesktopModeControl, selectDesktopFrameMode } from './DesktopFrameTitlebarView.tsx'
+export { DesktopVersionControl } from './DesktopFrameTitlebarView.tsx'
 export type { DesktopFrameTitlebarInjected } from './DesktopFrameTitlebarView.tsx'
 
 export type DesktopFrameTitlebarProps = PropsRuntime<'shell.overlay'>
