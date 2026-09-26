@@ -530,7 +530,7 @@ describe('desktop Host plugin', () => {
     },
   )
 
-  it('requests one orderly restart after the settings document commits another mode', async () => {
+  it('does not restart when a legacy mode value is committed', async () => {
     vi.useFakeTimers()
     const harness = createHarness()
     apply(harness.ctx, config)
@@ -541,10 +541,11 @@ describe('desktop Host plugin', () => {
     harness.restart.mockImplementation(() => new Promise<void>(() => {}))
     harness.notifySettings({ mode: 'advanced' })
     await vi.runAllTimersAsync()
-    expect(harness.restart).toHaveBeenCalledOnce()
+    // One presentation ships, so a persisted mode never changes a generation.
+    expect(harness.restart).not.toHaveBeenCalled()
   })
 
-  it('hot-applies browser and LAN access but restarts when a custom mode withdraws them', async () => {
+  it('hot-applies browser and LAN access without a restart for any persisted mode', async () => {
     vi.useFakeTimers()
     const harness = createHarness()
     apply(harness.ctx, config)
@@ -561,9 +562,9 @@ describe('desktop Host plugin', () => {
     enabledHarness.restart.mockImplementation(() => new Promise<void>(() => {}))
     enabledHarness.notifySettings({ mode: 'advanced' })
     await vi.runAllTimersAsync()
-    expect(enabledHarness.restart).toHaveBeenCalledOnce()
-    expect(enabledHarness.browserAccess.ordinaryBrowserEnabled).toBe(false)
-    expect(enabledHarness.setLanHttpsEnabled).toHaveBeenLastCalledWith(false)
+    // The persisted mode no longer withdraws an already-granted browser access.
+    expect(enabledHarness.restart).not.toHaveBeenCalled()
+    expect(enabledHarness.browserAccess.ordinaryBrowserEnabled).toBe(true)
   })
 
   it('requests one orderly restart after the configured Web port changes', async () => {

@@ -2,27 +2,27 @@
 # mode keeps upstream ownership of the browser carrier and rendered UI.
 - insert:
     - id: desktop-shell
-      name: dsh-plugin-desktop-beta
+      name: dsh-plugin-desktop
 
     # Upstream exposes every configurable plugin entry as a row of the Profile
     # patch document, so the Desktop settings panel edits this row instead of a
     # provider-owned settings file.
     - id: dsh-desktop
-      name: dsh-plugin-desktop-beta/settings
+      name: dsh-plugin-desktop/settings
 
     - id: desktop-terminal
-      name: dsh-plugin-desktop-beta/terminal
+      name: dsh-plugin-desktop/terminal
       disabled: !!js process.platform === 'linux'
     - id: desktop-diagnostics
-      name: dsh-plugin-desktop-beta/diagnostics
+      name: dsh-plugin-desktop/diagnostics
     - id: dsh-desktop-notifications
-      name: dsh-plugin-desktop-beta/notifications
+      name: dsh-plugin-desktop/notifications
     - id: desktop-pnpm
-      name: dsh-plugin-desktop-beta/pnpm
+      name: dsh-plugin-desktop/pnpm
     - id: desktop-profiles
-      name: dsh-plugin-desktop-beta/profiles
+      name: dsh-plugin-desktop/profiles
     - id: desktop-updates
-      name: dsh-plugin-desktop-beta/updates
+      name: dsh-plugin-desktop/updates
 
     # Shipped product plugins. They ride this launcher generation instead of the
     # persistent Profile, so every Profile on every machine starts with them and
