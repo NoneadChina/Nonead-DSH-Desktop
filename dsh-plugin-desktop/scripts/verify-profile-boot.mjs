@@ -62,6 +62,9 @@ try {
   // reload row is off because the smoke clears `loader.internal` exactly as the
   // packaged Electron Host does, which `@deepseek-ai/dsh-hmr` requires.
   const seeded = prepareDesktopProfile('1', home, 'win32')
+  // `mode: advanced` is a legacy value on purpose: the product ships a single
+  // presentation, so an upgraded profile has to keep booting while the Host
+  // resolves the stored mode to compatibility.
   writeFileSync(join(seeded.profile.dir, PROFILE_PATCH_FILENAME), [
     '- id: dsh-desktop',
     `  name: ${DESKTOP_PACKAGE_NAME}/settings`,
@@ -284,11 +287,14 @@ try {
     throw new Error(`assembled Windows browse picker listed ${listing.path} instead of ${home}`)
   }
 
-  const expectedUrl = `http://127.0.0.1:${String(ctx.webServer.port)}/?dsh-desktop-mode=advanced&dsh-desktop-platform=win32&dsh-desktop-version=2.0.0&dsh-desktop-material=off&dsh-desktop-mica=1`
+  // The product ships one presentation, so the seeded legacy `mode: advanced`
+  // must resolve to compatibility. `dsh-desktop-titlebar-inset` carries
+  // `DESKTOP_FRAME_HEIGHT` from src/window-chrome.ts; keep both in step.
+  const expectedUrl = `http://127.0.0.1:${String(ctx.webServer.port)}/?dsh-desktop-mode=compatibility&dsh-desktop-platform=win32&dsh-desktop-version=2.0.0&dsh-desktop-material=off&dsh-desktop-titlebar-inset=36&dsh-desktop-mica=1`
   if (mountedSpec?.url !== expectedUrl) {
     throw new Error(`desktop plugin produced an unexpected renderer URL: ${String(mountedSpec?.url)}`)
   }
-  if (mountedSpec?.mode !== 'advanced') {
+  if (mountedSpec?.mode !== 'compatibility') {
     throw new Error(`desktop plugin produced an unexpected shell mode: ${String(mountedSpec?.mode)}`)
   }
   if (mountedSpec?.rendererAccessHeader !== BROWSER_ACCESS.rendererHeader) {
@@ -300,8 +306,8 @@ try {
   // 0.1.7 dropped the settings file: `ctx.get('settings')` is the SettingsForms
   // service with no `get(ns)` accessor, so the effective mode is read through
   // the same descriptor query the desktop settings module itself uses.
-  if (readDesktopSettings(ctx).mode !== 'advanced') {
-    throw new Error('assembled Host settings are missing the advanced dsh-desktop mode')
+  if (readDesktopSettings(ctx).mode !== 'compatibility') {
+    throw new Error('assembled Host settings did not resolve the legacy dsh-desktop mode to compatibility')
   }
   if (!trayItems.some(item => item.label() === 'Check for Updates…')) {
     throw new Error('assembled desktop profile is missing the update tray command')
@@ -424,18 +430,21 @@ try {
     '@deepseek-ai/dsh-client-ui-sidebar',
     '@deepseek-ai/dsh-client-ui-directory-picker-browse',
     'dsh-nonead-client-skin',
+    // The compatibility presentation runs the upstream client without overrides,
+    // so the upstream layout row stays in the graph instead of being replaced.
+    '@deepseek-ai/dsh-client-ui-layout',
   ]) {
     if (!ids.has(id)) {
       throw new Error(
-        `assembled advanced Web graph is missing ${id}; received ${[...ids].sort().join(', ')}`,
+        `assembled compatibility Web graph is missing ${id}; received ${[...ids].sort().join(', ')}`,
       )
     }
   }
+  // The smoke selects the browse picker, so the native picker stays out.
   for (const id of [
-    '@deepseek-ai/dsh-client-ui-layout',
     '@deepseek-ai/dsh-client-ui-directory-picker-native',
   ]) {
-    if (ids.has(id)) throw new Error(`assembled advanced Web graph unexpectedly includes ${id}`)
+    if (ids.has(id)) throw new Error(`assembled compatibility Web graph unexpectedly includes ${id}`)
   }
 } finally {
   await ctx?.fiber.dispose()
