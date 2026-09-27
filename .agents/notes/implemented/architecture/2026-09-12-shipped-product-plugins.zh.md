@@ -4,9 +4,7 @@ Status: implemented
 
 [English](2026-09-12-shipped-product-plugins.md) | 中文
 
-> **更新（2026-09-21）：** `dsh-nonead-universal-robots` 已退出随产品内置集合。launcher 不再插入它的 loader 行，两个桌面发行版都不再依赖或打包它，`desktopBundleList()` 也不再把它从 Profile bundle 列表中剔除。只有 [`dsh-nonead-client-skin/`](../../../../dsh-nonead-client-skin/) 仍按下文所述随 launcher 代次承载。
->
-> **更新（2026-09-26）：** `dsh-nonead-universal-robots` 随后被整体移出本仓库：其源码已删除，根 Yarn 工作区也不再声明该成员。下文凡仍将其称为工作区成员或 production dependency 之处，均应读作本次更新之前的状态；皮肤现在是唯一由产品所有的插件工作区成员。
+> **更新（2026-09-27）：** `dsh-nonead-universal-robots` 已以 v0.4.0 重新回到内置集合，下文所述恢复为当前状态，其上 2026-09-21 与 2026-09-26 两条更新作废。launcher 行、两个发行版的依赖、解包的 `python/` 负载以及工作区与 layout 契约均已恢复。该插件现在还带一个只读 3D 孪生客户端半（`dsh.client`，`platform: web`，无 `external`），peer 范围写作 `^0.1.2-rc.1 || ^0.1.7-rc.2`（DSH 包），以便解析到内置的 `0.1.7-rc.2` 家族；下文凡只提皮肤的客户端接线、本次之前的 peer 范围或当时的验证计数，均按本次更新之前的状态理解。其源码自 `feat/ur-digital-twin` 的 `df6feca` 重新并入——见来源段落。
 
 ## Problem
 

@@ -116,6 +116,7 @@ export const ALLOWED_SMART_UNPACK_PACKAGE_PREFIXES = [
  */
 export const ALLOWED_UNPACKED_PACKAGE_PAYLOADS = [
   'node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/',
+  'node_modules/dsh-nonead-universal-robots/python/',
 ] as const
 
 /**

@@ -17,6 +17,7 @@ const stablePlugin = readJson('dsh-plugin-desktop/package.json')
 const betaPlugin = readJson('dsh-plugin-desktop-beta/package.json')
 const fabric = readJson('dsh-community-fabric/package.json')
 const market = readJson('dsh-community-market/package.json')
+const robots = readJson('dsh-nonead-universal-robots/package.json')
 const skin = readJson('dsh-nonead-client-skin/package.json')
 const upstreamPackage = readJson('deepseek-harness/package.json')
 
@@ -34,6 +35,7 @@ if (JSON.stringify(workspace.workspaces) !== JSON.stringify([
   'dsh-plugin-desktop-beta',
   'dsh-community-fabric',
   'dsh-community-market',
+  'dsh-nonead-universal-robots',
   'dsh-nonead-client-skin',
 ])) {
   fail('the root Yarn workspace must contain the desktop, community-fabric, community-market, and shipped product plugin packages')
@@ -43,6 +45,7 @@ for (const [name, manifest] of [
   ['dsh-plugin-desktop-beta', betaPlugin],
   ['dsh-community-fabric', fabric],
   ['dsh-community-market', market],
+  ['dsh-nonead-universal-robots', robots],
   ['dsh-nonead-client-skin', skin],
 ]) {
   if (manifest.packageManager !== undefined) fail(`${name} must inherit the root Yarn release`)
@@ -77,6 +80,8 @@ for (const legacyFile of [
   'dsh-community-fabric/pnpm-workspace.yaml',
   'dsh-community-market/pnpm-lock.yaml',
   'dsh-community-market/pnpm-workspace.yaml',
+  'dsh-nonead-universal-robots/pnpm-lock.yaml',
+  'dsh-nonead-universal-robots/pnpm-workspace.yaml',
 ]) {
   if (existsSync(resolve(root, legacyFile))) fail(`${legacyFile} must not exist`)
 }
@@ -96,6 +101,7 @@ for (const [owner, manifest] of [
   ['beta desktop', betaPlugin],
   ['fabric', fabric],
   ['market', market],
+  ['universal-robots plugin', robots],
   ['client skin plugin', skin],
 ]) {
   for (const field of ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies', 'resolutions']) {

@@ -217,6 +217,7 @@ describe('desktop profile composition', {
   it('drops shipped product plugin bundles that the launcher layer already composes', () => {
     expect(desktopBundleList([
       '@deepseek-ai/dsh-base',
+      'dsh-nonead-universal-robots',
       'third-party-one',
       'dsh-nonead-client-skin',
     ])).toEqual([

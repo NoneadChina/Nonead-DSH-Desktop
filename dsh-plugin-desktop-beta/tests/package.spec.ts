@@ -840,10 +840,11 @@ describe('published package surface', () => {
     expect(manifest.build?.asar).toEqual({ smartUnpack: true })
     expect(manifest.build).not.toHaveProperty('asarUnpack')
     // Native payloads an ASAR archive cannot serve: the AA connector's Python
-    // package, executed by an external interpreter that cannot read inside
-    // app.asar.
+    // package and the Universal Robots worker, both executed by an external
+    // interpreter that cannot read inside app.asar.
     const externalRuntimePayloads = [
       'node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/**',
+      'node_modules/dsh-nonead-universal-robots/python/**',
     ]
     expect(manifest.build?.mac?.asarUnpack).toEqual([
       'build/app-icon-mac.png',
@@ -884,6 +885,7 @@ describe('published package surface', () => {
       'package.json',
       '!node_modules/node-pty/build/**',
       '!node_modules/fs-ext/build/**',
+      '!node_modules/dsh-nonead-universal-robots/python/**/*.log',
       '!node_modules/@dataiku/uv-win32-arm64/**',
       '!node_modules/@deepseek-ai/libreoffice-kit-win32-arm64/**',
     ])

@@ -292,6 +292,7 @@
     "adm-zip": "^0.6.0",
     "dsh-community-market": "0.1.0-dev.0",
     "dsh-nonead-client-skin": "0.1.1-rc.2",
+    "dsh-nonead-universal-robots": "0.4.0",
     "dshmarket": "1.66.0",
     "fs-ext": "2.1.1",
     "koffi": "3.1.5",
@@ -373,6 +374,7 @@
       "package.json",
       "!node_modules/node-pty/build/**",
       "!node_modules/fs-ext/build/**",
+      "!node_modules/dsh-nonead-universal-robots/python/**/*.log",
       "!node_modules/@dataiku/uv-win32-arm64/**",
       "!node_modules/@deepseek-ai/libreoffice-kit-win32-arm64/**"
     ],
@@ -381,7 +383,8 @@
         "build/app-icon-mac.png",
         "build/tray-iconTemplate.png",
         "build/tray-iconTemplate@2x.png",
-        "node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/**"
+        "node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/**",
+        "node_modules/dsh-nonead-universal-robots/python/**"
       ],
       "artifactName": "Nonead-DSH-Desktop-Beta-v${version}-${arch}.${ext}",
       "target": [
@@ -412,7 +415,8 @@
         "build/tray-icon-blue@1.25x.png",
         "build/tray-icon-blue@1.5x.png",
         "build/tray-icon-blue@2x.png",
-        "node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/**"
+        "node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/**",
+        "node_modules/dsh-nonead-universal-robots/python/**"
       ],
       "target": [
         {
@@ -450,7 +454,8 @@
         "build/tray-icon-blue@1.25x.png",
         "build/tray-icon-blue@1.5x.png",
         "build/tray-icon-blue@2x.png",
-        "node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/**"
+        "node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/**",
+        "node_modules/dsh-nonead-universal-robots/python/**"
       ],
       "target": [
         "dir"

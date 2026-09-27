@@ -1,0 +1,24 @@
+# DSH plugin runtime artifacts
+python/ur_worker.log
+__pycache__/
+*.py[cod]
+*.log
+
+# Node
+node_modules/
+
+# Release build artifacts
+Release/
+
+# editor / os
+.DS_Store
+Thumbs.db
+
+# SDD / superpowers scratch
+.superpowers/
+
+# pnpm project-local content-addressable store (created by `pnpm add`)
+.pnpm-store/
+
+# DSH local project memory store (agent indexing scratch)
+.dsh-project-memory/

@@ -4,7 +4,7 @@ Status: implemented
 
 [English](2026-08-15-pinned-upstream-and-isolated-yarn-workspace.md) | 中文
 
-> **更新（2026-09-26）：** 下文记录的是仓库初建时的状态。当前实际情况：`dsh-community-market` 已实现，是两个桌面发行版的 production dependency，并声明 package 与 DSH 入口；`dsh-nonead-universal-robots` 已从仓库移除；`dsh-nonead-client-skin` 是唯一由产品所有的插件工作区成员，其 `lib/` 制品随仓库提交。Fabric 仍是文档初始化工程。[`AGENTS.md`](../../../../AGENTS.md) 承载当前拓扑。
+> **更新（2026-09-27）：** 下文记录的是仓库初建时的状态。当前实际情况：`dsh-community-market` 已实现，是两个桌面发行版的 production dependency，并声明 package 与 DSH 入口；由产品所有的插件工作区成员是 `dsh-nonead-universal-robots`（已以 v0.4.0 回到内置集合）与 `dsh-nonead-client-skin`，两者的 `lib/` 制品均随仓库提交。Fabric 仍是文档初始化工程。[`AGENTS.md`](../../../../AGENTS.md) 承载当前拓扑。
 
 ## Problem
 

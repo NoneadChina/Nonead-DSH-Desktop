@@ -434,6 +434,7 @@ the package names, versions, and licenses for transparency.
 | dijkstrajs | 1.0.3 | MIT |
 | dsh-community-market | 0.1.0-dev.0 | MIT |
 | dsh-nonead-client-skin | 0.1.1-rc.2 | MIT |
+| dsh-nonead-universal-robots | 0.4.0 | SEE LICENSE IN LICENSE |
 | dshmarket | 1.66.0 | MIT |
 | ecdsa-sig-formatter | 1.0.11 | Apache-2.0 |
 | emoji-regex | 8.0.0 | MIT |

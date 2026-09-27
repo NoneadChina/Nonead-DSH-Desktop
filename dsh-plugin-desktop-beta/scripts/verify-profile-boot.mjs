@@ -267,15 +267,15 @@ try {
     )
   }
 
-  // Shipped product plugins ride the launcher generation. 1.5.3 dropped the
-  // bundled Universal Robots plugin, so this launcher generation must not
-  // register its `ur_*` tools; a re-added loader row fails here.
+  // Shipped product plugins ride the launcher generation. The Universal Robots
+  // row registers every ur_* tool during boot because its Python worker starts
+  // lazily on the first command, so this holds without a local interpreter.
   const tools = ctx.get('tools')
   if (tools === undefined) {
     throw new Error('assembled desktop profile is missing the tool registry')
   }
-  if (tools.get('ur_connect') !== undefined || tools.get('ur_ping') !== undefined) {
-    throw new Error('assembled desktop profile registered the retired Universal Robots tools')
+  if (tools.get('ur_connect') === undefined || tools.get('ur_ping') === undefined) {
+    throw new Error('assembled desktop profile is missing the shipped Universal Robots tools')
   }
 
   const picker = ctx.directoryPicker.capability()
@@ -431,6 +431,9 @@ try {
     '@deepseek-ai/dsh-client-ui-sidebar',
     '@deepseek-ai/dsh-client-ui-directory-picker-browse',
     'dsh-nonead-client-skin',
+    // The Universal Robots twin ships a client half (dsh.client), so
+    // dsh-client-modules must serve and boot it like the brand skin.
+    'dsh-nonead-universal-robots',
     // The compatibility presentation runs the upstream client without overrides,
     // so the upstream layout row stays in the graph instead of being replaced.
     '@deepseek-ai/dsh-client-ui-layout',

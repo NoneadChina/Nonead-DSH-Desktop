@@ -92,6 +92,7 @@ const OBSOLETE_DESKTOP_BUNDLE_SET = new Set(['@deepseek-ai/dsh-desktop-app'])
 // compose a second copy under that bundle's own loader-row ids, so the
 // installation-owned prefix owns these names like the retired Desktop bundle.
 const SHIPPED_PLUGIN_BUNDLE_SET = new Set([
+  'dsh-nonead-universal-robots',
   'dsh-nonead-client-skin',
 ])
 // Electron's patched fs/module APIs read this logical ASAR path directly. The
