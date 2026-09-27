@@ -5,7 +5,7 @@ the package names, versions, and licenses for transparency.
 | Package | Version | License |
 | --- | --- | --- |
 | @agentclientprotocol/sdk | 1.4.0 | Apache-2.0 |
-| @agents-anywhere/dsh-bridge-next | 0.1.0-dev.0.desktop.ca022d9286dd0.rcda81994 | MIT |
+| @agents-anywhere/dsh-bridge-next | 0.1.0-dev.0.desktop.ceba59602e4c1.r7b32a9b2 | MIT |
 | @anthropic-ai/sdk | 0.123.0 | MIT |
 | @aws-crypto/sha256-browser | 5.2.0 | Apache-2.0 |
 | @aws-crypto/sha256-js | 5.2.0 | Apache-2.0 |
@@ -316,9 +316,9 @@ the package names, versions, and licenses for transparency.
 | @deepseek-ai/dsh-workflow-ptc | 0.1.7-rc.2 | MIT |
 | @deepseek-ai/dsh-workspace | 0.1.7-rc.2 | MIT |
 | @deepseek-ai/dsh-workspace-changes | 0.1.7-rc.2 | MIT |
-| @deepseek-ai/libreoffice-kit | 0.1.0 | MPL-2.0 |
-| @deepseek-ai/libreoffice-kit-win32-arm64 | 0.1.0 | MPL-2.0 |
-| @deepseek-ai/libreoffice-kit-win32-x64 | 0.1.0 | MPL-2.0 |
+| @deepseek-ai/libreoffice-kit | 0.1.1 | MPL-2.0 |
+| @deepseek-ai/libreoffice-kit-win32-arm64 | 0.1.1 | MPL-2.0 |
+| @deepseek-ai/libreoffice-kit-win32-x64 | 0.1.1 | MPL-2.0 |
 | @deepseek-ai/node-addon-system | 0.1.2 | BSD-3-Clause |
 | @deepseek-ai/schemastery | 3.18.4 | MIT |
 | @earendil-works/pi-ai | 0.85.1 | MIT |
@@ -329,6 +329,7 @@ the package names, versions, and licenses for transparency.
 | @img/sharp-win32-arm64 | 0.35.3 | Apache-2.0 AND LGPL-3.0-or-later |
 | @img/sharp-win32-x64 | 0.35.3 | Apache-2.0 AND LGPL-3.0-or-later |
 | @joplin/turndown-plugin-gfm | 1.0.67 | MIT |
+| @js-temporal/polyfill | 0.5.1 | ISC |
 | @koromix/koffi-win32-arm64 | 3.1.5 | MIT |
 | @koromix/koffi-win32-x64 | 3.1.5 | MIT |
 | @mixmark-io/domino | 2.2.0 | BSD-2-Clause |
@@ -472,6 +473,7 @@ the package names, versions, and licenses for transparency.
 | jose | 6.2.8 | MIT |
 | js-tokens | 4.0.0 | MIT |
 | js-yaml | 4.3.1 | MIT |
+| jsbi | 4.3.2 | Apache-2.0 |
 | json-bigint | 1.0.0 | MIT |
 | json-schema-to-ts | 3.1.1 | MIT |
 | json-schema-traverse | 1.0.0 | MIT |
