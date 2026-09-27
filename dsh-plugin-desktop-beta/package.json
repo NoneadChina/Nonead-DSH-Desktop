@@ -423,7 +423,11 @@
         }
       ],
       "artifactName": "Nonead-DSH-Desktop-Beta-v${version}-${arch}-Portable.${ext}",
-      "icon": "build/app-icon.png"
+      "icon": "build/app-icon.png",
+      "publish": {
+        "provider": "generic",
+        "url": "https://www.nonead.com/software/ndsh-desktop/downloads/windows"
+      }
     },
     "nsis": {
       "include": "installer.nsh",
