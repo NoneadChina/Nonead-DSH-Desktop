@@ -35,7 +35,7 @@ export function verifyWindowsPortable(
   const portablePath = join(
     options.desktopRoot,
     'dist',
-    `Nonead-DSH-Desktop-Beta-v${options.version}-x64-Portable.zip`,
+    `Nonead-DSH-Desktop-Beta-${options.version}-x64-Portable.zip`,
   )
   const stat = statSync(portablePath)
   if (!stat.isFile() || stat.size === 0) {
@@ -47,8 +47,8 @@ export function verifyWindowsPortable(
   if (executable === undefined) {
     throw new Error(`Windows portable archive is missing Nonead DSH Desktop Beta.exe: ${portablePath}`)
   }
-  if (!entries.some(entry => entry.entryName.replaceAll('\\', '/') === 'resources/app.asar')) {
-    throw new Error(`Windows portable archive is missing resources/app.asar: ${portablePath}`)
+  if (!entries.some(entry => entry.entryName.replaceAll('\\', '/') === 'resources/app/package.json')) {
+    throw new Error(`Windows portable archive is missing resources/app/package.json: ${portablePath}`)
   }
   assertPortableExecutableBuffer(
     executable.getData(),

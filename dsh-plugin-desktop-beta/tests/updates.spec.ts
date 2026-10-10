@@ -40,7 +40,6 @@ interface Harness {
   readonly confirmDownload: ReturnType<typeof vi.fn>
   readonly showManualCheckResult: ReturnType<typeof vi.fn>
   readonly downloadAndOpen: ReturnType<typeof vi.fn>
-  readonly reportDownloadFailure: ReturnType<typeof vi.fn>
   readonly refresh: ReturnType<typeof vi.fn>
   readonly registrationDispose: ReturnType<typeof vi.fn>
   readonly requestRejection: ReturnType<typeof vi.fn<(
@@ -60,7 +59,6 @@ async function createHarness(options: {
   readonly confirmDownload?: (version: string, channel?: 'stable' | 'beta') => Promise<boolean>
   readonly showManualCheckResult?: (result: UpdateCheckResult | null) => Promise<void>
   readonly downloadAndOpen?: (version: string, signal: AbortSignal, channel?: 'stable' | 'beta') => Promise<void>
-  readonly reportDownloadFailure?: (version: string, failure: { code: string; status?: number }) => Promise<void>
   readonly notify?: (notification: DesktopNotification) => void
   readonly locale?: DesktopRuntime['locale']
   readonly state?: string
@@ -78,7 +76,6 @@ async function createHarness(options: {
   const confirmDownload = vi.fn(options.confirmDownload ?? (async () => false))
   const showManualCheckResult = vi.fn(options.showManualCheckResult ?? (async () => {}))
   const downloadAndOpen = vi.fn(options.downloadAndOpen ?? (async () => {}))
-  const reportDownloadFailure = vi.fn(options.reportDownloadFailure ?? (async () => {}))
   const requestRejection = vi.fn<(
     request: ConnectionTrustRequest,
   ) => ConnectionRequestRejection>(() => undefined)
@@ -98,7 +95,6 @@ async function createHarness(options: {
       confirmDownload,
       showManualCheckResult,
       downloadAndOpen,
-      reportDownloadFailure,
       notify: options.notify ?? ((notification: DesktopNotification) => { notifications.push(notification) }),
     },
     registerTrayItem: (item: DesktopTrayItem) => {
@@ -136,7 +132,6 @@ async function createHarness(options: {
     confirmDownload,
     showManualCheckResult,
     downloadAndOpen,
-    reportDownloadFailure,
     refresh,
     registrationDispose,
     requestRejection,
@@ -496,7 +491,7 @@ describe('desktop update Host plugin', () => {
     expect(harness.tray.label()).toBe('Check for Updates…')
   })
 
-  it('shares one pending download and reports the failure after restoring availability', async () => {
+  it('shares one pending download and silently restores availability after failure', async () => {
     let rejectDownload!: (cause: Error) => void
     const download = new Promise<void>((_resolve, reject) => { rejectDownload = reject })
     const harness = await createHarness({
@@ -510,66 +505,13 @@ describe('desktop update Host plugin', () => {
     await vi.waitFor(() => { expect(harness.downloadAndOpen).toHaveBeenCalledOnce() })
     const second = harness.tray.invoke()
     expect(harness.downloadAndOpen).toHaveBeenCalledOnce()
-    const cause = Object.assign(new Error('offline'), { code: 'network' })
-    rejectDownload(cause)
+    rejectDownload(new Error('offline'))
     await Promise.all([first, second])
 
     expect(harness.downloadAndOpen).toHaveBeenCalledOnce()
-    expect(harness.reportDownloadFailure).toHaveBeenCalledWith('2.1.0', { code: 'network' })
     expect(harness.notifications).toEqual([])
     expect(harness.warnings).toEqual([])
     expect(harness.tray.label()).toBe('Nonead DSH Desktop 2.1.0 Available')
-  })
-
-  it('reports one download failure with its HTTP status and no installer path', async () => {
-    const harness = await createHarness({
-      packaged: false,
-      request: async () => versionResponse('2.1.0'),
-      confirmDownload: async () => true,
-      downloadAndOpen: async () => {
-        throw Object.assign(new Error('rejected'), { code: 'http-status', status: 503 })
-      },
-    })
-
-    await harness.tray.invoke()
-
-    expect(harness.reportDownloadFailure).toHaveBeenCalledWith('2.1.0', { code: 'http-status', status: 503 })
-  })
-
-  it('reports an untyped download failure as an unknown category', async () => {
-    const harness = await createHarness({
-      packaged: false,
-      request: async () => versionResponse('2.1.0'),
-      confirmDownload: async () => true,
-      downloadAndOpen: async () => { throw new Error('no space left on device') },
-    })
-
-    await harness.tray.invoke()
-
-    expect(harness.reportDownloadFailure).toHaveBeenCalledWith('2.1.0', { code: 'unknown' })
-  })
-
-  it('reports nothing when the download is cancelled by disposal', async () => {
-    let downloadSignal: AbortSignal | undefined
-    const downloading = await createHarness({
-      packaged: false,
-      request: async () => versionResponse('2.1.0'),
-      confirmDownload: async () => true,
-      downloadAndOpen: async (_version, signal) => new Promise<void>((_resolve, reject) => {
-        downloadSignal = signal
-        signal.addEventListener('abort', () => {
-          reject(Object.assign(new Error('cancelled'), { code: 'aborted' }))
-        }, { once: true })
-      }),
-    })
-
-    const pending = downloading.tray.invoke()
-    await vi.waitFor(() => { expect(downloadSignal).toBeDefined() })
-    await downloading.dispose()
-    await pending
-
-    expect(downloading.reportDownloadFailure).not.toHaveBeenCalled()
-    expect(downloading.warnings).toEqual([])
   })
 
   it('aborts checks and downloads and removes the tray item on effect disposal', async () => {

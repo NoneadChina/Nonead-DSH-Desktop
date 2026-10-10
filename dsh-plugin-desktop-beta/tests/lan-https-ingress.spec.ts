@@ -347,7 +347,7 @@ describe('LAN HTTPS ingress', () => {
       `Host: ${LAN_ADDRESS}:${String(ingressPort(ingress))}`,
       'Connection: Upgrade',
       'Upgrade: dsh-test',
-      'X-Nonead-DSH-Desktop-Renderer: forged-capability',
+      'X-DSH-Desktop-Renderer: forged-capability',
       'X-Forwarded-For: 203.0.113.9',
       '',
       'first',

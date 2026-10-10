@@ -88,11 +88,7 @@ describe('pre-Host recovery plugin uninstall command', () => {
     })
   })
 
-  // The packaged Node/pnpm projection itself is covered by the Windows-native
-  // cases above. This case drives a real `dsh plugin remove` through a batch-file
-  // pnpm shim, which Node's spawn cannot execute on Windows, so the packaged-pnpm
-  // selection it asserts is exercised on POSIX.
-  it.runIf(process.platform !== 'win32')('uses packaged pnpm after runtime PATH release and preserves official bundle reconciliation', async () => {
+  it('uses packaged pnpm after runtime PATH release and preserves official bundle reconciliation', async () => {
     const base = fixture('')
     const dshBootstrapPath = join(import.meta.dirname, '../lib/desktop-cli.js')
     const systemBin = join(dirname(base.profileDir), 'system-bin')

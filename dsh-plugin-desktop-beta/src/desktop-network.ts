@@ -1,6 +1,7 @@
 /** Desktop ordinary-browser access and listener exposure preferences. */
 
 import type { Config as WebServerConfig } from '@deepseek-ai/dsh-host-webserver'
+import type { DesktopShellMode } from './runtime.ts'
 
 /** Listener scope selected for the next Desktop generation. */
 export type DesktopNetworkExposure = 'loopback' | 'lan'
@@ -20,22 +21,21 @@ export function parseDesktopOpenBrowser(value: unknown): boolean {
   throw new Error('dsh-plugin-desktop: dsh-desktop.openBrowser must be a boolean')
 }
 
-/** Ordinary-browser access is no longer gated by a presentation choice. */
-export function desktopBrowserAccessAvailable(): boolean {
-  return true
+/** Browser access can only be granted by an explicitly selected compatibility shell. */
+export function desktopBrowserAccessAvailable(mode: DesktopShellMode): boolean {
+  return mode === 'compatibility'
 }
 
 /**
- * Resolve browser access while preserving already-exposed legacy LAN setups.
- * @param storedOpenBrowser - persisted explicit permission.
- * @param exposure - persisted network exposure.
- * @returns whether ordinary browsers may reach the Web carrier.
+ * Resolve browser access while preserving already-exposed legacy LAN setups
+ * only when the selected shell is compatible with an ordinary browser.
  */
 export function desktopBrowserAccessEnabled(
+  mode: DesktopShellMode,
   storedOpenBrowser: boolean,
   exposure: DesktopNetworkExposure,
 ): boolean {
-  return desktopBrowserAccessAvailable() && (storedOpenBrowser || exposure === 'lan')
+  return desktopBrowserAccessAvailable(mode) && (storedOpenBrowser || exposure === 'lan')
 }
 
 /** LAN exposure is meaningful only while ordinary-browser access is enabled. */

@@ -3,13 +3,10 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { fileURLToPath } from 'node:url'
 import type { Context } from '@deepseek-ai/cordis'
-import z from '@deepseek-ai/schemastery'
 import type {} from '@deepseek-ai/dsh-cmdline'
-import { LOCALE_SETTINGS_NAMESPACE } from '@deepseek-ai/dsh-client-locale'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import type {} from '@deepseek-ai/dsh-client-connection'
-import type {} from '@deepseek-ai/dsh-settings'
-import { THEME_SETTINGS_NAMESPACE } from '@deepseek-ai/dsh-client-ui-theme'
+import { desktopApplicationIconPath } from './application-icon-path.ts'
 import {
   handleRendererBootRequest,
   RENDERER_BOOT_REPORT_PATH,
@@ -53,9 +50,8 @@ import {
 import type {} from './desktop-settings-controller.ts'
 import { DESKTOP_LAN_HTTPS_CA_PATH } from './lan-https-runtime.ts'
 import { desktopBootRecoveryInjections } from './desktop-boot-recovery.ts'
-import type { DesktopLocale, DesktopShellMode, DesktopThemeSource } from './runtime.ts'
+import type { DesktopLocale, DesktopShellMode } from './runtime.ts'
 import type {} from './runtime.ts'
-import { DESKTOP_DEFAULT_WEB_PORT } from './desktop-port.ts'
 import {
   desktopBrowserAccessEnabled,
   desktopNetworkExposureForBrowserAccess,
@@ -64,20 +60,22 @@ import {
 } from './desktop-network.ts'
 import { DESKTOP_FRAME_HEIGHT } from './window-chrome.ts'
 import {
-  DEFAULT_MACOS_WINDOW_MATERIAL,
-  DEFAULT_WINDOWS_WINDOW_MATERIAL,
   effectiveDesktopWindowMaterial,
   type DesktopWindowMaterial,
-  type MacosWindowMaterial,
-  type PersistedWindowsWindowMaterial,
-  windowsSupportsMica,
 } from './window-material.ts'
 import { DESKTOP_PRODUCT_NAME } from './product-identity.ts'
+import { watchPlatformLogin, type PlatformLoginAccount } from './platform-login.ts'
+import type { DesktopSetupWizardSettings } from './setup-wizard-settings.ts'
 import {
-  DESKTOP_SETTINGS_ENTRY_ID,
-  readDesktopSettings,
-  readSettingsSection,
-} from './settings.ts'
+  createDesktopSettingsPort,
+  DESKTOP_NOTIFICATIONS_SETTINGS_ENTRY_ID,
+  readUiLocalePreference,
+  readUiThemeSource,
+  resolveDesktopConfig,
+  watchUiLocalePreference,
+  watchUiThemeSource,
+  type DesktopShellConfig,
+} from './settings-bridge.ts'
 
 /** Stable Cordis plugin name. */
 export const name = 'desktop-shell'
@@ -86,11 +84,18 @@ export const name = 'desktop-shell'
 /** Services required by the desktop shell; `desktopRuntime` is probed, not required. */
 export const inject = ['webServer', 'webRuntime', 'appExit', 'settings', 'connection']
 
-/** Profile patch row id that owns the standard Desktop settings. */
-export const DESKTOP_SETTINGS_NAMESPACE = DESKTOP_SETTINGS_ENTRY_ID
-
-const UI_THEME_SETTINGS_NAMESPACE = THEME_SETTINGS_NAMESPACE
-const UI_LOCALE_SETTINGS_NAMESPACE = LOCALE_SETTINGS_NAMESPACE
+/**
+ * Standard settings namespace shared by tray and configuration surfaces, the
+ * editable preference subset, and the validated native window configuration.
+ * All three are edition-local because the two channels' cores model plugin
+ * configuration differently; see `src/settings-bridge.ts`.
+ */
+export {
+  DESKTOP_SETTINGS_NAMESPACE,
+  DesktopSettingsSchema,
+  DesktopShellConfig as Config,
+  type DesktopSettings,
+} from './settings-bridge.ts'
 
 /** Apply the official Connection trust and browser-auth fence before a private Desktop route. */
 function rejectDesktopRequest(
@@ -110,48 +115,6 @@ function desktopLocalePreference(preference: string | undefined): DesktopLocale 
   return preference === 'zh' || preference === 'en' ? preference : undefined
 }
 
-/** Narrow a projected theme preference to the sources the native chrome accepts. */
-function desktopThemeSource(preference: unknown): DesktopThemeSource | undefined {
-  return preference === 'system' || preference === 'light' || preference === 'dark'
-    ? preference
-    : undefined
-}
-
-/** Native window configuration. */
-export interface Config {
-  /** Native presentation mode selected before BrowserWindow construction. */
-  mode: DesktopShellMode
-  /** Native translucency preference used on macOS custom-chrome modes. */
-  macosMaterial: MacosWindowMaterial
-  /** Native backdrop preference used on Windows custom-chrome modes. */
-  windowsMaterial: PersistedWindowsWindowMaterial
-  /** Configured loopback Web port used to detect restart-applied settings changes. */
-  port: number
-  /** Configured listener exposure used to detect restart-applied settings changes. */
-  networkExposure: DesktopNetworkExposure
-  /** Initial window width in CSS pixels. */
-  width: number
-  /** Initial window height in CSS pixels. */
-  height: number
-  /** Minimum window width in CSS pixels. */
-  minWidth: number
-  /** Minimum window height in CSS pixels. */
-  minHeight: number
-}
-
-/** Validated native window configuration. */
-export const Config: z<Config> = z.object({
-  mode: z.union(['compatibility', 'extended', 'advanced'] as const).default('compatibility'),
-  macosMaterial: z.union(['off', 'transparent'] as const).default(DEFAULT_MACOS_WINDOW_MATERIAL),
-  windowsMaterial: z.union(['off', 'acrylic', 'mica'] as const).default(DEFAULT_WINDOWS_WINDOW_MATERIAL),
-  port: z.number().step(1).min(0).max(65_535).default(DESKTOP_DEFAULT_WEB_PORT),
-  networkExposure: z.union(['loopback', 'lan'] as const).default('loopback'),
-  width: z.number().step(1).min(800).default(1280),
-  height: z.number().step(1).min(600).default(840),
-  minWidth: z.number().step(1).min(640).default(900),
-  minHeight: z.number().step(1).min(480).default(640),
-})
-
 /**
  * Construct the unmodified upstream Web root URL.
  * @param port - active loopback Web server port.
@@ -165,7 +128,6 @@ export function desktopRendererUrl(
   platform: Context['desktopRuntime']['platform'],
   appVersion: string,
   material: DesktopWindowMaterial = 'off',
-  windowsBuild?: number,
 ): string {
   const url = new URL(`http://127.0.0.1:${String(port)}/`)
   url.searchParams.set('dsh-desktop-mode', mode)
@@ -177,9 +139,6 @@ export function desktopRendererUrl(
     // Publish the exact content boundary so they can yield Desktop chrome.
     url.searchParams.set('dsh-desktop-titlebar-inset', String(DESKTOP_FRAME_HEIGHT))
   }
-  if (platform === 'win32') {
-    url.searchParams.set('dsh-desktop-mica', windowsSupportsMica(windowsBuild) ? '1' : '0')
-  }
   return url.href
 }
 
@@ -188,7 +147,7 @@ export function desktopRendererUrl(
  * @param ctx - Host context carrying the Electron adapter and Web carrier.
  * @param config - validated native window values.
  */
-export function apply(ctx: Context, config: Config): void {
+export function apply(ctx: Context, config: DesktopShellConfig): void {
   const runtime = ctx.get('desktopRuntime')
   if (runtime === undefined) {
     process.stderr.write(
@@ -210,18 +169,21 @@ export function apply(ctx: Context, config: Config): void {
   if (lanHttps === undefined) {
     throw new Error('dsh-plugin-desktop: the launcher did not provide ctx.desktopLanHttps')
   }
-  if (ctx.webServer.host !== desktopWebServerHost(config.networkExposure)) {
+  const resolved = resolveDesktopConfig(config)
+  if (ctx.webServer.host !== desktopWebServerHost(resolved.networkExposure)) {
     throw new Error('dsh-plugin-desktop: desktop shell WebServer host does not match networkExposure')
   }
   lanHttps.attach(ctx.webServer.port)
-  const iconFilename = runtime.platform === 'darwin'
-    ? 'app-icon-mac.png'
-    : 'app-icon.png'
-  const iconPath = fileURLToPath(new URL(`../build/${iconFilename}`, import.meta.url))
+  const iconPath = desktopApplicationIconPath(runtime.platform)
   const trayIcons = {
     templatePath: fileURLToPath(new URL('../build/tray-iconTemplate.png', import.meta.url)),
     bluePath: fileURLToPath(new URL('../build/tray-icon-blue.png', import.meta.url)),
   }
+  const settings = createDesktopSettingsPort(ctx, config, runtime.platform)
+  // Choices first-run Setup saved into this generation's settings. Setup's own
+  // continuation offers the restart that applies them, after its account step.
+  let setupSettings: DesktopSetupWizardSettings | undefined
+  let setupSaved = false
   const rendererOrigin = `http://127.0.0.1:${String(ctx.webServer.port)}`
   ctx.effect(
     () => ctx.webServer.register({
@@ -372,11 +334,10 @@ export function apply(ctx: Context, config: Config): void {
         )
       })
     }
-    updateLiveWebAccess(browserAccess.ordinaryBrowserEnabled, config.networkExposure)
-    const stopWatching = ctx.on('settings/document-updated', (namespace) => {
-      if (namespace !== DESKTOP_SETTINGS_ENTRY_ID) return
-      const next = readDesktopSettings(ctx)
+    updateLiveWebAccess(browserAccess.ordinaryBrowserEnabled, resolved.networkExposure)
+    const stopWatching = settings.watch((next) => {
       const nextBrowserAccess = desktopBrowserAccessEnabled(
+        next.mode,
         next.openBrowser,
         next.networkExposure,
       )
@@ -385,10 +346,28 @@ export function apply(ctx: Context, config: Config): void {
         next.networkExposure,
       )
       updateLiveWebAccess(nextBrowserAccess, nextNetworkExposure)
-      if (next.mode === config.mode
-        && next.port === config.port
-        && next.macosMaterial === config.macosMaterial
-        && next.windowsMaterial === config.windowsMaterial) {
+      const matchesSetup = setupSettings !== undefined
+        && next.mode === setupSettings.mode
+        && next.port === resolved.port
+        && next.macosMaterial === setupSettings.macosMaterial
+        && next.linuxMaterial === resolved.linuxMaterial
+      // Once saved, any other value supersedes Setup's choice for this generation;
+      // a later return to it is a new change and asks for its restart.
+      if (!matchesSetup && setupSaved) {
+        setupSettings = undefined
+        setupSaved = false
+      }
+      if (next.mode === resolved.mode
+        && next.port === resolved.port
+        && next.macosMaterial === resolved.macosMaterial
+        && next.linuxMaterial === resolved.linuxMaterial) {
+        if (pending !== undefined) clearImmediate(pending)
+        pending = undefined
+        return
+      }
+      // A native restart prompt here would interrupt the official login that
+      // follows Setup; only a later, different choice asks for its own restart.
+      if (matchesSetup) {
         if (pending !== undefined) clearImmediate(pending)
         pending = undefined
         return
@@ -408,59 +387,60 @@ export function apply(ctx: Context, config: Config): void {
     }
   }, 'dsh-plugin-desktop: live browser access and restart-applied native settings')
   if (runtime.platform !== 'linux') {
-    ctx.on('settings/document-updated', (namespace) => {
-      if (namespace !== UI_THEME_SETTINGS_NAMESPACE) return
-      const source = desktopThemeSource(readSettingsSection(ctx, UI_THEME_SETTINGS_NAMESPACE)?.preference)
-      if (source === undefined) return
-      runtime.setThemeSource(source)
-    })
+    watchUiThemeSource(ctx, (preference) => { runtime.setThemeSource(preference) })
   }
-  ctx.on('settings/document-updated', (namespace) => {
-    if (namespace !== UI_LOCALE_SETTINGS_NAMESPACE) return
-    const preference = readSettingsSection(ctx, UI_LOCALE_SETTINGS_NAMESPACE)?.preference
-    runtime.setLocalePreference(
-      typeof preference === 'string' ? desktopLocalePreference(preference) : undefined,
-    )
+  watchUiLocalePreference(ctx, (preference) => {
+    runtime.setLocalePreference(desktopLocalePreference(preference))
+  })
+  // Cores with the DeepSeek account service (0.1.7+) leave opening the Platform
+  // sign-in page to a native subscriber; older cores never activate this row.
+  ctx.inject(['deepseekAccount'], (accountCtx) => {
+    accountCtx.effect(() => {
+      const account = accountCtx.get('deepseekAccount') as PlatformLoginAccount
+      const lifetime = new AbortController()
+      // A broken watcher only loses the automatic hand-off; the sign-in dialog still offers the link.
+      void watchPlatformLogin(
+        account,
+        (request) => { runtime.platformLogin(request) },
+        () => browserAccess.ordinaryBrowserEnabled,
+        lifetime.signal,
+      ).catch((cause: unknown) => {
+        if (!lifetime.signal.aborted) {
+          accountCtx.logger.error(`dsh-plugin-desktop: platform sign-in watcher stopped: ${cause instanceof Error ? cause.message : String(cause)}`)
+        }
+      })
+      return () => { lifetime.abort() }
+    }, 'dsh-plugin-desktop: platform sign-in hand-off')
   })
   ctx.effect(
     () => {
       const material = effectiveDesktopWindowMaterial(
-        config.mode,
+        resolved.mode,
         runtime.platform,
-        config.macosMaterial,
-        config.windowsMaterial,
-        runtime.windowsBuild,
+        resolved.macosMaterial,
+        resolved.linuxMaterial,
       )
       const url = desktopRendererUrl(
         ctx.webServer.port,
-        config.mode,
+        resolved.mode,
         runtime.platform,
         runtime.updates.currentVersion,
         material,
-        runtime.windowsBuild,
       )
       return runtime.schedule({
-        ...config,
+        ...resolved,
         material,
-        ...(runtime.windowsBuild === undefined ? {} : { windowsBuild: runtime.windowsBuild }),
         url,
         authenticationUrl: ctx.connection.authenticatedUrl(new URL(url).origin),
         rendererAccessHeader: browserAccess.rendererHeader,
         productName: DESKTOP_PRODUCT_NAME,
-        windowTitle: 'DeepSeek Harness Desktop',
+        windowTitle: DESKTOP_PRODUCT_NAME,
         iconPath,
         trayIcons,
         readLocalePreference: () => {
-          const preference = readSettingsSection(ctx, UI_LOCALE_SETTINGS_NAMESPACE)?.preference
-          return desktopLocalePreference(typeof preference === 'string' ? preference : undefined)
+          return desktopLocalePreference(readUiLocalePreference(ctx))
         },
-        readThemeSource: () => {
-          const source = desktopThemeSource(readSettingsSection(ctx, UI_THEME_SETTINGS_NAMESPACE)?.preference)
-          if (source === undefined) {
-            throw new Error('dsh-plugin-desktop: custom shell requires the ui-theme settings namespace')
-          }
-          return source
-        },
+        readThemeSource: () => readUiThemeSource(ctx),
         ...(desktopSettings === undefined ? {} : {
           readRemoteControl: async () => {
             const aa = desktopSettings.read().aa
@@ -473,11 +453,31 @@ export function apply(ctx: Context, config: Config): void {
         }),
         requestQuit: appExit,
         requestModeChange: async mode => {
-          const current = readDesktopSettings(ctx)
+          const current = settings.get()
           const storedBrowserCapability = current.openBrowser || current.networkExposure === 'lan'
-          await ctx.settings.update(DESKTOP_SETTINGS_ENTRY_ID, mode !== 'compatibility' && storedBrowserCapability
+          await settings.update(mode !== 'compatibility' && storedBrowserCapability
             ? { mode, openBrowser: false, networkExposure: 'loopback' }
             : { mode })
+        },
+        applySetupSettings: async next => {
+          setupSettings = next
+          setupSaved = false
+          try {
+            await settings.update({
+              mode: next.mode,
+              macosMaterial: next.macosMaterial,
+              windowsMaterial: next.windowsMaterial,
+              openBrowser: next.openBrowser,
+              networkExposure: next.networkExposure,
+            })
+          } catch (cause) {
+            setupSettings = undefined
+            throw cause
+          }
+          // The mode is saved; a failed notifications write must not bring back
+          // the native prompt for it.
+          setupSaved = true
+          await ctx.settings.update(DESKTOP_NOTIFICATIONS_SETTINGS_ENTRY_ID, { ...next.notifications })
         },
       })
     },

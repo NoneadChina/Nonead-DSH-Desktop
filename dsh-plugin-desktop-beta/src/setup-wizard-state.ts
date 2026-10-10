@@ -104,36 +104,10 @@ function assertAbsolutePath(label: string, value: string): string {
   return resolve(value)
 }
 
-/**
- * Canonical Profile directory identity.
- *
- * Windows compares paths case-insensitively, so a Profile directory renamed from
- * `work` to `Work` still denotes the same Profile. Hashing the raw spelling would
- * strand the Setup decision under two different keys, which the launcher reads as
- * "this Profile never completed Setup" and then re-opens the Wizard.
- */
-function profileIdentity(profileDir: string): string {
-  const normalized = assertAbsolutePath('Setup Wizard Profile directory', profileDir)
-  return process.platform === 'win32' ? normalized.toLowerCase() : normalized
-}
-
-/** Identity spelling used only to read state written before case folding existed. */
-function legacyProfileIdentity(profileDir: string): string {
-  return assertAbsolutePath('Setup Wizard Profile directory', profileDir)
-}
-
-function hashProfileIdentity(identity: string): string {
-  return createHash('sha256').update(identity).digest('hex')
-}
-
 /** Stable Profile identity used only as a private user-data path component. */
 export function desktopSetupWizardProfileHash(profileDir: string): string {
-  return hashProfileIdentity(profileIdentity(profileDir))
-}
-
-/** Pre-case-folding Profile identity, retained so existing markers stay readable. */
-export function legacyDesktopSetupWizardProfileHash(profileDir: string): string {
-  return hashProfileIdentity(legacyProfileIdentity(profileDir))
+  const normalized = assertAbsolutePath('Setup Wizard Profile directory', profileDir)
+  return createHash('sha256').update(normalized).digest('hex')
 }
 
 /** Fixed marker path for one Profile under one Electron user-data directory. */
@@ -273,11 +247,12 @@ function parseState(text: string, expectedProfileHash: string): DesktopSetupWiza
   })
 }
 
-/** Parse one Profile marker file, or report absence/malformation. */
-function readSetupWizardStateAt(
-  path: string,
-  profileHash: string,
+/** Read one Profile marker; absence means the Wizard still needs a decision. */
+export function readDesktopSetupWizardState(
+  userDataDir: string,
+  profileDir: string,
 ): DesktopSetupWizardState | undefined {
+  const path = desktopSetupWizardStatePath(userDataDir, profileDir)
   const root = dirname(dirname(path))
   const profileRoot = dirname(path)
   if (existingPathInfo(root) === undefined) return undefined
@@ -286,30 +261,47 @@ function readSetupWizardStateAt(
   assertPrivateDirectory(profileRoot)
   const text = readStateBytes(path)
   if (text === undefined) return undefined
-  return parseState(text, profileHash)
+  return parseState(text, desktopSetupWizardProfileHash(profileDir))
 }
 
-/** Read one Profile marker; absence means the Wizard still needs a decision. */
-export function readDesktopSetupWizardState(
-  userDataDir: string,
-  profileDir: string,
-): DesktopSetupWizardState | undefined {
-  const profileHash = desktopSetupWizardProfileHash(profileDir)
-  const current = readSetupWizardStateAt(
-    desktopSetupWizardStatePath(userDataDir, profileDir),
-    profileHash,
-  )
-  if (current !== undefined) return current
-  // Desktop releases before case folding keyed the marker by the raw path
-  // spelling. Read that marker so a Windows Profile whose directory case changed
-  // does not re-open the first-run Setup Wizard.
-  const legacyHash = legacyDesktopSetupWizardProfileHash(profileDir)
-  if (legacyHash === profileHash) return undefined
-  const userData = assertAbsolutePath('Setup Wizard user-data directory', userDataDir)
-  return readSetupWizardStateAt(
-    join(userData, STATE_ROOT_DIRECTORY, legacyHash, STATE_FILENAME),
-    legacyHash,
-  )
+/** Host boot can create usage history before onboarding finishes. Keep that run resumable. */
+export function desktopSetupWizardPending(userDataDir: string, profileDir: string): boolean {
+  const path = desktopSetupWizardStatePath(userDataDir, profileDir)
+  if (existingPathInfo(dirname(dirname(path))) === undefined) return false
+  assertPrivateDirectory(dirname(dirname(path)))
+  if (existingPathInfo(dirname(path)) === undefined) return false
+  assertPrivateDirectory(dirname(path))
+  const value = readStateBytes(`${path}.pending`)
+  if (value !== undefined && value !== 'pending\n') throw invalid('invalid pending marker')
+  return value !== undefined
+}
+
+export async function beginDesktopSetupWizard(userDataDir: string, profileDir: string): Promise<void> {
+  const path = desktopSetupWizardStatePath(userDataDir, profileDir)
+  ensurePrivateDirectory(dirname(dirname(path)))
+  ensurePrivateDirectory(dirname(path))
+  assertSafeStateTarget(`${path}.pending`)
+  await writeFileAtomic(`${path}.pending`, 'pending\n', { mode: STATE_FILE_MODE, dirMode: STATE_DIRECTORY_MODE })
+}
+
+/** Resume the optional official login entry after applying Desktop preferences. */
+export function desktopSetupAccountPending(userDataDir: string, profileDir: string): boolean {
+  const path = desktopSetupWizardStatePath(userDataDir, profileDir)
+  if (readDesktopSetupWizardState(userDataDir, profileDir) === undefined) return false
+  const text = readStateBytes(`${path}.account`)
+  if (text !== undefined && text !== 'pending\n') throw invalid('invalid account continuation')
+  return text !== undefined
+}
+
+export function dismissDesktopSetupAccount(userDataDir: string, profileDir: string): void {
+  if (!desktopSetupAccountPending(userDataDir, profileDir)) return
+  unlinkSync(`${desktopSetupWizardStatePath(userDataDir, profileDir)}.account`)
+}
+
+function clearPending(path: string): void {
+  if (existingPathInfo(`${path}.pending`) === undefined) return
+  assertSafeStateTarget(`${path}.pending`)
+  unlinkSync(`${path}.pending`)
 }
 
 /** Setup is a one-time Profile decision; recorded versions are diagnostic only. */
@@ -351,11 +343,16 @@ export async function completeOrSkipDesktopSetupWizard(
   assertSafeStateTarget(path)
   const current = readStateBytes(path)
   if (current !== undefined) parseState(current, profileHash)
+  assertSafeStateTarget(`${path}.account`)
+  if (outcome === 'completed') {
+    await writeFileAtomic(`${path}.account`, 'pending\n', { mode: STATE_FILE_MODE, dirMode: STATE_DIRECTORY_MODE })
+  } else if (existingPathInfo(`${path}.account`) !== undefined) unlinkSync(`${path}.account`)
   await writeFileAtomic(path, `${JSON.stringify(state, undefined, 2)}\n`, {
     mode: STATE_FILE_MODE,
     dirMode: STATE_DIRECTORY_MODE,
   })
   if (CHECK_POSIX_MODE) chmodSync(path, STATE_FILE_MODE)
+  clearPending(path)
   return state
 }
 
@@ -369,6 +366,9 @@ export function clearDesktopSetupWizardStateSync(
   assertPrivateDirectory(dirname(dirname(path)))
   if (existingPathInfo(dirname(path)) === undefined) return
   assertPrivateDirectory(dirname(path))
+  clearPending(path)
+  assertSafeStateTarget(`${path}.account`)
+  if (existingPathInfo(`${path}.account`) !== undefined) unlinkSync(`${path}.account`)
   const info = existingPathInfo(path)
   if (info === undefined) return
   assertSafeStateTarget(path)

@@ -32,7 +32,7 @@ describe('Desktop installation identity', () => {
     expect(parseDesktopInstallationId('01234567-89ab-1cde-8f01-23456789abcd')).toBeUndefined()
     expect(parseDesktopInstallationId(` ${FIRST}`)).toBeUndefined()
     expect(() => assertDesktopInstallationId('not-a-uuid')).toThrow('canonical lowercase UUID v4')
-    expect(DESKTOP_INSTALLATION_ID_HEADER).toBe('X-Nonead-DSH-Desktop-Installation-Id')
+    expect(DESKTOP_INSTALLATION_ID_HEADER).toBe('X-DSH-Desktop-Installation-Id')
   })
 
   it('creates one private stable identity below userData', async () => {

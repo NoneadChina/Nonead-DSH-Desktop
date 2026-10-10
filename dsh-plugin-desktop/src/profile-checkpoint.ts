@@ -216,19 +216,6 @@ interface FileImage {
   readonly mode?: number
 }
 
-/**
- * One checkpoint source file, together with the exact bytes its record describes.
- *
- * The hash in a checkpoint manifest must describe the bytes that were copied into
- * the slot. Reading the file once and carrying those bytes forward is what makes
- * that true; a second read can observe a concurrent write and produce a snapshot
- * that fails its own integrity check on load.
- */
-interface FileImageBytes {
-  readonly image: FileImage
-  readonly bytes?: Buffer
-}
-
 interface LoadedSnapshot {
   readonly directory: string
   readonly manifest: ProfileCheckpointManifest
@@ -598,16 +585,12 @@ export class DesktopProfileCheckpoint {
       const records: ProfileCheckpointFileRecord[] = []
       for (let index = 0; index < DESKTOP_PROFILE_CHECKPOINT_FILES.length; index += 1) {
         const name = DESKTOP_PROFILE_CHECKPOINT_FILES[index]!
-        const { image, bytes } = current[index]!
+        const image = current[index]!
         records.push({ name, ...image })
         if (image.present) {
-          if (bytes === undefined) fail(`checkpoint source bytes are unavailable: ${name}`)
           const destination = filePath(staging, name)
           ensureDirectory(dirname(destination))
-          // Write the exact bytes the recorded hash describes. Re-reading the
-          // source here could capture a concurrent write and produce a snapshot
-          // whose manifest does not match its own contents.
-          writeDurable(destination, bytes)
+          writeDurable(destination, readFileSync(targetPath(this.profileDir, this.homeDir, name)))
         }
       }
       const manifest: ProfileCheckpointManifestV4 = {
@@ -644,7 +627,7 @@ export class DesktopProfileCheckpoint {
     const names = checkpointFiles(snapshot.manifest.version)
     const current = this.readCurrentImages(names, false)
     const changedFiles = names.filter(
-      (_, index) => !fileEqual(snapshot.manifest.files[index]!, current[index]!.image),
+      (_, index) => !fileEqual(snapshot.manifest.files[index]!, current[index]!),
     )
     return {
       slotId: resolvedSlot,
@@ -664,7 +647,7 @@ export class DesktopProfileCheckpoint {
     const names = checkpointFiles(snapshot.manifest.version)
     const current = this.readCurrentImages(names, false)
     const changedFiles = names.filter(
-      (_, index) => !fileEqual(snapshot.manifest.files[index]!, current[index]!.image),
+      (_, index) => !fileEqual(snapshot.manifest.files[index]!, current[index]!),
     )
     const previousMarker = this.readSkipMarker()
     const dependencyMaterializationRequired = previousMarker?.dependencyMaterializationPending === true
@@ -732,7 +715,7 @@ export class DesktopProfileCheckpoint {
   private readCurrentImages(
     names: readonly DesktopProfileCheckpointFilename[],
     requirePackage: boolean,
-  ): FileImageBytes[] {
+  ): FileImage[] {
     return names.map(name => {
       assertTargetParent(this.profileDir, this.homeDir, name)
       const path = targetPath(this.profileDir, this.homeDir, name)
@@ -740,17 +723,14 @@ export class DesktopProfileCheckpoint {
       try { item = lstatSync(path) } catch (cause) {
         if (isENOENT(cause)) {
           if (requirePackage && name === 'package.json') fail('healthy profile package.json is unavailable')
-          return { image: { present: false } }
+          return { present: false }
         }
         throw cause
       }
       if (item.isSymbolicLink() || !item.isFile()) fail(`checkpoint entry must be a regular file: ${name}`)
       if (item.size > this.limits[name]) fail(`profile checkpoint file is too large: ${name}`)
       const bytes = readFileSync(path)
-      return {
-        image: { present: true, sha256: hash(bytes), size: bytes.byteLength, mode: item.mode & 0o777 },
-        bytes,
-      }
+      return { present: true, sha256: hash(bytes), size: bytes.byteLength, mode: item.mode & 0o777 }
     })
   }
 

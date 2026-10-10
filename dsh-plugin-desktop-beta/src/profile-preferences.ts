@@ -43,6 +43,8 @@ const NOTIFICATION_KEYS = Object.freeze([
   'enabled',
   'notifyOnJobCompletion',
   'notifyOnJobFailure',
+  'notifyOnScheduleCompletion',
+  'notifyOnScheduleFailure',
   'notifyOnTurnCompletion',
   'notifyOnTurnFailure',
 ] as const)
@@ -119,31 +121,10 @@ function assertAbsolutePath(label: string, value: string): string {
   return resolve(value)
 }
 
-/**
- * Canonical Profile directory identity.
- *
- * Windows compares paths case-insensitively, so a profile directory renamed from
- * `work` to `Work` still denotes the same Profile. Hashing the raw spelling would
- * strand the stored preferences under two different keys, which the launcher reads
- * as "this Profile has no preferences yet" and then re-runs the one-time import.
- */
-function profileIdentity(profileDir: string): string {
-  const normalized = assertAbsolutePath('Profile directory', profileDir)
-  return process.platform === 'win32' ? normalized.toLowerCase() : normalized
-}
-
-/** Identity spelling used only to read state written before case folding existed. */
-function legacyProfileIdentity(profileDir: string): string {
-  return assertAbsolutePath('Profile directory', profileDir)
-}
-
-function hashProfileIdentity(identity: string): string {
-  return createHash('sha256').update(identity).digest('hex')
-}
-
 function assertMode(value: unknown, error: ErrorFactory): DesktopShellMode {
-  if (value === 'compatibility' || value === 'extended' || value === 'advanced') return value
-  throw error('mode must be compatibility, extended, or advanced')
+  // Compatibility is the only presentation mode; legacy values normalize to it.
+  if (value === 'compatibility' || value === 'extended' || value === 'advanced') return 'compatibility'
+  throw error('mode must be compatibility')
 }
 
 function assertExposure(value: unknown, error: ErrorFactory): DesktopNetworkExposure {
@@ -169,10 +150,11 @@ function normalizedNotifications(
   value: unknown,
   error: ErrorFactory,
 ): Readonly<DesktopNotificationSettings> {
-  if (!isRecord(value) || !hasExactKeys(value, NOTIFICATION_KEYS)) {
-    throw error('notifications must contain exactly the five supported boolean fields')
+  if (!isRecord(value) || !(hasExactKeys(value, NOTIFICATION_KEYS)
+    || hasExactKeys(value, NOTIFICATION_KEYS.filter(key => key !== 'notifyOnScheduleCompletion' && key !== 'notifyOnScheduleFailure')))) {
+    throw error('notifications must contain exactly the supported boolean fields')
   }
-  if (NOTIFICATION_KEYS.some(key => typeof value[key] !== 'boolean')) {
+  if (NOTIFICATION_KEYS.some(key => value[key] !== undefined && typeof value[key] !== 'boolean')) {
     throw error('notification values must be booleans')
   }
   return Object.freeze({
@@ -181,6 +163,8 @@ function normalizedNotifications(
     notifyOnTurnFailure: value.notifyOnTurnFailure as boolean,
     notifyOnJobCompletion: value.notifyOnJobCompletion as boolean,
     notifyOnJobFailure: value.notifyOnJobFailure as boolean,
+    notifyOnScheduleCompletion: (value.notifyOnScheduleCompletion ?? true) as boolean,
+    notifyOnScheduleFailure: (value.notifyOnScheduleFailure ?? true) as boolean,
   })
 }
 
@@ -213,12 +197,8 @@ function normalizedPreferences(
 
 /** Stable Profile identity used only as a private user-data path component. */
 export function desktopProfilePreferencesProfileHash(profileDir: string): string {
-  return hashProfileIdentity(profileIdentity(profileDir))
-}
-
-/** Pre-case-folding Profile identity, retained so existing state stays readable. */
-export function legacyDesktopProfilePreferencesProfileHash(profileDir: string): string {
-  return hashProfileIdentity(legacyProfileIdentity(profileDir))
+  const normalized = assertAbsolutePath('Profile preferences Profile directory', profileDir)
+  return createHash('sha256').update(normalized).digest('hex')
 }
 
 /** Fixed state path for one Profile under one Electron user-data directory. */
@@ -338,11 +318,12 @@ function parseState(text: string, expectedProfileHash: string): DesktopProfilePr
   })
 }
 
-/** Parse one Profile's state file, or report absence/malformation. */
-function readPreferencesStateAt(
-  path: string,
-  profileHash: string,
+/** Read one Profile's preferences; absence is distinct from malformed existing state. */
+export function readDesktopProfilePreferences(
+  userDataDir: string,
+  profileDir: string,
 ): DesktopProfilePreferencesStateV1 | undefined {
+  const path = desktopProfilePreferencesStatePath(userDataDir, profileDir)
   const root = dirname(dirname(path))
   const profileRoot = dirname(path)
   if (existingPathInfo(root) === undefined) return undefined
@@ -351,30 +332,7 @@ function readPreferencesStateAt(
   assertPrivateDirectory(profileRoot)
   const text = readStateBytes(path)
   if (text === undefined) return undefined
-  return parseState(text, profileHash)
-}
-
-/** Read one Profile's preferences; absence is distinct from malformed existing state. */
-export function readDesktopProfilePreferences(
-  userDataDir: string,
-  profileDir: string,
-): DesktopProfilePreferencesStateV1 | undefined {
-  const profileHash = desktopProfilePreferencesProfileHash(profileDir)
-  const current = readPreferencesStateAt(
-    desktopProfilePreferencesStatePath(userDataDir, profileDir),
-    profileHash,
-  )
-  if (current !== undefined) return current
-  // Desktop releases before case folding keyed state by the raw path spelling.
-  // Read that state so a Windows Profile whose directory case changed keeps its
-  // preferences instead of being treated as a brand new Profile.
-  const legacyHash = legacyDesktopProfilePreferencesProfileHash(profileDir)
-  if (legacyHash === profileHash) return undefined
-  const userData = assertAbsolutePath('Profile preferences user-data directory', userDataDir)
-  return readPreferencesStateAt(
-    join(userData, STATE_ROOT_DIRECTORY, legacyHash, STATE_FILENAME),
-    legacyHash,
-  )
+  return parseState(text, desktopProfilePreferencesProfileHash(profileDir))
 }
 
 /** Atomically replace one Profile's validated preferences. */

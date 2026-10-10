@@ -5,7 +5,7 @@ import { installChromeOverlay } from '../src/native-ui/compatibility-chrome/over
 afterEach(() => { vi.unstubAllGlobals() })
 
 describe('compatibility HTML chrome', () => {
-  it('uses the same frame as the Desktop title bar', () => {
+  it('uses the same controls and frame rules as the compatibility chrome', () => {
     const read = (file: string): string => readFileSync(new URL(`../src/${file}`, import.meta.url), 'utf8')
     expect(read('client/ExtendedTitlebar.tsx')).toContain('<DesktopFrameTitlebarView {...props} />')
     expect(read('native-ui/compatibility-chrome/main.tsx')).toContain('<DesktopFrameTitlebarView')
@@ -19,10 +19,9 @@ describe('compatibility HTML chrome', () => {
     const view = read('client/DesktopFrameTitlebarView.tsx')
     expect(view).toContain('delay={150}')
     expect(view).toContain('closeDelay={200}')
-    // Desktop owns a single presentation: no mode control and no action group.
+    // Compatibility is the only mode, so the titlebar carries no mode chooser.
     expect(view).not.toContain('MODE_OPTIONS')
-    expect(view).not.toContain('DesktopModeControl')
-    expect(view).not.toContain('DesktopNativeActions')
+    expect(view).not.toContain('option.body')
   })
 
   it('expands only for popup DOM and collapses again after removal or disposal', async () => {

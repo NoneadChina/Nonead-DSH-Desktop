@@ -51,15 +51,18 @@ export function desktopWindowsPwshPath(
 
 /**
  * Keep explicit user config, otherwise avoid PATH-resolved portable pwsh in the
- * Windows ACL sandbox. The substituted `pwshPath` stays a reference into the
- * live configuration, so a later settings update that declares an executable
- * wins on the next read instead of being masked by the derived default.
- * @param config - the resolved pwsh-local configuration.
- * @param env - the environment to probe on Windows.
- * @param platform - the platform to resolve for.
- * @param exists - existence probe for one candidate path.
- * @returns the same configuration when the user declared an executable or no
- *   stable system PowerShell exists, else a copy with the derived reference.
+ * Windows ACL sandbox. `pwshPath` is a live config reference the settings
+ * runtime rewrites in place, so the desktop default is supplied by a reference
+ * that reads the declared value through on every access instead of a value
+ * unwrapped once at construction: a snapshot taken here would pin the desktop
+ * fallback for the lifetime of the plugin and silently ignore a later edit,
+ * because a volatile-only change commits into the caller's reference rather
+ * than reloading this plugin.
+ * @param config - the plugin config carrying the caller's live references.
+ * @param env - environment the Windows install locations are derived from.
+ * @param platform - host platform; only Windows gets a desktop default.
+ * @param exists - existence probe for the candidate executables.
+ * @returns the same config with a `pwshPath` reference that defaults only while the declared value is empty.
  */
 export function desktopWindowsPwshConfig(
   config: PwshConfig,
@@ -67,16 +70,22 @@ export function desktopWindowsPwshConfig(
   platform: NodeJS.Platform,
   exists: (path: string) => boolean = existsSync,
 ): PwshConfig {
-  const declared = config.pwshPath.get()
-  if (declared !== undefined && declared.length > 0) return config
-  const pwshPath = desktopWindowsPwshPath(env, platform, exists)
-  if (pwshPath === undefined) return config
+  const declared = config.pwshPath
+  // The fallback is a property of the host, not of the config, so the
+  // filesystem probe runs at most once however often the reference is read.
+  let fallback: string | undefined
+  let probed = false
   return {
     ...config,
     pwshPath: {
       get: () => {
-        const current = config.pwshPath.get()
-        return current === undefined || current.length === 0 ? pwshPath : current
+        const configured = declared.get()
+        if (configured !== undefined && configured.length > 0) return configured
+        if (!probed) {
+          probed = true
+          fallback = desktopWindowsPwshPath(env, platform, exists)
+        }
+        return fallback
       },
     },
   }
@@ -130,28 +139,33 @@ export class DesktopWindowsPwshSandbox extends SandboxPwshExecutor {
   }
 
   /**
-   * Route every spawn through the desktop trampoline. A confining caller
-   * prepares its argv asynchronously and the executor spawns only after that
-   * preparation resolves, so the request spec is forwarded as an owned copy the
-   * preparation step fills with the runner-only environment.
-   * @param spec - resolved execution settings and caller-owned command metadata.
-   * @param argvOrPrepare - exact argv, or preparation using the execution cancellation signal.
-   * @param onStarted - installs provider facts synchronously before the handle can settle.
-   * @returns the live execution handle from the local executor.
+   * Adapt the exact argv the upstream sandbox produced, keeping confinement
+   * preparation inside the caller's deadline. This is the single argv seam for
+   * both foreground and background callers - the executor publishes one
+   * execution handle and "foreground" is only what the caller awaits - so every
+   * confined launch passes through here. Preparation only yields argv after this
+   * executor has handed a spec to the local executor, so the runner-only
+   * Electron environment lands on this class's own spec copy at the moment the
+   * argv becomes known - strictly before the local executor reads the spec to
+   * build its spawn request.
+   * @param spec - resolved PowerShell execution spec.
+   * @param argvOrPrepare - exact argv, or preparation sharing the execution deadline.
+   * @param onStarted - the caller's provider-fact installer, forwarded untouched.
+   * @returns the live execution handle the local executor published.
    */
-  protected override async executeArgv(
+  protected override executeArgv(
     spec: ShellExecSpec,
     argvOrPrepare: readonly string[] | ((signal: AbortSignal) => Promise<readonly string[]>),
     onStarted?: (process: ShellExecution) => void,
   ): Promise<ShellExecution> {
     if (typeof argvOrPrepare !== 'function') {
       const adapted = this.adapt(spec, argvOrPrepare)
-      return await super.executeArgv(adapted.spec, adapted.argv, onStarted)
+      return super.executeArgv(adapted.spec, adapted.argv, onStarted)
     }
-    const child: ShellExecSpec = { ...spec }
-    return await super.executeArgv(child, async (signal) => {
+    const pending: ShellExecSpec = { ...spec }
+    return super.executeArgv(pending, async signal => {
       const adapted = this.adapt(spec, await argvOrPrepare(signal))
-      child.env = adapted.spec.env
+      pending.env = adapted.spec.env
       return adapted.argv
     }, onStarted)
   }

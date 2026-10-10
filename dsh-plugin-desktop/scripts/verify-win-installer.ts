@@ -90,7 +90,7 @@ export function verifyWindowsInstaller(
   const distDir = join(options.desktopRoot, 'dist')
   const installerPath = join(
     distDir,
-    `Nonead-DSH-Desktop-v${options.version}-x64-Setup.exe`,
+    `Nonead-DSH-Desktop-${options.version}-x64-Setup.exe`,
   )
   const applicationPath = join(distDir, 'win-unpacked', 'Nonead DSH Desktop.exe')
 

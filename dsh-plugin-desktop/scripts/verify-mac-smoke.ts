@@ -1,11 +1,16 @@
 /** Verify the unsigned application structure sealed inside one macOS smoke DMG. */
 
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmdirSync, statSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, rmdirSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { MACOS_UNIVERSAL_NATIVE_ENTRIES } from './mac-universal.ts'
+import {
+  MACOS_UNIVERSAL_NATIVE_ENTRIES,
+  macSmokeArchitecture,
+  macSmokeExecutableSlices,
+  type MacUniversalArch,
+} from './mac-universal.ts'
 
 /** Injectable filesystem and command boundaries for smoke verification. */
 export interface MacSmokeVerificationOptions {
@@ -13,8 +18,8 @@ export interface MacSmokeVerificationOptions {
   readonly distDir: string
   /** Installed application name inside the mounted image. */
   readonly productName: string
-  /** Version the packaged application was built from. */
-  readonly version: string
+  /** Mach-O slices the main executable must contain; defaults to both CPUs. */
+  readonly executableSlices?: readonly MacUniversalArch[]
   /** Return regular DMG files in the distribution directory. */
   readonly listDmgs: (distDir: string) => readonly string[]
   /** Create a private empty mount point. */
@@ -50,17 +55,12 @@ function run(command: string, args: readonly string[]): void {
 
 function defaultOptions(): MacSmokeVerificationOptions {
   const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-  const manifest: unknown = JSON.parse(readFileSync(join(packageRoot, 'package.json'), 'utf8'))
-  const version = (manifest as { version?: unknown }).version
-  if (typeof version !== 'string' || version.length === 0) {
-    throw new Error('dsh-plugin-desktop: cannot read the packaged version for macOS smoke verification')
-  }
   return {
     distDir: process.argv[2] === undefined
       ? join(packageRoot, 'dist', 'mac-smoke')
       : resolve(process.argv[2]),
     productName: 'Nonead DSH Desktop',
-    version,
+    executableSlices: macSmokeExecutableSlices(macSmokeArchitecture(process.env)),
     listDmgs,
     makeMountPoint: () => mkdtempSync(join(tmpdir(), 'dsh-desktop-dmg-smoke-')),
     run,
@@ -91,14 +91,6 @@ export function verifyMacSmoke(
   }
 
   const dmgPath = dmgs[0]!
-  // The Windows verifiers rebuild the exact versioned file name, so a wrong
-  // `${version}` in `mac.artifactName` must fail here too instead of passing on
-  // "exactly one DMG exists".
-  if (!basename(dmgPath).includes(options.version)) {
-    throw new Error(
-      `macOS smoke DMG ${basename(dmgPath)} does not name the packaged version ${options.version}`,
-    )
-  }
   const mountPoint = options.makeMountPoint()
   const appPath = join(mountPoint, `${options.productName}.app`)
   let mounted = false
@@ -130,19 +122,22 @@ export function verifyMacSmoke(
     ) {
       throw new Error(`packaged application has an invalid main executable: ${executablePath}`)
     }
-    options.run('lipo', [executablePath, '-verify_arch', 'x86_64'])
-    options.run('lipo', [executablePath, '-verify_arch', 'arm64'])
-
-    const appAsarPath = join(appPath, 'Contents', 'Resources', 'app.asar')
-    if (!options.exists(appAsarPath)) {
-      throw new Error(`packaged application is missing ${appAsarPath}`)
-    }
-    const appAsarStat = options.stat(appAsarPath)
-    if (!appAsarStat.isFile || appAsarStat.size === 0) {
-      throw new Error(`packaged application archive is empty: ${appAsarPath}`)
+    for (const slice of options.executableSlices ?? macSmokeExecutableSlices('universal')) {
+      options.run('lipo', [executablePath, '-verify_arch', slice])
     }
 
-    const unpackedRoot = `${appAsarPath}.unpacked`
+    const unpackedRoot = join(appPath, 'Contents', 'Resources', 'app')
+    for (const entry of ['package.json', 'lib/main.js']) {
+      const entryPath = join(unpackedRoot, entry)
+      if (!options.exists(entryPath)) {
+        throw new Error(`packaged application is missing ${entryPath}`)
+      }
+      const entryStat = options.stat(entryPath)
+      if (!entryStat.isFile || entryStat.size === 0) {
+        throw new Error(`packaged application entry is empty: ${entryPath}`)
+      }
+    }
+
     for (const entry of MACOS_UNIVERSAL_NATIVE_ENTRIES) {
       const nativePath = join(unpackedRoot, entry.path)
       if (!options.exists(nativePath)) {

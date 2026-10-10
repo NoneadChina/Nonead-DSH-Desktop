@@ -4,11 +4,13 @@ import type { RendererBootReport } from './renderer-boot-contract.ts'
 import type { DesktopReleaseChannel, UpdateCheckResult, UpdateRequest } from './update-checker.ts'
 import type { DesktopInstallationId } from './desktop-installation-id.ts'
 import type { ProfileCreateWindowOptions } from './profile-create-window.ts'
+import type { DesktopPlatformLoginRequest } from './platform-login.ts'
 import type {
   DesktopWindowMaterial,
   MacosWindowMaterial,
   PersistedWindowsWindowMaterial,
 } from './window-material.ts'
+import type { DesktopSetupWizardSettings } from './setup-wizard-settings.ts'
 
 /** Electron platforms supported by the Nonead DSH Desktop native adapter. */
 export type DesktopPlatform = 'darwin' | 'win32' | 'linux'
@@ -98,14 +100,6 @@ export interface DesktopNotification {
   body: string
 }
 
-/** Serializable failure summary for one rejected installer download. */
-export interface DesktopUpdateDownloadFailure {
-  /** Stable failure category reported by the download owner. */
-  readonly code: string
-  /** HTTP status of an unsuccessful response, when the failure came from one. */
-  readonly status?: number
-}
-
 /** Electron capabilities used by the headless update plugin. */
 export interface DesktopUpdateAdapter {
   /** Whether the running executable came from an Electron package. */
@@ -126,14 +120,17 @@ export interface DesktopUpdateAdapter {
   confirmDownload(version: string, channel?: DesktopReleaseChannel): Promise<boolean>
   /** Present the outcome of a user-triggered version check. */
   showManualCheckResult(result: UpdateCheckResult | null): Promise<void>
-  /** Download and hand one confirmed update to the platform installer. */
-  downloadAndOpen(version: string, signal: AbortSignal, channel?: DesktopReleaseChannel): Promise<void>
   /**
-   * Report one rejected installer download so the user can retry deliberately.
-   * A confirmed download leaves no installer behind on failure, so silence would look like
-   * "nothing happened" while a hidden partial file may still sit in the chosen folder.
+   * Download and hand one confirmed update to the platform installer. The
+   * optional per-platform digests come from the recheck that confirmed the
+   * version; the adapter applies the one matching its download platform.
    */
-  reportDownloadFailure(version: string, failure: DesktopUpdateDownloadFailure): Promise<void>
+  downloadAndOpen(
+    version: string,
+    signal: AbortSignal,
+    channel?: DesktopReleaseChannel,
+    installerSha256?: Readonly<Partial<Record<'win32' | 'darwin' | 'linux', string>>>,
+  ): Promise<void>
   /** Present a native status notification without blocking the Host tree. */
   notify(notification: DesktopNotification): void
 }
@@ -150,10 +147,8 @@ export interface DesktopTerminalSpec {
 
 /** Values the desktop-shell plugin hands to the Electron adapter. */
 export interface DesktopShellSpec extends DesktopWindowConfig {
-  /** Actual material after platform and Windows-build capability gating. */
+  /** Actual material after platform capability gating. */
   material: DesktopWindowMaterial
-  /** Windows build used for material capability reporting, when applicable. */
-  windowsBuild?: number
   /** Unmodified Web root served by the active DSH profile. */
   url: string
   /** Official one-time launch URL used to mint this Electron session's browser cookie. */
@@ -176,6 +171,12 @@ export interface DesktopShellSpec extends DesktopWindowConfig {
   requestQuit(code: number): void
   /** Persist another mode through the registered desktop settings scope. */
   requestModeChange(mode: DesktopShellMode): Promise<void>
+  /**
+   * Persist first-run Setup choices through the registered settings scopes, the
+   * same Profile patch layer the mode picker writes. The running generation keeps
+   * its presentation; Setup's own continuation offers the restart that applies it.
+   */
+  applySetupSettings?(settings: DesktopSetupWizardSettings): Promise<void>
   readRemoteControl?(): Promise<boolean>
   enableRemoteControl?(): Promise<void>
 }
@@ -184,9 +185,6 @@ export interface DesktopShellSpec extends DesktopWindowConfig {
 export interface DesktopRuntime {
   /** Current Electron platform. */
   readonly platform: DesktopPlatform
-
-  /** NT build number used to gate system backdrop materials. */
-  readonly windowsBuild: number | undefined
 
   /** Locale currently used for native tray contributions. */
   readonly locale: DesktopLocale
@@ -239,6 +237,12 @@ export interface DesktopRuntime {
 
   /** Open the isolated native Profile creator, focusing an existing instance. */
   openProfileCreateWindow(options: Omit<ProfileCreateWindowOptions, 'locale'>): void
+
+  /**
+   * Open a DeepSeek Platform sign-in page, or settle the page after its attempt ended.
+   * @param request - validated request from the Host's account watcher.
+   */
+  platformLogin(request: DesktopPlatformLoginRequest): void
 
   /** Confirm that one renderer-selected workspace is safe to persist. */
   validateDirectory(path: string): Promise<boolean>
