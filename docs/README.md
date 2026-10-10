@@ -12,7 +12,7 @@
 
 | 文档 | 你会得到什么 |
 | --- | --- |
-| [用户指南](user-guide.md) | 安装、profile、模式、终端、插件命令和更新 |
+| [用户指南](user-guide.md) | 安装、profile、窗口呈现与材质、终端、插件命令和更新 |
 | [常见问题](faq.md) | 支持平台、内置环境、官方边界、数据、插件和更新的直接回答 |
 | [隐私政策](../PRIVACY.zh.md) | 官方更新、下载、本地数据、第三方服务与用户选择 |
 | [为什么做 Desktop](why-desktop.md) | Desktop 与官方 Harness 的边界，以及为什么坚持插件化 |
@@ -30,8 +30,8 @@
 | [Community Market 设计](../dsh-community-market/README.zh.md) | 规划中的插件市场壳、可扩展目录来源、用户选择、安装确认和安全边界 |
 | [Market 目录提供方合同](../dsh-community-market/docs/catalog-provider-contract.zh.md) | 面向后续实现团队的 Schema、query 参数、多来源和适配器规范 |
 | [架构说明](architecture.md) | Electron、Host、Web carrier、profile 和打包之间的关系 |
-| [更新服务](update-service.md) | 更新与下载端点契约、服务端必须满足的规则，以及发版检查清单 |
 | [Desktop service 参考](../dsh-plugin-desktop/docs/plugin-services.md) | `desktopProfiles`、`desktopPnpm` 的稳定 contract 和 TypeScript 示例 |
+| [升级服务接口规格](desktop-release-service.md) | 客户端已经强制的两个发布端点契约、channel 与版本形态矩阵、发布顺序不变量和验收脚本 |
 | [包级参考](../dsh-plugin-desktop/README.md) | 完整的构建、运行、发布和已知限制 |
 
 ## README 文件怎么分工
@@ -48,4 +48,4 @@
 
 ## 状态约定
 
-文档会明确区分已实现能力、平台限制和 roadmap。Desktop 的兼容模式在独立 Desktop frame 下保留上游默认 Web 客户端；扩展窗口安装自己独立注册的 Desktop layout/sidebar surface，并在倒 L 中承载官方 occupant；增强模式保留独立 root registration 与紧凑内部 caption。Desktop frame 会按系统能力提供原生材质。插件市场 [`dsh-community-market`](../dsh-community-market/README.zh.md) 已实现，并作为随产品内置的插件参与组合：其设置页、市场浮层与托管式包操作随当前安装包一同发布，且已是两个桌面发行版的 production dependency。手机远程和 Channels 仍属独立 roadmap，不代表当前安装包已提供这些入口。
+文档会明确区分已实现能力、平台限制和 roadmap。Desktop 只提供兼容模式：它在独立 Desktop frame 下保留上游默认 Web 客户端，并按系统能力提供原生材质与拖动区域。旧的持久化值 `extended` 与 `advanced` 仍能被解析，但读取时一律归一为兼容模式，用户下次保存设置时写回 `compatibility`。插件市场已建立 [`dsh-community-market`](../dsh-community-market/README.zh.md) 文档初始化工程，但尚无可用页面或安装器；手机远程和 Channels 也仍是独立 roadmap，不代表当前安装包已经提供这些产品入口。

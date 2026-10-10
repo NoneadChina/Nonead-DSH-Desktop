@@ -3,7 +3,7 @@
 ## 结论
 
 - 结果：通过。
-- 范围：仅修改 Nonead DSH Desktop 的 Electron/NSIS 安装与退出协调；未修改 `deepseek-harness` 子模块或 DSH 底层。
+- 范围：仅修改 DSH Desktop 的 Electron/NSIS 安装与退出协调；未修改 `deepseek-harness` 子模块或 DSH 底层。
 - 真实安装链路：`2.0.2 -> 2.0.3` 运行中升级通过，`2.0.3 -> 2.0.3` 运行中覆盖安装通过。
 - 清理：测试安装目录、卸载注册表项、快捷方式、测试进程、临时目录和活动运行标记均无残留。
 
@@ -20,7 +20,7 @@
 ## 关联问题
 
 - Issue: [#469 Windows 更新安装器误判应用仍在运行](https://github.com/anywhere-labs/dsh-desktop/issues/469)
-- 已有基础修复：[PR #471](https://github.com/anywhere-labs/dsh-desktop/pull/471)，提交 `edc9574f447c90866e85cfd1d40f718be7737432`，将“安装目录下任意进程”改为精确匹配 `Nonead DSH Desktop.exe`。
+- 已有基础修复：[PR #471](https://github.com/anywhere-labs/dsh-desktop/pull/471)，提交 `edc9574f447c90866e85cfd1d40f718be7737432`，将“安装目录下任意进程”改为精确匹配 `DSH Desktop.exe`。
 - 本次补充：安装器先通过 `--dsh-installer-quit` 请求运行中的桌面端有序退出，等待清理完成后再覆盖文件；旧版不支持该参数时，继续使用精确进程名的停止/强制停止回退。
 
 ## 测试基线
@@ -39,10 +39,10 @@
 
 | 安装器 | PE 版本 | 大小（字节） | SHA-256 |
 | --- | --- | ---: | --- |
-| `Nonead-DSH-Desktop-2.0.2-x64-Setup.exe` | `2.0.2` | 132417238 | `B31F63F8CF70D3FC07ED2AE36E5DE7B1939E604BDB3BE097DE3383A82A06A787` |
-| `Nonead-DSH-Desktop-2.0.3-x64-Setup.exe` | `2.0.3` | 132758556 | `AE2FD0820803A69B7C953B9831FC029EE06499E07078DC8B45497C17A858743A` |
+| `DSH-Desktop-2.0.2-x64-Setup.exe` | `2.0.2` | 132417238 | `B31F63F8CF70D3FC07ED2AE36E5DE7B1939E604BDB3BE097DE3383A82A06A787` |
+| `DSH-Desktop-2.0.3-x64-Setup.exe` | `2.0.3` | 132758556 | `AE2FD0820803A69B7C953B9831FC029EE06499E07078DC8B45497C17A858743A` |
 
-候选产物：`dsh-plugin-desktop/dist/Nonead-DSH-Desktop-2.0.3-x64-Setup.exe`。
+候选产物：`dsh-plugin-desktop/dist/DSH-Desktop-2.0.3-x64-Setup.exe`。
 
 ## 问题复现
 
@@ -70,7 +70,7 @@
 
 ```powershell
 & .\dsh-plugin-desktop\scripts\probe-windows-installer-quit.ps1 `
-  -CandidateApp .\dsh-plugin-desktop\dist\win-unpacked\Nonead DSH Desktop.exe
+  -CandidateApp .\dsh-plugin-desktop\dist\win-unpacked\DSH Desktop.exe
 ```
 
 结果：
@@ -97,8 +97,8 @@
 
 ```powershell
 & .\dsh-plugin-desktop\scripts\smoke-windows-installer-upgrade.ps1 `
-  -BaseInstaller E:\qwq\DSHPLU\DSH-desktop\Nonead-DSH-Desktop-2.0.2-x64-Setup.exe `
-  -CandidateInstaller .\dsh-plugin-desktop\dist\Nonead-DSH-Desktop-2.0.3-x64-Setup.exe
+  -BaseInstaller E:\qwq\DSHPLU\DSH-desktop\DSH-Desktop-2.0.2-x64-Setup.exe `
+  -CandidateInstaller .\dsh-plugin-desktop\dist\DSH-Desktop-2.0.3-x64-Setup.exe
 ```
 
 安装位置和 `DSH_HOME` 使用 `%TEMP%\dsh-installer-upgrade-<GUID>`。为与生产安装器的单实例身份一致，Electron 使用当前 Windows 账户的默认 `userData`；脚本在开始前要求不存在活动运行标记，并在最终清理中再次验证标记不存在。

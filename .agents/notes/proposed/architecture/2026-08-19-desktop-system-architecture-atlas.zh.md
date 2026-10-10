@@ -52,7 +52,7 @@ flowchart TB
   Root -. root scripts enter pnpm workspace .-> Upstream
 ```
 
-`dsh-plugin-desktop` 拥有桌面产品；`dsh-community-market` 拥有社区目录和用户驱动的插件操作，其运行时已实现，因此声明可加载的 DSH 与 package 入口，并是两个发行版的 production dependency；Fabric 仍是文档初始化工程，在运行时实现完成前不声明可加载入口；上游保留独立的 pnpm workspace。
+`dsh-plugin-desktop` 拥有桌面产品；`dsh-community-market` 拥有社区目录和用户驱动的插件操作；Fabric 和 Market 在运行时实现完成前不声明可加载入口；上游保留独立的 pnpm workspace。
 
 ## 3. 进程与运行拓扑
 

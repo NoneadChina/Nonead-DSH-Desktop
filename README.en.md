@@ -5,7 +5,7 @@
 <h1 align="center">Nonead DSH Desktop</h1>
 
 <p align="center">
-  <strong>An open-source desktop client for Windows and macOS, built on DeepSeek Harness.</strong>
+  <strong>An open-source desktop client for Windows, macOS, and Linux, built on DeepSeek Harness.</strong>
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">One-click download, ready to use out of the box.</a></h3>
@@ -26,11 +26,13 @@ Nonead DSH Desktop integrates the local Web UI, Host service, and plugin system 
 
 ## Download and install
 
-Current release installers support Windows x64. No extra environment is needed — download, install, and start using it with one click.
+Current release installers support Windows x64, macOS, and Linux. No extra environment is needed — download, install, and start using it with one click.
 
 | Platform | Download | Installation |
 | --- | --- | --- |
-| Windows x64 | [Download installer](https://www.nonead.com/software/ndsh-desktop/downloads/windows/Nonead-DSH-Desktop-1.7.3-windows.exe) | Run the NSIS installer and follow its prompts |
+| Windows x64 | [Download installer](https://www.nonead.com/software/ndsh-desktop/downloads/windows) | Run the NSIS installer and follow its prompts |
+| macOS Universal | [Download DMG](https://www.nonead.com/software/ndsh-desktop/downloads/mac) | Open the DMG and drag Nonead DSH Desktop into Applications |
+| Linux x64 | [Download AppImage](https://www.nonead.com/software/ndsh-desktop/downloads/linux) | Make it executable and run it; the in-app update downloads this same AppImage |
 
 See the [user guide](docs/user-guide.en.md) and [FAQ](docs/faq.en.md) for plugin commands, platform details, and troubleshooting.
 

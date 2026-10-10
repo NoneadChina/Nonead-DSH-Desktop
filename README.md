@@ -5,7 +5,7 @@
 <h1 align="center">Nonead DSH Desktop</h1>
 
 <p align="center">
-  <strong>基于 DeepSeek Harness 构建的 Windows 和 macOS 开源桌面客户端。</strong>
+  <strong>基于 DeepSeek Harness 构建的 Windows、macOS 和 Linux 开源桌面客户端。</strong>
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">一键下载，开箱即用。</a></h3>
@@ -26,11 +26,13 @@ Nonead DSH Desktop 将 [DeepSeek Harness](https://github.com/noneadchina) 的本
 
 ## 下载与安装
 
-当前正式安装包支持 Windows x64。无需额外环境，下载安装，一键使用。
+当前正式安装包支持 Windows x64、macOS 与 Linux。无需额外环境，下载安装，一键使用。
 
 | 平台 | 下载 | 安装方式 |
 | --- | --- | --- |
-| Windows x64 | [下载安装程序](https://www.nonead.com/software/ndsh-desktop/downloads/windows/Nonead-DSH-Desktop-1.7.3-windows.exe) | 运行 NSIS 安装程序并按提示完成安装 |
+| Windows x64 | [下载安装程序](https://www.nonead.com/software/ndsh-desktop/downloads/windows) | 运行 NSIS 安装程序并按提示完成安装 |
+| macOS Universal | [下载 DMG](https://www.nonead.com/software/ndsh-desktop/downloads/mac) | 打开 DMG，将 Nonead DSH Desktop 拖入 Applications |
+| Linux x64 | [下载 AppImage](https://www.nonead.com/software/ndsh-desktop/downloads/linux) | 赋予可执行权限后直接运行；应用内更新下载的也是这个 AppImage |
 
 详细步骤、插件命令和故障排查见[用户指南](docs/user-guide.md)与[常见问题](docs/faq.md)。
 

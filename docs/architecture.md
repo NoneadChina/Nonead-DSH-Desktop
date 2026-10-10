@@ -37,7 +37,7 @@ flowchart LR
 - **Web Client**：官方 Web UI 和第三方浏览器界面。它通过共享 Web carrier 工作，不直接调用 Electron。
 - **Native runtime**：Electron BrowserWindow、系统托盘、文件/网络/安装器适配。`desktopRuntime` 只供 Desktop 自有 row 使用。
 
-兼容模式的 Client face 会校验环境，并且只通过 overlay slot 加入一条独立的 36 像素 Desktop frame；官方 layout、root、sidebar 与 conversation 作为完全无关的内容 viewport 从它下方开始。扩展窗口会禁用官方 root layout，安装自己独立注册的 Desktop layout/sidebar surface，并在倒 L 材质 frame 中继续承载官方 sidebar、conversation 与 details occupant。增强模式保留独立 root registration 与最初的紧凑内部 caption 几何。macOS 与 Windows 会按系统能力使用原生材质，同时不改变上游 occupant slot 的所有权。
+Desktop 只提供兼容模式。它的 Client face 会校验环境，并且只通过 overlay slot 加入一条独立的 36 像素 Desktop frame；官方 layout、root、sidebar 与 conversation 作为完全无关的内容 viewport 从它下方开始。macOS 与 Windows 会按系统能力使用原生材质，同时不改变上游 occupant slot 的所有权。旧的持久化值 `extended` 与 `advanced` 仍能被解析，但读取时一律归一为兼容模式。
 
 Desktop 级确认、警告、错误与结果不会进入 Web Client 组件树。`DesktopDialogWindow` 会创建独立、沙箱化的模态 `BrowserWindow`，应用共享的空白 utility frame，并在可能时以当前 generation 窗口为 parent，只接受一次有界本地结果。恢复模式与新增 Profile 是使用同一套无标题 frame 的独立 Desktop-owned 窗口。恢复页面本身使用 shadcn，先展示原因，再提供四个工作流 Tab；破坏性恢复操作会把确认交回 `DesktopDialogWindow`。
 
@@ -65,7 +65,7 @@ Launcher 私有的 `desktopRuntime`、`desktopPnpmBootstrap`、Electron executab
 
 稳定版与 Beta 是两个实体 npm 包和两个系统应用，不由 Git 分支区分。稳定版使用 `dsh-plugin-desktop`、`Nonead DSH Desktop` 与 `ai.deepseek.dsh.desktop`；Beta 使用 `dsh-plugin-desktop-beta`、`Nonead DSH Desktop Beta` 与 `ai.deepseek.dsh.desktop.beta`。`upstream.json` 同时记录两个通道的上游版本、提交和 vendored runtime 清单，根级精确 resolution 保证每个 workspace 只能解析自己的 DSH 运行时。
 
-版本检查和安装包下载均携带 `X-Nonead-DSH-Desktop-Channel: stable|beta`。检查请求还携带当前版本；下载请求携带 `X-Nonead-DSH-Desktop-Target-Version`，服务端必须返回与请求一致的通道与版本。没有通道 header 的旧客户端按稳定版处理；Beta 客户端则必须收到明确的 `channel: "beta"` 响应。稳定通道只接受正式 SemVer，Beta 通道只接受 `-beta.N`。Beta 自动更新只查询 Beta；“安装稳定版”是独立的显式操作，允许选择较低版本并将稳定版安装在 Beta 旁边。
+版本检查和安装包下载均携带 `X-DSH-Desktop-Channel: stable|beta`。检查请求还携带当前版本；下载请求携带 `X-DSH-Desktop-Target-Version`，服务端必须返回与请求一致的通道与版本。没有通道 header 的旧客户端按稳定版处理；Beta 客户端则必须收到明确的 `channel: "beta"` 响应。稳定通道只接受正式 SemVer，Beta 通道只接受 `-beta.N`。Beta 自动更新只查询 Beta；“安装稳定版”是独立的显式操作，允许选择较低版本并将稳定版安装在 Beta 旁边。
 
 服务端必须在 Beta 发布前先支持上述选择与回显规则，并为两个通道分别准备完整的平台产物。否则客户端会把响应视为无效，不会静默跨通道下载。
 
@@ -75,5 +75,4 @@ Launcher 私有的 `desktopRuntime`、`desktopPnpmBootstrap`、Electron executab
 - [Package README](../dsh-plugin-desktop/README.md)
 - [Pinned upstream and isolated Yarn workspace](../.agents/notes/implemented/process/2026-08-15-pinned-upstream-and-isolated-yarn-workspace.md)
 - [Profile and pnpm services decision](../.agents/notes/implemented/architecture/2026-08-15-desktop-profile-and-pnpm-services.md)
-- [Advanced shell decision](../.agents/notes/implemented/architecture/2026-08-15-desktop-advanced-shell.md)
 - [Native shell generation and platform adapters](../.agents/notes/implemented/architecture/2026-08-19-native-shell-generation-and-platform-adapters.md)

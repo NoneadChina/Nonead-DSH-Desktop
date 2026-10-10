@@ -12,7 +12,7 @@ Ordinary users can start with the [user guide](user-guide.en.md) and never need 
 
 | Document | Covers |
 | --- | --- |
-| [User guide](user-guide.en.md) | Installation, profiles, modes, terminal, plugins, and updates |
+| [User guide](user-guide.en.md) | Installation, profiles, window presentation and materials, terminal, plugins, and updates |
 | [FAQ](faq.en.md) | Direct answers about platforms, bundled runtime, project status, data, plugins, and updates |
 | [Privacy Policy](../PRIVACY.md) | Official updates, downloads, local data, third-party services, and user choices |
 | [Why Desktop](why-desktop.en.md) | The boundary with upstream Harness and the case for plugins |
@@ -30,8 +30,8 @@ Ordinary users can start with the [user guide](user-guide.en.md) and never need 
 | [Community Market design](../dsh-community-market/README.md) | The proposed market shell, extensible catalog sources, user selection, install confirmation, and safety boundary |
 | [Market catalog provider contract](../dsh-community-market/docs/catalog-provider-contract.md) | Schemas, query parameters, multi-source behavior, and adapter rules for the implementation team |
 | [Architecture](architecture.en.md) | Electron, Host, the Web carrier, profiles, and packaging |
-| [Update service](update-service.en.md) | Update and download endpoint contracts, the rules the service must satisfy, and the release checklist |
 | [Desktop service reference](../dsh-plugin-desktop/docs/plugin-services.md) | Stable `desktopProfiles` and `desktopPnpm` contracts with TypeScript examples |
+| [Release service API specification](desktop-release-service.en.md) | The two release endpoints the client already enforces, the channel/version shape matrix, the release-order invariant, and the acceptance script |
 | [Package reference](../dsh-plugin-desktop/README.md) | Detailed build, runtime, release, and limitation notes |
 
 ## How the README files are organized
@@ -48,4 +48,4 @@ The outer repository has two formal product READMEs plus one legacy compatibilit
 
 ## Status convention
 
-These pages distinguish shipped behavior, platform limits, and roadmap items. Compatibility mode keeps the upstream default Web client below an independent Desktop frame; extended mode installs its own Desktop layout/sidebar registration and hosts official occupants in an inverted L; enhanced mode retains a separate root registration with compact internal captions. Desktop frames provide capability-gated native materials. The plugin marketplace in [`dsh-community-market`](../dsh-community-market/README.md) is implemented and composed as a shipped product plugin: its settings tab, market overlay and managed package operations ship with the current installer, and it is a production dependency of both desktop editions. Mobile remote control and Channels remain separate roadmap items and are not implied to be part of the current installer.
+These pages distinguish shipped behavior, platform limits, and roadmap items. Desktop ships compatibility mode only: it keeps the upstream default Web client below an independent Desktop frame and provides capability-gated native materials and drag regions. Legacy persisted `extended` and `advanced` values still parse, but reads normalize them to compatibility mode, and the next settings save writes back `compatibility`. The plugin marketplace now has a documentation scaffold in [`dsh-community-market`](../dsh-community-market/README.md), but no usable page or installer; mobile remote control and Channels also remain separate roadmap items and are not implied to be part of the current installer.
