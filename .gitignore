@@ -12,16 +12,48 @@ node_modules/
 dsh-plugin-desktop/dist/
 dsh-plugin-desktop/lib/
 dsh-community-market/lib/
-dsh-community-fabric/lib/
-
-# Extracted upstream package kept only to author the dshmarket registry patch that
-# lives in .yarn/patches. It is never a workspace member and nothing references it.
-dsh-market-1.66.0/
-
-# Local DSH agent memory store: per-machine tooling state, never published.
-.dsh-memory/
-
-# Local investigation scratch: probes, build logs and recovered artifacts.
-.tmp-investigate/
 
 .env.yarn
+dsh-desktop-next/lib/
+dsh-desktop-next/dist/
+dsh-desktop-next/.desktop-next/
+
+# Local scratch working directories: agent investigation output and the pnpm
+# content-addressable store. Neither is product source.
+.tmp-investigate/
+.tmp_*
+.pnpm-store/
+
+# Local shortcut and runtime log
+GitLab.lnk
+debug.log
+
+# Local checkouts of sibling repositories and upstream package sources. Neither
+# is a workspace member, and nothing in this repository references them.
+dsh-market/
+dsh-nonead-universal-robots/
+
+# Superseded runtime snapshots. upstream.json pins 0.2.0-rc.2 for both the
+# stable and beta channels, and no package.json or yarn.lock entry references
+# any of these versions.
+vendor/dsh-runtime/0.1.5-rc.2/
+vendor/dsh-runtime/0.1.7-alpha.2/
+vendor/dsh-runtime/0.1.7-rc.1/
+vendor/dsh-runtime/0.1.7-rc.2/
+vendor/dsh-runtime/0.2.0-rc.1/
+
+# Patches authored for superseded runtime versions. yarn.lock resolves only the
+# 0.2.0-rc.2 set plus the unversioned patches for third-party dependencies.
+patches/*@0.1.5-rc.2.patch
+patches/*@0.1.7-alpha.2.patch
+patches/*@0.1.7-rc.1.patch
+patches/*@0.1.7-rc.2.patch
+patches/*@0.2.0-rc.1.patch
+
+# Superseded dshmarket patches; the consumed one is dshmarket-desktop.patch.
+.yarn/patches/dshmarket-npm-*.patch
+
+# Agents Anywhere artifacts accumulate one file per release build; only the
+# bridge pinned by package.json is consumed.
+vendor/agents-anywhere/*.tgz
+!vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.0.2-desktop.cad572c00c3e5.r156e8f86.tgz
