@@ -180,6 +180,32 @@ function sameOriginFrame(frameUrl: string | undefined, origin: string): boolean 
   }
 }
 
+/**
+ * Describe the frame behind one Desktop IPC so a rejected action can name its
+ * sender. Reading a destroyed frame throws, and a rejection report must not.
+ */
+function senderFrameDescription(event: Electron.IpcMainInvokeEvent): string {
+  try {
+    return event.senderFrame?.url ?? 'an absent frame'
+  } catch {
+    return 'a destroyed frame'
+  }
+}
+
+/** Whether one Desktop IPC sender holds the mounted renderer's main frame. */
+function isTrustedRendererSender(
+  event: Electron.IpcMainInvokeEvent,
+  renderer: Electron.WebContents,
+  origin: string,
+): boolean {
+  if (event.sender !== renderer || event.senderFrame === null) return false
+  try {
+    return event.senderFrame === renderer.mainFrame && sameOriginFrame(event.senderFrame.url, origin)
+  } catch {
+    return false
+  }
+}
+
 function clampedZoomLevel(level: number): number {
   return Math.min(MAX_ZOOM_LEVEL, Math.max(MIN_ZOOM_LEVEL, level))
 }
@@ -361,9 +387,11 @@ export class ElectronShellGeneration {
       message => { this.options.logError(message) },
     )
     renderer.ipc.handle(DESKTOP_RENDERER_ACTION_CHANNEL, async (event, action: unknown) => {
-      if (this.released || event.sender !== renderer
-        || event.senderFrame === null || event.senderFrame !== renderer.mainFrame
-        || !sameOriginFrame(event.senderFrame.url, origin)) {
+      if (this.released || !isTrustedRendererSender(event, renderer, origin)) {
+        // A rejected action otherwise reaches the operator as an opaque alert.
+        this.options.logError(
+          `dsh-plugin-desktop: rejected a Desktop action from ${senderFrameDescription(event)} (expected origin ${origin})`,
+        )
         throw new Error('dsh-plugin-desktop: untrusted Desktop action sender')
       }
       await dispatchRendererAction(action)
