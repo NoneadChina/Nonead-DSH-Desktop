@@ -4,6 +4,8 @@ Status: implemented
 
 English | [中文](2026-09-12-shipped-product-plugins.zh.md)
 
+> **Update (2026-09-29):** The product now pins deepseek-harness `639ed01` (dsh `0.2.0-rc.2`), and the DSH packages named below resolve against that vendored family. Read the `0.1.7-rc.2` pin, its peer ranges, and the 2026-09-27 verification counts as the state before this update.
+>
 > **Update (2026-09-27):** `dsh-nonead-universal-robots` is back in the shipped set at v0.4.0, so the text below describes the current state again and the 2026-09-21 and 2026-09-26 notes are superseded. The launcher row, both editions' dependency, the unpacked `python/` payload and the workspace and layout contracts all returned. The plugin now also ships a read-only 3D twin client half (`dsh.client`, `platform: web`, no `external`), and its peer ranges read `^0.1.2-rc.1 || ^0.1.7-rc.2` (DSH packages) so the vendored `0.1.7-rc.2` family resolves; where the paragraphs below state the skin-only client wiring, the pre-2026-09-27 peer ranges or the verification counts, read them as the state before this update. Its sources were re-absorbed from `feat/ur-digital-twin` at `df6feca` — see the provenance paragraph.
 
 ## Problem

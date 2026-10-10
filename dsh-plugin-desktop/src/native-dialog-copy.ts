@@ -10,6 +10,10 @@ export interface DesktopNativeCopy {
   readonly missingPluginError: string
   readonly failedPlugins: string
   readonly pluginRecoveryInstructions: string
+  readonly hostStoppedTitle: string
+  readonly hostStoppedMessage: string
+  readonly hostStoppedDetail: (exitCode: string) => string
+  readonly hostStoppedInstructions: string
   readonly openTerminal: string
   readonly restart: string
   readonly dismiss: string
@@ -28,15 +32,15 @@ export interface DesktopNativeCopy {
   readonly installerUnavailable: string
   readonly updateDownloadedTitle: string
   readonly updateReady: (version: string) => string
-  readonly updateFailedTitle: string
-  readonly updateFailedMessage: (version: string) => string
   readonly macInstallInstructions: string
   readonly windowsInstallQuestion: string
+  readonly linuxInstallInstructions: string
   readonly restartAndInstall: string
   readonly saveInstallerTitle: string
   readonly saveAndDownload: string
   readonly diskImage: string
   readonly windowsInstaller: string
+  readonly linuxAppImage: string
   readonly removeInstallerTitle: string
   readonly updateInstalled: (version: string) => string
   readonly removeInstallerQuestion: (path: string) => string
@@ -67,6 +71,13 @@ export interface DesktopNativeCopy {
   readonly profileCompatibilityWarning: string
   readonly switchProfile: string
   readonly useProfileAnyway: string
+  readonly sharedDataDirectoryTitle: string
+  readonly sharedDataDirectoryMessage: (currentProductName: string, otherProductName: string) => string
+  readonly sharedDataDirectoryDetail: (currentDirectory: string, channelDirectory: string) => string
+  readonly sharedDataDirectoryWarning: (otherProductName: string, sessionsDirectory: string) => string
+  readonly useChannelDataDirectory: string
+  readonly shareDataDirectoryAnyway: string
+  readonly sharedDataDirectoryFailed: string
   readonly quit: string
   readonly unknownVersion: string
 }
@@ -80,6 +91,10 @@ const COPY: Record<DesktopLocale, DesktopNativeCopy> = {
     missingPluginError: 'The plugin loader did not provide an error message.',
     failedPlugins: 'Plugins that failed to load:',
     pluginRecoveryInstructions: 'Update or uninstall the failed third-party plugins in DSH Terminal, then restart the app.',
+    hostStoppedTitle: 'DSH Host Stopped',
+    hostStoppedMessage: 'The background service that runs your conversations has stopped.',
+    hostStoppedDetail: exitCode => `Exit code: ${exitCode}`,
+    hostStoppedInstructions: 'Open windows can no longer reach it, and no work is lost on disk. Restart Nonead DSH Desktop to reconnect, or open DSH Terminal to inspect the logs first.',
     openTerminal: 'Open DSH Terminal',
     restart: 'Restart Nonead DSH Desktop',
     dismiss: 'Dismiss',
@@ -98,15 +113,15 @@ const COPY: Record<DesktopLocale, DesktopNativeCopy> = {
     installerUnavailable: 'This version cannot download installers from within the app.',
     updateDownloadedTitle: 'Nonead DSH Desktop Update Downloaded',
     updateReady: version => `Nonead DSH Desktop ${version} is ready to install.`,
-    updateFailedTitle: 'Update Failed',
-    updateFailedMessage: version => `The update to Nonead DSH Desktop ${version} could not be completed.`,
     macInstallInstructions: 'The disk image has opened. Replace Nonead DSH Desktop in Applications, then reopen it.',
     windowsInstallQuestion: 'Restart Nonead DSH Desktop and run the installer now?',
+    linuxInstallInstructions: 'The AppImage has been made executable and its folder is open. Replace your current AppImage with it, then reopen the app.',
     restartAndInstall: 'Restart and Install',
     saveInstallerTitle: 'Save Update Installer',
     saveAndDownload: 'Save and Download',
     diskImage: 'Disk Image',
     windowsInstaller: 'Windows Installer',
+    linuxAppImage: 'AppImage',
     removeInstallerTitle: 'Remove Update Installer',
     updateInstalled: version => `Nonead DSH Desktop ${version} has been installed.`,
     removeInstallerQuestion: path => `Delete the downloaded installer to free disk space?\n\n${path}`,
@@ -132,6 +147,18 @@ const COPY: Record<DesktopLocale, DesktopNativeCopy> = {
     profileCompatibilityWarning: 'DSH version differences may cause:\n1. Historical session information to fail to load;\n2. Some plugins in the current Profile to be incompatible and possibly cause errors or crashes.\nWe recommend switching to a compatible Profile or creating a new Profile.',
     switchProfile: 'Switch Profile',
     useProfileAnyway: 'Use Anyway',
+    sharedDataDirectoryTitle: 'Shared Data Directory',
+    sharedDataDirectoryMessage: (currentProductName, otherProductName) =>
+      `${currentProductName} is sharing one data directory with ${otherProductName}.`,
+    sharedDataDirectoryDetail: (currentDirectory, channelDirectory) =>
+      `Current data directory:\n${currentDirectory}\n\nRecommended directory:\n${channelDirectory}`,
+    sharedDataDirectoryWarning: (otherProductName, sessionsDirectory) =>
+      'The two releases run different DSH cores. Sharing one data directory can make installed plugins fail to load intermittently.\n'
+      + `Switching leaves the current directory untouched, and ${otherProductName} keeps using it.\n`
+      + `Existing sessions stay in ${sessionsDirectory}. Copy that folder into the new data directory whenever you want them back.`,
+    useChannelDataDirectory: 'Use Its Own Directory',
+    shareDataDirectoryAnyway: 'Keep Sharing',
+    sharedDataDirectoryFailed: 'Could not switch to the dedicated data directory. The current directory is unchanged; you can try again on the next launch.',
     quit: 'Quit',
     unknownVersion: 'Unknown',
   },
@@ -143,6 +170,10 @@ const COPY: Record<DesktopLocale, DesktopNativeCopy> = {
     missingPluginError: '插件加载器没有提供错误信息。',
     failedPlugins: '加载失败的插件：',
     pluginRecoveryInstructions: '请在 DSH 终端中更新或卸载加载失败的第三方插件，然后重启应用。',
+    hostStoppedTitle: 'DSH Host 已停止',
+    hostStoppedMessage: '运行会话的后台服务已停止。',
+    hostStoppedDetail: exitCode => `退出码：${exitCode}`,
+    hostStoppedInstructions: '已打开的窗口无法再与它通信，磁盘上的内容不会丢失。重启 Nonead DSH Desktop 即可重新连接；也可以先打开 DSH 终端查看日志。',
     openTerminal: '打开 DSH 终端',
     restart: '重启 Nonead DSH Desktop',
     dismiss: '关闭',
@@ -161,15 +192,15 @@ const COPY: Record<DesktopLocale, DesktopNativeCopy> = {
     installerUnavailable: '当前版本不支持在应用内下载安装包。',
     updateDownloadedTitle: 'Nonead DSH Desktop 更新已下载',
     updateReady: version => `Nonead DSH Desktop ${version} 已可安装。`,
-    updateFailedTitle: '更新失败',
-    updateFailedMessage: version => `Nonead DSH Desktop ${version} 的更新未能完成。`,
     macInstallInstructions: '磁盘映像已打开。请替换“应用程序”中的 Nonead DSH Desktop，然后重新打开。',
     windowsInstallQuestion: '现在重启 Nonead DSH Desktop 并运行安装程序？',
+    linuxInstallInstructions: 'AppImage 已设为可执行，并已打开所在文件夹。请用它替换当前的 AppImage，然后重新打开应用。',
     restartAndInstall: '重启并安装',
     saveInstallerTitle: '保存更新安装包',
     saveAndDownload: '保存并下载',
     diskImage: '磁盘映像',
     windowsInstaller: 'Windows 安装程序',
+    linuxAppImage: 'AppImage',
     removeInstallerTitle: '删除更新安装包',
     updateInstalled: version => `Nonead DSH Desktop ${version} 已安装。`,
     removeInstallerQuestion: path => `是否删除下载的安装包以释放磁盘空间？\n\n${path}`,
@@ -195,6 +226,18 @@ const COPY: Record<DesktopLocale, DesktopNativeCopy> = {
     profileCompatibilityWarning: 'DSH 版本差异可能会导致：\n1. 历史会话信息加载出错；\n2. 当前 Profile 下的部分插件不兼容，甚至引发报错或崩溃。\n建议您切换到兼容的 Profile，或创建新的 Profile。',
     switchProfile: '切换 Profile',
     useProfileAnyway: '仍然使用',
+    sharedDataDirectoryTitle: '数据目录正在共用',
+    sharedDataDirectoryMessage: (currentProductName, otherProductName) =>
+      `${currentProductName} 正在与 ${otherProductName} 共用同一个数据目录。`,
+    sharedDataDirectoryDetail: (currentDirectory, channelDirectory) =>
+      `当前数据目录：\n${currentDirectory}\n\n建议改用：\n${channelDirectory}`,
+    sharedDataDirectoryWarning: (otherProductName, sessionsDirectory) =>
+      '两个版本使用不同的 DSH 内核，共用同一个数据目录可能导致已安装的插件间歇性加载失败。\n'
+      + `改用专属目录后，当前目录保持不变，${otherProductName} 继续使用它。\n`
+      + `此前的会话记录仍保存在 ${sessionsDirectory}，需要时把该目录复制到新的数据目录下即可。`,
+    useChannelDataDirectory: '改用专属目录',
+    shareDataDirectoryAnyway: '仍然共用',
+    sharedDataDirectoryFailed: '未能改用专属目录。当前数据目录未做任何修改，可在下次启动时重试。',
     quit: '退出',
     unknownVersion: '未知',
   },
@@ -202,53 +245,4 @@ const COPY: Record<DesktopLocale, DesktopNativeCopy> = {
 
 export function desktopNativeCopy(locale: DesktopLocale): DesktopNativeCopy {
   return COPY[locale]
-}
-
-const DOWNLOAD_FAILURE_REASON: Record<DesktopLocale, Record<string, string>> = {
-  en: {
-    aborted: 'The download was cancelled before it finished.',
-    'empty-body': 'The update service returned an empty response.',
-    'http-status': 'The update service rejected the request.',
-    'invalid-artifact': 'The downloaded file was not a valid installer.',
-    'invalid-options': 'The selected save location is not usable.',
-    network: 'The download was interrupted by a network problem.',
-    'response-too-large': 'The installer is larger than the 1 GiB limit.',
-    stalled: 'The update service stopped sending data.',
-    unknown: 'The update could not be completed.',
-  },
-  zh: {
-    aborted: '下载在完成前被取消。',
-    'empty-body': '更新服务返回了空内容。',
-    'http-status': '更新服务拒绝了本次请求。',
-    'invalid-artifact': '下载到的文件不是有效的安装包。',
-    'invalid-options': '选择的保存位置不可用。',
-    network: '网络中断导致下载未能完成。',
-    'response-too-large': '安装包体积超过 1 GiB 上限。',
-    stalled: '更新服务长时间没有继续传输数据。',
-    unknown: '更新流程未能完成。',
-  },
-}
-
-/**
- * Explain one rejected installer download, including that no incomplete file was kept.
- * @param locale - active native locale.
- * @param failure - serializable failure summary from the download owner.
- * @returns localized detail text for the failure dialog.
- */
-export function desktopUpdateDownloadFailureDetail(
-  locale: DesktopLocale,
-  failure: { readonly code: string; readonly status?: number | undefined },
-): string {
-  const reasons = DOWNLOAD_FAILURE_REASON[locale]
-  const status = failure.status === undefined ? '' : ` (HTTP ${String(failure.status)})`
-  const reason = reasons[failure.code] ?? reasons.unknown!
-  const downloadFailure = failure.code !== 'unknown'
-  const advice = downloadFailure
-    ? locale === 'zh'
-      ? '没有保留任何不完整的文件。请重新选择保存位置并再次下载。'
-      : 'No incomplete file was kept. Choose the save location again to retry the download.'
-    : locale === 'zh'
-      ? '请重新选择保存位置后再试一次。'
-      : 'Choose the save location again to retry the update.'
-  return `${reason}${status}\n${advice}`
 }

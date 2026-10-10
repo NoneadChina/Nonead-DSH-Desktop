@@ -62,3 +62,15 @@ Var pid
 
   dsh_installer_app_stopped:
 !macroend
+
+; The DSH-era installer shipped this edition as "DSH Desktop" and left a shortcut
+; under that name. It still carries this edition's AppUserModelID, but its target
+; is the install directory the rename abandoned. Windows resolves a window's
+; taskbar button icon through the shortcut matching its AppUserModelID, so the
+; dangling leftover makes the running application show a blank taskbar icon.
+; The builder's own rename migration only rewrites shortcuts recorded under this
+; appId's install registry key, so an orphaned shortcut has to go here.
+!macro customInstall
+  Delete "$SMPROGRAMS\DSH Desktop.lnk"
+  Delete "$DESKTOP\DSH Desktop.lnk"
+!macroend

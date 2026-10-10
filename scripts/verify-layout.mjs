@@ -15,10 +15,11 @@ const workspace = readJson('package.json')
 const upstream = readJson('upstream.json')
 const stablePlugin = readJson('dsh-plugin-desktop/package.json')
 const betaPlugin = readJson('dsh-plugin-desktop-beta/package.json')
+const nextDesktop = readJson('dsh-desktop-next/package.json')
+const nextReference = readJson('dsh-desktop-next/upstream-reference.json')
 const fabric = readJson('dsh-community-fabric/package.json')
 const market = readJson('dsh-community-market/package.json')
-const robots = readJson('dsh-nonead-universal-robots/package.json')
-const skin = readJson('dsh-nonead-client-skin/package.json')
+const brandSkin = readJson('dsh-nonead-client-skin/package.json')
 const upstreamPackage = readJson('deepseek-harness/package.json')
 
 if (stablePlugin.name !== 'dsh-plugin-desktop') fail('the stable Desktop workspace must retain dsh-plugin-desktop')
@@ -33,40 +34,35 @@ if (workspace.packageManager !== 'yarn@4.18.0') {
 if (JSON.stringify(workspace.workspaces) !== JSON.stringify([
   'dsh-plugin-desktop',
   'dsh-plugin-desktop-beta',
+  'dsh-desktop-next',
   'dsh-community-fabric',
   'dsh-community-market',
-  'dsh-nonead-universal-robots',
   'dsh-nonead-client-skin',
 ])) {
-  fail('the root Yarn workspace must contain the desktop, community-fabric, community-market, and shipped product plugin packages')
+  fail('the root Yarn workspace must contain the desktop, community-fabric, community-market, and brand-skin packages')
 }
 for (const [name, manifest] of [
   ['dsh-plugin-desktop', stablePlugin],
   ['dsh-plugin-desktop-beta', betaPlugin],
+  ['dsh-desktop-next', nextDesktop],
   ['dsh-community-fabric', fabric],
   ['dsh-community-market', market],
-  ['dsh-nonead-universal-robots', robots],
-  ['dsh-nonead-client-skin', skin],
+  ['dsh-nonead-client-skin', brandSkin],
 ]) {
   if (manifest.packageManager !== undefined) fail(`${name} must inherit the root Yarn release`)
 }
 if (fabric.name !== 'dsh-community-fabric') fail('the Fabric workspace must own dsh-community-fabric')
 if (market.name !== 'dsh-community-market') fail('the market workspace must own dsh-community-market')
+if (brandSkin.name !== 'dsh-nonead-client-skin') fail('the brand-skin workspace must own dsh-nonead-client-skin')
+if (brandSkin.private !== true) fail('the brand skin must stay a private product package, never a published plugin')
 const claudePath = resolve(root, 'CLAUDE.md')
-const agentsPath = resolve(root, 'AGENTS.md')
 const claudeStat = lstatSync(claudePath)
-const agentsSource = readFileSync(agentsPath, 'utf8')
-// Windows checkouts materialize the symlink as a regular file. That fallback may
-// hold either the pointer text or the linked document itself, depending on how
-// Git checked the entry out, so accept a symlink, a pointer file, or a regular
-// file whose content is byte-identical to AGENTS.md.
-const claudeLinksToAgents = claudeStat.isSymbolicLink()
-  ? readlinkSync(claudePath) === 'AGENTS.md'
-  : (() => {
-      const content = readFileSync(claudePath, 'utf8')
-      return content.trim() === 'AGENTS.md' || content === agentsSource
-    })()
-if (!claudeLinksToAgents) {
+// Windows checkouts materialize the symlink as a regular file holding the
+// target name; accept both forms so the pointer stays verified on every host.
+const claudeTarget = claudeStat.isSymbolicLink()
+  ? readlinkSync(claudePath)
+  : readFileSync(claudePath, 'utf8').trim()
+if (claudeTarget !== 'AGENTS.md') {
   fail('CLAUDE.md must link to the outer repository AGENTS.md')
 }
 for (const legacyFile of [
@@ -76,12 +72,12 @@ for (const legacyFile of [
   'dsh-plugin-desktop/pnpm-workspace.yaml',
   'dsh-plugin-desktop-beta/pnpm-lock.yaml',
   'dsh-plugin-desktop-beta/pnpm-workspace.yaml',
+  'dsh-desktop-next/pnpm-lock.yaml',
+  'dsh-desktop-next/pnpm-workspace.yaml',
   'dsh-community-fabric/pnpm-lock.yaml',
   'dsh-community-fabric/pnpm-workspace.yaml',
   'dsh-community-market/pnpm-lock.yaml',
   'dsh-community-market/pnpm-workspace.yaml',
-  'dsh-nonead-universal-robots/pnpm-lock.yaml',
-  'dsh-nonead-universal-robots/pnpm-workspace.yaml',
 ]) {
   if (existsSync(resolve(root, legacyFile))) fail(`${legacyFile} must not exist`)
 }
@@ -99,10 +95,9 @@ for (const [owner, manifest] of [
   ['root', workspace],
   ['stable desktop', stablePlugin],
   ['beta desktop', betaPlugin],
+  ['next desktop', nextDesktop],
   ['fabric', fabric],
   ['market', market],
-  ['universal-robots plugin', robots],
-  ['client skin plugin', skin],
 ]) {
   for (const field of ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies', 'resolutions']) {
     for (const [name, range] of Object.entries(manifest[field] ?? {})) {
@@ -142,4 +137,9 @@ for (const [channel, plugin] of [['stable', stablePlugin], ['beta', betaPlugin]]
   }
 }
 
-process.stdout.write(`verify-layout: dual Desktop workspaces and upstream ${activeUpstream.commit.slice(0, 10)} are consistent\n`)
+if (nextDesktop.name !== 'dsh-desktop-next' || nextDesktop.private !== true) fail('Next must remain a private experimental package')
+for (const [name, version] of Object.entries(nextDesktop.dependencies)) {
+  if ((name === '@deepseek-ai/dsh' || name.startsWith('@deepseek-ai/dsh-')) && version !== nextReference.version) fail(`Next ${name} must match the pinned upstream family`)
+}
+
+process.stdout.write(`verify-layout: Desktop workspaces including Next and upstream ${activeUpstream.commit.slice(0, 10)} are consistent\n`)

@@ -34,9 +34,9 @@ function child(): ControlledSubprocess {
   const tree = deferred<boolean>()
   return {
     stdin: undefined,
+    control: undefined,
     stdout: new PassThrough(),
     stderr: new PassThrough(),
-    control: undefined,
     collected: {},
     done: outcome.promise,
     terminate: vi.fn(),

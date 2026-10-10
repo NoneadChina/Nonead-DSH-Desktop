@@ -1,8 +1,8 @@
-# DSH Desktop plugin services
+# Nonead DSH Desktop plugin services
 
 English | [中文](plugin-services.zh.md)
 
-This document is the supported integration contract for plugin authors. It covers the public Host services `desktopProfiles` and `desktopPnpm`, plus the Client service `desktopWindow`, exported by DSH Desktop 2.x in compatibility, extended, and advanced presentation modes. It does not grant third-party access to raw Electron APIs or launcher bootstrap state.
+This document is the supported integration contract for plugin authors. It covers the public Host services `desktopProfiles` and `desktopPnpm`, plus the Client service `desktopWindow`, exported by Nonead DSH Desktop 2.x in compatibility mode. It does not grant third-party access to raw Electron APIs or launcher bootstrap state.
 
 ## Layers and data flow
 
@@ -42,7 +42,7 @@ flowchart LR
 
 The launcher resolves one profile before the Loader tree mounts. `desktopProfiles.current` remains fixed until that whole Cordis generation is disposed. The `desktop-pnpm` Host row builds `desktopPnpm` from launcher-private facts and the upstream subprocess service. A profile or mode switch disposes the current generation and starts a new one; service references must not cross that boundary.
 
-The renderer receives ordinary Web Client modules over the existing loopback carrier. It cannot read the Host services directly, and DSH Desktop adds no preload or Electron IPC bridge for them. Instead, the Desktop Client provides immutable native-layout facts through `desktopWindow` for its own Cordis-fiber lifetime. A plugin with browser UI continues to use normal DSH Host routes, RPC, client metadata, services, and slots.
+The renderer receives ordinary Web Client modules over the existing loopback carrier. It cannot read the Host services directly, and Nonead DSH Desktop adds no preload or Electron IPC bridge for them. Instead, the Desktop Client provides immutable native-layout facts through `desktopWindow` for its own Cordis-fiber lifetime. A plugin with browser UI continues to use normal DSH Host routes, RPC, client metadata, services, and slots.
 
 ## Public Client Cordis service
 
@@ -69,9 +69,8 @@ export function apply(ctx: ClientContext): void {
 interface DesktopWindowService {
   readonly mode: 'compatibility' | 'extended' | 'advanced'
   readonly platform: 'darwin' | 'win32' | 'linux'
-  readonly material: 'off' | 'transparent' | 'mica'
-  readonly micaSupported: boolean
-  readonly availableMaterials: readonly ('off' | 'transparent' | 'mica')[]
+  readonly material: 'off' | 'transparent'
+  readonly availableMaterials: readonly ('off' | 'transparent')[]
   readonly safeAreaInsets: {
     readonly top: number
     readonly right: number
@@ -86,15 +85,30 @@ interface DesktopWindowService {
 }
 ```
 
-All values remain fixed for one renderer generation, and geometry uses CSS pixels. `material` is the effective, capability-gated backdrop rather than merely the persisted preference. `availableMaterials` is `off/transparent` on macOS, `off` on Windows 10, and `off/mica` on Windows 11 build 22621 or newer. The removed legacy `acrylic` preference is read as `off` and migrated when the settings document is writable.
+All values remain fixed for one renderer generation, and geometry uses CSS pixels. The `mode` field always reports `compatibility`; the legacy `extended` and `advanced` members of the type exist only so pre-removal settings still parse, and every read normalizes them to `compatibility`. `material` is the effective, capability-gated backdrop rather than merely the persisted preference. `availableMaterials` is `off/transparent` on macOS and `off` on Windows and Linux; Windows windows are always opaque. The removed legacy `acrylic` and `mica` preferences are read as `off`, and `acrylic` is also migrated when the settings document is writable.
 
-Compatibility and extended modes report the same 36-pixel top reservation and drag band on macOS and Windows; they exclude 80 pixels on the left for macOS traffic lights or 138 pixels on the right for Windows caption controls. Desktop shifts the complete official frame below this reservation in compatibility mode. Extended instead owns the root layout/sidebar surface and hosts the official sidebar, conversation, and details occupants below the same reservation, so ordinary occupants must not add it again. Linux compatibility keeps its ordinary native frame and therefore reports zero insets and a zero-height drag region. Advanced mode has independent compact geometry: macOS reports a 20-pixel content inset and 32-pixel drag band with an 80-pixel left exclusion, while Windows reports a 32-pixel content inset and drag band with a 138-pixel right exclusion.
+Compatibility mode reports a 36-pixel top reservation and drag band on macOS and Windows; it excludes 80 pixels on the left for macOS traffic lights or 138 pixels on the right for Windows caption controls. Desktop shifts the complete official frame below this reservation, so ordinary occupants must not add it again. On Linux the ordinary native frame is retained and the service therefore reports zero insets and a zero-height drag region.
 
 `safeAreaInsets` describes where Desktop starts the complete upstream content surfaces. `dragRegion` separately describes the native caption hit area, so consumers must not assume that the two heights are equal. Interactive elements inside that band must apply `-webkit-app-region: no-drag`; Desktop already applies this exclusion to standard buttons, links, inputs, editable fields, menus, tabs, switches, and dialogs. The service reports geometry only: it does not expose window mutation, focus, Electron, or IPC capabilities. It is absent from an ordinary browser boot.
 
-Compatibility and extended modes keep the command bar private to Desktop. They do not declare a titlebar action slot, and the first-party icon group is rendered directly by the Desktop frame: on the right on macOS and on the left on Windows. Web Client plugins must use their documented content slots and cannot place controls beside these native actions. Renderer reload and Developer Tools toggling remain private first-party launcher operations, not additions to the public `desktopWindow` service.
+Compatibility mode keeps the command bar private to Desktop. It does not declare a titlebar action slot, and the first-party icon group is rendered directly by the Desktop frame: on the right on macOS and on the left on Windows. Web Client plugins must use their documented content slots and cannot place controls beside these native actions. Renderer reload and Developer Tools toggling remain private first-party launcher operations, not additions to the public `desktopWindow` service.
 
 Desktop marks the command bar with `data-dsh-desktop-frame="titlebar"` and the upstream root with `data-dsh-desktop-content-viewport`. The root is a separate fixed viewport below the command bar, so fixed descendants cannot escape into Desktop chrome. Full-viewport dialogs portalled directly to `document.body` receive the same content offset. Body-level plugin portals can read the `dsh-desktop-titlebar-inset` URL contract; framed modes publish the exact 36-pixel reservation. Plugins must not compensate for a boundary they already consume.
+
+### Shell DOM anchors
+
+Desktop carries a stable anchor on each shell region so that a plugin does not have to depend on upstream class names, which are hashed and can change with the upstream build. The supported contract is these anchors:
+
+| Region | Anchor | Also emitted by the upstream Web frame |
+| --- | --- | --- |
+| Sidebar column | `[data-pane="sidebar"]` | No |
+| Sidebar column, compatibility alias | `.dshDesktop_sidebarCol` | `<hash>_sidebarCol` |
+| Rightbar column | `[data-rightbar-col]` | Yes |
+| Shell overlay layer | `[data-shell-overlay]` | Yes |
+
+The sidebar anchors sit on the element that directly wraps the `sidebar` slot, matching where the upstream column sits, so `element.querySelector` from the anchor reaches the same descendants in both shells. `dshDesktop_sidebarCol` carries no styles; it exists only so that a selector written against the upstream Web column — commonly `[data-pane="sidebar"], [class*="sidebarCol"]` — resolves unchanged under Desktop. Note the consequence for themes: a stylesheet that targets `[class*="sidebarCol"]` now applies on Desktop as well as on Web.
+
+Anchor names are stable; the surrounding structure is not. Query for the anchor, then search within it. Do not depend on the Desktop presentation classes (`dshDesktopSidebarSurface`, `dshDesktopUpstreamSidebar`, and their siblings), on element tag names, or on nesting depth — all of these change with platform and release. Compatibility mode runs the upstream client unmodified and keeps the upstream frame, including its own anchors.
 
 ## Public Host Cordis services
 
@@ -196,7 +210,7 @@ The fact that a private type is present in emitted declarations does not make it
 
 ### Desktop-only plugin: required injection
 
-A plugin that only makes sense inside DSH Desktop can declare both services as required dependencies. Cordis keeps the plugin pending until both providers are available and unloads its effects if a required service disappears.
+A plugin that only makes sense inside Nonead DSH Desktop can declare both services as required dependencies. Cordis keeps the plugin pending until both providers are available and unloads its effects if a required service disappears.
 
 ```ts
 import type { Context } from '@deepseek-ai/cordis'

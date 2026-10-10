@@ -52,7 +52,7 @@ flowchart TB
   Root -. root scripts enter pnpm workspace .-> Upstream
 ```
 
-`dsh-plugin-desktop` owns the desktop product. `dsh-community-market` owns community discovery and user-directed plugin operations, and its runtime exists, so it declares loadable DSH and package entry points and is a production dependency of both editions. Fabric remains a scaffold and must not claim loadable entry points before its runtime exists. Upstream retains its independent pnpm workspace.
+`dsh-plugin-desktop` owns the desktop product. `dsh-community-market` owns community discovery and user-directed plugin operations. Fabric and Market scaffolds must not claim loadable entry points before their runtimes exist. Upstream retains its independent pnpm workspace.
 
 ## 3. Process and runtime topology
 

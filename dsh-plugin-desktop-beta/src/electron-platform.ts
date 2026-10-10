@@ -2,7 +2,6 @@ import { app, Menu } from 'electron'
 import type { BrowserWindow, MenuItemConstructorOptions, NativeImage } from 'electron'
 import { macApplicationMenuTemplate, nativeMenuLocale } from './native-menu.ts'
 import type { DesktopPlatform } from './runtime.ts'
-import type { DesktopWindowMaterial } from './window-material.ts'
 import type { DesktopDownloadPlatform } from './update-download.ts'
 
 /** Native presentation and capability differences selected once at startup. */
@@ -10,6 +9,16 @@ export interface ElectronPlatformStrategy {
   readonly platform: DesktopPlatform
   readonly updateDownloadPlatform: DesktopDownloadPlatform | undefined
   readonly canPickDirectory: boolean
+  readonly canToggleShellMode: boolean
+  /**
+   * Whether closing the window may hide it entirely, leaving the tray as the
+   * only way back. Windows and macOS both guarantee a reachable tray or dock
+   * icon. Linux does not: `new Tray()` succeeds even where the desktop shows
+   * no status area, so a hidden window becomes unreachable. Those generations
+   * minimize instead, which keeps the Host and its sessions running while
+   * leaving the window in every window list, alt-tab ring, and overview.
+   */
+  readonly hidesWindowOnClose: boolean
   configureApplication(
     icon: NativeImage,
     productName: string,
@@ -17,13 +26,14 @@ export interface ElectronPlatformStrategy {
   ): void
   refreshApplicationMenu(applicationMenuItems: readonly MenuItemConstructorOptions[]): void
   configureWindow(window: BrowserWindow): void
-  refreshThemeMaterial(window: BrowserWindow, material: DesktopWindowMaterial): void
 }
 
 class WindowsPlatformStrategy implements ElectronPlatformStrategy {
   readonly platform = 'win32'
   readonly updateDownloadPlatform = 'win32'
   readonly canPickDirectory = true
+  readonly canToggleShellMode = true
+  readonly hidesWindowOnClose = true
 
   configureApplication(
     _icon: NativeImage,
@@ -36,16 +46,14 @@ class WindowsPlatformStrategy implements ElectronPlatformStrategy {
   configureWindow(window: BrowserWindow): void {
     window.removeMenu()
   }
-
-  refreshThemeMaterial(window: BrowserWindow, material: DesktopWindowMaterial): void {
-    if (material === 'mica') window.setBackgroundMaterial(material)
-  }
 }
 
 class MacPlatformStrategy implements ElectronPlatformStrategy {
   readonly platform = 'darwin'
   readonly updateDownloadPlatform = 'darwin'
-  readonly canPickDirectory = false
+  readonly canPickDirectory = true
+  readonly canToggleShellMode = true
+  readonly hidesWindowOnClose = true
 
   private applicationName: string | undefined
 
@@ -54,7 +62,8 @@ class MacPlatformStrategy implements ElectronPlatformStrategy {
     productName: string,
     applicationMenuItems: readonly MenuItemConstructorOptions[] = [],
   ): void {
-    app.dock?.setIcon(icon)
+    // Packaged macOS apps use their compiled Icon Composer catalog.
+    if (!app.isPackaged) app.dock?.setIcon(icon)
     this.applicationName = productName
     this.refreshApplicationMenu(applicationMenuItems)
   }
@@ -71,14 +80,14 @@ class MacPlatformStrategy implements ElectronPlatformStrategy {
   }
 
   configureWindow(_window: BrowserWindow): void {}
-
-  refreshThemeMaterial(_window: BrowserWindow, _material: DesktopWindowMaterial): void {}
 }
 
 class LinuxPlatformStrategy implements ElectronPlatformStrategy {
   readonly platform = 'linux'
-  readonly updateDownloadPlatform = undefined
+  readonly updateDownloadPlatform = 'linux'
   readonly canPickDirectory = false
+  readonly canToggleShellMode = false
+  readonly hidesWindowOnClose = false
 
   configureApplication(
     _icon: NativeImage,
@@ -89,8 +98,6 @@ class LinuxPlatformStrategy implements ElectronPlatformStrategy {
   refreshApplicationMenu(_applicationMenuItems: readonly MenuItemConstructorOptions[]): void {}
 
   configureWindow(_window: BrowserWindow): void {}
-
-  refreshThemeMaterial(_window: BrowserWindow, _material: DesktopWindowMaterial): void {}
 }
 
 /** Select the only platform adapter used by one Electron runtime generation. */

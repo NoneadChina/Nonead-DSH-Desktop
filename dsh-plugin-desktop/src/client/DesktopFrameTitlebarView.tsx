@@ -4,6 +4,7 @@ import { RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 import type { DesktopSettingsApi } from './desktop-settings-api.ts'
 import type { DesktopClientEnvironment } from './environment.ts'
+import { DesktopNativeActions } from './DesktopNativeActions.tsx'
 import { Button } from '../native-ui/components/ui/button.tsx'
 import type { DesktopSettingsLocaleKey } from './desktop-settings-locales.ts'
 import {
@@ -72,13 +73,7 @@ export function DesktopVersionControl({
   )
 }
 
-/**
- * Horizontal frame surface; the unrelated upstream content starts below it.
- *
- * Desktop owns one presentation only, so this bar carries the product identity
- * and nothing else: no window-mode control and no launcher action group. Those
- * operations live in Settings and in the tray.
- */
+/** Horizontal frame surface; the unrelated upstream content starts below it. */
 export function DesktopFrameTitlebarView({ api, environment, t, remoteControl }: DesktopFrameTitlebarInjected & {
   readonly t: (key: DesktopSettingsLocaleKey) => string
 }) {
@@ -86,6 +81,7 @@ export function DesktopFrameTitlebarView({ api, environment, t, remoteControl }:
     <header
       className="dshDesktopFrameTitlebar"
       data-dsh-desktop-frame="titlebar"
+      data-mode={environment.mode}
       data-platform={environment.platform}
       data-material={environment.material}
     >
@@ -93,13 +89,12 @@ export function DesktopFrameTitlebarView({ api, environment, t, remoteControl }:
         <span className="dshDesktopFrameProduct">Nonead DSH Desktop</span>
         <DesktopVersionControl version={environment.version} checkForUpdates={api.checkForUpdates} t={t} />
       </div>
-      {remoteControl && (
-        <div className="dshDesktopFrameActions">
-          <button type="button" className="dshDesktopFrameMode dshDesktopRemoteControl" onClick={() => { void remoteControl.open().catch(() => {}) }}>
-            {t('remoteControl')}{!remoteControl.seen && <span className="dshDesktopRemoteControlDot" aria-label={t('remoteControlNew')} />}
-          </button>
-        </div>
-      )}
+      <div className="dshDesktopFrameActions">
+        {remoteControl && <button type="button" className="dshDesktopFrameMode dshDesktopRemoteControl" onClick={() => { void remoteControl.open().catch(() => {}) }}>
+          {t('remoteControl')}{!remoteControl.seen && <span className="dshDesktopRemoteControlDot" aria-label={t('remoteControlNew')} />}
+        </button>}
+        <DesktopNativeActions api={api} t={t} placement="titlebar" />
+      </div>
     </header>
   )
 }

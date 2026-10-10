@@ -1,11 +1,10 @@
 diff --git a/lib/index.js b/lib/index.js
-index 1e56f2b..96bcfa9 100644
 --- a/lib/index.js
 +++ b/lib/index.js
-@@ -42,6 +42,20 @@ function barePackageManifest(packageName, anchors, packages) {
+@@ -41,6 +41,20 @@
+ function barePackageManifest(packageName, anchors, packages) {
  	for (const anchor of anchors) {
  		const pkg = packages?.packageOf(packageName, anchor);
- 		if (pkg !== void 0) return pkg.manifestPath;
 +		const desktopResolverCount = globalThis[Symbol.for("dsh-plugin-desktop.asar-module-resolver")];
 +		if (typeof desktopResolverCount === "number" && desktopResolverCount > 0) {
 +			// Desktop's own package lives in app.asar rather than node_modules.
@@ -20,6 +19,6 @@ index 1e56f2b..96bcfa9 100644
 +					&& error?.code !== "ERR_PACKAGE_PATH_NOT_EXPORTED") throw error;
 +			}
 +		}
+ 		if (pkg !== void 0) return pkg.manifestPath;
  		if (packages !== void 0) continue;
  		for (const searchPath of createRequire(anchor).resolve.paths(packageName)) {
- 			const manifest = join(searchPath, packageName, "package.json");

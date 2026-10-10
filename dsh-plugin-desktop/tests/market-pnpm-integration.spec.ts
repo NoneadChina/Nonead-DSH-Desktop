@@ -7,7 +7,7 @@ import { Readable } from 'node:stream'
 import { Context } from '@deepseek-ai/cordis'
 import type { SubprocessHandle, SubprocessRuntime, SubprocessSpawnSpec } from '@deepseek-ai/dsh-subprocess'
 import { describe, expect, it, vi } from 'vitest'
-import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
+import { stringify as stringifyYaml } from 'yaml'
 import {
   apply as applyDesktopPnpm,
   inject as desktopPnpmInject,
@@ -19,10 +19,6 @@ const PACKAGE_NAME = 'dsh-plugin-market-integration'
 const PACKAGE_VERSION = '1.2.3'
 const INTEGRITY = `sha512-${Buffer.alloc(64).toString('base64')}`
 const BUNDLE_ID = 'bundle_market_integration'
-const MARKET_PACKAGE_NAME = 'dsh-community-market'
-
-/** The Loader row the market occupies, as its own bundle patch declares it. */
-const MARKET_ENTRY_ID = 'community-market'
 
 interface CommunityMarketModule {
   readonly name: string
@@ -151,26 +147,18 @@ describe('desktop pnpm and community market integration', () => {
     const market = await import(marketModuleUrl) as CommunityMarketModule
     const root = await mkdtemp(join(tmpdir(), 'dsh-market-desktop-pnpm-'))
     const profileDir = join(root, 'profiles', 'web')
-    // 0.1.7 keeps plugin settings in the profile patch document: a sequence of
-    // Loader rows addressed by entry id, not a `settings.yaml` namespace document.
-    const profilePatchPath = join(profileDir, 'cordis.patch.yml')
-    const marketEntry = {
-      id: MARKET_ENTRY_ID,
-      name: MARKET_PACKAGE_NAME,
-    }
     const ctx = new Context()
     const webServer = await createWebServer()
     try {
       await writeInstalledProfile(profileDir)
-      await writeFile(profilePatchPath, stringifyYaml([marketEntry]))
 
       const selectedBootstrap = bootstrap(root, profileDir)
       const spawn = vi.fn<(spec: SubprocessSpawnSpec) => SubprocessHandle>((_spec) => ({
         pid: 43_120,
         stdin: undefined,
+        control: undefined,
         stdout: Readable.from([]),
         stderr: Readable.from([]),
-        control: undefined,
         collected: {},
         done: (async () => {
           await removeInstalledProfilePlugin(profileDir)
@@ -192,8 +180,13 @@ describe('desktop pnpm and community market integration', () => {
       })
       ctx.provide('desktopPnpmBootstrap', selectedBootstrap)
       ctx.provide('subprocess', { spawn } as unknown as SubprocessRuntime)
-      // The market injects only `webServer`; durable state arrives through the
-      // soft-injected storage domain, so this test needs no settings stand-in.
+      // dsh 0.1.7-alpha.1 retired the settings document as market's registry
+      // store: `SettingsProvider`/`@deepseek-ai/dsh-settings-file` are gone and
+      // market keeps its sources in an optional `dsh-storage-domain` table,
+      // importing any pre-0.1.7 `settings.yaml` exactly once. The uninstall
+      // route under test never touches the registry, so this integration mounts
+      // market with no store at all — which is also the shape a market
+      // installed without the optional peer boots in.
       await ctx.plugin({ name: desktopPnpmName, inject: desktopPnpmInject, apply: applyDesktopPnpm })
       await ctx.plugin({ name: market.name, inject: market.inject, apply: market.apply })
 
@@ -232,15 +225,6 @@ describe('desktop pnpm and community market integration', () => {
         env: { ELECTRON_RUN_AS_NODE: '1', DSH_HOME: selectedBootstrap.homeDir },
       })
 
-      const persisted = parseYaml(await readFile(profilePatchPath, 'utf8')) as {
-        id: string
-        name: string
-      }[]
-      // Uninstalling a third-party bundle must leave the market's own Loader row intact.
-      expect(persisted).toEqual([{
-        id: MARKET_ENTRY_ID,
-        name: MARKET_PACKAGE_NAME,
-      }])
       const manifest = JSON.parse(await readFile(join(profileDir, 'package.json'), 'utf8')) as {
         dependencies: Record<string, string>
       }

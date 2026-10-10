@@ -12,16 +12,18 @@ node_modules/
 dsh-plugin-desktop/dist/
 dsh-plugin-desktop/lib/
 dsh-community-market/lib/
-dsh-community-fabric/lib/
-
-# Extracted upstream package kept only to author the dshmarket registry patch that
-# lives in .yarn/patches. It is never a workspace member and nothing references it.
-dsh-market-1.66.0/
-
-# Local DSH agent memory store: per-machine tooling state, never published.
-.dsh-memory/
-
-# Local investigation scratch: probes, build logs and recovered artifacts.
-.tmp-investigate/
 
 .env.yarn
+dsh-desktop-next/lib/
+dsh-desktop-next/dist/
+dsh-desktop-next/.desktop-next/
+
+# Local scratch working directories: agent investigation output and the pnpm
+# content-addressable store. Neither is product source.
+.tmp-investigate/
+.tmp_*
+.pnpm-store/
+
+# Local shortcut and runtime log
+GitLab.lnk
+debug.log

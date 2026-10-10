@@ -17,7 +17,7 @@ $taskCandidateInstaller = (Resolve-Path -LiteralPath $CandidateInstaller).Path
 $taskBaseExpectedVersion = (Get-Item -LiteralPath $taskBaseInstaller).VersionInfo.ProductVersion
 $taskCandidateExpectedVersion = (Get-Item -LiteralPath $taskCandidateInstaller).VersionInfo.ProductVersion
 $taskExistingProcesses = @(Get-CimInstance Win32_Process | Where-Object {
-  $_.Name -ieq 'Nonead DSH Desktop.exe'
+  $_.Name -ieq 'DSH Desktop.exe'
 })
 $taskUninstallRoots = @(
   'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*'
@@ -25,23 +25,23 @@ $taskUninstallRoots = @(
   'HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*'
 )
 $taskExistingInstalls = @(Get-ItemProperty $taskUninstallRoots -ErrorAction SilentlyContinue | Where-Object {
-  $_.DisplayName -match '^Nonead DSH Desktop'
+  $_.DisplayName -match '^DSH Desktop'
 })
 
 if ($taskExistingProcesses.Count -gt 0 -or $taskExistingInstalls.Count -gt 0) {
-  throw 'Refusing to run while an existing Nonead DSH Desktop process or installation is present.'
+  throw 'Refusing to run while an existing DSH Desktop process or installation is present.'
 }
 
 $taskTempRoot = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath())
 $taskRoot = Join-Path $taskTempRoot ("dsh-installer-upgrade-" + [guid]::NewGuid().ToString('N'))
 $taskInstallRoot = Join-Path $taskRoot 'app'
-$taskUserData = Join-Path $env:APPDATA 'Nonead DSH Desktop'
+$taskUserData = Join-Path $env:APPDATA 'DSH Desktop'
 $taskDshHome = Join-Path $taskRoot 'dsh-home'
 $taskActiveRunMarker = Join-Path $taskUserData 'crash-evidence\active-run.json'
-$taskAppPath = Join-Path $taskInstallRoot 'Nonead DSH Desktop.exe'
-$taskUninstallerPath = Join-Path $taskInstallRoot 'Uninstall Nonead DSH Desktop.exe'
+$taskAppPath = Join-Path $taskInstallRoot 'DSH Desktop.exe'
+$taskUninstallerPath = Join-Path $taskInstallRoot 'Uninstall DSH Desktop.exe'
 if (Test-Path -LiteralPath $taskActiveRunMarker) {
-  throw 'Refusing to overwrite an existing Nonead DSH Desktop active run marker.'
+  throw 'Refusing to overwrite an existing DSH Desktop active run marker.'
 }
 $taskResult = [ordered]@{
   scenario = "temporary install and DSH_HOME: $taskBaseExpectedVersion to $taskCandidateExpectedVersion upgrade and fixed-version overwrite"
@@ -115,7 +115,7 @@ function Wait-TaskProcess([bool]$taskShouldExist, [int]$taskTimeoutSeconds = 30)
     }
     Start-Sleep -Milliseconds 250
   } while ([DateTime]::UtcNow -lt $taskDeadline)
-  throw "Timed out waiting for Nonead DSH Desktop process state: shouldExist=$taskShouldExist"
+  throw "Timed out waiting for DSH Desktop process state: shouldExist=$taskShouldExist"
 }
 
 function Wait-TaskActiveRunMarker([bool]$taskShouldExist, [int]$taskTimeoutSeconds = 30) {
@@ -235,7 +235,7 @@ try {
   $taskResult.testProcessesRemaining = $taskRemainingProcesses.Count
 
   $taskRemainingInstalls = @(Get-ItemProperty $taskUninstallRoots -ErrorAction SilentlyContinue | Where-Object {
-    $_.DisplayName -match '^Nonead DSH Desktop'
+    $_.DisplayName -match '^DSH Desktop'
   })
   $taskResult.uninstallEntryRemoved = $taskRemainingInstalls.Count -eq 0
 
@@ -246,7 +246,7 @@ try {
     [Environment]::GetFolderPath('CommonStartMenu')
   ) | Where-Object { $_ -and (Test-Path -LiteralPath $_) }
   $taskRemainingShortcuts = @($taskShortcutRoots | ForEach-Object {
-    Get-ChildItem -LiteralPath $_ -Filter '*Nonead DSH Desktop*' -Recurse -ErrorAction SilentlyContinue
+    Get-ChildItem -LiteralPath $_ -Filter '*DSH Desktop*' -Recurse -ErrorAction SilentlyContinue
   })
   $taskResult.shortcutsRemoved = $taskRemainingShortcuts.Count -eq 0
 

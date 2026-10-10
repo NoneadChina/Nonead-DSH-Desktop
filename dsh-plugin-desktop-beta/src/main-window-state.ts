@@ -15,51 +15,6 @@ const STATE_VERSION = 1
 const MAX_STATE_BYTES = 4 * 1024
 const STATE_DIRECTORY_MODE = 0o700
 const STATE_FILE_MODE = 0o600
-/**
- * Windows can refuse a rename onto a path another process momentarily holds
- * (indexer, anti-virus, a viewer). Those failures are transient, so a bounded
- * retry keeps the window geometry instead of silently dropping it.
- */
-const ATOMIC_REPLACE_RETRY_COUNT = 5
-const ATOMIC_REPLACE_RETRY_DELAY_MS = 20
-
-/** Sleep synchronously; this store writes from a synchronous event handler. */
-function sleepSync(milliseconds: number): void {
-  const shared = new Int32Array(new SharedArrayBuffer(4))
-  Atomics.wait(shared, 0, 0, milliseconds)
-}
-
-/**
- * Injection seam for the atomic-replace retry loop.
- *
- * Module mocking of `node:fs` cannot reach a synchronous rename on the store's
- * hot path without disturbing every other filesystem call, so the loop consults
- * this hook instead: return an error to refuse the attempt, or `undefined` to let
- * the real rename proceed. Production never installs a hook.
- */
-let renameAttemptFailure: (() => Error | undefined) | undefined
-
-/** Install or clear the atomic-replace failure hook used by focused tests. */
-export function setRenameAttemptFailure(hook: (() => Error | undefined) | undefined): void {
-  renameAttemptFailure = hook
-}
-
-/** Replace a destination with a fully written temporary file, retrying a transient refusal. */
-function replaceFileWithRetry(temporary: string, destination: string): void {
-  for (let attempt = 0; ; attempt += 1) {
-    try {
-      const injected = renameAttemptFailure?.()
-      if (injected !== undefined) throw injected
-      renameSync(temporary, destination)
-      return
-    } catch (cause) {
-      const code = (cause as NodeJS.ErrnoException).code
-      const transient = code === 'EPERM' || code === 'EBUSY' || code === 'EACCES'
-      if (!transient || attempt >= ATOMIC_REPLACE_RETRY_COUNT) throw cause
-      sleepSync(ATOMIC_REPLACE_RETRY_DELAY_MS * (attempt + 1))
-    }
-  }
-}
 
 export const MAIN_WINDOW_STATE_FILENAME = 'main-window-state.json'
 
@@ -162,7 +117,7 @@ export class FileMainWindowStateStore implements MainWindowStateStore {
         flag: 'wx',
         mode: STATE_FILE_MODE,
       })
-      replaceFileWithRetry(temporary, this.statePath)
+      renameSync(temporary, this.statePath)
     } finally {
       unlinkTemporary(temporary)
     }

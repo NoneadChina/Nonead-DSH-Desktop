@@ -2,15 +2,17 @@ import { describe, expect, it, vi } from 'vitest'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
-import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
+// dsh 0.1.7-alpha.1 renamed `SettingsScope<T>` to `ConfigForm<T>` and
+// `ctx.settingsScope.bind({ namespace })` to `ctx.configForms.get(entryId)`.
+// Both names are edition-local, so the fixture reads them from the adapter the
+// shared client sources call rather than from the core package directly.
+import type { DesktopSettingsForm } from '../src/client/settings-bridge.ts'
 import {
   DesktopDeveloperMenuItems,
   DesktopNativeActions,
   DesktopRestartMenuItems,
 } from '../src/client/DesktopNativeActions.tsx'
-import {
-  DesktopVersionControl,
-} from '../src/client/ExtendedTitlebar.tsx'
+import { DesktopVersionControl } from '../src/client/ExtendedTitlebar.tsx'
 import {
   desktopBrowserUrlsShouldRender,
   DesktopSettingsSection,
@@ -22,12 +24,14 @@ import {
 import { DesktopTerminalSettingsAction } from '../src/client/DesktopTerminalSettingsAction.tsx'
 import {
   createDesktopSettingsApi,
+  desktopRendererActionsBridge,
   desktopSettingsPaths,
   parseDesktopActionAcceptance,
   parseDesktopRestartAcceptance,
   parseDesktopSettingsView,
   type DesktopSettingsView,
 } from '../src/client/desktop-settings-api.ts'
+import { DESKTOP_RENDERER_ACTIONS_BRIDGE } from '../src/renderer-actions-contract.ts'
 import {
   applyDesktopSettings,
   DESKTOP_NOTIFICATIONS_SETTINGS_NAMESPACE,
@@ -37,6 +41,7 @@ import {
 } from '../src/client/desktop-settings.ts'
 import { en, zh, type DesktopSettingsLocaleKey } from '../src/client/desktop-settings-locales.ts'
 import { installDesktopSettingsStyles } from '../src/client/desktop-settings-styles.ts'
+import { DESKTOP_PACKAGE_NAME } from '../src/product-identity.ts'
 
 const BROWSER_AUTH_TOKEN = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
 const CA_FINGERPRINT = 'a'.repeat(64)
@@ -437,6 +442,55 @@ describe('Desktop settings API', () => {
     })
   })
 
+  it('keeps Desktop-owned actions on the Electron bridge, off the Host routes', async () => {
+    const fetcher = vi.fn(async () => json(VIEW))
+    const invoke = vi.fn(async () => {})
+    const api = createDesktopSettingsApi(fetcher, { invoke })
+
+    await expect(api.openTerminal()).resolves.toBeUndefined()
+    await expect(api.restart()).resolves.toBeUndefined()
+    await expect(api.restartToRecovery()).resolves.toBeUndefined()
+    await expect(api.reloadRenderer()).resolves.toBeUndefined()
+    await expect(api.toggleDeveloperTools()).resolves.toBeUndefined()
+    await expect(api.checkForUpdates()).resolves.toBeUndefined()
+    await expect(api.exportDiagnostics()).resolves.toBeUndefined()
+
+    expect(invoke.mock.calls.flat()).toEqual([
+      'terminal',
+      'restart',
+      'restart-recovery',
+      'reload',
+      'developer',
+      'check-for-updates',
+      'diagnostics',
+    ])
+    expect(fetcher).not.toHaveBeenCalled()
+
+    // Host-persisted state still belongs to the loopback settings routes.
+    await expect(api.read()).resolves.toEqual(VIEW)
+    expect(fetcher).toHaveBeenCalledExactlyOnceWith(desktopSettingsPaths.settings, expect.anything())
+  })
+
+  it('surfaces a bridge failure instead of falling back to the Host routes', async () => {
+    const fetcher = vi.fn(async () => json({ accepted: true }))
+    const api = createDesktopSettingsApi(fetcher, {
+      invoke: async () => { throw new Error('untrusted Desktop action sender') },
+    })
+
+    await expect(api.restart()).rejects.toThrow('untrusted Desktop action sender')
+    expect(fetcher).not.toHaveBeenCalled()
+  })
+
+  it('detects only a usable preload bridge', () => {
+    const bridge = { invoke: async () => {} }
+    expect(desktopRendererActionsBridge({ [DESKTOP_RENDERER_ACTIONS_BRIDGE]: bridge })).toBe(bridge)
+    expect(desktopRendererActionsBridge({})).toBeUndefined()
+    expect(desktopRendererActionsBridge({ [DESKTOP_RENDERER_ACTIONS_BRIDGE]: null })).toBeUndefined()
+    expect(desktopRendererActionsBridge({ [DESKTOP_RENDERER_ACTIONS_BRIDGE]: {} })).toBeUndefined()
+    expect(desktopRendererActionsBridge({ [DESKTOP_RENDERER_ACTIONS_BRIDGE]: { invoke: 'restart' } }))
+      .toBeUndefined()
+  })
+
   it('does not reflect an untrusted error body into its public error', async () => {
     const api = createDesktopSettingsApi(async () => json({ error: '/Users/private/profile failed' }, 400))
     await expect(api.read()).rejects.toThrow('Desktop settings request failed (400)')
@@ -523,6 +577,7 @@ describe('Desktop native action presentation', () => {
     const remove = vi.fn()
     const style = {
       id: '',
+      dataset: {} as Record<string, string>,
       get textContent() { return css },
       set textContent(value: string) { css = value },
       remove,
@@ -536,6 +591,7 @@ describe('Desktop native action presentation', () => {
 
     try {
       const dispose = installDesktopSettingsStyles()
+      expect(style.dataset).toEqual({ plugin: DESKTOP_PACKAGE_NAME, pluginCss: `${DESKTOP_PACKAGE_NAME}/desktop-settings` })
       expect(css).toMatch(/data-placement="settings"\] \.dshDesktopActionMenu \{[^}]*position: absolute;[^}]*display: grid;[^}]*grid-auto-flow: row;[^}]*grid-template-columns: minmax\(0, 1fr\);[^}]*min-width: 220px;/)
       expect(css).toMatch(/data-placement="settings"\] \.dshDesktopActionMenuItem \{[^}]*display: flex;[^}]*width: 100%;[^}]*white-space: nowrap;/)
       expect(appendChild).toHaveBeenCalledWith(style)
@@ -545,11 +601,38 @@ describe('Desktop native action presentation', () => {
       vi.unstubAllGlobals()
     }
   })
+
+  it.each([DESKTOP_PACKAGE_NAME, 'dsh-desktop-next'])('keeps %s settings styles out of another plugin lifecycle', owner => {
+    let connected = false
+    const style = { id: '', dataset: {} as Record<string, string>, textContent: '', remove: () => { connected = false } }
+    vi.stubGlobal('document', {
+      getElementById: () => connected ? style : null,
+      createElement: () => style,
+      head: { appendChild: () => {
+        // Ownership must already exist when the tag becomes visible to the loader.
+        expect(style.dataset.plugin).toBe(owner)
+        connected = true
+      } },
+    })
+    try {
+      const dispose = installDesktopSettingsStyles(owner)
+      // Model upstream claimStyles/removeOwnedStyles when a market is loaded
+      // and then disabled. An untagged sheet would disappear here.
+      if (!style.dataset.plugin) style.dataset.plugin = 'dshmarket'
+      if (style.dataset.plugin === 'dshmarket') style.remove()
+      expect(connected).toBe(true)
+      expect(style.textContent).toContain('.dshDesktopSettingsChoice')
+      dispose()
+      expect(connected).toBe(false)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
 })
 
 describe('Desktop settings Slot registration', () => {
-  it('registers the official Desktop section, native actions, and both settings scopes', async () => {
-    const form = {
+  it.each(['darwin', 'win32'] as const)('registers Desktop controls and hides the launcher-owned Market on %s', async platform => {
+    const scope = {
       getSnapshot: () => ({
         status: 'loading' as const,
         value: undefined,
@@ -563,8 +646,8 @@ describe('Desktop settings Slot registration', () => {
       set: vi.fn(async () => true),
       unset: vi.fn(async () => true),
       mutate: vi.fn(async () => true),
-    } satisfies ConfigForm<unknown>
-    const get = vi.fn(() => form)
+    } satisfies DesktopSettingsForm<unknown>
+    const get = vi.fn(() => scope)
     const register = vi.fn(() => () => {})
     const inject = vi.fn((_name: string, mount: () => unknown) => mount())
     const localeRegister = vi.fn(() => () => {})
@@ -581,9 +664,8 @@ describe('Desktop settings Slot registration', () => {
     const control = applyDesktopSettings(ctx, {
       version: '2.0.3',
       mode: 'compatibility',
-      platform: 'darwin',
+      platform,
       material: 'off',
-      micaSupported: false,
     })
 
     expect(get).toHaveBeenNthCalledWith(1, DESKTOP_SHELL_SETTINGS_NAMESPACE)
@@ -602,8 +684,9 @@ describe('Desktop settings Slot registration', () => {
     })
     expect(options.label()).toBe(`${DESKTOP_SETTINGS_LOCALE_NAMESPACE}:nav`)
     expect(options.inject()).toMatchObject({
-      platform: 'darwin',
-      micaSupported: false,
+      platform,
+      initialMode: 'compatibility',
+      setMode: expect.any(Function),
     })
     expect(component).toBe(DesktopSettingsSection)
 
@@ -619,11 +702,12 @@ describe('Desktop settings Slot registration', () => {
     })
     expect(actionOptions.inject()).toHaveProperty('api')
     expect(actionComponent).toBe(DesktopTerminalSettingsAction)
+    expect(inject).toHaveBeenCalledWith('plugins.bundle.hidden', expect.any(Function))
+    expect(register).toHaveBeenNthCalledWith(3, {
+      name: 'plugins.bundle.hidden',
+      key: 'dshmarket',
+    }, expect.any(Function))
     await control.setMode('extended')
-    expect(form.set.mock.calls).toEqual([
-      ['networkExposure', 'loopback'],
-      ['openBrowser', false],
-      ['mode', 'extended'],
-    ])
+    expect(scope.set).toHaveBeenCalledWith('mode', 'extended')
   })
 })

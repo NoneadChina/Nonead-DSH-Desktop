@@ -31,9 +31,16 @@ const PEER_PACKAGES = [
   '@deepseek-ai/cordis',
   '@deepseek-ai/schemastery',
 ]
-/** 工具表在 v0.4.0 的规模；注册数少于它即为「静默丢工具」。 */
-const EXPECTED_TOOLS = 49
-const TWIN_ROUTE_COUNT = 2
+/** 工具表当前规模（当前的 83 个）；注册数少于它即为「静默丢工具」。 */
+const EXPECTED_TOOLS = 83
+/**
+ * 孪生侧注册的 `kind:'exact'` 路由条数。
+ *
+ * 0.6.3 起是 **4** 条：state / asset / models / **stream**（第 20 条的 SSE 实时流）。
+ * 加路由时必须同步改这里 —— 这条断言的意义就是"注册形状变了要有人知道"，
+ * 而不是"永远只能是 3 条"。
+ */
+const TWIN_ROUTE_COUNT = 4
 
 const failures = []
 const pass = (title, detail) => console.log(`PASS  ${title}${detail === undefined ? '' : ` — ${detail}`}`)
@@ -45,9 +52,23 @@ const note = (text) => console.log(`note  ${text}`)
 
 /** 定位宿主 node_modules（含 @deepseek-ai/dsh-tools 的那个）。 */
 function findHostModules(argv) {
-  const explicit = argv[2] ?? process.env.DSH_HOST_NODE_MODULES
-  const hasHost = (dir) => existsSync(join(dir, '@deepseek-ai', 'dsh-tools', 'package.json'))
-  if (explicit !== undefined && explicit !== '') return hasHost(explicit) ? resolvePath(explicit) : undefined
+  const candidates = [
+    argv[2],
+    process.env.DSH_HOST_NODE_MODULES,
+    // DSH Desktop 的实际安装位置：**必须排在上面那个 walk-up 之前**。
+    // 本仓库自己的 node_modules 里也有（devDependency 带进来的）@deepseek-ai/dsh-tools，
+    // 但那是**驱动脚本用的旧 dev 副本**（0.1.2-rc.1），不是运行插件的那份；用它去校验
+    // DSL 与 peer 版本会得到误导性的结论（例如 "0/67 注册成功"）。
+    // Windows 上 Program Files 不在 PATH 里，所以候选路径写死并逐个探测存在性。
+    'C:\\Program Files\\DSH Desktop\\resources\\app\\node_modules',
+    'C:\\Program Files (x86)\\DSH Desktop\\resources\\app\\node_modules',
+  ]
+  const hasHost = (dir) => typeof dir === 'string' && dir !== ''
+    && existsSync(join(dir, '@deepseek-ai', 'dsh-tools', 'package.json'))
+
+  for (const candidate of candidates) {
+    if (hasHost(candidate)) return resolvePath(candidate)
+  }
 
   const desktopSibling = resolvePath(PLUGIN_ROOT, '..', 'dsh-plugin-desktop', 'node_modules')
   if (hasHost(desktopSibling)) return desktopSibling

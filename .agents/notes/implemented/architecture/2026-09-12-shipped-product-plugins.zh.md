@@ -4,6 +4,8 @@ Status: implemented
 
 [English](2026-09-12-shipped-product-plugins.md) | 中文
 
+> **更新（2026-09-29）：** 产品现固定 deepseek-harness `639ed01`（dsh `0.2.0-rc.2`），下文所述 DSH 包均解析到该内置家族；其中 `0.1.7-rc.2` 的固定点、其 peer 范围以及 2026-09-27 的验证计数，均按本次更新之前的状态理解。
+>
 > **更新（2026-09-27）：** `dsh-nonead-universal-robots` 已以 v0.4.0 重新回到内置集合，下文所述恢复为当前状态，其上 2026-09-21 与 2026-09-26 两条更新作废。launcher 行、两个发行版的依赖、解包的 `python/` 负载以及工作区与 layout 契约均已恢复。该插件现在还带一个只读 3D 孪生客户端半（`dsh.client`，`platform: web`，无 `external`），peer 范围写作 `^0.1.2-rc.1 || ^0.1.7-rc.2`（DSH 包），以便解析到内置的 `0.1.7-rc.2` 家族；下文凡只提皮肤的客户端接线、本次之前的 peer 范围或当时的验证计数，均按本次更新之前的状态理解。其源码自 `feat/ur-digital-twin` 的 `df6feca` 重新并入——见来源段落。
 
 ## Problem

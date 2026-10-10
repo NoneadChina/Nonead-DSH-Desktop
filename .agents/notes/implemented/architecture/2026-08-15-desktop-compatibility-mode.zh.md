@@ -10,7 +10,7 @@ DSH Desktop 需要原生应用生命周期，同时兼容模式必须保持未�
 
 ## Decision
 
-`desktop-shell` Cordis row 提供 `mode: compatibility | extended | advanced`，`dsh-desktop` settings row 会把 `mode` 默认为 `compatibility`。desktop package 同时声明 `dsh.bundle` 与 `dsh.client`；其 Client face 会在两种模式中被发现。
+`desktop-shell` Cordis row 提供 `mode: compatibility | advanced`，标准 `dsh-desktop` settings namespace 会把 `mode` 默认为 `compatibility`。desktop package 同时声明 `dsh.bundle` 与 `dsh.client`；其 Client face 会在两种模式中被发现。
 
 在兼容模式下，Client 会校验 Host 提供的模式与平台 URL marker，随后直接返回而不安装任何 effect。它不提供或替换 `layout` service，不注册 `root` 或 `sidebar` occupant，不安装样式，也不改动 conversation surface。只有 advanced generation 会调用 advanced-shell installer。
 
@@ -24,9 +24,9 @@ Launcher 会在用户 patch 之后添加一层平台安全 overlay。在 Windows
 
 ## Mode persistence and restart boundary
 
-当前 profile patch 文档中的 `dsh-desktop` row 是 `dsh-desktop.mode` 的唯一持久化事实源。Launcher 会在组合之前读取该 row，Host 则把同一 schema 暴露为标准 `SettingsForms` service 的 `dsh-desktop` form。profile manifest 中不存在第二个值。已废弃的 `$DSH_HOME/settings.yaml` 文档会在启动时导入一次，两处同时存在取值时以 patch row 为准。
+DSH home `settings.yaml` 文档是 `dsh-desktop.mode` 的唯一持久化事实源。Launcher 会在组合之前读取当前 `dsh-settings-file` row 解析到的文件。Host plugin 向标准 settings service 注册同一 namespace 与 schema，并声明 `applies: restart`。profile manifest 中不存在第二个值。
 
-用户可以从应用托盘选择另一种模式，也可以手工编辑同一个 patch row。托盘会调用 `ctx.settings.update(DESKTOP_SETTINGS_ENTRY_ID, { mode })`，Host 则通过该 entry 的 `settings/document-updated` 事件观察手工修改。Watcher 会比较已提交模式与当前 generation，并在两者不同时请求一次有序重启。
+用户可以从应用托盘选择另一种模式，也可以手工编辑同一份 `settings.yaml` 文档。托盘会调用已注册 scope 范围受限的 `settings.update({ mode })` 路径，file provider 则会观察手工修改。Watcher 会比较已提交模式与当前 generation，并在两者不同时请求一次有序重启。
 
 Cordis disposal 会先释放 Client effect、Host row、托盘与窗口；仅当零退出码 shutdown 成功后，exit coordinator 才调用 `app.relaunch()`。兼容模式绝不会在存活 generation 内热替换官方 slot。Linux 会保持托盘模式命令禁用，并拒绝高级模式，而不会静默降级。
 
@@ -40,7 +40,7 @@ Windows 与 Linux 保持使用未经修改的 iOS Default 应用图标。macOS �
 
 Package 测试要求 `./client` 导出与普通 `dsh.client` 依赖边。Profile 测试验证兼容模式保持官方 layout、sidebar 与 conversation row 启用，并组合 Windows browse picker。路由、runtime 与 client bridge 测试覆盖同源校验、原生对话框的选择与取消，以及面板桥接生命周期。Client 测试还会验证模式与平台 marker、作用域化高级 layout 行为与呈现隔离。
 
-Host 测试验证 `dsh-desktop` entry 注册、托盘范围受限的 `settings.update({ mode })` 路径、只在值变化后重启，以及持久化前的 Linux 校验。Runtime 测试验证登记过程不会重新进入 Loader settlement，并且只有 Launcher 挂载已登记 generation 后才会构造 `BrowserWindow`。窗口选项测试会拒绝兼容构造器中的高级原生选项。
+Host 测试验证标准 namespace 注册、托盘范围受限的 `settings.update({ mode })` 路径、只在值变化后重启，以及持久化前的 Linux 校验。Runtime 测试验证登记过程不会重新进入 Loader settlement，并且只有 Launcher 挂载已登记 generation 后才会构造 `BrowserWindow`。窗口选项测试会拒绝兼容构造器中的高级原生选项。
 
 Headless Loader smoke 会激活 Host shell 与 profile 本地第三方插件，然后在不导入 Electron 也不打开窗口的情况下启动已发布 Web profile。Desktop deploy root 会直接提供生产依赖图中的每个必需第一方 peer；closure 检查会拒绝缺失声明。
 

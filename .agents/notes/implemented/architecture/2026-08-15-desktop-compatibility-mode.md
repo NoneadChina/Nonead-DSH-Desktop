@@ -10,7 +10,7 @@ DSH Desktop needs native application lifecycle while compatibility mode remains 
 
 ## Decision
 
-The `desktop-shell` Cordis row exposes `mode: compatibility | extended | advanced`, and the `dsh-desktop` settings row defaults `mode` to `compatibility`. The desktop package declares both `dsh.bundle` and `dsh.client`; its Client face is discovered in both modes.
+The `desktop-shell` Cordis row exposes `mode: compatibility | advanced`, and the standard `dsh-desktop` settings namespace defaults `mode` to `compatibility`. The desktop package declares both `dsh.bundle` and `dsh.client`; its Client face is discovered in both modes.
 
 In compatibility mode, the Client validates the Host-supplied mode and platform URL markers, then returns without installing any effects. It does not provide or replace the `layout` service, register a `root` or `sidebar` occupant, install styles, or alter the conversation surface. Only an advanced generation calls the advanced-shell installer.
 
@@ -24,9 +24,9 @@ The `desktop-shell` row registers a native shell specification while the profile
 
 ## Mode persistence and restart boundary
 
-The `dsh-desktop` row of the active profile patch document is the single durable source for `dsh-desktop.mode`. The launcher reads that row before composition, and the Host exposes the same schema as the `dsh-desktop` form of the standard `SettingsForms` service. There is no second value in the profile manifest. A retired `$DSH_HOME/settings.yaml` document is imported once at startup, and the patch row wins wherever both carry a value.
+The DSH home `settings.yaml` document is the single durable source for `dsh-desktop.mode`. The launcher reads the file resolved by the active `dsh-settings-file` row before composition. The Host plugin registers the same namespace and schema with the standard settings service and declares `applies: restart`. There is no second value in the profile manifest.
 
-Users select the other mode from the application tray or edit the same patch row by hand. The tray calls `ctx.settings.update(DESKTOP_SETTINGS_ENTRY_ID, { mode })`, while the Host observes a manual edit through the `settings/document-updated` event for that entry. A watcher compares the committed mode with the active generation and requests one orderly restart when they differ.
+Users select the other mode from the application tray or edit the same `settings.yaml` document by hand. The tray calls the registered scope's narrow `settings.update({ mode })` path, while the file provider observes manual changes. A watcher compares the committed mode with the active generation and requests one orderly restart when they differ.
 
 Cordis disposal releases Client effects, Host rows, the tray, and the window before the exit coordinator calls `app.relaunch()` after a successful zero-code shutdown. Compatibility never hot-replaces official slots inside a live generation. Linux keeps the tray mode command disabled and rejects advanced mode rather than silently falling back.
 
@@ -40,7 +40,7 @@ The application keeps the unmodified iOS Default icon on Windows and Linux. macO
 
 Package tests require the `./client` export and ordinary `dsh.client` dependency edges. Profile tests verify that compatibility keeps the official layout, sidebar, and conversation rows enabled and composes the Windows browse picker. Route, runtime, and client-bridge tests cover same-origin validation, native-dialog selection and cancellation, and the panel bridge lifecycle. Client tests also validate the mode and platform markers, scoped advanced layout behavior, and presentation isolation.
 
-Host tests verify the `dsh-desktop` entry registration, the narrow tray `settings.update({ mode })` path, restart only after a changed value, and Linux validation before persistence. Runtime tests verify that registration does not re-enter Loader settlement and that `BrowserWindow` construction starts only after the launcher mounts the registered generation. Window-option tests reject advanced-native options from the compatibility constructor.
+Host tests verify standard namespace registration, the narrow tray `settings.update({ mode })` path, restart only after a changed value, and Linux validation before persistence. Runtime tests verify that registration does not re-enter Loader settlement and that `BrowserWindow` construction starts only after the launcher mounts the registered generation. Window-option tests reject advanced-native options from the compatibility constructor.
 
 Headless Loader smokes activate the Host shell and a profile-local third-party plugin, then boot the published Web profile without importing Electron or opening a window. The desktop deploy root directly supplies every required first-party peer in its production dependency graph; a closure check rejects missing declarations.
 

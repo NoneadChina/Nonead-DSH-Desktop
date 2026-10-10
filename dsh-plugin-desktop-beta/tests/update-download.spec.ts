@@ -1,8 +1,8 @@
-import { access, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises'
-import { randomUUID } from 'node:crypto'
+import { createHash } from 'node:crypto'
+import { access, mkdir, mkdtemp, readFile, readdir, rm, stat, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   DESKTOP_DOWNLOAD_URLS,
   DESKTOP_TARGET_VERSION_HEADER,
@@ -12,10 +12,10 @@ import {
   downloadDesktopUpdate,
   pendingDesktopUpdateArtifact,
   recordDesktopUpdateArtifact,
-  removeAbandonedTemporaryArtifacts,
   resolveDesktopUpdateArtifact,
   type DesktopDownloadPlatform,
   type UpdateArtifactRequest,
+  type UpdateArtifactResponse,
 } from '../src/update-download.ts'
 import { DESKTOP_RELEASE_CHANNEL_HEADER } from '../src/update-checker.ts'
 
@@ -45,9 +45,26 @@ function windowsArtifact(): Uint8Array {
   return artifact
 }
 
-function chunkedResponse(chunks: readonly Uint8Array[], headers: HeadersInit = {}): Response {
+function appImageArtifact(): Uint8Array {
+  const artifact = Buffer.alloc(1024, 0)
+  artifact.set([0x7f, 0x45, 0x4c, 0x46], 0)
+  artifact.set([0x41, 0x49, 0x02], 8)
+  return artifact
+}
+
+function elfWithoutAppImageMagic(): Uint8Array {
+  const artifact = Buffer.alloc(1024, 0)
+  artifact.set([0x7f, 0x45, 0x4c, 0x46], 0)
+  return artifact
+}
+
+function chunkedResponse(
+  chunks: readonly Uint8Array[],
+  headers: HeadersInit = {},
+  finalUrl: string = 'https://www.nonead.com/software/ndsh-desktop/downloads/mac',
+): UpdateArtifactResponse {
   let index = 0
-  return new Response(new ReadableStream<Uint8Array>({
+  const response = new Response(new ReadableStream<Uint8Array>({
     pull(controller) {
       const chunk = chunks[index]
       index += 1
@@ -55,6 +72,9 @@ function chunkedResponse(chunks: readonly Uint8Array[], headers: HeadersInit = {
       else controller.enqueue(chunk)
     },
   }), { status: 200, headers })
+  // The settled URL is reported explicitly: Electron net.fetch Responses
+  // carry an empty url, so the gate must never read it off the Response.
+  return { response, finalUrl }
 }
 
 async function expectFailure(
@@ -112,7 +132,7 @@ describe('desktop update installer download', () => {
       version: '2.0.6-beta.1',
       channel: 'beta',
       destinationPath: join(directory, 'Nonead-DSH-Desktop-Beta-2.0.6-beta.1-mac.dmg'),
-      request: async () => chunkedResponse([dmgArtifact()]),
+      request: async () => chunkedResponse([dmgArtifact()], {}, 'https://cdn-lfs-cn-1.modelscope.cn/installer.dmg'),
     })
     expect(result).toBe(join(directory, 'Nonead-DSH-Desktop-Beta-2.0.6-beta.1-mac.dmg'))
   })
@@ -136,7 +156,7 @@ describe('desktop update installer download', () => {
     expect(result).toBe(join(directory, 'Nonead-DSH-Desktop-2.1.0-mac.dmg'))
     expect(await readFile(result)).toEqual(Buffer.from(artifact))
     expect(calls).toHaveLength(1)
-    expect(calls[0]?.url).toBe(`${DESKTOP_DOWNLOAD_URLS.darwin}/Nonead-DSH-Desktop-2.1.0-mac.dmg`)
+    expect(calls[0]?.url).toBe(DESKTOP_DOWNLOAD_URLS.darwin)
     expect(calls[0]?.init).toMatchObject({ method: 'GET', cache: 'no-store', redirect: 'follow' })
     await expectNoPartialFiles(directory)
   })
@@ -149,13 +169,192 @@ describe('desktop update installer download', () => {
       version: '2.2.0',
       destinationPath: destinationPath(directory, 'win32', '2.2.0'),
       request: async (url) => {
-        expect(url).toBe(`${DESKTOP_DOWNLOAD_URLS.win32}/Nonead-DSH-Desktop-2.2.0-windows.exe`)
-        return chunkedResponse([artifact])
+        expect(url).toBe(DESKTOP_DOWNLOAD_URLS.win32)
+        return chunkedResponse([artifact], {}, 'https://www.nonead.com/software/ndsh-desktop/downloads/windows')
       },
     })
 
     expect(result).toBe(join(directory, 'Nonead-DSH-Desktop-2.2.0-windows.exe'))
     expect(await readFile(result)).toEqual(Buffer.from(artifact))
+    await expectNoPartialFiles(directory)
+  })
+
+  it('accepts a Linux AppImage from the fixed endpoint', async () => {
+    const directory = await temporaryDirectory()
+    const artifact = appImageArtifact()
+    const result = await downloadDesktopUpdate({
+      platform: 'linux',
+      version: '2.4.0',
+      destinationPath: destinationPath(directory, 'linux', '2.4.0'),
+      request: async (url) => {
+        expect(url).toBe(DESKTOP_DOWNLOAD_URLS.linux)
+        return chunkedResponse([artifact], {}, 'https://www.nonead.com/software/ndsh-desktop/downloads/linux')
+      },
+    })
+
+    expect(result).toBe(join(directory, 'Nonead-DSH-Desktop-2.4.0-linux.AppImage'))
+    expect(await readFile(result)).toEqual(Buffer.from(artifact))
+    // Downloads are written private (0600), and an AppImage has no installer
+    // step that could restore the executable bit, so the download owns it.
+    // NTFS cannot represent POSIX permission bits, so assert this on POSIX only.
+    if (process.platform !== 'win32') {
+      expect((await stat(result)).mode & 0o111).not.toBe(0)
+    }
+    await expectNoPartialFiles(directory)
+  })
+
+  it('rejects a Linux download that is not an AppImage', async () => {
+    const directory = await temporaryDirectory()
+    await expectFailure(downloadDesktopUpdate({
+      platform: 'linux',
+      version: '2.4.1',
+      destinationPath: destinationPath(directory, 'linux', '2.4.1'),
+      request: async () => chunkedResponse([elfWithoutAppImageMagic()]),
+    }), 'invalid-artifact')
+    await expectNoPartialFiles(directory)
+  })
+
+  it('rejects a Linux destination that is not an AppImage before requesting', async () => {
+    const directory = await temporaryDirectory()
+    let requested = false
+    await expectFailure(downloadDesktopUpdate({
+      platform: 'linux',
+      version: '2.4.2',
+      destinationPath: join(directory, 'Nonead-DSH-Desktop-2.4.2-linux.dmg'),
+      request: async () => {
+        requested = true
+        return chunkedResponse([appImageArtifact()])
+      },
+    }), 'invalid-options')
+    expect(requested).toBe(false)
+  })
+
+  it('names the default Linux installer as a versioned AppImage', () => {
+    expect(desktopUpdateFilename('linux', '2.4.3')).toBe('Nonead-DSH-Desktop-2.4.3-linux.AppImage')
+  })
+
+  it.each([
+    'https://modelscope.cn/models/t4wefan/deepseek-harness-desktop/resolve/master/installer.dmg',
+    'https://cdn-lfs-cn-1.modelscope.cn/installer.dmg',
+    'https://other.example/installer.dmg',
+    'https://modelscope.cn/models/another-user/another-repo/installer.dmg',
+  ])('accepts a valid installer from an HTTPS redirect to %s', async finalUrl => {
+    const directory = await temporaryDirectory()
+    const artifact = dmgArtifact()
+    const result = await downloadDesktopUpdate({
+      platform: 'darwin',
+      version: '2.2.1',
+      destinationPath: destinationPath(directory, 'darwin', '2.2.1'),
+      request: async () => chunkedResponse(
+        [artifact],
+        {},
+        finalUrl,
+      ),
+    })
+    expect(await readFile(result)).toEqual(Buffer.from(artifact))
+  })
+
+  it.each([
+    ['an https downgrade', 'http://www.nonead.com/software/ndsh-desktop/downloads/mac'],
+    ['embedded credentials', 'https://user:password@cdn.example/installer.dmg'],
+    ['a non-HTTPS port', 'https://cdn.example:8080/installer.dmg'],
+    ['a missing final URL', ''],
+  ] as const)('rejects a download that settles on %s', async (_label, finalUrl) => {
+    const directory = await temporaryDirectory()
+    await expectFailure(downloadDesktopUpdate({
+      platform: 'darwin',
+      version: '2.3.0',
+      destinationPath: destinationPath(directory, 'darwin', '2.3.0'),
+      request: async () => chunkedResponse([dmgArtifact()], {}, finalUrl),
+    }), 'redirect-origin')
+    await expectNoPartialFiles(directory)
+  })
+
+  it('cancels the response body when the HTTPS check rejects the settled URL', async () => {
+    const directory = await temporaryDirectory()
+    let cancelled = false
+    const body = new ReadableStream<Uint8Array>({
+      pull(stream) { stream.enqueue(dmgArtifact()) },
+      cancel() { cancelled = true },
+    })
+    await expectFailure(downloadDesktopUpdate({
+      platform: 'darwin',
+      version: '2.3.0',
+      destinationPath: destinationPath(directory, 'darwin', '2.3.0'),
+      request: async () => ({
+        response: new Response(body, { status: 200 }),
+        finalUrl: 'http://cdn.example/installer.dmg',
+      }),
+    }), 'redirect-origin')
+    expect(cancelled).toBe(true)
+    await expectNoPartialFiles(directory)
+  })
+
+  it('cancels the response body when the HTTP status is unsuccessful', async () => {
+    const directory = await temporaryDirectory()
+    let cancelled = false
+    const body = new ReadableStream<Uint8Array>({
+      pull(stream) { stream.enqueue(Buffer.from('service unavailable')) },
+      cancel() { cancelled = true },
+    })
+    await expectFailure(downloadDesktopUpdate({
+      platform: 'darwin',
+      version: '2.4.1',
+      destinationPath: destinationPath(directory, 'darwin', '2.4.1'),
+      request: async () => ({
+        response: new Response(body, { status: 503 }),
+        finalUrl: 'https://www.nonead.com/software/ndsh-desktop/downloads/mac',
+      }),
+    }), 'http-status')
+    expect(cancelled).toBe(true)
+    await expectNoPartialFiles(directory)
+  })
+
+  it('enforces an expected installer digest before completing the download', async () => {
+    const directory = await temporaryDirectory()
+    const artifact = dmgArtifact()
+    const digest = createHash('sha256').update(artifact).digest('hex')
+    const valid = await downloadDesktopUpdate({
+      platform: 'darwin',
+      version: '2.3.1',
+      destinationPath: destinationPath(directory, 'darwin', '2.3.1'),
+      request: async () => chunkedResponse([artifact]),
+      expectedSha256: digest,
+    })
+    expect(await readFile(valid)).toEqual(Buffer.from(artifact))
+
+    // Hex case is normalized, matching the version-checker parsing path.
+    const upper = await downloadDesktopUpdate({
+      platform: 'darwin',
+      version: '2.3.4',
+      destinationPath: destinationPath(directory, 'darwin', '2.3.4'),
+      request: async () => chunkedResponse([artifact]),
+      expectedSha256: digest.toUpperCase(),
+    })
+    expect(await readFile(upper)).toEqual(Buffer.from(artifact))
+
+    const otherDirectory = await temporaryDirectory()
+    await expectFailure(downloadDesktopUpdate({
+      platform: 'darwin',
+      version: '2.3.2',
+      destinationPath: destinationPath(otherDirectory, 'darwin', '2.3.2'),
+      request: async () => chunkedResponse([artifact]),
+      expectedSha256: 'a'.repeat(64),
+    }), 'invalid-artifact')
+    await expectNoPartialFiles(otherDirectory)
+  })
+
+  it('rejects a malformed expected digest before issuing any request', async () => {
+    const directory = await temporaryDirectory()
+    const request = vi.fn()
+    await expectFailure(downloadDesktopUpdate({
+      platform: 'darwin',
+      version: '2.3.3',
+      destinationPath: destinationPath(directory, 'darwin', '2.3.3'),
+      request,
+      expectedSha256: 'not-a-sha256',
+    }), 'invalid-options')
+    expect(request).not.toHaveBeenCalled()
     await expectNoPartialFiles(directory)
   })
 
@@ -215,43 +414,15 @@ describe('desktop update installer download', () => {
     await expectNoPartialFiles(directory)
   })
 
-  it('rejects an installer the service resolved to a different release', async () => {
-    // The version travels in both the request path and the target-version header,
-    // so a redirect that lands on another release's file must not be accepted:
-    // the client never inspects which build it received, and the Windows
-    // installer would replace a newer build with an older one.
-    const directory = await temporaryDirectory()
-    const served = chunkedResponse([windowsArtifact()])
-    Object.defineProperty(served, 'url', {
-      value: 'https://www.nonead.com/downloads/windows/Nonead-DSH-Desktop-1.5.4-windows.exe',
-    })
-    await expectFailure(downloadDesktopUpdate({
-      platform: 'win32',
-      version: '2.4.0',
-      destinationPath: destinationPath(directory, 'win32', '2.4.0'),
-      request: async () => served,
-    }), 'invalid-artifact')
-    await expectNoPartialFiles(directory)
-  })
-
-  it('accepts an installer whose final URL names the requested release', async () => {
-    const directory = await temporaryDirectory()
-    const served = chunkedResponse([windowsArtifact()])
-    Object.defineProperty(served, 'url', {
-      value: 'https://www.nonead.com/downloads/windows/Nonead-DSH-Desktop-2.4.0-windows.exe',
-    })
-    const saved = await downloadDesktopUpdate({
-      platform: 'win32',
-      version: '2.4.0',
-      destinationPath: destinationPath(directory, 'win32', '2.4.0'),
-      request: async () => served,
-    })
-    expect(await readFile(saved)).toEqual(Buffer.from(windowsArtifact()))
-  })
-
   it.each([
-    ['an unsuccessful response', async () => new Response(null, { status: 503 }), 'http-status'],
-    ['a missing response body', async () => new Response(null, { status: 200 }), 'empty-body'],
+    ['an unsuccessful response', async (): Promise<UpdateArtifactResponse> => ({
+      response: new Response(null, { status: 503 }),
+      finalUrl: 'https://www.nonead.com/software/ndsh-desktop/downloads/mac',
+    }), 'http-status'],
+    ['a missing response body', async (): Promise<UpdateArtifactResponse> => ({
+      response: new Response(null, { status: 200 }),
+      finalUrl: 'https://www.nonead.com/software/ndsh-desktop/downloads/mac',
+    }), 'empty-body'],
     ['a zero-byte response body', async () => chunkedResponse([]), 'empty-body'],
   ] as const)('rejects %s without leaving a partial file', async (_label, request, code) => {
     const directory = await temporaryDirectory()
@@ -278,77 +449,19 @@ describe('desktop update installer download', () => {
     await expectNoPartialFiles(directory)
   })
 
-  it('removes the partial file and reports a stalled body when the service stops sending bytes', async () => {
-    const directory = await temporaryDirectory()
-    const request: UpdateArtifactRequest = async () => new Response(new ReadableStream<Uint8Array>({
-      start(stream) {
-        stream.enqueue(windowsArtifact().subarray(0, 128))
-      },
-    }))
-
-    await expectFailure(downloadDesktopUpdate({
-      platform: 'win32',
-      version: '2.4.1',
-      destinationPath: destinationPath(directory, 'win32', '2.4.1'),
-      request,
-      stallTimeoutMs: 25,
-    }), 'stalled')
-    await expectNoPartialFiles(directory)
-    expect(await readdir(directory)).toEqual([])
-  })
-
-  it('removes the partial file when cancelling an errored stream never settles', async () => {
-    const directory = await temporaryDirectory()
-    const stream = {
-      getReader: () => ({
-        read: async () => { throw new Error('connection reset by peer') },
-        cancel: () => new Promise<never>(() => {}),
-        releaseLock: () => {},
-      }),
-    }
-    const request: UpdateArtifactRequest = async () => (
-      { status: 200, headers: new Headers(), body: stream } as unknown as Response
-    )
-
-    await expectFailure(downloadDesktopUpdate({
-      platform: 'darwin',
-      version: '2.4.2',
-      destinationPath: destinationPath(directory, 'darwin', '2.4.2'),
-      request,
-    }), 'network')
-    await expectNoPartialFiles(directory)
-    expect(await readdir(directory)).toEqual([])
-  })
-
-  it('removes a private stream abandoned by a killed run and keeps one whose process is alive', async () => {
-    const directory = await temporaryDirectory()
-    const name = desktopUpdateFilename('win32', '2.4.3')
-    const abandoned = join(directory, `.${name}.4242.${randomUUID()}.partial`)
-    const running = join(directory, `.${name}.4243.${randomUUID()}.partial`)
-    const unrelated = join(directory, `.${name}.4244.not-a-uuid.partial`)
-    await Promise.all([abandoned, running, unrelated].map(path => writeFile(path, 'incomplete')))
-
-    const removed = await removeAbandonedTemporaryArtifacts(directory, name, pid => pid === 4243)
-
-    expect(removed).toEqual([abandoned])
-    expect(await readdir(directory)).toEqual(expect.arrayContaining([running, unrelated].map(path => path.split(/[\\/]/u).at(-1))))
-    await expect(access(abandoned)).rejects.toMatchObject({ code: 'ENOENT' })
-    await expect(access(running)).resolves.toBeUndefined()
-    await expect(access(unrelated)).resolves.toBeUndefined()
-  })
-
   it('passes the caller signal and removes a partial file when aborted during streaming', async () => {
     const directory = await temporaryDirectory()
     const controller = new AbortController()
     let requestSignal: AbortSignal | null | undefined
     const request: UpdateArtifactRequest = async (_url, init) => {
       requestSignal = init.signal
-      return new Response(new ReadableStream<Uint8Array>({
+      const response = new Response(new ReadableStream<Uint8Array>({
         pull(stream) {
           stream.enqueue(dmgArtifact().subarray(0, 128))
           controller.abort(new DOMException('stop', 'AbortError'))
         },
       }))
+      return { response, finalUrl: 'https://www.nonead.com/software/ndsh-desktop/downloads/mac' }
     }
 
     await expectFailure(downloadDesktopUpdate({
@@ -401,7 +514,7 @@ describe('desktop update installer download', () => {
 
   it('rejects a relative destination path before requesting', async () => {
     let requested = false
-    const request = async (): Promise<Response> => {
+    const request = async (): Promise<UpdateArtifactResponse> => {
       requested = true
       return chunkedResponse([dmgArtifact()])
     }
@@ -421,7 +534,7 @@ describe('desktop update installer download', () => {
     temporaryRoots.push(linked)
     await symlink(directory, linked, process.platform === 'win32' ? 'junction' : 'dir')
     let requested = false
-    const request = async (): Promise<Response> => {
+    const request = async (): Promise<UpdateArtifactResponse> => {
       requested = true
       return chunkedResponse([dmgArtifact()])
     }
@@ -487,3 +600,18 @@ describe('desktop update artifact cleanup', () => {
     else await expect(access(artifact.path)).resolves.toBeUndefined()
   })
 })
+
+
+it('downloads Next with a pinned release, a distinct filename and byte progress', async () => {
+  const root = await temporaryDirectory();
+  const progress = vi.fn();
+  const request = vi.fn<UpdateArtifactRequest>(async () => chunkedResponse([dmgArtifact()], {'content-length':'1024'}));
+  const filename = desktopUpdateFilename('darwin', '2.0.14-next', 'next');
+  expect(filename).toContain('Nonead-DSH-NEXT-2.0.14-next');
+  const path = await downloadDesktopUpdate({platform:'darwin',version:'2.0.14-next',channel:'next',destinationPath:join(root,filename),request,onProgress:progress});
+  expect((await readFile(path)).byteLength).toBe(1024);
+  expect(progress).toHaveBeenLastCalledWith(1024,1024);
+  const headers = new Headers(request.mock.calls[0]?.[1]?.headers);
+  expect(headers.get(DESKTOP_RELEASE_CHANNEL_HEADER)).toBe('next');
+  expect(headers.get(DESKTOP_TARGET_VERSION_HEADER)).toBe('2.0.14-next');
+});

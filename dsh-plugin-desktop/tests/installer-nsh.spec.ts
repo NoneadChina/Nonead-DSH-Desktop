@@ -33,4 +33,17 @@ describe('Windows NSIS running-app handoff', () => {
     expect(script).not.toContain('nsProcess::KillProcess')
     expect(script).not.toContain('getProcessInfo.nsh')
   })
+
+  it('removes the legacy-brand shortcut that shadows the taskbar icon', () => {
+    const script = readFileSync(join(process.cwd(), 'build', 'installer.nsh'), 'utf8')
+
+    // Windows resolves a window's taskbar button icon through the shortcut that
+    // matches its AppUserModelID. The DSH-era shortcut still carries this
+    // edition's id while pointing at an install directory the rename abandoned,
+    // so it has to be deleted or the running app shows a blank taskbar icon.
+    expect(script).toContain('!macro customInstall')
+    expect(script).toContain('Delete "$SMPROGRAMS\\DSH Desktop.lnk"')
+    expect(script).toContain('Delete "$DESKTOP\\DSH Desktop.lnk"')
+    expect(script).not.toContain('Nonead DSH Desktop.lnk')
+  })
 })

@@ -1,8 +1,7 @@
 diff --git a/lib/client.js b/lib/client.js
-index b11c03f..f3fe407 100644
 --- a/lib/client.js
 +++ b/lib/client.js
-@@ -280,7 +280,7 @@ window.__ModuleLoader__.load({
+@@ -280,7 +280,7 @@
  		* @param props - owner-controlled browser props.
  		* @returns the dialog element (null while closed, via Modal).
  		*/
@@ -11,7 +10,7 @@ index b11c03f..f3fe407 100644
  			const [parent, setParent] = (0, react.useState)(null);
  			const [selected, setSelected] = (0, react.useState)(null);
  			const [child, setChild] = (0, react.useState)(null);
-@@ -293,6 +293,8 @@ window.__ModuleLoader__.load({
+@@ -293,6 +293,8 @@
  			const [folderDraft, setFolderDraft] = (0, react.useState)(null);
  			const [creatingFolder, setCreatingFolder] = (0, react.useState)(false);
  			const [createError, setCreateError] = (0, react.useState)(null);
@@ -20,7 +19,7 @@ index b11c03f..f3fe407 100644
  			const requestSeq = (0, react.useRef)(0);
  			const scanController = (0, react.useRef)(null);
  			const openGeneration = (0, react.useRef)(0);
-@@ -670,12 +672,39 @@ window.__ModuleLoader__.load({
+@@ -670,12 +672,39 @@
  			});
  			if (!open) return null;
  			const twoPane = selected !== null;
@@ -62,7 +61,7 @@ index b11c03f..f3fe407 100644
  				},
  				title: t("browser.title"),
  				className: clsx(DirectoryBrowser_module_css_default.dialog),
-@@ -833,6 +862,16 @@ window.__ModuleLoader__.load({
+@@ -833,6 +862,16 @@
  									},
  									children: t("browser.newFolder")
  								}),
@@ -70,7 +69,7 @@ index b11c03f..f3fe407 100644
 +									type: "button",
 +									variant: "outline",
 +									size: "sm",
-+									/* 0.1.7 primitives renamed IconFolderOpen16 to IconFolderOpenRegular */ icon: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderOpenRegular, { size: 16 }),
++									icon: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderOpenRegular, { size: 16 }),
 +									"aria-busy": nativePicking || void 0,
 +									disabled: parentInert,
 +									onClick: pickFromSystem,
@@ -79,7 +78,7 @@ index b11c03f..f3fe407 100644
  								(0, react_jsx_runtime.jsxs)("button", {
  									type: "button",
  									className: clsx(DirectoryBrowser_module_css_default.showHiddenToggle, showHidden && DirectoryBrowser_module_css_default.showHiddenToggleActive),
-@@ -860,7 +899,7 @@ window.__ModuleLoader__.load({
+@@ -860,7 +899,7 @@
  									disabled: targetPath === null || loading || parentInert || draftPending,
  									/* v8 ignore next -- narrowing guard: Open disables while no target exists. */
  									onClick: () => {
@@ -88,7 +87,7 @@ index b11c03f..f3fe407 100644
  									},
  									children: t("browser.open")
  								})
-@@ -956,6 +995,8 @@ window.__ModuleLoader__.load({
+@@ -956,6 +995,8 @@
  				busy: props.busy,
  				listDirectory: props.listDirectory,
  				createDirectory: props.createDirectory,
@@ -97,7 +96,7 @@ index b11c03f..f3fe407 100644
  				t: props.t,
  				onOpen: props.onPicked,
  				onClose: props.onCancel
-@@ -993,7 +1034,8 @@ window.__ModuleLoader__.load({
+@@ -993,7 +1034,8 @@
  					"browser.editPath": "编辑路径",
  					"browser.loading": "加载中…",
  					"browser.truncated": "文件夹过多，仅显示开头部分。",
@@ -107,7 +106,7 @@ index b11c03f..f3fe407 100644
  				}], ["en", {
  					"browser.title": "Select Workspace Directory",
  					"browser.home": "Home",
-@@ -1007,7 +1049,8 @@ window.__ModuleLoader__.load({
+@@ -1007,7 +1049,8 @@
  					"browser.editPath": "Edit path",
  					"browser.loading": "Loading…",
  					"browser.truncated": "Too many folders to list; only the beginning is shown.",
@@ -117,7 +116,7 @@ index b11c03f..f3fe407 100644
  				}]];
  				try {
  					for (const [locale, dict] of dictionaries) disposers.push(ctx.locale.register(LOCALE_NS, locale, dict));
-@@ -1022,6 +1065,16 @@ window.__ModuleLoader__.load({
+@@ -1022,6 +1065,16 @@
  			const injected = () => ({
  				listDirectory: (path, signal) => ctx.uiWorkspace.listDirectory(path, signal),
  				createDirectory: (path, name) => ctx.uiWorkspace.createDirectory(path, name),
@@ -135,10 +134,9 @@ index b11c03f..f3fe407 100644
  			});
  			ctx.slots.inject("conversation.hero.workspace.directoryFlow", () => ctx.slots.inject("sidebar.workspaces.directoryFlow", function* () {
 diff --git a/lib/types/client/DirectoryBrowser.d.ts b/lib/types/client/DirectoryBrowser.d.ts
-index 2992216..8ff178a 100644
 --- a/lib/types/client/DirectoryBrowser.d.ts
 +++ b/lib/types/client/DirectoryBrowser.d.ts
-@@ -17,6 +17,10 @@ export interface DirectoryBrowserProps {
+@@ -17,6 +17,10 @@
       * business message over the ordinary Error text.
       */
      createDirectory: (path: string, name: string) => Promise<string>;
@@ -149,7 +147,7 @@ index 2992216..8ff178a 100644
      /** The operator confirmed a directory (the selection, else the listed level). */
      onOpen: (path: string) => void;
      /** Close without picking (mask, Escape, Cancel). */
-@@ -31,5 +35,5 @@ export interface DirectoryBrowserProps {
+@@ -31,5 +35,5 @@
   * @param props - owner-controlled browser props.
   * @returns the dialog element (null while closed, via Modal).
   */
@@ -159,10 +157,9 @@ index 2992216..8ff178a 100644
 +export declare function DirectoryBrowser({ open, listDirectory, createDirectory, pickNativeDirectory, validateDirectory, onOpen, onClose, busy, t }: DirectoryBrowserProps): import("react").JSX.Element | null;
 +//# sourceMappingURL=DirectoryBrowser.d.ts.map
 diff --git a/lib/types/client/flow.d.ts b/lib/types/client/flow.d.ts
-index e4e84ac..f4ee479 100644
 --- a/lib/types/client/flow.d.ts
 +++ b/lib/types/client/flow.d.ts
-@@ -8,6 +8,10 @@ export interface BrowseFlowInjected {
+@@ -8,6 +8,10 @@
      listDirectory: (path?: string, signal?: AbortSignal) => Promise<DirectoryListing>;
      /** Create one child directory under an existing parent. */
      createDirectory: (path: string, name: string) => Promise<string>;
@@ -173,7 +170,7 @@ index e4e84ac..f4ee479 100644
      /** Localized dialog copy (this package's namespace). */
      t: Translate;
  }
-@@ -21,4 +25,4 @@ export interface BrowseFlowInjected {
+@@ -21,4 +25,4 @@
   * @returns the dialog element (renders nothing while closed).
   */
  export declare function BrowseDirectoryFlow(props: DirectoryFlowOwnerProps & BrowseFlowInjected): ReactElement;

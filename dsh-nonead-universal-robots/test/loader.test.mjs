@@ -97,7 +97,7 @@ test('buildFallbackArm：7 段命名胶囊，名字与顺序等于 LINK_MESH_NOD
  * 用例 2：装配层级 —— 7 组层层嵌套，GLB 同名节点被 reparent 进对应组
  * ------------------------------------------------------------------ */
 
-test('loadRobotModel：7 个装配组层层嵌套，GLB 顶层节点被 reparent 进对应组', async () => {
+test('loadRobotModel：7 个装配组扁平挂在运动根下，GLB 顶层节点被 reparent 进对应组', async () => {
   const scene = fakeGltfScene()
   const originals = new Map(scene.children.map((o) => [o.name, o]))
   const handle = await loadRobotModel('unit-nesting', { loadGltf: fakeLoader(scene) })
@@ -106,16 +106,18 @@ test('loadRobotModel：7 个装配组层层嵌套，GLB 顶层节点被 reparent
   assert.equal(handle.root, scene, 'root 必须是 gltf.scene 本身')
   assert.equal(handle.groups.length, 7, 'groups 长度恒为 7')
 
-  // (a) 层层嵌套：[0] 是最外层运动根，[k] 挂在 [k-1] 下
+  // (a) 扁平装配：[0] 是运动根，[1..6] 都是它的**直接子节点**（不能串成父链，否则绝对变换会连乘）
   for (let i = 0; i < 7; i++) {
     const g = handle.groups[i]
     assert.equal(g.matrixAutoUpdate, false, `groups[${i}] 必须 matrixAutoUpdate=false`)
     assert.equal(g.name, `assemble_${LINK_MESH_NODES[i]}`, `groups[${i}] 名字`)
     if (i > 0) {
-      assert.equal(g.parent, handle.groups[i - 1], `groups[${i}].parent 必须是 groups[${i - 1}]`)
-      assert.ok(handle.groups[i - 1].children.includes(g), `groups[${i - 1}] 必须包含 groups[${i}]`)
+      assert.equal(g.parent, handle.groups[0], `groups[${i}].parent 必须是运动根 groups[0]`)
     }
   }
+  const linkGroupChildren = handle.groups[0].children.filter((c) => handle.groups.includes(c))
+  assert.equal(linkGroupChildren.length, 6, 'groups[0] 应直接包含 6 个连杆组')
+  assert.deepEqual(linkGroupChildren, handle.groups.slice(1), '连杆组顺序必须是 groups[1..6]')
   assert.equal(handle.groups[0].parent, handle.root, 'groups[0] 必须挂在 root 下（可直接入场景）')
   assert.equal(scene.children.length, 1, 'root 下只剩运动根（7 个原顶层节点已被摘走）')
   assert.equal(scene.children[0], handle.groups[0])
@@ -134,7 +136,7 @@ test('loadRobotModel：7 个装配组层层嵌套，GLB 顶层节点被 reparent
  * 用例 3：applyFK 正确性 —— groups[0] 恒为单位矩阵，groups[k] = links[k-1]
  * ------------------------------------------------------------------ */
 
-test('applyFK：groups[0] 为单位矩阵，groups[k] 取 links[k-1]，且世界矩阵按链累积', async () => {
+test('applyFK：groups[0] 为单位矩阵，groups[k] 取 links[k-1]，世界矩阵即该绝对变换（不得连乘）', async () => {
   const handle = await loadRobotModel('unit-applyfk', { loadGltf: fakeLoader() })
   const { groups } = handle
 
@@ -157,16 +159,29 @@ test('applyFK：groups[0] 为单位矩阵，groups[k] 取 links[k-1]，且世界
     elementsCloseTo(groups[k].matrix.elements, links[k - 1], `groups[${k}].matrix`)
   }
 
-  // 世界矩阵 = 沿链累积的乘积（用 fk.js 的独立实现现算参考值）
+  // 世界矩阵必须**等于该绝对变换本身**：groups[k] 是运动根（单位矩阵）的直接子节点。
   handle.root.updateMatrixWorld(true)
-  let expected = identity4()
   for (let k = 1; k < 7; k++) {
-    expected = multiply4(expected, links[k - 1])
-    elementsCloseTo(groups[k].matrixWorld.elements, expected, `groups[${k}].matrixWorld`)
+    elementsCloseTo(groups[k].matrixWorld.elements, links[k - 1], `groups[${k}].matrixWorld`)
   }
-  // 末端世界平移必须真的离开了原点（防止"全堆在原点"式退化）
+
+  // 反例守卫（缺陷回归）：世界矩阵**不得**等于链式连乘。旧实现把绝对变换写进嵌套的局部矩阵，
+  // three.js 的 matrixWorld 会把父链乘起来，于是从第 3 个组起位置就与正确值分离（真机上表现为
+  // 「所有关节都不在正确位置」）。
+  let accumulated = identity4()
+  for (let k = 1; k < 7; k++) {
+    accumulated = multiply4(accumulated, links[k - 1])
+    if (k >= 2) {
+      const drift = Math.hypot(
+        ...[12, 13, 14].map((i) => groups[k].matrixWorld.elements[i] - accumulated[i]),
+      )
+      assert.ok(drift > 1e-6, `groups[${k}] 的世界矩阵等于连乘结果（偏差 ${drift}），说明又串成了父链`)
+    }
+  }
+
+  // 末端世界平移必须真的离开原点（防止"全堆在原点"式退化）
   const t = groups[6].matrixWorld.elements
-  assert.ok(Math.hypot(t[12], t[13], t[14]) > 0.1, '末端位置必须离开原点')
+  assert.ok(Math.hypot(t[12], t[13], t[14]) > 0.05, '末端位置必须离开原点')
 
   // 非法输入：静默保持上一姿态，不抛错
   const before = groups[3].matrix.elements.slice()

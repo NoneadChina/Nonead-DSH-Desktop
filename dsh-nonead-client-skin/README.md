@@ -19,30 +19,40 @@
 - 收起态 hover 时保持原交互：露出展开面板图标、隐藏 logo 背景图。
 - `:has()` 选择器需要现代浏览器（Chrome/Edge 105+、Safari 15.4+、Firefox 121+）。
 
-## 安装到仓库
+## 安装形态：产品内置插件
 
-本目录位于 `packages/client/dsh-nonead-client-skin/`（workspace glob `packages/*/*`
-自动纳入），且已接入 Web 应用默认 roster：
+本目录是外层 Yarn workspace 的成员，并作为**两个桌面版**（`dsh-plugin-desktop`、
+`dsh-plugin-desktop-beta`）的生产依赖随安装包一起分发。它**不进任何 Profile**，
+由 launcher 自己的 patch 层挂载：
 
-1. `packages/bundle/web-app/package.json` 的 `dependencies` 已声明：
-   `"dsh-nonead-client-skin": "workspace:^"`
-2. `packages/bundle/web-app/cordis.patch.yml` 浏览器 roster 的 `ui-theme` 行之后
-   已挂载 `dsh-nonead-client-skin` 行，**默认启动即生效**，无需 `--patch`。
+1. 根 `package.json` 的 `workspaces` 已纳入 `dsh-nonead-client-skin`；
+2. 两个桌面版的 `package.json` 按精确版本声明依赖（与 `dsh-community-market` 同形）；
+3. 两个桌面版的 `cordis.patch.yml` 各插入一行 launcher 行：
+   `- id: nonead-client-skin` / `name: dsh-nonead-client-skin`。
+
+于是**每个 Profile、每一次生成、开发态与安装包都自带该皮肤**：默认启动即生效，
+用户不需要安装插件，也不需要 `--patch`；反过来，若某个 Profile 里残留着早期手工
+安装的同名 bundle，`desktopBundleList()` 会把它从 `dsh.profile.bundles` 中剔除，
+避免组合出第二份。
+
+浏览器半边无需额外接线：`dsh-client-modules` 会扫描 Host Loader 条目里声明了
+`dsh.client` 的包，本包声明 `platform: web` + `immediately: true`，因此预构建的
+`lib/client.js` 自动进入渲染进程启动图。
 
 ## 构建与运行
 
 ```sh
-pnpm install          # 注册 workspace 成员
-pnpm run dev:web      # 终端 1：watcher，重写 client bundle（HMR）
-pnpm dsh web          # 终端 2：启动（皮肤已默认挂载）
+corepack yarn install   # 注册 workspace 成员（lib/ 已预构建，本仓库不重新编译皮肤）
+corepack yarn dev       # 稳定版；Beta 版为 corepack yarn dev:beta
 ```
 
-刷新 http://127.0.0.1:3080 即可看到新 logo 生效。
+窗口打开后侧边栏即显示 NONEAD logo，无需其它操作。
 
 ## 校验
 
 ```sh
-pnpm run constraints && pnpm run typecheck && pnpm run lint
+corepack yarn check:desktop-variants                        # 两个桌面版的 src/ 变体对齐
+corepack yarn workspace dsh-plugin-desktop test             # 皮肤接线断言
 ```
 
 ## 目录结构
@@ -57,6 +67,10 @@ pnpm run constraints && pnpm run typecheck && pnpm run lint
 | `src/client/assets.ts` | 生成文件：两张 logo 的 base64 data URL（由 `scripts/make-assets.ps1` 生成） |
 | `src/invariant.ts` | 包 invariant 伴生（无运行时 invariant，理由见文件） |
 | `NONEAD_ai.png` / `nonead.ai_Logo.png` | 品牌 logo 源图（构建后无需再携带） |
+
+> `tsconfig.json`、`tsdown.config.ts` 与 `scripts/` 是皮肤在自身 corporate 检出里的编译入口，
+> 其中的相对路径指向它原来的 monorepo 布局；本仓库只消费已提交的 `lib/`，不重新编译皮肤，
+> 因此皮肤也不需要在这里参与 `build` / `typecheck`。
 
 ## Model Experience
 

@@ -117,7 +117,7 @@ function fixture(mutateStaged = false): { options: WindowsNsisAbBuildOptions, ca
         return
       }
       mkdirSync(output, { recursive: true })
-      writeFileSync(join(output, 'Nonead-DSH-Desktop-v9.8.7-x64-Setup.exe'), pe())
+      writeFileSync(join(output, 'Nonead-DSH-Desktop-9.8.7-x64-Setup.exe'), pe())
       const prepackaged = args.find(value => value.startsWith('--prepackaged='))?.slice('--prepackaged='.length)
         ?? /--prepackaged=(?:"([^"]+)"|([^ ]+))/u.exec(args.at(-1) ?? '')?.slice(1).find(Boolean)
       if (prepackaged !== undefined) {

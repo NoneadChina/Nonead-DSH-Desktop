@@ -1,6 +1,8 @@
 /** Host-independent Electron recovery window for profile startup failures. */
 
 import { app, dialog, screen, shell, type BrowserWindow } from 'electron'
+import { execFile } from 'node:child_process'
+import { mkdir, writeFile } from 'node:fs/promises'
 import { basename, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
@@ -21,6 +23,7 @@ import {
   DesktopStartupRecoveryController,
   DesktopStartupRecoveryControllerError,
   type DesktopStartupRecoveryCheckpointPreview,
+  type DesktopStartupRecoverySelectionPreview,
   type DesktopStartupRecoveryUninstallPreview,
   type DesktopStartupRecoverySnapshot,
 } from './startup-recovery-controller.ts'
@@ -107,7 +110,7 @@ export interface DesktopStartupRecoveryDataActions {
 }
 
 export interface DesktopStartupRecoveryConfigurationPaths {
-  /** Profile patch document holding every configurable plugin entry, Desktop settings included. */
+  readonly settingsDocument: string
   readonly profilePatch: string
   readonly profileManifest: string
   readonly profileDirectory: string
@@ -221,10 +224,13 @@ export function parseDesktopStartupRecoveryAction(
   const action = url.hostname
   const allowed = new Set([
     'preview-uninstall',
+    'preview-disable',
+    'preview-enable',
     'preview-checkpoint',
     'open-checkpoint',
     'export-diagnostics',
     'show-diagnostics',
+    'open-settings-document',
     'open-profile-patch',
     'open-profile-manifest',
     'open-profile-directory',
@@ -372,6 +378,28 @@ export class DesktopStartupRecoveryWindow {
             await this.refreshSnapshot()
           })
         }
+      } else if ((action.action === 'preview-disable' || action.action === 'preview-enable')
+        && action.id !== undefined) {
+        this.activeTab = 'plugins'
+        const kind = action.action === 'preview-disable' ? 'disable' : 'enable'
+        const controller = this.requireController()
+        const preview = kind === 'disable'
+          ? await controller.previewDisable(action.id)
+          : await controller.previewEnable(action.id)
+        if (await this.confirmRecoveryAction(kind, preview)) {
+          await this.runBusy(async () => {
+            const result = kind === 'disable'
+              ? await this.requireController().executeDisable(preview.previewId)
+              : await this.requireController().executeEnable(preview.previewId)
+            this.notice = {
+              tone: 'success',
+              title: result.packageName,
+              body: kind === 'disable' ? copy.disabledSuccess : copy.enabledSuccess,
+            }
+            this.restartReady = true
+            await this.refreshSnapshot()
+          })
+        }
       } else if (action.action === 'preview-checkpoint' && action.id !== undefined) {
         this.activeTab = 'rollback'
         const preview = await this.requireController().previewCheckpointRestore(action.id as `slot-${1 | 2 | 3}`)
@@ -505,6 +533,9 @@ export class DesktopStartupRecoveryWindow {
           this.finish('restart')
           return
         }
+      } else if (action.action === 'open-settings-document') {
+        this.activeTab = 'diagnostics'
+        await this.openConfigurationPath('settingsDocument')
       } else if (action.action === 'open-profile-patch') {
         this.activeTab = 'diagnostics'
         await this.openConfigurationPath('profilePatch')
@@ -541,7 +572,8 @@ export class DesktopStartupRecoveryWindow {
         title: copy.title,
         body: copy.actionFailed,
       }
-      if (action.action === 'preview-checkpoint' || action.action === 'preview-uninstall') {
+      if (action.action === 'preview-checkpoint' || action.action === 'preview-uninstall'
+        || action.action === 'preview-disable' || action.action === 'preview-enable') {
         await this.showOperationFailure(cause, action.action).catch(() => {})
       } else if (action.action === 'apply-data-directory'
         || action.action === 'restore-default-data-directory'
@@ -554,13 +586,17 @@ export class DesktopStartupRecoveryWindow {
 
   private async showOperationFailure(
     cause: unknown,
-    action: 'preview-checkpoint' | 'preview-uninstall',
+    action: 'preview-checkpoint' | 'preview-uninstall' | 'preview-disable' | 'preview-enable',
   ): Promise<void> {
     const window = this.window
     if (window === undefined || window.isDestroyed()) return
     const copy = desktopRecoveryCopy(this.options.locale)
     const error = cause instanceof DesktopStartupRecoveryControllerError ? cause : undefined
-    const stage = error?.operationStage ?? 'checkpoint-restore'
+    // A non-controller failure carries no stage, so name the stage the action
+    // itself was in rather than always claiming a checkpoint restore.
+    const stage = error?.operationStage ?? (action === 'preview-checkpoint'
+      ? 'checkpoint-restore'
+      : action === 'preview-uninstall' ? 'plugin-change' : 'bundle-selection')
     const message = error?.message ?? (cause instanceof Error ? cause.message : String(cause))
     const detail = [
       `${copy.operationStage}: ${copy.operationStageLabels[stage]}`,
@@ -573,8 +609,12 @@ export class DesktopStartupRecoveryWindow {
     ].join('\n')
     await showDesktopDialog({
       type: 'error',
-      title: action === 'preview-checkpoint' ? copy.rollbackFailedTitle : copy.uninstallFailedTitle,
-      message: action === 'preview-checkpoint' ? copy.rollbackFailedMessage : copy.uninstallFailedMessage,
+      title: action === 'preview-checkpoint' ? copy.rollbackFailedTitle
+        : action === 'preview-uninstall' ? copy.uninstallFailedTitle
+          : copy.bundleSelectionFailedTitle,
+      message: action === 'preview-checkpoint' ? copy.rollbackFailedMessage
+        : action === 'preview-uninstall' ? copy.uninstallFailedMessage
+          : copy.bundleSelectionFailedMessage,
       detail,
       buttons: [copy.close],
       defaultId: 0,
@@ -584,8 +624,10 @@ export class DesktopStartupRecoveryWindow {
   }
 
   private async confirmRecoveryAction(
-    kind: 'uninstall' | 'checkpoint',
-    preview: DesktopStartupRecoveryUninstallPreview | DesktopStartupRecoveryCheckpointPreview,
+    kind: 'uninstall' | 'checkpoint' | 'disable' | 'enable',
+    preview: DesktopStartupRecoveryUninstallPreview
+      | DesktopStartupRecoverySelectionPreview
+      | DesktopStartupRecoveryCheckpointPreview,
   ): Promise<boolean> {
     const window = this.window
     if (window === undefined || window.isDestroyed()) return false
@@ -597,17 +639,24 @@ export class DesktopStartupRecoveryWindow {
     const checkpointTime = 'capturedAt' in preview && !Number.isNaN(Date.parse(preview.capturedAt))
       ? new Date(preview.capturedAt).toLocaleString(this.options.locale === 'zh' ? 'zh-CN' : 'en-US')
       : copy.unknown
+    // `warning` stays reserved for the one destructive action, so the dialog
+    // tone itself tells a disable apart from an uninstall.
     const result = await showDesktopMessageBox({
       type: kind === 'uninstall' ? 'warning' : 'question',
-      title: kind === 'uninstall'
-        ? copy.confirmUninstall
-        : copy.confirmRollback,
+      title: kind === 'uninstall' ? copy.confirmUninstall
+        : kind === 'disable' ? copy.confirmDisable
+          : kind === 'enable' ? copy.confirmEnable
+            : copy.confirmRollback,
       message,
-      detail: kind === 'uninstall'
-        ? copy.confirmUninstallBody
-        : copy.confirmRollbackBody(checkpointTime),
+      detail: kind === 'uninstall' ? copy.confirmUninstallBody
+        : kind === 'disable' ? copy.confirmDisableBody
+          : kind === 'enable' ? copy.confirmEnableBody
+            : copy.confirmRollbackBody(checkpointTime),
       buttons: [
-        kind === 'uninstall' ? copy.uninstall : copy.confirmRollbackAction,
+        kind === 'uninstall' ? copy.uninstall
+          : kind === 'disable' ? copy.confirmDisableAction
+            : kind === 'enable' ? copy.confirmEnableAction
+              : copy.confirmRollbackAction,
         copy.cancel,
       ],
       defaultId: 1,
@@ -852,6 +901,23 @@ export class DesktopStartupRecoveryWindow {
   ): Promise<void> {
     const path = this.options.configurationPaths?.[kind]
     if (path === undefined) throw new Error('Desktop profile configuration is unavailable for this startup stage.')
+    if (kind === 'settingsDocument') {
+      await mkdir(dirname(path), { recursive: true, mode: 0o700 })
+      try {
+        await writeFile(path, '', { flag: 'wx', mode: 0o600 })
+      } catch (cause) {
+        if ((cause as NodeJS.ErrnoException).code !== 'EEXIST') throw cause
+      }
+    }
+    if (kind === 'settingsDocument' && process.platform === 'darwin') {
+      await new Promise<void>((resolve, reject) => {
+        execFile('/usr/bin/open', ['-t', path], { windowsHide: true }, cause => {
+          if (cause === null) resolve()
+          else reject(cause)
+        })
+      })
+      return
+    }
     const error = await shell.openPath(path)
     if (error.length > 0) throw new Error(error)
   }

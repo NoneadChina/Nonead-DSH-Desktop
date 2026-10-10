@@ -12,15 +12,6 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
-
-/**
- * Mirror the production Profile identity rule: Windows compares paths
- * case-insensitively, so the stored hash is computed from the folded spelling.
- */
-function expectedIdentity(path: string): string {
-  const normalized = resolve(path)
-  return process.platform === 'win32' ? normalized.toLowerCase() : normalized
-}
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   clearDesktopProfilePreferences,
@@ -28,7 +19,6 @@ import {
   desktopProfilePreferencesConstants,
   desktopProfilePreferencesProfileHash,
   desktopProfilePreferencesStatePath,
-  legacyDesktopProfilePreferencesProfileHash,
   readDesktopProfilePreferences,
   writeDesktopProfilePreferences,
   type DesktopProfilePreferences,
@@ -47,6 +37,8 @@ const PREFERENCES: DesktopProfilePreferences = Object.freeze({
     notifyOnTurnFailure: false,
     notifyOnJobCompletion: false,
     notifyOnJobFailure: true,
+    notifyOnScheduleCompletion: true,
+    notifyOnScheduleFailure: true,
   }),
   market: 'community-market',
 })
@@ -117,48 +109,15 @@ describe('Desktop Profile preferences', () => {
       aaEnabled: 'true' as unknown as boolean })).rejects.toThrow('aaEnabled')
   })
 
-  it('keys state by a case-folded Profile identity on Windows', async () => {
-    // A Profile directory renamed from `work` to `Work` is the same Profile on
-    // Windows, so its stored preferences must not be stranded under a second key.
-    const userData = temporaryDirectory('dsh-profile-preferences-fold-user-')
-    const profiles = temporaryDirectory('dsh-profile-preferences-fold-profiles-')
-    const lower = join(profiles, 'work')
-    const upper = join(profiles, 'WORK')
-    mkdirSync(lower)
-
-    await writeDesktopProfilePreferences(userData, lower, PREFERENCES, RECORDED_AT)
-
-    if (process.platform === 'win32') {
-      expect(desktopProfilePreferencesProfileHash(upper)).toBe(desktopProfilePreferencesProfileHash(lower))
-      expect(desktopProfilePreferencesStatePath(userData, upper)).toBe(
-        desktopProfilePreferencesStatePath(userData, lower),
-      )
-      const reloaded = readDesktopProfilePreferences(userData, upper)
-      expect(reloaded).toBeDefined()
-      expect(reloaded).toMatchObject({ ...PREFERENCES, recordedAt: RECORDED_AT })
-    } else {
-      // POSIX paths are case-sensitive, so the spellings stay distinct.
-      expect(desktopProfilePreferencesProfileHash(upper))
-        .not.toBe(desktopProfilePreferencesProfileHash(lower))
-    }
-  })
-
-  it('still reads state written under the pre-case-folding key', async () => {
-    const userData = temporaryDirectory('dsh-profile-preferences-legacy-user-')
-    const profiles = temporaryDirectory('dsh-profile-preferences-legacy-profiles-')
-    const profile = join(profiles, 'legacy')
-    mkdirSync(profile)
-
-    const legacyHash = legacyDesktopProfilePreferencesProfileHash(profile)
-    const legacyDirectory = join(userData, 'profile-preferences', legacyHash)
-    mkdirSync(legacyDirectory, { recursive: true, mode: 0o700 })
-    writeFileSync(
-      join(legacyDirectory, 'state.json'),
-      JSON.stringify({ version: 1, profileHash: legacyHash, ...PREFERENCES, recordedAt: RECORDED_AT }),
-    )
-
-    const loaded = readDesktopProfilePreferences(userData, profile)
-    expect(loaded).toMatchObject({ ...PREFERENCES, recordedAt: RECORDED_AT })
+  it('reads saved five-switch notification preferences with schedule switches enabled', () => {
+    const userData = temporaryDirectory('dsh-schedule-preferences-')
+    const profile = temporaryDirectory('dsh-schedule-profile-')
+    const { notifyOnScheduleCompletion: _completion, notifyOnScheduleFailure: _failure, ...notifications } = PREFERENCES.notifications
+    writeRawState(userData, profile, { ...PREFERENCES, notifications, version: 1,
+      profileHash: desktopProfilePreferencesProfileHash(profile), recordedAt: RECORDED_AT })
+    expect(readDesktopProfilePreferences(userData, profile)?.notifications).toEqual({
+      ...notifications, notifyOnScheduleCompletion: true, notifyOnScheduleFailure: true,
+    })
   })
 
   it('isolates strict state by sha256(Profile directory)', async () => {
@@ -169,7 +128,7 @@ describe('Desktop Profile preferences', () => {
     mkdirSync(work)
     mkdirSync(personal)
 
-    const workHash = createHash('sha256').update(expectedIdentity(work)).digest('hex')
+    const workHash = createHash('sha256').update(resolve(work)).digest('hex')
     expect(desktopProfilePreferencesProfileHash(work)).toBe(workHash)
     expect(desktopProfilePreferencesStatePath(userData, work)).toBe(
       join(userData, 'profile-preferences', workHash, 'state.json'),
@@ -233,10 +192,17 @@ describe('Desktop Profile preferences', () => {
       ...PREFERENCES,
       extra: true,
     } as DesktopProfilePreferences, RECORDED_AT)).rejects.toThrow('exactly the supported fields')
-    await expect(writeDesktopProfilePreferences(userData, profile, {
+    // Legacy mode markers stay writable and read back normalized to compatibility;
+    // an unknown mode is still rejected.
+    const legacy = temporaryDirectory('dsh-profile-preferences-legacy-')
+    await expect(writeDesktopProfilePreferences(userData, legacy, {
       ...PREFERENCES,
       mode: 'advanced',
-    }, RECORDED_AT)).rejects.toThrow('openBrowser requires compatibility mode')
+    }, RECORDED_AT)).resolves.toMatchObject({ mode: 'compatibility' })
+    await expect(writeDesktopProfilePreferences(userData, profile, {
+      ...PREFERENCES,
+      mode: 'glass',
+    } as unknown as DesktopProfilePreferences, RECORDED_AT)).rejects.toThrow('mode must be compatibility')
     await expect(writeDesktopProfilePreferences(userData, profile, {
       ...PREFERENCES,
       openBrowser: false,
@@ -247,7 +213,7 @@ describe('Desktop Profile preferences', () => {
         ...PREFERENCES.notifications,
         extra: true,
       } as DesktopProfilePreferences['notifications'],
-    }, RECORDED_AT)).rejects.toThrow('five supported boolean fields')
+    }, RECORDED_AT)).rejects.toThrow('supported boolean fields')
     await expect(writeDesktopProfilePreferences(userData, profile, PREFERENCES, '2026-08-28'))
       .rejects.toThrow('recordedAt')
 

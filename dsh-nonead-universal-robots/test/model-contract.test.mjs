@@ -8,8 +8,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readdir, readFile, stat } from 'node:fs/promises'
+import { Group, Object3D } from 'three'
 
-import { LINK_MESH_NODES, ARM_LINKS } from '../src/client/robot/loader.js'
+import { LINK_MESH_NODES, ARM_LINKS, loadRobotModel } from '../src/client/robot/loader.js'
 import { identity4, multiply4, fkChain } from '../src/client/robot/fk.js'
 
 const MODELS_DIR = new URL('../assets/models/', import.meta.url)
@@ -20,15 +21,9 @@ const EXPECTED_MODELS = [
   'ur8long', 'ur15', 'ur18', 'ur20', 'ur30',
 ]
 
-function glbNodeNames(buf) {
-  assert.equal(buf.subarray(0, 4).toString('ascii'), 'glTF', 'GLB magic 不是 glTF')
-  const jsonLen = buf.readUInt32LE(12)
-  const doc = JSON.parse(buf.subarray(20, 20 + jsonLen).toString('utf8'))
-  return (doc.nodes ?? []).map((n) => n.name)
-}
-
 /** 解析 GLB 的 JSON chunk（结构测试与几何测试共用）。 */
 function glbJson(buf) {
+  assert.equal(buf.subarray(0, 4).toString('ascii'), 'glTF', 'GLB magic 不是 glTF')
   const jsonLen = buf.readUInt32LE(12)
   return JSON.parse(buf.subarray(20, 20 + jsonLen).toString('utf8'))
 }
@@ -49,6 +44,24 @@ function nodeBounds(doc) {
     out[node.name] = [lo, hi]
   }
   return out
+}
+
+/**
+ * 型号 → `{ doc, boxes }` 缓存。
+ *
+ * 本文件有 3 个用例要用 GLB：14 个型号合计 ~35 MB，每个用例各读一遍既慢又会把
+ * 整份 Buffer 同时留在内存里（在全量并发跑规格时足以拖垮测试运行器的 IPC）。这里只解析一次。
+ */
+const glbCache = new Map()
+
+async function glbFor(model) {
+  const hit = glbCache.get(model)
+  if (hit) return hit
+  const buf = await readFile(new URL(`${model}.glb`, MODELS_DIR))
+  const doc = glbJson(buf)
+  const parsed = { doc, boxes: nodeBounds(doc) }
+  glbCache.set(model, parsed)
+  return parsed
 }
 
 /** 把局部 AABB 的 8 个角点用列主序 4x4 变换后取世界 AABB。 */
@@ -92,8 +105,8 @@ test('每个型号的 GLB 都存在，且节点名与顺序等于 LINK_MESH_NODE
 
   const mismatched = []
   for (const f of files) {
-    const buf = await readFile(new URL(f, MODELS_DIR))
-    const names = glbNodeNames(buf)
+    const { doc } = await glbFor(f.replace(/\.glb$/, ''))
+    const names = (doc.nodes ?? []).map((n) => n.name)
     if (JSON.stringify(names) !== JSON.stringify(LINK_MESH_NODES)) {
       mismatched.push({ file: f, names })
     }
@@ -116,9 +129,15 @@ test('资产总量在预期量级（防止误提交空文件或被抽稀替换�
     smallest = Math.min(smallest, s.size)
   }
   const mb = total / 1024 / 1024
-  // 用户裁定「全量原始精度、不抽稀」（Ruling 24），实测 35.11 MB。
-  // 给一个宽松但有效的区间：明显变小说明被抽稀/截断，明显变大说明混入了 collision。
-  assert.ok(mb > 25 && mb < 55, `GLB 总量 ${mb.toFixed(2)} MB 超出预期区间 [25, 55]`)
+  // 体积沿革（每一步都由人明确决策，不是随手改的）：
+  //   转换原始输出            35.11 MB（Ruling 24：全量原始精度、不抽稀）
+  //   `compress-models.mjs`   28.27 MB（无损：索引 uint32→uint16 + 删没材质读的 `_color`）
+  //   `--texture-size 1024`   20.86 MB（**有损**：5 个新型号的 2048² 底色贴图降到 1024²，
+  //                                     几何与索引仍逐字节/逐值不变）
+  // 下限 15 MB 给"贴图再降一档"留余量，同时仍能挡住被抽稀/截断或误提交空文件；
+  // 上限 55 MB 挡住混入 collision。最小文件 >0.5 MB 这条继续挡住空/截断文件
+  // （当前最小是 ur20 的 0.69 MB —— 若将来把贴图降到 512²，这条和下限要一起复核）。
+  assert.ok(mb > 15 && mb < 55, `GLB 总量 ${mb.toFixed(2)} MB 超出预期区间 [15, 55]`)
   assert.ok(smallest > 0.5 * 1024 * 1024, `存在过小的 GLB（${smallest} B），疑似空文件`)
 })
 
@@ -140,9 +159,7 @@ test('几何装配契约：相邻连杆间隙必须小于总臂长的 5%（Rulin
   const report = []
 
   for (const model of EXPECTED_MODELS) {
-    const buf = await readFile(new URL(`${model}.glb`, MODELS_DIR))
-    const doc = glbJson(buf)
-    const boxes = nodeBounds(doc)
+    const { boxes } = await glbFor(model)
 
     // 与 loader.js 的 assemble() 同一张表：base 挂单位矩阵，其余 groups[k] = links[k-1]
     const segments = kin[model].links
@@ -184,8 +201,7 @@ test('几何装配契约：GBL 总量与运动学链长度量级一致（防张�
   const kin = JSON.parse(await readFile(new URL('../assets/kinematics.json', import.meta.url), 'utf8'))
   const mismatched = []
   for (const model of EXPECTED_MODELS) {
-    const buf = await readFile(new URL(`${model}.glb`, MODELS_DIR))
-    const boxes = nodeBounds(glbJson(buf))
+    const { boxes } = await glbFor(model)
     // 上臂网格沿「到下一个关节」方向的伸展，应与运动学给出的上臂长度同量级
     const upper = boxes.upperarm
     if (!upper) {
@@ -199,4 +215,77 @@ test('几何装配契约：GBL 总量与运动学链长度量级一致（防张�
     }
   }
   assert.deepEqual(mismatched, [], '上臂网格尺寸与运动学链明显不匹配，疑似资产/型号对错')
+})
+
+/* ------------------------------------------------------------------ *
+ * 关节位置契约（真装配路径）：14 个型号 × 多个姿态
+ *
+ * 上一个用例自己算 `frames = [单位阵, ...links]` 再看 AABB 间隙，**绕过了 assemble()/applyFK()**。
+ * 于是「绝对变换被写进嵌套的局部矩阵、matrixWorld 把父链连乘」这个缺陷它能全绿通过 ——
+ * 而真机上表现为「所有关节都不在正确位置」。本用例改用**真实装配出来的 groups[k].matrixWorld**
+ * 变换网格 AABB，把装配语义纳入断言。
+ *
+ * 判据：连杆是刚体、相邻连杆在关节处相接 ⇒ 无论关节角如何，
+ * 相邻网格的 AABB 间隙都必须远小于总臂长（阈值取 5%，与上一用例同口径）。
+ * ------------------------------------------------------------------ */
+
+/** 与真实 GLB 同名的 7 个独立顶层节点（几何由 GLB 的 accessor min/max 提供，这里只要名字）。 */
+function fakeNamedScene() {
+  const scene = new Group()
+  for (const name of LINK_MESH_NODES) {
+    const node = new Object3D()
+    node.name = name
+    scene.add(node)
+  }
+  return scene
+}
+
+test('关节位置契约：14 个型号在多个姿态下，真实装配出来的相邻连杆必须相接', async () => {
+  const kin = JSON.parse(await readFile(new URL('../assets/kinematics.json', import.meta.url), 'utf8'))
+  const POSES = [
+    { label: 'q=0（竖直）', q: [0, 0, 0, 0, 0, 0] },
+    { label: 'q=伸展', q: [0.6, -1.2, 1.0, -0.5, 1.4, -0.8] },
+    { label: 'q=折拢', q: [-1.6, -1.6, 1.6, -1.6, -1.6, 0] },
+  ]
+  const failures = []
+  const report = []
+
+  for (const model of EXPECTED_MODELS) {
+    const { boxes } = await glbFor(model)
+    const handle = await loadRobotModel(`geometry-${model}`, { loadGltf: async () => ({ scene: fakeNamedScene() }) })
+    assert.equal(handle.usedFallback, false, `${model}: 假 GLB 不应触发回退`)
+
+    const reach = kin[model].links.reduce((sum, s) => sum + Math.hypot(s.x ?? 0, s.y ?? 0, s.z ?? 0), 0)
+    const limit = 0.05 * reach
+    const worstPerPose = []
+
+    for (const { label, q } of POSES) {
+      handle.applyFK({ links: fkChain(kin[model], q).links })
+      handle.root.updateMatrixWorld(true)
+      const world = LINK_MESH_NODES.map((name, k) => (
+        boxes[name] ? worldAabb(boxes[name], handle.groups[k].matrixWorld.elements) : null
+      ))
+      let worst = 0
+      let worstPair = ''
+      for (let k = 0; k < 6; k++) {
+        const gap = aabbGap(world[k], world[k + 1])
+        if (gap > worst) {
+          worst = gap
+          worstPair = `${LINK_MESH_NODES[k]} → ${LINK_MESH_NODES[k + 1]}`
+        }
+      }
+      worstPerPose.push(`${label} ${(worst * 1000).toFixed(1)} mm`)
+      if (worst >= limit) {
+        failures.push(`${model} @ ${label}: ${worstPair} 间隙 ${(worst * 1000).toFixed(1)} mm ≥ 总臂长 5%（${(limit * 1000).toFixed(1)} mm）`)
+      }
+    }
+    report.push(`${model}: ${worstPerPose.join(' | ')}, limit ${(limit * 1000).toFixed(1)} mm`)
+    handle.dispose()
+  }
+
+  assert.deepEqual(
+    failures,
+    [],
+    `存在关节位置错误的型号 —— 装配语义或运动学/资产不匹配。\n实测：\n${report.join('\n')}`,
+  )
 })

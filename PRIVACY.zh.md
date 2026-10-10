@@ -2,12 +2,12 @@
 
 [English](PRIVACY.md)
 
-- **版本：** 1.0
-- **生效及最近更新日期：** 2026 年 8 月 26 日
+- **版本：** 1.1
+- **生效及最近更新日期：** 2026 年 9 月 28 日
 
 Nonead DSH Desktop 是一个本地优先的开源桌面应用。本政策说明 Nonead DSH Desktop 官方版本及官方在线服务会处理哪些信息、为什么处理、信息会发送给谁，以及您可以如何作出选择。
 
-本政策中的“我们”指在 GitHub 组织 [`anywhere-labs`](https://github.com/anywhere-labs) 下维护和发布 Nonead DSH Desktop 官方版本、并运营 `dshdesktop.cn` 官方服务的 **Nonead Corporation 项目维护团队**。项目是独立的社区开源项目，与 DeepSeek 不存在隶属、合作、授权或背书关系。
+本政策中的“我们”指在 GitHub 组织 [`anywhere-labs`](https://github.com/anywhere-labs) 下维护和发布 Nonead DSH Desktop 官方版本、并运营 `nonead.com` 官方服务的 **Nonead Corporation 项目维护团队**。项目是独立的社区开源项目，与 DeepSeek 不存在隶属、合作、授权或背书关系。
 
 隐私问题或权利请求请发送至 [t4wefan@qq.com](mailto:t4wefan@qq.com)。请不要在公开 GitHub Issue 中提交安装标识、日志、凭据或其他私密信息。
 
@@ -16,10 +16,10 @@ Nonead DSH Desktop 是一个本地优先的开源桌面应用。本政策说明 
 本政策适用于：
 
 - 我们通过 [官方 GitHub 仓库](https://github.com/anywhere-labs/dsh-desktop)及官方发布渠道提供的 Nonead DSH Desktop；
-- `https://www.dshdesktop.cn/` 下的官方网页、版本检查和下载跳转服务；
+- `https://www.nonead.com/` 下的官方网页、版本检查和下载跳转服务；
 - 您主动发送给项目维护团队的隐私请求、支持邮件或问题报告。
 
-第三方 Fork、自行修改的构建、第三方分发渠道、模型服务商、插件、插件市场来源及软件包服务各自的处理行为不由本政策控制。如果第三方构建仍访问硬编码的 `dshdesktop.cn` 官方端点，本政策仍适用于该官方端点实际收到的信息，但不适用于第三方构建或分发者的其他处理行为。
+第三方 Fork、自行修改的构建、第三方分发渠道、模型服务商、插件、插件市场来源及软件包服务各自的处理行为不由本政策控制。如果第三方构建仍访问硬编码的 `nonead.com` 官方端点，本政策仍适用于该官方端点实际收到的信息，但不适用于第三方构建或分发者的其他处理行为。
 
 ## 2. 摘要
 
@@ -37,7 +37,7 @@ Nonead DSH Desktop 是一个本地优先的开源桌面应用。本政策说明 
 打包后的 macOS 和 Windows 应用默认在启动约 60 秒后请求：
 
 ```text
-GET https://www.dshdesktop.cn/api/desktop/version
+GET https://www.nonead.com/software/ndsh-desktop/version
 ```
 
 此后，每次检查完成约 6 小时后会再次检查。您也可以手动选择“检查更新”。开发运行、未打包启动和 Linux 当前不会执行这套打包版自动更新流程。
@@ -47,8 +47,8 @@ GET https://www.dshdesktop.cn/api/desktop/version
 客户端明确添加：
 
 - `Accept: application/json`；
-- `X-Nonead-DSH-Desktop-Installation-Id: <随机 UUID v4>`。
-- `X-Nonead-DSH-Desktop-Version: <规范的当前稳定版本>`。
+- `X-DSH-Desktop-Installation-Id: <随机 UUID v4>`。
+- `X-DSH-Desktop-Version: <规范的当前稳定版本>`。
 
 该 GET 请求没有由应用添加的 query 参数或请求 body。与所有互联网请求一样，官方服务及其基础设施还会接收 IP 地址、请求时间、TLS/连接信息以及网络栈自动产生的标准请求元数据；这些元数据可能包括 User-Agent、Cookie、压缩支持、操作系统或运行时版本信息。当前代码没有显式要求 Electron 网络 session 忽略已有凭据，因此我们不会承诺版本请求一定不带 session 数据，也不会把“客户端只显式设置两个 header”描述成“网络上只会传出两个字段”。
 
@@ -87,7 +87,7 @@ GET https://www.dshdesktop.cn/api/desktop/version
 
 | 场景 | 触发方式 | 可能处理的信息 | 目的及接收方 |
 | --- | --- | --- | --- |
-| 安装包下载 | 您点击下载，或在发现新版本后确认下载 | IP 地址、时间、标准网络元数据，以及 `/mac` 或 `/windows` 路径所表示的平台 | `dshdesktop.cn`、其托管服务和最终下载承载方用于交付文件、安全防护和下载服务统计。下载请求不会由 Desktop 添加安装 UUID。 |
+| 安装包下载 | 您点击下载，或在发现新版本后确认下载 | IP 地址、时间、标准网络元数据，以及 `/mac`、`/windows` 或 `/linux` 路径所表示的平台 | `nonead.com`、其托管服务和最终下载承载方用于交付文件、安全防护和下载服务统计。下载请求不会由 Desktop 添加安装 UUID。 |
 | 访问官网 | 您在浏览器中打开官网 | IP 地址、时间、浏览器/设备网络元数据，以及您请求的页面 | 官网托管和网络基础设施用于提供页面、安全防护和故障排查。 |
 | GitHub Issue、讨论或贡献 | 您主动提交 | 您公开提交的账号信息、文字、附件、代码及元数据 | GitHub 和项目维护团队用于处理问题、贡献及社区沟通。公开提交会公开可见。 |
 | 邮件与支持资料 | 您主动发送 | 邮箱地址、邮件内容、附件，以及您选择提供的诊断或环境信息 | [QQ 邮箱](https://mail.qq.com/)、您的发件服务商和项目维护团队用于传递和回复邮件、排查问题及保存必要的沟通记录。 |
@@ -122,7 +122,7 @@ Nonead DSH Desktop 是可组合的插件平台。下列传输由您选择的服�
 
 当您配置并调用模型供应商、MCP 服务、外部工具或其他 API 时，接收方可能收到 API Key、提示词、对话上下文、附件或文件内容、工具输入输出、会话标识、网络元数据，以及该服务协议所需的其他信息。具体范围取决于您的配置和请求。不要向不受信任的供应商发送敏感数据。
 
-上游 DSH 还维护一个与 Desktop 安装 UUID 不同的 `.anonymous-user-id`。当您调用当前默认的 DeepSeek 模型适配器时，它会把该标识放在 `x-deepseek-harness-user-id` header 中，并把可选的会话 ID、API Key 以及完整模型请求发送到您配置的 DeepSeek 或兼容 `baseURL`。请勿将它与 `X-Nonead-DSH-Desktop-Installation-Id` 混为一谈。
+上游 DSH 还维护一个与 Desktop 安装 UUID 不同的 `.anonymous-user-id`。当您调用当前默认的 DeepSeek 模型适配器时，它会把该标识放在 `x-deepseek-harness-user-id` header 中，并把可选的会话 ID、API Key 以及完整模型请求发送到您配置的 DeepSeek 或兼容 `baseURL`。请勿将它与 `X-DSH-Desktop-Installation-Id` 混为一谈。
 
 默认组合还提供 DeepSeek `web_search`。当您主动使用该工具时，它会向配置的 DeepSeek Messages 端点发送 API Key、原始搜索词（嵌入固定提示中）、模型、token/使用次数限制和标准请求元数据；网页 `fetch` 工具默认关闭。
 
@@ -140,7 +140,7 @@ Community Market 默认不需要选中远程来源。选择并使用来源后，
 
 ### 6.3 dsh-market
 
-如果您在 Setup 或设置中选择 `dsh-market`，打开市场、检查更新或查看插件内容时，它可能访问 `awesome-dsh-plugin.com`、npm Registry、GitHub API、`raw.githubusercontent.com`、GitHub 头像服务和 `images.weserv.nl`。这些接收方会看到 IP 地址、时间、请求资源和相关的插件、软件包或仓库标识；图片代理还会收到原始图片 URL。安装或更新仍由您确认，并可能继续访问插件依赖声明的地址。这些请求不会附带 Desktop 的 `X-Nonead-DSH-Desktop-Installation-Id`。
+如果您在 Setup 或设置中选择 `dsh-market`，打开市场、检查更新或查看插件内容时，它可能访问 `awesome-dsh-plugin.com`、npm Registry、GitHub API、`raw.githubusercontent.com`、GitHub 头像服务和 `images.weserv.nl`。这些接收方会看到 IP 地址、时间、请求资源和相关的插件、软件包或仓库标识；图片代理还会收到原始图片 URL。安装或更新仍由您确认，并可能继续访问插件依赖声明的地址。这些请求不会附带 Desktop 的 `X-DSH-Desktop-Installation-Id`。
 
 `dsh-market` 还提供由您手动触发，或在您明确启用可选自动备份后触发的 Profile 备份：
 
@@ -153,7 +153,9 @@ Community Market 默认不需要选中远程来源。选择并使用来源后，
 
 ### 6.4 可选的上游遥测
 
-当前上游 DSH session telemetry 在 Desktop 默认组合中为 `DISABLED`。如果您或部署者显式设置 `DSH_TELEMETRY_MODE` 为 `FULL` 或 `FEEDBACK_ONLY`，原始会话遥测可能与上游匿名用户 ID 一起发送到 `https://harness-telemetry.deepseeksvc.com/v1/logs` 或您配置的 `DSH_TELEMETRY_OTLP_URL`。该处理由上游配置和接收方政策决定，不属于 Nonead Corporation 官方更新服务。
+上游 DSH session telemetry 在 Desktop 默认组合中沿用上游默认的 `FEEDBACK_ONLY`：日常使用不会上传会话内容；只有您在会话中明确提交反馈后，该会话截至反馈时的原始日志才会与上游匿名用户 ID（保存在 DSH 数据目录的 `.anonymous-user-id`，删除即重置）一起发送到 `https://dsh-otel-collector.deepseeksvc.com/v1/logs` 或您配置的 `DSH_TELEMETRY_OTLP_URL`。如果您或部署者显式设置 `DSH_TELEMETRY_MODE` 为 `FULL`，会话遥测会在日常使用中持续发送；设置任意非空的 `DSH_TELEMETRY_DISABLED` 会让 Desktop 关闭该组件。该处理由上游配置和接收方政策决定，不属于 Nonead Corporation 官方更新服务。
+
+上游还为名为 `desktop` 的 Profile 提供 Desktop 产品使用统计（`product-analytics` 和 `desktop-product-telemetry`），会把设备 ID、登录 DeepSeek 账号后的用户 ID、系统和应用版本以及界面操作事件发送给 DeepSeek。Nonead DSH Desktop 在启动时关闭这两项，官方版本不会发送这类统计。
 
 ### 6.5 外部链接
 

@@ -1,12 +1,17 @@
 // scripts/build-client.mjs
 // 契约（Task 1 核验，Ruling 6）：shell 用经典 script 加载 bundle，官方产物一律是
-// CJS 工厂包装 —— 必须 format:'cjs' + banner/intro/footer，否则 `export` 会 SyntaxError。
+// CJS 工厂包装 —— 必须 format:'cjs' + banner/footer，否则 `export` 会 SyntaxError。
 // Ruling 13：只做响亮失败（throw），**不做**任何静默的字符串重排兜底。
-import { build } from 'esbuild'
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { Script } from 'node:vm'
 
-const OUT = 'lib/client.js'
+// 输出路径可用 `BUILD_CLIENT_OUT` 覆盖：校验脚本要"重新构建到别处再比对哈希"来证明
+// 提交的 bundle 与源码一致，这比任何字面量/时间戳启发式都确定，而且**不必碰**提交产物。
+const OUT = process.env.BUILD_CLIENT_OUT ?? 'lib/client.js'
+const ROOT = dirname(fileURLToPath(import.meta.url)) + '/..'
 
 // DSH 以包名作为插件 id（`/plugins/<id>/client.js` 与 `window.__DSH_BOOT__` 的登记键）。
 // bundle id 必须等于 package.json 的 name：漂移时它只会在运行时以
@@ -26,22 +31,71 @@ if (ID !== EXPECTED_ID) {
   )
 }
 
-await build({
-  entryPoints: ['src/client/index.js'],
-  outfile: OUT,
-  bundle: true,
-  format: 'cjs',
-  platform: 'browser',
-  target: ['chrome110'],
-  minify: true,
-  sourcemap: true,
-  logLevel: 'info',
-  // Ruling 32（更正 Ruling 12 的范围）：esbuild **根本没有 `intro` 选项** —— 不止 CLI，
-  // JS API 同样会直接抛 `Invalid option in build() call: "intro"`（此前误判为沙箱 spawn EPERM）。
-  // 等价施加：把 INTRO 折进 `banner.js` 的下一行（顺序仍是 HEAD → INTRO → code → footer）。
-  banner: { js: `${HEAD}\n${INTRO}` },
-  footer: { js: TAIL },
-})
+await runEsbuild({ headBanner: `${HEAD}\n${INTRO}`, tailFooter: TAIL })
+
+/**
+ * 跑一次 esbuild。
+ *
+ * ## 为什么要优先用**独立二进制**（这不是"随便兜底"）
+ * `import { build } from 'esbuild'` 让 JS 包去 spawn 平台二进制，而它启动时会**校验两者
+ * 版本一致**（`Host version "X" does not match binary version "Y"`）。本仓库的
+ * `node_modules/.pnpm/esbuild@0.25.0/` 里 JS 已被升到 0.25.12 而 `@esbuild/win32-x64`
+ * 仍是 0.25.0（lockfile 与 store 不同步的正常残留），于是 JS API 直接报
+ * "Cannot start service"，**构建彻底失败**。
+ * 独立二进制不需要任何版本配对；banner/footer 用文件传入，语义与 JS API 完全一致。
+ * JS API 仍作为回退（环境里没有独立二进制时）。
+ *
+ * @returns {{ bannner: never }|void}
+ */
+function runEsbuild({ headBanner, tailFooter }) {
+  const candidates = [
+    join(ROOT, 'node_modules', '@esbuild', 'win32-x64', 'esbuild.exe'),
+    join(ROOT, 'node_modules', 'esbuild', 'bin', 'esbuild'),
+    join(ROOT, 'node_modules', '.bin', 'esbuild'),
+  ]
+  const bin = candidates.find((p) => existsSync(p))
+
+  if (bin !== undefined) {
+    const args = [
+      'src/client/index.js',
+      '--bundle',
+      '--outfile=' + OUT,
+      '--format=cjs',
+      '--platform=browser',
+      '--target=chrome110',
+      '--minify',
+      '--sourcemap',
+      // ⚠️ CLI 的 `--banner:js=` 收的是**内联文本**，不是文件路径：
+      // 传路径时 esbuild 会把"路径"本身当横幅写进产物（首行就变成路径）。
+      // 用 spawnSync 的数组参数传值，不经过 shell，换行/引号都不会被解释。
+      '--banner:js=' + headBanner,
+      '--footer:js=' + tailFooter,
+    ]
+    const r = spawnSync(bin, args, { stdio: 'inherit', cwd: join(ROOT) })
+    if (r.status === 0) return
+    throw new Error(`build-client: esbuild 二进制构建失败（exit ${r.status}）`)
+  }
+
+  // 回退：JS API（需要 JS 包与平台二进制版本一致）
+  return import('esbuild').then(({ build }) =>
+    build({
+      entryPoints: ['src/client/index.js'],
+      outfile: OUT,
+      bundle: true,
+      format: 'cjs',
+      platform: 'browser',
+      target: ['chrome110'],
+      minify: true,
+      sourcemap: true,
+      logLevel: 'info',
+      // Ruling 32（更正 Ruling 12 的范围）：esbuild **根本没有 `intro` 选项** —— 不止 CLI，
+      // JS API 同样会直接抛 `Invalid option in build() call: "intro"`（此前误判为沙箱 spawn EPERM）。
+      // 等价施加：把 INTRO 折进 `banner.js` 的下一行（顺序仍是 HEAD → INTRO → code → footer）。
+      banner: { js: headBanner },
+      footer: { js: tailFooter },
+    }),
+  )
+}
 
 // 契约自检（Ruling 13）：任一不满足立即 throw，绝不静默改写产物。
 const out = readFileSync(OUT, 'utf8')

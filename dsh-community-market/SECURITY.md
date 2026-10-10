@@ -30,7 +30,7 @@ Adding or selecting a source is an explicit local action. A remote manifest cann
 
 Production source requests are HTTPS-only and credential-free. They enforce bounded redirects, timeouts, concurrency, decoded response size, item counts, nesting, and string lengths. Redirect and DNS targets are checked against loopback, private, link-local, and cloud-metadata destinations. JSON must satisfy the published schema before normalization.
 
-Exactly one source is selected for browsing. Source failure never silently selects a fallback, changes the active Profile, or blocks DSH Desktop startup.
+Exactly one source is selected for browsing. Source failure never silently selects a fallback, changes the active Profile, or blocks Nonead DSH Desktop startup.
 
 ## Reporting a vulnerability
 

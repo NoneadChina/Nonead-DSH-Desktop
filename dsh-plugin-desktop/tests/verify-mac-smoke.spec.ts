@@ -28,15 +28,17 @@ function fixture(): AppFixture {
   mkdirSync(resources, { recursive: true })
   const infoPlist = join(contents, 'Info.plist')
   const executable = join(macos, 'Nonead DSH Desktop')
-  const appAsar = join(resources, 'app.asar')
+  const appAsar = join(resources, 'app', 'package.json')
   const modeOverrides = new Map<string, number>()
   writeFileSync(infoPlist, '<?xml version="1.0" encoding="UTF-8"?>')
   writeFileSync(executable, 'binary')
   chmodSync(executable, 0o755)
   modeOverrides.set(executable, 0o755)
-  writeFileSync(appAsar, 'packed')
+  mkdirSync(join(resources, 'app', 'lib'), { recursive: true })
+  writeFileSync(join(resources, 'app', 'lib', 'main.js'), 'main')
+  writeFileSync(appAsar, '{}')
   for (const entry of MACOS_UNIVERSAL_NATIVE_ENTRIES) {
-    const path = join(`${appAsar}.unpacked`, entry.path)
+    const path = join(join(appAsar, '..'), entry.path)
     mkdirSync(join(path, '..'), { recursive: true })
     writeFileSync(path, 'native')
     if (entry.path.endsWith('/spawn-helper')) {
@@ -56,9 +58,7 @@ function options(
   const value: MacSmokeVerificationOptions = {
     distDir: '/release/dist',
     productName: 'Nonead DSH Desktop',
-    // Must match the version named by the injected DMG fixture below.
-    version: '2.0.1',
-    listDmgs: () => ['/release/dist/Nonead-DSH-Desktop-Beta-2.0.1.dmg'],
+    listDmgs: () => ['/release/dist/Nonead DSH Desktop-2.0.1.dmg'],
     makeMountPoint: () => '/private/tmp/dsh-desktop-dmg-smoke-test',
     run: (command, args) => { calls.push({ command, args: [...args] }) },
     removeMountPoint,
@@ -104,14 +104,14 @@ describe('macOS DMG smoke artifact verification', () => {
 
     expect(verifyMacSmoke(harness.value)).toEqual({
       appPath,
-      dmgPath: '/release/dist/Nonead-DSH-Desktop-Beta-2.0.1.dmg',
+      dmgPath: '/release/dist/Nonead DSH Desktop-2.0.1.dmg',
     })
 
     expect(harness.calls).toEqual([
       {
         command: 'hdiutil',
         args: [
-          'attach', '/release/dist/Nonead-DSH-Desktop-Beta-2.0.1.dmg',
+          'attach', '/release/dist/Nonead DSH Desktop-2.0.1.dmg',
           '-mountpoint', value.root, '-nobrowse', '-readonly',
         ],
       },
@@ -123,21 +123,26 @@ describe('macOS DMG smoke artifact verification', () => {
       { command: 'lipo', args: [value.executable, '-verify_arch', 'arm64'] },
       ...MACOS_UNIVERSAL_NATIVE_ENTRIES.map(entry => ({
         command: 'lipo',
-        args: [join(`${value.appAsar}.unpacked`, entry.path), '-verify_arch', entry.arch],
+        args: [join(join(value.appAsar, '..'), entry.path), '-verify_arch', entry.arch],
       })),
       { command: 'hdiutil', args: ['detach', value.root] },
     ])
     expect(harness.removeMountPoint).toHaveBeenCalledWith(value.root)
   })
 
-  it('rejects a DMG whose name does not carry the packaged version', () => {
-    // A wrong `${version}` in `mac.artifactName` must fail here, not pass on
-    // "exactly one DMG exists".
-    const harness = options({ listDmgs: () => ['/release/dist/Nonead-DSH-Desktop-Beta-1.5.4.dmg'] })
+  it('checks only the packaged slice of a single-architecture smoke', () => {
+    const value = fixture()
+    const harness = options(
+      { makeMountPoint: () => value.root, executableSlices: ['arm64'] },
+      value.modeOverrides,
+    )
 
-    expect(() => verifyMacSmoke(harness.value)).toThrow('does not name the packaged version 2.0.1')
-    expect(harness.calls).toEqual([])
-    expect(harness.removeMountPoint).not.toHaveBeenCalled()
+    verifyMacSmoke(harness.value)
+
+    const executableChecks = harness.calls
+      .filter(call => call.command === 'lipo' && call.args[0] === value.executable)
+      .map(call => call.args)
+    expect(executableChecks).toEqual([[value.executable, '-verify_arch', 'arm64']])
   })
 
   it('rejects the mount when no DMG is present', () => {
@@ -157,7 +162,7 @@ describe('macOS DMG smoke artifact verification', () => {
     expect(harness.calls).toEqual([
       {
         command: 'hdiutil',
-        args: ['attach', '/release/dist/Nonead-DSH-Desktop-Beta-2.0.1.dmg', '-mountpoint', value.root, '-nobrowse', '-readonly'],
+        args: ['attach', '/release/dist/Nonead DSH Desktop-2.0.1.dmg', '-mountpoint', value.root, '-nobrowse', '-readonly'],
       },
       { command: 'hdiutil', args: ['detach', value.root] },
     ])
@@ -183,12 +188,12 @@ describe('macOS DMG smoke artifact verification', () => {
     expect(harness.removeMountPoint).toHaveBeenCalledWith(value.root)
   })
 
-  it('rejects a missing or empty application archive', () => {
+  it('rejects a missing or empty application manifest', () => {
     const value = fixture()
     rmSync(value.appAsar)
     const harness = options({ makeMountPoint: () => value.root }, value.modeOverrides)
 
-    expectSmokeFailure(harness, 'app.asar')
+    expectSmokeFailure(harness, 'package.json')
     expect(harness.removeMountPoint).toHaveBeenCalledWith(value.root)
   })
 })

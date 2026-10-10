@@ -6,7 +6,7 @@
 // 本插件的 15 个工具在参数里用了 `minimum` / `maximum` / `exclusiveMinimum`，于是
 // **整个工具注册失败**，日志只留一行 warning：
 //   universal-robots: 注册 ur_movej 失败：unsupported JSON schema: parameters.a.minimum is not supported by the value schema DSL
-// 而收尾那行 `已注册 49 个` 是硬编码 tools.length，会在工具实际缺失时**说谎**——
+// 而收尾那行 `已注册 53 个` 是硬编码 tools.length，会在工具实际缺失时**说谎**——
 // 所以"日志看起来正常"骗过了所有既有检查，直到用户发现工具不见了/插件起不来。
 //
 // 本测试直接驱动真实的 `apply()`、捕获真实注册的 tool 定义并静态校验 schema，
@@ -23,6 +23,17 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { registerHooks } from 'node:module'
+import { readFileSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
+
+/** 工具表规模（0.5.0：53 → 67；0.6.0 按三本官方手册补齐后：67 → 83）。
+ *  改动工具表时**必须**同步这个数与 check-host-compat.mjs。 */
+const EXPECTED_TOOLS = 83
+const pythonDir = fileURLToPath(new URL('../python/', import.meta.url))
+const workerSource = readFileSync(join(pythonDir, 'ur_worker.py'), 'utf8').replace(/\r\n/g, '\n')
+const indexSource = readFileSync(fileURLToPath(new URL('../lib/index.js', import.meta.url)), 'utf8')
 
 /** DSL 允许的作者关键字（见文件头）。 */
 const ANNOTATION_KEYS = ['description', 'title', 'default', 'examples']
@@ -171,18 +182,26 @@ function missingDescriptions(schema, path, out, isMap = false) {
   return out
 }
 
-test('全部 49 个 ur_* 工具都成功注册（不得静默丢工具）', async () => {
+test('全部 67 个 ur_* 工具都成功注册（不得静默丢工具）', async () => {
   const { registered } = await collectTools()
   const names = registered.map((t) => t.name).sort()
   assert.equal(
     registered.length,
-    49,
-    `期望注册 49 个工具，实际 ${registered.length} 个。注册失败的工具只会在日志留 warning，` +
+    EXPECTED_TOOLS,
+    `期望注册 ${EXPECTED_TOOLS} 个工具，实际 ${registered.length} 个。注册失败的工具只会在日志留 warning，` +
       `而收尾日志的计数是硬编码的、会说谎。已注册：${names.join(', ')}`,
   )
-  for (const required of ['ur_connect', 'ur_movej', 'ur_movel', 'ur_draw_circle', 'ur_get_int_register', 'ur_servoj']) {
+  for (const required of [
+    'ur_connect', 'ur_movej', 'ur_movel', 'ur_draw_circle', 'ur_get_int_register', 'ur_servoj',
+    // 0.5.0 新增能力
+    'ur_set_freedrive', 'ur_set_teach_mode', 'ur_power_on', 'ur_power_off', 'ur_brake_release',
+    'ur_unlock_protective_stop', 'ur_shutdown', 'ur_get_runtime_telemetry', 'ur_get_speed_scaling',
+    'ur_get_tcp_force', 'ur_set_gravity', 'ur_zero_ftsensor', 'ur_get_tool_analog_in',
+    'ur_set_conveyor_tracking',
+  ]) {
     assert.ok(names.includes(required), `缺少关键工具 ${required}`)
   }
+  assert.equal(new Set(names).size, names.length, '工具名不得重复（重名会让后者静默覆盖前者）')
 })
 
 test('每个工具的参数 schema 只使用 DSL 支持的关键字（DSH 1.5.3 起）', async () => {
@@ -212,11 +231,11 @@ test('每个参数字段都有 description（DSL 不再校验取值，描述是�
 })
 
 test('上报的注册数量必须是真实值（硬编码计数会在工具缺失时说谎）', async () => {
-  // 成功路径：如实报告 49/49
+  // 成功路径：如实报告 N/N
   const ok = await collectTools()
   assert.ok(
-    ok.infos.some((line) => line.includes('已注册 49/49')),
-    `成功路径应如实报告 49/49，实际 info：${ok.infos.join(' | ') || '(none)'}`,
+    ok.infos.some((line) => line.includes(`已注册 ${EXPECTED_TOOLS}/${EXPECTED_TOOLS}`)),
+    `成功路径应如实报告 ${EXPECTED_TOOLS}/${EXPECTED_TOOLS}，实际 info：${ok.infos.join(' | ') || '(none)'}`,
   )
 
   // 失败路径：只报告真实成功数，并列出失败原因（v0.3.9 事故的回归测试）
@@ -228,7 +247,8 @@ test('上报的注册数量必须是真实值（硬编码计数会在工具缺�
     },
   })
   const summary = warnings.join('\n')
-  assert.match(summary, /只注册了 48\/49/, `失败路径必须报告真实成功数，实际：${summary || '(none)'}`)
+  assert.match(summary, new RegExp(`只注册了 ${EXPECTED_TOOLS - 1}/${EXPECTED_TOOLS}`),
+    `失败路径必须报告真实成功数，实际：${summary || '(none)'}`)
   assert.match(summary, /boom/, '失败原因必须出现在告警里')
   assert.doesNotMatch(infos.join('\n'), /已注册/, '存在失败时不得打印成功计数')
 })
@@ -253,4 +273,72 @@ test('自检：本测试确实能抓到不受支持的关键字（防止测试�
 
   const badNested = { q: { type: 'array', items: { type: 'number', maximum: 1, description: 'y' }, description: 'z' } }
   assert.deepEqual(checkNode(badNested, 'demo.parameters', [], { isMap: true }), ['demo.parameters.q[].maximum'])
+})
+
+/* ------------------------------------------------------------------ *
+ * 跨语言契约：host 侧的 op 名必须在 Python 里真实存在
+ * ------------------------------------------------------------------ */
+
+/** 静态抽出 lib/index.js 里 { op, toolName } 的配对。 */
+function toolOps() {
+  const pairs = []
+  const re = /\{\s*op:\s*'([a-z_0-9]+)',\s*\n\s*toolName:\s*'([a-zA-Z_0-9]+)'/g
+  let m
+  while ((m = re.exec(indexSource)) !== null) pairs.push({ op: m[1], toolName: m[2] })
+  return pairs
+}
+
+/** 通过真实 Python 读出 HANDLERS 的 op 名（不靠正则猜 Python 语法）。 */
+function pythonHandlerNames() {
+  const probe = 'import json,sys;sys.path.insert(0,"%s");import ur_worker;'
+    + 'sys.stderr.write(json.dumps(sorted(ur_worker.HANDLERS.keys()))+"\\n")'
+  const r = spawnSync(process.env.PYTHON ?? 'python', ['-u', '-c', probe.replace('%s', pythonDir.replace(/\\/g, '/'))], {
+    encoding: 'utf8',
+    env: { ...process.env, PYTHONUNBUFFERED: '1' },
+  })
+  assert.equal(r.status, 0, `读取 HANDLERS 失败：${r.stderr}`)
+  const line = (r.stderr ?? '').split('\n').map((l) => l.trim()).find((l) => l.startsWith('['))
+  assert.ok(line, `未拿到 HANDLERS 列表：${JSON.stringify(r.stderr)}`)
+  return JSON.parse(line)
+}
+
+test('每个 ur_* 工具背后的 op 必须在 Python HANDLERS 里真实存在（跨语言契约）', () => {
+  const pairs = toolOps()
+  assert.ok(pairs.length >= EXPECTED_TOOLS,
+    `静态抽到的 {op, toolName} 只有 ${pairs.length} 条，少于工具数 ${EXPECTED_TOOLS} —— 抽取规则与源码格式脱节了`)
+
+  const handlers = new Set(pythonHandlerNames())
+  const missing = pairs.filter((p) => !handlers.has(p.op))
+  assert.deepEqual(
+    missing.map((p) => `${p.toolName} → op '${p.op}'`),
+    [],
+    'host 注册了工具，但 Python 侧没有对应的 op —— 调用时只会得到一句「未知操作」。',
+  )
+})
+
+test('op 名与控制器的 dashboard 命令**不得同名**（曾经撞名让优雅关闭静默失效）', () => {
+  // 回归门禁：0.5.0 新增的"关闭控制器"用了 op 名 `shutdown`，而 host 的优雅关闭也叫
+  // `shutdown` ⇒ 后者被解析成前者，于是既报 KeyError: 'ip'，又永远不会真的退出 worker
+  // （worker.js 的优雅关闭只能靠超时收场，而它存在的意义正是"别用 kill 打断 RTDE 会话"）。
+  assert.match(workerSource, /"shutdown_worker": op_shutdown_worker/,
+    '优雅关闭必须用一个不会与 dashboard 命令撞名的 op 名（shutdown_worker）')
+  assert.match(workerSource, /"shutdown": op_shutdown,/, '关闭控制器的 op 仍是 shutdown')
+
+  // worker.js 必须调用那个不撞名的 op。
+  const workerSourceJs = readFileSync(fileURLToPath(new URL('../lib/worker.js', import.meta.url)), 'utf8')
+  assert.match(workerSourceJs, /this\.call\('shutdown_worker'/,
+    "worker.js 的 shutdown() 必须调用 'shutdown_worker'，否则优雅关闭永远超时")
+})
+
+test('每个 op 最多被一个工具使用，且工具名不得重复（重名会让后者静默覆盖前者）', () => {
+  const pairs = toolOps()
+  const byOp = new Map()
+  for (const p of pairs) {
+    byOp.set(p.op, (byOp.get(p.op) ?? 0) + 1)
+  }
+  const dupOps = [...byOp.entries()].filter(([, n]) => n > 1).map(([op]) => op)
+  assert.deepEqual(dupOps, [], `同一个 op 被多个工具使用会让审计/审批语义混乱：${dupOps.join(', ')}`)
+
+  const names = pairs.map((p) => p.toolName)
+  assert.equal(new Set(names).size, names.length, '工具名必须唯一')
 })
