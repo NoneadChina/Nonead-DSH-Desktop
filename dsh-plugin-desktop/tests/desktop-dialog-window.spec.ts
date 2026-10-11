@@ -229,4 +229,72 @@ describe('DesktopDialogWindow', () => {
     electron.windows[0]?.listeners.get('closed')?.()
     await expect(result).resolves.toEqual({ response: 1 })
   })
+
+  it('presents a loaded dialog even when ready-to-show never arrives', async () => {
+    const report = vi.fn()
+    const result = new DesktopDialogWindow({
+      title: 'Check for Updates',
+      message: 'Nonead DSH Desktop is up to date.',
+      buttons: ['OK'],
+      cancelId: 0,
+    }, undefined, report).run()
+    await vi.waitFor(() => { expect(electron.windows).toHaveLength(1) })
+    const window = electron.windows[0]
+    window?.webListeners.get('did-finish-load')?.()
+    // A compositor that never reports ready-to-show must not hide the dialog.
+    await vi.waitFor(() => { expect(window?.show).toHaveBeenCalledOnce() })
+    expect(report).not.toHaveBeenCalled()
+    window?.webListeners.get('will-navigate')?.(
+      { preventDefault: vi.fn() },
+      'dsh-desktop-dialog://response?id=0',
+    )
+    await expect(result).resolves.toEqual({ response: 0 })
+  })
+
+  it('cancels and reports a dialog whose document never loads', async () => {
+    vi.useFakeTimers()
+    try {
+      const report = vi.fn()
+      const result = new DesktopDialogWindow({
+        title: 'Unable to Check for Updates',
+        message: 'Could not retrieve update information.',
+        buttons: ['OK'],
+        cancelId: 0,
+      }, undefined, report).run()
+      const window = electron.windows[0]
+      expect(window).toBeDefined()
+      // Mirrors DIALOG_PRESENT_TIMEOUT_MS: an unloadable dialog must still settle.
+      await vi.advanceTimersByTimeAsync(10_000)
+      await expect(result).resolves.toEqual({ response: 0 })
+      expect(report).toHaveBeenCalledWith(expect.stringContaining('did not finish loading'))
+      expect(window?.destroy).toHaveBeenCalledOnce()
+      expect(window?.show).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('cancels and reports a dialog that never becomes visible', async () => {
+    vi.useFakeTimers()
+    try {
+      const report = vi.fn()
+      const result = new DesktopDialogWindow({
+        title: 'Never Visible',
+        message: 'The window cannot present itself.',
+        buttons: ['OK'],
+        cancelId: 0,
+      }, undefined, report).run()
+      const window = electron.windows[0]
+      Object.assign(window as object, { isVisible: vi.fn(() => false) })
+      window?.webListeners.get('did-finish-load')?.()
+      await vi.advanceTimersByTimeAsync(10_000)
+      expect(window?.show).toHaveBeenCalledOnce()
+      // Mirrors DIALOG_VISIBLE_GRACE_MS before the dialog is abandoned.
+      await vi.advanceTimersByTimeAsync(5_000)
+      await expect(result).resolves.toEqual({ response: 0 })
+      expect(report).toHaveBeenCalledWith(expect.stringContaining('never became visible'))
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })

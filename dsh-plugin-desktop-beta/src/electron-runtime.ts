@@ -808,9 +808,12 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
   }
 
   private async showDesktopMessageBox(options: Electron.MessageBoxOptions): Promise<Electron.MessageBoxReturnValue> {
+    // A dialog that cannot present itself must leave a trace: it otherwise
+    // reaches the operator as an interactive flow that silently never finishes.
+    const report = (message: string): void => { this.logError(message) }
     return this.generation === undefined
-      ? await showDesktopMessageBox(options)
-      : await this.generation.showMessageBox(options)
+      ? await showDesktopMessageBox(options, undefined, report)
+      : await this.generation.showMessageBox(options, report)
   }
 
   private async showUpdateSaveDialog(options: Electron.SaveDialogOptions): Promise<Electron.SaveDialogReturnValue> {

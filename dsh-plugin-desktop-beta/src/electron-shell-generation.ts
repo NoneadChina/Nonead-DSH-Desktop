@@ -906,11 +906,14 @@ export class ElectronShellGeneration {
       : await dialog.showOpenDialog(window, options)
   }
 
-  async showMessageBox(options: Electron.MessageBoxOptions): Promise<Electron.MessageBoxReturnValue> {
+  async showMessageBox(
+    options: Electron.MessageBoxOptions,
+    report?: (message: string) => void,
+  ): Promise<Electron.MessageBoxReturnValue> {
     const window = this.window
     return window === undefined || window.isDestroyed()
-      ? await showDesktopMessageBox(options)
-      : await showDesktopMessageBox(options, window)
+      ? await showDesktopMessageBox(options, undefined, report)
+      : await showDesktopMessageBox(options, window, report)
   }
 
   async showSaveDialog(options: Electron.SaveDialogOptions): Promise<Electron.SaveDialogReturnValue> {
