@@ -34,6 +34,7 @@ import type {
   DesktopTrayItemGroup,
   DesktopTrayItemRegistration,
   DesktopUpdateAdapter,
+  DesktopUpdateCheckRegistration,
 } from './runtime.ts'
 import type { RendererBootReport } from './renderer-boot-contract.ts'
 import {
@@ -190,6 +191,7 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
   private mountTask: Promise<void> | undefined
   private quitting = false
   private readonly trayItems = new Map<symbol, DesktopTrayItem>()
+  private updateCheck: (() => Promise<void>) | undefined
   private terminalSpec: DesktopTerminalSpec | undefined
   private diagnosticExport: Promise<void> | undefined
   private readonly workspaceAdmission: ElectronWorkspaceAdmission
@@ -360,8 +362,19 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
           developerTools: () => { this.toggleDeveloperTools() },
           exportDiagnostics: () => this.exportDiagnostics(),
           checkForUpdates: async () => {
+            // The Host-registered check is the primary surface: it reaches the
+            // same interactive flow without depending on a tray command, which a
+            // desktop without a status area never exposes to the operator.
+            const registered = this.updateCheck
+            if (registered !== undefined) {
+              await registered()
+              return
+            }
             const command = [...this.trayItems.values()].find(item => item.id === 'check-for-updates')
-            if (command === undefined || command.enabled?.() === false) throw new Error('Desktop update check is unavailable')
+            if (command === undefined || command.enabled?.() === false) {
+              this.logError('dsh-plugin-desktop: no update check is available; the desktop-updates plugin did not register one')
+              throw new Error('Desktop update check is unavailable')
+            }
             await command.invoke()
           },
         },
@@ -479,6 +492,19 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
         this.trayItems.delete(key)
         this.rebuildTrayMenu()
         this.rebuildApplicationMenu()
+      },
+    }
+  }
+
+  /** @inheritdoc */
+  registerUpdateCheck(check: () => Promise<void>): DesktopUpdateCheckRegistration {
+    this.updateCheck = check
+    let active = true
+    return {
+      dispose: () => {
+        if (!active) return
+        active = false
+        if (this.updateCheck === check) this.updateCheck = undefined
       },
     }
   }
@@ -782,9 +808,12 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
   }
 
   private async showDesktopMessageBox(options: Electron.MessageBoxOptions): Promise<Electron.MessageBoxReturnValue> {
+    // A dialog that cannot present itself must leave a trace: it otherwise
+    // reaches the operator as an interactive flow that silently never finishes.
+    const report = (message: string): void => { this.logError(message) }
     return this.generation === undefined
-      ? await showDesktopMessageBox(options)
-      : await this.generation.showMessageBox(options)
+      ? await showDesktopMessageBox(options, undefined, report)
+      : await this.generation.showMessageBox(options, report)
   }
 
   private async showUpdateSaveDialog(options: Electron.SaveDialogOptions): Promise<Electron.SaveDialogReturnValue> {

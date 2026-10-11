@@ -19,7 +19,7 @@ it.each(['zh', undefined] as const)('synchronizes tray language at boot and on c
   const native = {
     platform: 'win32', get locale() { return nativeLocale },
     setLocalePreference: (preference: DesktopLocale | undefined) => { nativeLocale = preference ?? 'zh' },
-    updates: { isPackaged: true, canDownload: true, currentVersion: '2.0.7-beta.1', statePath: '/tmp/update',
+    updates: { isPackaged: true, canDownload: true, currentVersion: '2.0.8-beta.1', statePath: '/tmp/update',
       request: vi.fn(async () => new Response('{"version":"2.0.8-beta.1"}', { headers: { 'x-test': 'yes' } })),
     },
     schedule: (value: DesktopShellSpec) => { shell = value; return disposeShell },
@@ -79,5 +79,36 @@ it.each(['zh', undefined] as const)('synchronizes tray language at boot and on c
     expect(await response.json()).toEqual({ version: '2.0.8-beta.1' })
     await stopShell()
     expect(disposeShell).toHaveBeenCalledOnce()
+  } finally { await release(); parent.close(); child.close(); port1.close(); port2.close() }
+})
+
+it('runs the Host-owned update check without a tray command', async () => {
+  const { port1, port2 } = new MessageChannel()
+  const [parent, child] = [port1, port2].map(port => new HostRpc({
+    send: value => port.postMessage(value),
+    listen: receive => { port.on('message', receive); return () => { port.off('message', receive) } },
+  })) as [HostRpc, HostRpc]
+  let registered: (() => Promise<void>) | undefined
+  const disposeCheck = vi.fn()
+  const native = {
+    platform: 'win32', locale: 'en',
+    updates: { isPackaged: true, canDownload: true, currentVersion: '2.0.8', statePath: '/tmp/update',
+      request: vi.fn(async () => new Response('{}')) },
+    registerUpdateCheck: (check: () => Promise<void>) => { registered = check; return { dispose: disposeCheck } },
+  } as unknown as DesktopRuntime
+  const release = bindNativeRuntime(parent, native)
+  try {
+    const runtime = createHostRuntime(child, runtimeSnapshot(native))
+    const check = vi.fn(async () => {})
+    const registration = runtime.registerUpdateCheck?.(check)
+    expect(registration).toBeDefined()
+    await runtime.mountScheduled()
+    expect(registered).toBeTypeOf('function')
+    await registered?.()
+    expect(check).toHaveBeenCalledOnce()
+    registration?.dispose()
+    await vi.waitFor(() => { expect(disposeCheck).toHaveBeenCalledOnce() })
+    // The released Host handler is gone: a stale native command cannot re-enter it.
+    await expect(registered?.()).rejects.toThrow(/Unknown Host operation/u)
   } finally { await release(); parent.close(); child.close(); port1.close(); port2.close() }
 })

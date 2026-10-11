@@ -20,6 +20,16 @@ const DIAGNOSTIC_DIALOG_INITIAL_HEIGHT = 460
 /** Electron omits the 2rem shadcn action row from the reported preferred height. */
 const DIALOG_PREFERRED_HEIGHT_OFFSET = 32
 const DIALOG_REVEAL_FALLBACK_MS = 250
+/**
+ * A hidden window revealed later does not reliably emit `ready-to-show`: a
+ * compositor that never paints the hidden surface withholds the event, and the
+ * dialog then waits invisibly for a click that cannot happen. Present the dialog
+ * from its loaded document instead, and treat one that neither loads nor
+ * presents as cancelled so no caller can wait forever.
+ */
+const DIALOG_PRESENT_TIMEOUT_MS = 10_000
+/** Second verdict when a forced reveal still reports an invisible window. */
+const DIALOG_VISIBLE_GRACE_MS = 5_000
 
 /** Windows and the content-sized compatibility notice already include the action row. */
 export function desktopDialogPreferredHeight(
@@ -76,6 +86,8 @@ export class DesktopDialogWindow {
   constructor(
     private readonly options: DesktopDialogOptions,
     private readonly parent?: BrowserWindow,
+    /** Diagnostics sink for a dialog that cannot present itself. */
+    private readonly report: (message: string) => void = () => {},
   ) {}
 
   async run(): Promise<DesktopDialogResult> {
@@ -127,14 +139,26 @@ export class DesktopDialogWindow {
     return await new Promise<DesktopDialogResult>((resolve, reject) => {
       let settled = false
       let documentLoaded = false
-      let paintReady = false
       let layoutReady = false
       let revealed = false
       let preferredHeight: number | undefined
       let appliedHeight: number | undefined
       let revealTimer: ReturnType<typeof setTimeout> | undefined
+      let presentTimer: ReturnType<typeof setTimeout> | undefined
+      let visibilityTimer: ReturnType<typeof setTimeout> | undefined
+      const clearTimers = (): void => {
+        if (revealTimer !== undefined) clearTimeout(revealTimer)
+        if (presentTimer !== undefined) clearTimeout(presentTimer)
+        if (visibilityTimer !== undefined) clearTimeout(visibilityTimer)
+        revealTimer = undefined
+        presentTimer = undefined
+        visibilityTimer = undefined
+      }
       const reveal = (): void => {
-        if (revealed || !documentLoaded || !paintReady || window.isDestroyed()) return
+        // A loaded document is enough to present this dialog: `ready-to-show`
+        // only makes the reveal earlier, and a compositor that withholds it must
+        // not leave the operator with an invisible window.
+        if (revealed || !documentLoaded || window.isDestroyed()) return
         revealed = true
         if (revealTimer !== undefined) clearTimeout(revealTimer)
         revealTimer = undefined
@@ -143,12 +167,12 @@ export class DesktopDialogWindow {
       const finish = (response: number): void => {
         if (settled) return
         settled = true
-        if (revealTimer !== undefined) clearTimeout(revealTimer)
+        clearTimers()
         if (!window.isDestroyed()) window.destroy()
         resolve(Object.freeze({ response }))
       }
       const scheduleReveal = (): void => {
-        if (!documentLoaded || !paintReady || revealed) return
+        if (!documentLoaded || revealed) return
         if (layoutReady) {
           reveal()
         } else if (revealTimer === undefined) {
@@ -187,11 +211,32 @@ export class DesktopDialogWindow {
         applyPreferredSize()
         scheduleReveal()
       })
-      window.once('ready-to-show', () => {
-        paintReady = true
-        scheduleReveal()
-      })
+      window.once('ready-to-show', scheduleReveal)
       window.on('closed', () => { finish(cancelId) })
+      // A dialog nobody can see must not hold the caller open forever: present
+      // it after the loaded document, then let it go as a cancellation when the
+      // window still refuses to appear.
+      presentTimer = setTimeout(() => {
+        presentTimer = undefined
+        if (settled || window.isDestroyed()) return
+        const label = JSON.stringify(this.options.title)
+        if (!documentLoaded) {
+          this.report(`dsh-plugin-desktop: dialog ${label} did not finish loading its document`)
+          finish(cancelId)
+          return
+        }
+        if (!revealed) {
+          this.report(`dsh-plugin-desktop: dialog ${label} presented without ready-to-show`)
+          reveal()
+        }
+        visibilityTimer ??= setTimeout(() => {
+          visibilityTimer = undefined
+          if (settled || window.isDestroyed()) return
+          if (typeof window.isVisible !== 'function' || window.isVisible()) return
+          this.report(`dsh-plugin-desktop: dialog ${label} never became visible`)
+          finish(cancelId)
+        }, DIALOG_VISIBLE_GRACE_MS)
+      }, DIALOG_PRESENT_TIMEOUT_MS)
       void window.loadFile(DIALOG_DOCUMENT, {
         query: {
           state,
@@ -201,7 +246,7 @@ export class DesktopDialogWindow {
       }).catch((cause: unknown) => {
         if (settled) return
         settled = true
-        if (revealTimer !== undefined) clearTimeout(revealTimer)
+        clearTimers()
         if (!window.isDestroyed()) window.destroy()
         reject(cause)
       })
@@ -213,14 +258,16 @@ export class DesktopDialogWindow {
 export async function showDesktopDialog(
   options: DesktopDialogOptions,
   parent?: BrowserWindow,
+  report?: (message: string) => void,
 ): Promise<DesktopDialogResult> {
-  return await new DesktopDialogWindow(options, parent).run()
+  return await new DesktopDialogWindow(options, parent, report).run()
 }
 
 /** Electron MessageBox-compatible adapter backed by the Desktop dialog window. */
 export async function showDesktopMessageBox(
   options: MessageBoxOptions,
   parent?: BrowserWindow,
+  report?: (message: string) => void,
 ): Promise<MessageBoxReturnValue> {
   const result = await showDesktopDialog({
     type: options.type ?? 'none',
@@ -230,6 +277,6 @@ export async function showDesktopMessageBox(
     buttons: options.buttons ?? ['OK'],
     ...(options.defaultId === undefined ? {} : { defaultId: options.defaultId }),
     ...(options.cancelId === undefined ? {} : { cancelId: options.cancelId }),
-  }, parent)
+  }, parent, report)
   return Object.freeze({ response: result.response, checkboxChecked: false })
 }

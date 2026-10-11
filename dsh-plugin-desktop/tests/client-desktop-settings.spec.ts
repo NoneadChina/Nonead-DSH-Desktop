@@ -481,6 +481,28 @@ describe('Desktop settings API', () => {
     expect(fetcher).not.toHaveBeenCalled()
   })
 
+  it('falls back to the loopback update route when the bridge refuses the manual check', async () => {
+    const fetcher = vi.fn(async () => json({ accepted: true }))
+    const api = createDesktopSettingsApi(fetcher, {
+      invoke: async action => {
+        if (action === 'check-for-updates') throw new Error('Desktop update check is unavailable')
+      },
+    })
+
+    await expect(api.checkForUpdates()).resolves.toBeUndefined()
+    expect(fetcher).toHaveBeenCalledExactlyOnceWith(desktopSettingsPaths.updateCheck, expect.anything())
+  })
+
+  it('keeps the bridge failure when the loopback update route is unavailable too', async () => {
+    const fetcher = vi.fn(async () => json({ accepted: true }, 403))
+    const api = createDesktopSettingsApi(fetcher, {
+      invoke: async () => { throw new Error('Desktop update check is unavailable') },
+    })
+
+    await expect(api.checkForUpdates()).rejects.toThrow('Desktop update check is unavailable')
+    expect(fetcher).toHaveBeenCalledExactlyOnceWith(desktopSettingsPaths.updateCheck, expect.anything())
+  })
+
   it('detects only a usable preload bridge', () => {
     const bridge = { invoke: async () => {} }
     expect(desktopRendererActionsBridge({ [DESKTOP_RENDERER_ACTIONS_BRIDGE]: bridge })).toBe(bridge)
