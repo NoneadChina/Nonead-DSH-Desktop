@@ -72,6 +72,26 @@ Var pid
 ; recorded under this appId's install registry key, so an orphaned shortcut has
 ; to go here.
 !macro customInstall
+  ; Every place the shell can resolve this appId from has to be covered, not just
+  ; the two the rename was noticed in. A taskbar-pinned shortcut is the worst of
+  ; them: the pin stores the icon the window had when it was pinned, so a leftover
+  ; pin keeps showing the pre-rename blank button however correct the window icon
+  ; is today, and neither reinstalling nor upgrading ever rewrites it.
   Delete "$SMPROGRAMS\DSH Desktop Beta.lnk"
+  ; NSIS has no $COMMONPROGRAMS: the machine-wide start menu is this same
+  ; $SMPROGRAMS variable read under the "all" shell variable context. Restore the
+  ; installer's own mode right after, so nothing downstream sees our switch.
+  SetShellVarContext all
+  Delete "$SMPROGRAMS\DSH Desktop Beta.lnk"
+  ${if} $installMode == "all"
+    SetShellVarContext all
+  ${else}
+    SetShellVarContext current
+  ${endif}
   Delete "$DESKTOP\DSH Desktop Beta.lnk"
+  Delete "$APPDATA\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\DSH Desktop Beta.lnk"
+  ; addDesktopLink raises this only when it actually creates a desktop shortcut,
+  ; which the assisted installer lets the user decline. Raise it unconditionally
+  ; so the shell rebuilds its icon cache on every install.
+  System::Call 'Shell32::SHChangeNotify(i 0x8000000, i 0, i 0, i 0)'
 !macroend

@@ -43,7 +43,14 @@ describe('Windows NSIS running-app handoff', () => {
     // so it has to be deleted or the running app shows a blank taskbar icon.
     expect(script).toContain('!macro customInstall')
     expect(script).toContain('Delete "$SMPROGRAMS\\DSH Desktop Beta.lnk"')
+    expect(script).toContain('SetShellVarContext all')
+    expect(script).toContain('SetShellVarContext current')
+    expect(script).toContain('${if} $installMode == "all"')
     expect(script).toContain('Delete "$DESKTOP\\DSH Desktop Beta.lnk"')
+    expect(script).toContain(
+      'Delete "$APPDATA\\Microsoft\\Internet Explorer\\Quick Launch\\User Pinned\\TaskBar\\DSH Desktop Beta.lnk"',
+    )
+    expect(script).toContain("System::Call 'Shell32::SHChangeNotify(i 0x8000000, i 0, i 0, i 0)'")
     expect(script).not.toContain('Nonead DSH Desktop Beta.lnk')
   })
 })
