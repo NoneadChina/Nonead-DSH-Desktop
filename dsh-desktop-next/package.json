@@ -1,6 +1,6 @@
 {
   "name": "dsh-desktop-next",
-  "version": "2.0.7-next",
+  "version": "2.0.8-next",
   "private": true,
   "description": "Experimental upstream-inspired Nonead DSH Desktop with Profiles, recovery, remote control and Community Market",
   "license": "MIT",
@@ -198,7 +198,7 @@
     "@deepseek-ai/schemastery": "^3.18.4",
     "dsh-community-market": "0.1.0-dev.0",
     "dsh-nonead-client-skin": "0.1.1-rc.2",
-    "dshmarket": "1.66.14",
+    "dshmarket": "1.66.15",
     "mdast-util-from-markdown": "^2.0.3",
     "mdast-util-gfm": "^3.1.0",
     "mdast-util-to-string": "^4.0.0",
