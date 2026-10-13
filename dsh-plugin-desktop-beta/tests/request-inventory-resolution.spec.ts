@@ -21,12 +21,12 @@ it('prepares request inventory for Desktop-owned entries and private-manifest pl
       const baseUrl = pathToFileURL(join(root, 'package.json')).href;
       const collect = async names => {
         let provider;
-        const tree = { ctx: { baseUrl }, entries: () => names.map(name => ({
+        const tree = { ctx: { baseUrl, logger: { warn() {} } }, entries: () => names.map(name => ({
           options: { name }, fiber: { state: 2 }, parent: { tree }
         })) };
         // 0.1.6 asks the Host for the active package index. A standalone
         // Profile has none, which keeps the upstream filesystem lookup.
-        apply({ baseUrl, get: () => undefined, loader: tree,
+        apply({ baseUrl, logger: { warn() {} }, get: () => undefined, loader: tree,
           deepseekLlmApiExtensions: {
           register: (key, value) => { assert.equal(key, 'dsh_plugin_packages'); provider = value; }
         } }, {});
