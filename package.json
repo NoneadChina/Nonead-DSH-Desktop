@@ -18,8 +18,6 @@
   "resolutions": {
     "@agents-anywhere/dsh-bridge-next": "patch:@agents-anywhere/dsh-bridge-next@file%3Avendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c0cf7f57dc5bc.r81045e58.tgz#./patches/agents-anywhere-connector-httpx.patch",
     "app-builder-lib@npm:26.15.7": "patch:app-builder-lib@npm%3A26.15.7#./patches/app-builder-lib@26.15.7.patch",
-    "open@npm:11.0.1": "patch:open@npm%3A11.0.1#./patches/open@11.0.1.patch",
-    "open@npm:^11.0.0": "patch:open@npm%3A11.0.1#./patches/open@11.0.1.patch",
     "fs-ext@npm:2.1.1": "patch:fs-ext@npm%3A2.1.1#./patches/fs-ext@2.1.1.patch",
     "pnpm@npm:11.8.0": "patch:pnpm@npm%3A11.8.0#./patches/pnpm@11.8.0.patch",
     "koffi@npm:^3.1.0": "3.1.5",
@@ -693,7 +691,10 @@
     "@deepseek-ai/cordis": "~4.0.5-alpha.1",
     "@deepseek-ai/cordis-plugin-group": "~1.0.5-alpha.1",
     "@deepseek-ai/cordis-plugin-include": "~1.0.10-alpha.1",
-    "@deepseek-ai/cordis-plugin-loader": "~1.0.6-alpha.1"
+    "@deepseek-ai/cordis-plugin-loader": "~1.0.6-alpha.1",
+    "open@npm:^11.0.0": "patch:open@npm%3A11.0.4#~/.yarn/patches/open-npm-11.0.4-83ea1c2e5d.patch",
+    "open@npm:^8.4.2": "patch:open@npm%3A11.0.4#~/.yarn/patches/open-npm-11.0.4-83ea1c2e5d.patch",
+    "open@npm:^11.0.2": "patch:open@npm%3A11.0.4#~/.yarn/patches/open-npm-11.0.4-83ea1c2e5d.patch"
   },
   "dependenciesMeta": {
     "@deepseek-ai/dsh-subprocess-local": {

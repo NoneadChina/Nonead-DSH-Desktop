@@ -333,12 +333,13 @@ describe('published package surface', () => {
 
   it('keeps the canonical web profile configurable while Desktop disables browser opening', () => {
     const patchPath = `./patches/dsh-web-app@${runtimeVersion}.patch`
-    const openPatchPath = './patches/open@11.0.1.patch'
-    const openPatchResolution = `patch:open@npm%3A11.0.1#${openPatchPath}`
+    const openPatchPath = '.yarn/patches/open-npm-11.0.4-83ea1c2e5d.patch'
+    const openPatchResolution = `patch:open@npm%3A11.0.4#~/${openPatchPath}`
     expect(dshResolution('@deepseek-ai/dsh-web-app')).toContain(patchPath)
     expect(workspaceManifest.resolutions).toMatchObject({
-      'open@npm:11.0.1': openPatchResolution,
       'open@npm:^11.0.0': openPatchResolution,
+      'open@npm:^11.0.2': openPatchResolution,
+      'open@npm:^8.4.2': openPatchResolution,
     })
     const patch = readFileSync(new URL(patchPath, workspaceRoot), 'utf8')
     const openPatch = readFileSync(new URL(openPatchPath, workspaceRoot), 'utf8')
@@ -364,7 +365,7 @@ describe('published package surface', () => {
     expect(installedWebApp).toMatch(
       /function spawnBrowserLauncher\(url\) \{\s+return spawn\(process\.execPath, \[[\s\S]*?\], \{\s+windowsHide: true,\s+env:/u,
     )
-    expect(lockfile).toContain('open@patch:open@npm%3A11.0.1#./patches/open@11.0.1.patch')
+    expect(lockfile).toContain('open@patch:open@npm%3A11.0.4#~/.yarn/patches/open-npm-11.0.4-83ea1c2e5d.patch')
     expect(openPatch).toContain('+\t\t\tchildProcessOptions.windowsHide = true;')
     expect(installedOpen).toMatch(
       /if \(!isWsl\) \{\s+childProcessOptions\.windowsVerbatimArguments = true;\s+childProcessOptions\.windowsHide = true;\s+\}/u,
