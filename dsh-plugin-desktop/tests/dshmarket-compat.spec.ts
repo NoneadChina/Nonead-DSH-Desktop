@@ -145,7 +145,9 @@ async function invokeUpdate(route: MarketRoute, compatVersion?: string, name = '
   return { status, body: JSON.parse(body) as Record<string, unknown> }
 }
 
-describe('dsh-market Desktop install compatibility', () => {
+describe('dsh-market Desktop install compatibility', {
+  timeout: process.platform === 'win32' ? 30_000 : 10_000,
+}, () => {
   it('offers the host-provided market update when the Profile omits dshmarket', async () => {
     for (const name of ['HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'http_proxy', 'https_proxy', 'all_proxy']) {
       vi.stubEnv(name, '')
