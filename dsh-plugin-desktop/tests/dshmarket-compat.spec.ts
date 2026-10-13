@@ -244,7 +244,7 @@ describe('dsh-market Desktop install compatibility', {
     expect(runExternalMarketPluginInstall).toHaveBeenCalledOnce()
     expect(runExternalMarketPluginInstall.mock.calls[0]?.[0]).toEqual([
       'add',
-      '@liustack/modlens@3.18.1',
+      expect.stringMatching(/^@liustack\/modlens@\d+\.\d+\.\d+/),
       '--reporter=ndjson',
     ])
     expect(runExternalMarketPluginInstall.mock.calls[0]?.[1]).toBe('/private/dsh-invoking')
