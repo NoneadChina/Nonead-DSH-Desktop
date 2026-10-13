@@ -333,6 +333,17 @@ describe('dsh-market Desktop install compatibility', {
     const result = await invokeUpdate(route, compatVersion)
     dispose()
 
+    if (compatVersion === undefined) {
+      // 目标版本被归一到内置市场版本，与 installedVersion 相等 => 已是最新，无需安装。
+      expect(result.status).toBe(200)
+      expect(result.body).toMatchObject({ ok: true, skipped: 'current' })
+      expect(runPlugin).not.toHaveBeenCalled()
+      expect(JSON.parse(readFileSync(join(profileDir, 'package.json'), 'utf8'))).toMatchObject({
+        dependencies: {},
+        dsh: { profile: { bundles: ['orphan'] } },
+      })
+      return
+    }
     expect(result.status).toBe(200)
     expect(result.body).toMatchObject({ ok: true })
     expect(runPlugin).toHaveBeenCalledOnce()
