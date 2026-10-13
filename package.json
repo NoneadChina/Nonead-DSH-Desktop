@@ -23,7 +23,6 @@
     "koffi@npm:^3.1.0": "3.1.5",
     "@vscode/ripgrep@npm:1.18.0": "patch:@vscode/ripgrep@npm%3A1.18.0#./patches/vscode-ripgrep@1.18.0.patch",
     "@vscode/ripgrep@npm:^1.18.0": "patch:@vscode/ripgrep@npm%3A1.18.0#./patches/vscode-ripgrep@1.18.0.patch",
-    "dshmarket@npm:1.66.18": "patch:dshmarket@npm%3A1.66.18#./.yarn/patches/dshmarket-desktop.patch",
     "@deepseek-ai/dsh-brand@npm:0.2.1-alpha.2": "file:vendor/dsh-runtime/0.2.1-alpha.2/deepseek-ai-dsh-brand-0.2.1-alpha.2.tgz",
     "@deepseek-ai/dsh-brand@npm:^0.2.1-alpha.2": "file:vendor/dsh-runtime/0.2.1-alpha.2/deepseek-ai-dsh-brand-0.2.1-alpha.2.tgz",
     "@deepseek-ai/dsh-timeout@npm:0.2.1-alpha.2": "file:vendor/dsh-runtime/0.2.1-alpha.2/deepseek-ai-dsh-timeout-0.2.1-alpha.2.tgz",
@@ -694,7 +693,8 @@
     "@deepseek-ai/cordis-plugin-loader": "~1.0.6-alpha.1",
     "open@npm:^11.0.0": "patch:open@npm%3A11.0.4#~/.yarn/patches/open-npm-11.0.4-83ea1c2e5d.patch",
     "open@npm:^8.4.2": "patch:open@npm%3A11.0.4#~/.yarn/patches/open-npm-11.0.4-83ea1c2e5d.patch",
-    "open@npm:^11.0.2": "patch:open@npm%3A11.0.4#~/.yarn/patches/open-npm-11.0.4-83ea1c2e5d.patch"
+    "open@npm:^11.0.2": "patch:open@npm%3A11.0.4#~/.yarn/patches/open-npm-11.0.4-83ea1c2e5d.patch",
+    "dshmarket@npm:1.66.20": "patch:dshmarket@npm%3A1.66.20#./.yarn/patches/dshmarket-desktop.patch"
   },
   "dependenciesMeta": {
     "@deepseek-ai/dsh-subprocess-local": {

@@ -317,7 +317,7 @@
     "adm-zip": "^0.6.0",
     "dsh-community-market": "0.1.0-dev.0",
     "dsh-nonead-client-skin": "0.1.1-rc.2",
-    "dshmarket": "1.66.18",
+    "dshmarket": "1.66.20",
     "fs-ext": "2.1.1",
     "koffi": "3.1.5",
     "node-addon-require-builtin": "^0.1.6",
