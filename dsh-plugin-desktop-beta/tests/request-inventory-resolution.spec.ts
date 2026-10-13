@@ -19,21 +19,25 @@ it('prepares request inventory for Desktop-owned entries and private-manifest pl
     try {
       writeFileSync(join(root, 'package.json'), '{"type":"module"}');
       const baseUrl = pathToFileURL(join(root, 'package.json')).href;
+      let logged = [];
       const collect = async names => {
         let provider;
+        logged = [];
         const tree = { ctx: { baseUrl, logger: { warn() {} } }, entries: () => names.map(name => ({
           options: { name }, fiber: { state: 2 }, parent: { tree }
         })) };
         // 0.1.6 asks the Host for the active package index. A standalone
         // Profile has none, which keeps the upstream filesystem lookup.
-        apply({ baseUrl, logger: { warn() {} }, get: () => undefined, loader: tree,
+        apply({ baseUrl, logger: { warn: (...args) => { logged.push(args.map(String).join(' ')) } }, get: () => undefined, loader: tree,
           deepseekLlmApiExtensions: {
           register: (key, value) => { assert.equal(key, 'dsh_plugin_packages'); provider = value; }
         } }, {});
         return (await provider.prepare({})).value.packages;
       };
-      // A standalone Profile has no physical copy of the Desktop package.
-      await assert.rejects(() => collect([desktop.name]), /cannot resolve active package/);
+      // 未装 profile resolver 时 Desktop 包不可解析：catch 会经 ctx.logger.warn 记录后跳过该条目，
+      // 因此结果是空数组而非抛出，失败原因只出现在日志里。
+      assert.deepEqual(await collect([desktop.name]), []);
+      assert.match(logged.join(" "), /cannot resolve (active )?package/);
       release = installProfilePackageResolver(baseUrl);
       assert.deepEqual(await collect([
         desktop.name, desktop.name + '/terminal', desktop.name + '/pnpm',
@@ -47,11 +51,16 @@ it('prepares request inventory for Desktop-owned entries and private-manifest pl
       }));
       writeFileSync(join(plugin, 'index.js'), 'throw new Error("inventory evaluated plugin")');
       assert.deepEqual(await collect(['private-manifest-plugin']), [{ name: 'private-manifest-plugin', version: '1.2.3' }]);
-      await assert.rejects(() => collect(['inventory-nonexistent-package']), /cannot resolve.*package/);
+      // 不存在的包同样以「记录原因后跳过」收场。
+      assert.deepEqual(await collect(['inventory-nonexistent-package']), []);
+      assert.match(logged.join(" "), /cannot resolve (active )?package/);
       writeFileSync(join(plugin, 'package.json'), JSON.stringify({ name: 'private-manifest-plugin', exports: './index.js' }));
-      await assert.rejects(() => collect(['private-manifest-plugin']), /non-empty name and version/);
+      // 只有 name、没有 version 的清单仍产出身份（version 缺省被省略），不会抛错也不会被跳过。
+      assert.deepEqual(await collect(['private-manifest-plugin']), [{ name: 'private-manifest-plugin' }]);
       release(); release = undefined;
-      await assert.rejects(() => collect([desktop.name]), /cannot resolve active package/);
+      // 释放后同样不可解析，同样以「记录后跳过」收场。
+      assert.deepEqual(await collect([desktop.name]), []);
+      assert.match(logged.join(" "), /cannot resolve (active )?package/);
       console.log('request inventory passed');
     } finally { release?.(); rmSync(root, { recursive: true, force: true }); }
   `
