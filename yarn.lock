@@ -3048,7 +3048,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@deepseek-ai/dsh-fs-local@file:vendor/dsh-runtime/0.2.1-alpha.2/deepseek-ai-dsh-fs-local-0.2.1-alpha.2.tgz::locator=deepseek-harness-desktop%40workspace%3A.":
+"@deepseek-ai/dsh-fs-local@file:vendor/dsh-runtime/0.2.1-alpha.2/deepseek-ai-dsh-fs-local-0.2.1-alpha.2.tgz#vendor/dsh-runtime/0.2.1-alpha.2/deepseek-ai-dsh-fs-local-0.2.1-alpha.2.tgz::hash=ed75bf&locator=deepseek-harness-desktop%40workspace%3A.":
   version: 0.2.1-alpha.2
   resolution: "@deepseek-ai/dsh-fs-local@file:vendor/dsh-runtime/0.2.1-alpha.2/deepseek-ai-dsh-fs-local-0.2.1-alpha.2.tgz#vendor/dsh-runtime/0.2.1-alpha.2/deepseek-ai-dsh-fs-local-0.2.1-alpha.2.tgz::hash=ed75bf&locator=deepseek-harness-desktop%40workspace%3A."
   dependencies:
@@ -3059,6 +3059,20 @@ __metadata:
     "@deepseek-ai/cordis": ~4.0.5-alpha.1
     "@deepseek-ai/dsh-fs": 0.2.1-alpha.2
   checksum: 10c0/8765cc7b9891f840be3c60a8ed4a583d9cd4bccb706dec5bf4c56ef5df1824300ecc6c727475bf9e357d49212d98d990afb75b993abbda2a8c2e73b102a5462f
+  languageName: node
+  linkType: hard
+
+"@deepseek-ai/dsh-fs-local@patch:@deepseek-ai/dsh-fs-local@file%3Avendor/dsh-runtime/0.2.1-alpha.2/deepseek-ai-dsh-fs-local-0.2.1-alpha.2.tgz%23vendor/dsh-runtime/0.2.1-alpha.2/deepseek-ai-dsh-fs-local-0.2.1-alpha.2.tgz%3A%3Ahash=ed75bf&locator=deepseek-harness-desktop%2540workspace%253A.#~/.yarn/patches/@deepseek-ai-dsh-fs-local-file-282fdcd87e.patch":
+  version: 0.2.1-alpha.2
+  resolution: "@deepseek-ai/dsh-fs-local@patch:@deepseek-ai/dsh-fs-local@file%3Avendor/dsh-runtime/0.2.1-alpha.2/deepseek-ai-dsh-fs-local-0.2.1-alpha.2.tgz%23vendor/dsh-runtime/0.2.1-alpha.2/deepseek-ai-dsh-fs-local-0.2.1-alpha.2.tgz%3A%3Ahash=ed75bf&locator=deepseek-harness-desktop%2540workspace%253A.#~/.yarn/patches/@deepseek-ai-dsh-fs-local-file-282fdcd87e.patch::version=0.2.1-alpha.2&hash=119979"
+  dependencies:
+    "@deepseek-ai/schemastery": "npm:~3.18.5-alpha.1"
+    chokidar: "npm:^4.0.3"
+    koffi: "npm:3.1.1"
+  peerDependencies:
+    "@deepseek-ai/cordis": ~4.0.5-alpha.1
+    "@deepseek-ai/dsh-fs": 0.2.1-alpha.2
+  checksum: 10c0/6b23dc7a50a4381a59fd973dbbbff48f7633c6585bc5220c24a41b82cf620f67b27818c0843e63da068cdf1cba7c2575383e0291c3e37890aaa2e79b78ea1b5e
   languageName: node
   linkType: hard
 
@@ -10983,7 +10997,7 @@ __metadata:
     "@deepseek-ai/dsh-experimental-voice-input-bundle": "npm:0.2.1-alpha.2"
     "@deepseek-ai/dsh-file-reference": "npm:0.2.1-alpha.2"
     "@deepseek-ai/dsh-fs": "npm:0.2.1-alpha.2"
-    "@deepseek-ai/dsh-fs-local": "npm:0.2.1-alpha.2"
+    "@deepseek-ai/dsh-fs-local": "patch:@deepseek-ai/dsh-fs-local@file%3Avendor/dsh-runtime/0.2.1-alpha.2/deepseek-ai-dsh-fs-local-0.2.1-alpha.2.tgz%23vendor/dsh-runtime/0.2.1-alpha.2/deepseek-ai-dsh-fs-local-0.2.1-alpha.2.tgz%3A%3Ahash=ed75bf&locator=deepseek-harness-desktop%2540workspace%253A.#~/.yarn/patches/@deepseek-ai-dsh-fs-local-file-282fdcd87e.patch"
     "@deepseek-ai/dsh-goal": "npm:0.2.1-alpha.2"
     "@deepseek-ai/dsh-goal-round-driver": "npm:0.2.1-alpha.2"
     "@deepseek-ai/dsh-home-paths": "npm:0.2.1-alpha.2"
@@ -11220,7 +11234,7 @@ __metadata:
     "@deepseek-ai/dsh-experimental-voice-input-bundle": "npm:0.2.1-alpha.2"
     "@deepseek-ai/dsh-file-reference": "npm:0.2.1-alpha.2"
     "@deepseek-ai/dsh-fs": "npm:0.2.1-alpha.2"
-    "@deepseek-ai/dsh-fs-local": "npm:0.2.1-alpha.2"
+    "@deepseek-ai/dsh-fs-local": "patch:@deepseek-ai/dsh-fs-local@file%3Avendor/dsh-runtime/0.2.1-alpha.2/deepseek-ai-dsh-fs-local-0.2.1-alpha.2.tgz%23vendor/dsh-runtime/0.2.1-alpha.2/deepseek-ai-dsh-fs-local-0.2.1-alpha.2.tgz%3A%3Ahash=ed75bf&locator=deepseek-harness-desktop%2540workspace%253A.#~/.yarn/patches/@deepseek-ai-dsh-fs-local-file-282fdcd87e.patch"
     "@deepseek-ai/dsh-goal": "npm:0.2.1-alpha.2"
     "@deepseek-ai/dsh-goal-round-driver": "npm:0.2.1-alpha.2"
     "@deepseek-ai/dsh-home-paths": "npm:0.2.1-alpha.2"
@@ -11442,7 +11456,7 @@ __metadata:
     "@deepseek-ai/dsh-experimental-voice-input-bundle": "npm:0.2.1-alpha.2"
     "@deepseek-ai/dsh-file-reference": "npm:0.2.1-alpha.2"
     "@deepseek-ai/dsh-fs": "npm:0.2.1-alpha.2"
-    "@deepseek-ai/dsh-fs-local": "npm:0.2.1-alpha.2"
+    "@deepseek-ai/dsh-fs-local": "patch:@deepseek-ai/dsh-fs-local@file%3Avendor/dsh-runtime/0.2.1-alpha.2/deepseek-ai-dsh-fs-local-0.2.1-alpha.2.tgz%23vendor/dsh-runtime/0.2.1-alpha.2/deepseek-ai-dsh-fs-local-0.2.1-alpha.2.tgz%3A%3Ahash=ed75bf&locator=deepseek-harness-desktop%2540workspace%253A.#~/.yarn/patches/@deepseek-ai-dsh-fs-local-file-282fdcd87e.patch"
     "@deepseek-ai/dsh-goal": "npm:0.2.1-alpha.2"
     "@deepseek-ai/dsh-goal-round-driver": "npm:0.2.1-alpha.2"
     "@deepseek-ai/dsh-home-paths": "npm:0.2.1-alpha.2"

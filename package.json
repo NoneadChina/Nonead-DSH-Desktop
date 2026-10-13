@@ -165,7 +165,7 @@
     "@deepseek-ai/dsh-deepseek-account-platform@npm:^0.2.1-alpha.2": "file:vendor/dsh-runtime/0.2.1-alpha.2/deepseek-ai-dsh-deepseek-account-platform-0.2.1-alpha.2.tgz",
     "@deepseek-ai/dsh-deepseek-llm-api-extensions@npm:0.2.1-alpha.2": "file:vendor/dsh-runtime/0.2.1-alpha.2/deepseek-ai-dsh-deepseek-llm-api-extensions-0.2.1-alpha.2.tgz",
     "@deepseek-ai/dsh-deepseek-llm-api-extensions@npm:^0.2.1-alpha.2": "file:vendor/dsh-runtime/0.2.1-alpha.2/deepseek-ai-dsh-deepseek-llm-api-extensions-0.2.1-alpha.2.tgz",
-    "@deepseek-ai/dsh-fs-local@npm:0.2.1-alpha.2": "file:vendor/dsh-runtime/0.2.1-alpha.2/deepseek-ai-dsh-fs-local-0.2.1-alpha.2.tgz",
+    "@deepseek-ai/dsh-fs-local@npm:0.2.1-alpha.2": "patch:@deepseek-ai/dsh-fs-local@file%3Avendor/dsh-runtime/0.2.1-alpha.2/deepseek-ai-dsh-fs-local-0.2.1-alpha.2.tgz%23vendor/dsh-runtime/0.2.1-alpha.2/deepseek-ai-dsh-fs-local-0.2.1-alpha.2.tgz%3A%3Ahash=ed75bf&locator=deepseek-harness-desktop%2540workspace%253A.#~/.yarn/patches/@deepseek-ai-dsh-fs-local-file-282fdcd87e.patch",
     "@deepseek-ai/dsh-fs-local@npm:^0.2.1-alpha.2": "file:vendor/dsh-runtime/0.2.1-alpha.2/deepseek-ai-dsh-fs-local-0.2.1-alpha.2.tgz",
     "@deepseek-ai/dsh-fs-observation-policy@npm:0.2.1-alpha.2": "file:vendor/dsh-runtime/0.2.1-alpha.2/deepseek-ai-dsh-fs-observation-policy-0.2.1-alpha.2.tgz",
     "@deepseek-ai/dsh-fs-observation-policy@npm:^0.2.1-alpha.2": "file:vendor/dsh-runtime/0.2.1-alpha.2/deepseek-ai-dsh-fs-observation-policy-0.2.1-alpha.2.tgz",
