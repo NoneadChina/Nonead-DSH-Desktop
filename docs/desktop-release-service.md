@@ -4,7 +4,7 @@
 
 面向实现升级服务的服务端团队。客户端行为**已经固定**在 Nonead DSH Desktop 的 Desktop 包内，本文件描述的是客户端**已经强制**的契约：服务端任何偏离都不会报错给用户，而是让更新功能**静默失效**。
 
-> 状态：对应 Desktop `2.0.8` 已实现的客户端行为。机器可读版本见 [desktop-release-service.openapi.yaml](desktop-release-service.openapi.yaml)。判定逻辑的权威来源是 `dsh-plugin-desktop/src/update-checker.ts` 与 `update-download.ts`。
+> 状态：对应 Desktop `2.1.2` 已实现的客户端行为。机器可读版本见 [desktop-release-service.openapi.yaml](desktop-release-service.openapi.yaml)。判定逻辑的权威来源是 `dsh-plugin-desktop/src/update-checker.ts` 与 `update-download.ts`。
 
 ## 1. 端点总览
 
@@ -35,7 +35,7 @@
 状态必须是 **200**；`Content-Type: application/json`；响应体 **≤ 4096 字节**（UTF-8）。
 
 ```json
-{ "version": "2.0.8", "channel": "stable", "sha256": { "windows": "…", "mac": "…", "linux": "…" } }
+{ "version": "2.1.2", "channel": "stable", "sha256": { "windows": "…", "mac": "…", "linux": "…" } }
 ```
 
 | 字段 | 必须 | 规则 |
@@ -48,9 +48,9 @@
 
 | 请求 channel | `version` 必须形如 | 合法例 | 会被拒绝的反例 |
 | --- | --- | --- | --- |
-| `stable` | `x.y.z`（**不得带预发布标识**） | `2.0.8` | `2.0.8-beta.1` |
-| `beta` | `x.y.z-beta.N`（**恰好两段**，第一段 `beta`，第二段纯数字） | `2.0.8-beta.1` | `2.0.8-beta`、`2.0.8-beta.1.2` |
-| `next` | `x.y.z-next`（**恰好一段**且等于 `next`） | `2.0.8-next` | `2.0.8-next.1` |
+| `stable` | `x.y.z`（**不得带预发布标识**） | `2.1.2` | `2.1.2-beta.1` |
+| `beta` | `x.y.z-beta.N`（**恰好两段**，第一段 `beta`，第二段纯数字） | `2.1.2-beta.1` | `2.1.2-beta`、`2.1.2-beta.1.2` |
+| `next` | `x.y.z-next`（**恰好一段**且等于 `next`） | `2.1.2-next` | `2.1.2-next.1` |
 
 同时 `channel` 字段的校验规则是：`stable` 分支不要求该字段；`beta`/`next` 分支**要求其存在且等于请求值**，否则整份响应被丢弃。
 
@@ -69,8 +69,8 @@
 
 - **任何 3xx**：包括 `UseHttpsRedirection`、末尾斜杠规范化、`RedirectToAction`、CDN/网关的路径规范化跳转。
 - 把 `sha256` 键写成 `win32` / `darwin`：这些键会被忽略，你会以为有完整性闸门，实际没有。正确键名是 `windows` / `mac` / `linux`。
-- 返回带 `v` 前缀或前导零的版本（`v2.0.8`、`02.0.8`）。
-- 返回 `2.0.8-next.1` 这类 `next` 版本。
+- 返回带 `v` 前缀或前导零的版本（`v2.1.2`、`02.1.2`）。
+- 返回 `2.1.2-next.1` 这类 `next` 版本。
 - 让 CDN 缓存该响应；建议 `Cache-Control: no-store`。
 
 ## 3. 下载端点
@@ -113,12 +113,12 @@
 ```json
 {
   "stable": {
-    "version": "2.0.8",
+    "version": "2.1.2",
     "sha256": { "windows": "<64hex>", "mac": "<64hex>", "linux": "<64hex>" },
     "installers": {
-      "windows": "/software/ndsh-desktop/downloads/windows/Nonead-DSH-Desktop-2.0.8-x64-Setup.exe",
-      "mac":     "/software/ndsh-desktop/downloads/mac/Nonead-DSH-Desktop-2.0.8-mac.dmg",
-      "linux":   "/software/ndsh-desktop/downloads/linux/Nonead-DSH-Desktop-2.0.8-linux.AppImage"
+      "windows": "/software/ndsh-desktop/downloads/windows/Nonead-DSH-Desktop-2.1.2-x64-Setup.exe",
+      "mac":     "/software/ndsh-desktop/downloads/mac/Nonead-DSH-Desktop-2.1.2-mac.dmg",
+      "linux":   "/software/ndsh-desktop/downloads/linux/Nonead-DSH-Desktop-2.1.2-linux.AppImage"
     }
   },
   "beta": { "…": "同上结构" },
@@ -162,7 +162,7 @@
 4. **写入发布文档**（`version` + `sha256` + `installers`）。这是唯一的"对外生效"动作：一次写入即原子完成"版本宣告 + 安装包指向"，不存在"已宣告新版本却仍在发旧安装包"的中间状态。
 5. 按三个 channel 验收 `/version` 与三个下载端点（用第 9 节的脚本）。
 
-**顺序颠倒的后果**：先宣告 `2.0.8` 再换安装包，会让 `/downloads/windows` 继续发 `2.0.4` → 用户下到错版本；若同时已发布 `sha256`，还会被硬闸门拒绝并报"与已发布的摘要不匹配"，极难排查。
+**顺序颠倒的后果**：先宣告 `2.1.2` 再换安装包，会让 `/downloads/windows` 继续发 `2.0.4` → 用户下到错版本；若同时已发布 `sha256`，还会被硬闸门拒绝并报"与已发布的摘要不匹配"，极难排查。
 
 **回滚**：把发布文档改回上一版本即可（产物不动，旧版本仍可下载），然后重跑第 5 步。
 

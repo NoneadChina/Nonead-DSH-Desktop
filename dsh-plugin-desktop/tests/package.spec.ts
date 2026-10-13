@@ -647,7 +647,7 @@ describe('published package surface', () => {
     expect(main).toContain("selection === undefined ? 'skipped' : 'completed'")
     expect(main).toContain('profile !== activeProfileName || safeModePaths !== undefined')
     const client = readFileSync(new URL('src/client/onboarding.tsx', packageRoot), 'utf8')
-    expect(client).toContain("ctx.slots.inject('onboarding.desktop.before'")
+    expect(client).toContain("ctx.slots.inject('settings.onboarding'")
   })
 
   it('keeps active Profile preferences as the lazy source and serializes runtime mirrors', () => {
@@ -817,7 +817,7 @@ describe('published package surface', () => {
 
   it('fixes the installed application identity', () => {
     expect(workspaceManifest.version).toBeUndefined()
-    expect(manifest.version).toBe('2.0.8')
+    expect(manifest.version).toBe('2.1.2')
     expect(manifest.build?.productName).toBe('Nonead DSH Desktop')
     expect(manifest.build?.appId).toBe('ai.deepseek.dsh.desktop')
     expect(manifest.build?.asar).toBe(false)

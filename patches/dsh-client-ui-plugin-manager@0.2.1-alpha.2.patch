@@ -1,0 +1,13 @@
+diff --git a/lib/client.js b/lib/client.js
+index c865cb0..8a74d19 100644
+--- a/lib/client.js
++++ b/lib/client.js
+@@ -3630,7 +3630,7 @@ window.__ModuleLoader__.load({
+ 				};
+ 			}, [highlight, clearHighlight]);
+ 			const noticeLine = state.notice === null || state.notice.kind === "refresh-failed" ? null : noticeText(state.notice, t);
+-			const listed = state.packages.filter((pkg) => !BUILTIN_PROFILE_BUNDLES.has(pkg.name) && (pkg.installed || pkg.official || pkg.error !== void 0));
++			const listed = state.packages.filter((pkg) => !BUILTIN_PROFILE_BUNDLES.has(pkg.name) && (pkg.installed || pkg.official || pkg.optional || pkg.error !== void 0));
+ 			const mine = listed.filter((pkg) => !pkg.official);
+ 			const official = listed.filter((pkg) => pkg.official);
+ 			const extensions = orderPackages(official.filter((pkg) => !MORE_BUNDLES.includes(pkg.name)), EXTENSION_BUNDLES);

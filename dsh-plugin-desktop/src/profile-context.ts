@@ -1,13 +1,12 @@
 /** Launcher facts shared by embedded and isolated Desktop Hosts. */
-import { delimiter, join } from 'node:path'
+import { delimiter } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import type { Context } from '@deepseek-ai/cordis'
 import type { ProfileContext } from '@deepseek-ai/dsh-app-boot'
 import type { AppReady } from '@deepseek-ai/dsh-cmdline'
 import type { DesktopPnpmBootstrap } from './pnpm.ts'
-import { findOverlayPackage } from './package-overlay.ts'
 import { withDesktopPnpmPolicy } from './pnpm-policy.ts'
-import { desktopInstallAnchor, prepareDesktopProfile, type PreparedDesktopProfile } from './profile.ts'
+import { desktopInstallAnchor, type PreparedDesktopProfile } from './profile.ts'
 
 /** Keep package operations and subsequent HMR on the launcher's actual Profile. */
 export function createDesktopProfileBoot(prepared: PreparedDesktopProfile, pnpm: DesktopPnpmBootstrap) {
@@ -22,12 +21,6 @@ export function createDesktopProfileBoot(prepared: PreparedDesktopProfile, pnpm:
     dir: prepared.profile.dir,
     patchPath: prepared.profile.patchPath,
     installAnchor: desktopInstallAnchor(),
-    // Compatibility checks must inspect the same artifact as the module loader,
-    // even before pluginPackages exists. Never inspect stale ancestor copies.
-    resolvePackageManifest: packageName => findOverlayPackage(packageName, {
-      installPackageUrl: pathToFileURL(desktopInstallAnchor()).href,
-      profilePackageUrl: pathToFileURL(join(prepared.profile.dir, 'package.json')).href,
-    })?.selected.manifestPath,
     cwd: process.cwd(),
     home: prepared.homeDir,
     startedBundles: prepared.profile.layers.map(layer => layer.packageName),
@@ -48,25 +41,6 @@ export function createDesktopProfileBoot(prepared: PreparedDesktopProfile, pnpm:
         npm_config_disturl: 'https://electronjs.org/headers',
       },
     },
-    // The pinned app-boot patch delegates both manager operations and HMR here.
-    // CLI reconstruction would drop Desktop shell/platform overrides and bypass
-    // the disabled-bundle, Market-provider and AA admission rules.
-    //
-    // `profilePatches` is the caller's pending profile patch document, supplied
-    // by the config editor while a settings write is still being validated. It
-    // replaces only the profile layer; everything else above stays ours. When
-    // absent (HMR, package operations) preparation reads the document from disk
-    // as before.
-    readPatches: profilePatches => [...prepareDesktopProfile(
-      options.telemetryDisabled ?? '', prepared.homeDir, options.platform, options.profileName,
-      options.pluginStatePath, options.marketSelection,
-      {
-        aaEnabled: options.aaEnabled,
-        lanAddresses: prepared.lanAddresses,
-        generationMode: prepared.mode,
-        ...(profilePatches === undefined ? {} : { profilePatches }),
-      },
-    ).patches, ...context.overlays],
   }
   let ready = false
   let disposed = false

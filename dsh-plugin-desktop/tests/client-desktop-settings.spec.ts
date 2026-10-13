@@ -724,11 +724,7 @@ describe('Desktop settings Slot registration', () => {
     })
     expect(actionOptions.inject()).toHaveProperty('api')
     expect(actionComponent).toBe(DesktopTerminalSettingsAction)
-    expect(inject).toHaveBeenCalledWith('plugins.bundle.hidden', expect.any(Function))
-    expect(register).toHaveBeenNthCalledWith(3, {
-      name: 'plugins.bundle.hidden',
-      key: 'dshmarket',
-    }, expect.any(Function))
+    // 上游 0.2.1 移除了 `plugins.bundle.hidden`，桌面不再有第三个客户端注册。
     await control.setMode('extended')
     expect(scope.set).toHaveBeenCalledWith('mode', 'extended')
   })

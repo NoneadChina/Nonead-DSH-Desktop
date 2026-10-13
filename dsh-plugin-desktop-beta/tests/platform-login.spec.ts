@@ -139,7 +139,7 @@ it('carries sign-in requests from the Host to the native runtime and refuses for
   const platformLogin = vi.fn()
   const native = {
     platform: 'win32', locale: 'en',
-    updates: { isPackaged: true, canDownload: true, currentVersion: '2.0.8-beta.1', statePath: '/tmp/update' },
+    updates: { isPackaged: true, canDownload: true, currentVersion: '2.1.2-beta.1', statePath: '/tmp/update' },
     platformLogin,
   } as unknown as DesktopRuntime
   const release = bindNativeRuntime(parent, native)

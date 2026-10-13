@@ -4,7 +4,7 @@
 
 For the server team implementing the release service. The client behaviour is **already fixed** inside the Nonead DSH Desktop package, and this document describes the contract that client **already enforces**: any server deviation reports no error to the user and instead makes updates **fail silently**.
 
-> Status: matches the client behaviour implemented in Desktop `2.0.8`. The machine-readable version is [desktop-release-service.openapi.yaml](desktop-release-service.openapi.yaml). The authoritative decision logic lives in `dsh-plugin-desktop/src/update-checker.ts` and `update-download.ts`.
+> Status: matches the client behaviour implemented in Desktop `2.1.2`. The machine-readable version is [desktop-release-service.openapi.yaml](desktop-release-service.openapi.yaml). The authoritative decision logic lives in `dsh-plugin-desktop/src/update-checker.ts` and `update-download.ts`.
 
 ## 1. Endpoint overview
 
@@ -35,7 +35,7 @@ Fixed client semantics: `cache: no-store`, and **`redirect: 'error'` — any 3xx
 The status must be **200**; `Content-Type: application/json`; body **at most 4096 bytes** (UTF-8).
 
 ```json
-{ "version": "2.0.8", "channel": "stable", "sha256": { "windows": "…", "mac": "…", "linux": "…" } }
+{ "version": "2.1.2", "channel": "stable", "sha256": { "windows": "…", "mac": "…", "linux": "…" } }
 ```
 
 | Field | Required | Rules |
@@ -48,9 +48,9 @@ The status must be **200**; `Content-Type: application/json`; body **at most 409
 
 | Requested channel | `version` must look like | Valid example | Rejected counter-example |
 | --- | --- | --- | --- |
-| `stable` | `x.y.z` (**no prerelease identifiers**) | `2.0.8` | `2.0.8-beta.1` |
-| `beta` | `x.y.z-beta.N` (**exactly two** identifiers, first is `beta`, second numeric) | `2.0.8-beta.1` | `2.0.8-beta`, `2.0.8-beta.1.2` |
-| `next` | `x.y.z-next` (**exactly one** identifier equal to `next`) | `2.0.8-next` | `2.0.8-next.1` |
+| `stable` | `x.y.z` (**no prerelease identifiers**) | `2.1.2` | `2.1.2-beta.1` |
+| `beta` | `x.y.z-beta.N` (**exactly two** identifiers, first is `beta`, second numeric) | `2.1.2-beta.1` | `2.1.2-beta`, `2.1.2-beta.1.2` |
+| `next` | `x.y.z-next` (**exactly one** identifier equal to `next`) | `2.1.2-next` | `2.1.2-next.1` |
 
 The `channel` field rule is separate: the `stable` branch does not require it, while the `beta`/`next` branches **require it to be present and equal to the requested value**, otherwise the whole response is discarded.
 
@@ -69,8 +69,8 @@ The `channel` field rule is separate: the `stable` branch does not require it, w
 
 - **Any 3xx**, including `UseHttpsRedirection`, trailing-slash normalization, `RedirectToAction`, and CDN/gateway path-canonicalization redirects.
 - Writing `sha256` keys as `win32` / `darwin`: those keys are ignored, so you would believe an integrity gate exists when it does not. The correct keys are `windows` / `mac` / `linux`.
-- Versions with a `v` prefix or leading zeros (`v2.0.8`, `02.0.8`).
-- `next` versions such as `2.0.8-next.1`.
+- Versions with a `v` prefix or leading zeros (`v2.1.2`, `02.1.2`).
+- `next` versions such as `2.1.2-next.1`.
 - Letting a CDN cache this response; use `Cache-Control: no-store`.
 
 ## 3. Download endpoints
@@ -113,12 +113,12 @@ Store one release document per channel and switch releases with a single write:
 ```json
 {
   "stable": {
-    "version": "2.0.8",
+    "version": "2.1.2",
     "sha256": { "windows": "<64hex>", "mac": "<64hex>", "linux": "<64hex>" },
     "installers": {
-      "windows": "/software/ndsh-desktop/downloads/windows/Nonead-DSH-Desktop-2.0.8-x64-Setup.exe",
-      "mac":     "/software/ndsh-desktop/downloads/mac/Nonead-DSH-Desktop-2.0.8-mac.dmg",
-      "linux":   "/software/ndsh-desktop/downloads/linux/Nonead-DSH-Desktop-2.0.8-linux.AppImage"
+      "windows": "/software/ndsh-desktop/downloads/windows/Nonead-DSH-Desktop-2.1.2-x64-Setup.exe",
+      "mac":     "/software/ndsh-desktop/downloads/mac/Nonead-DSH-Desktop-2.1.2-mac.dmg",
+      "linux":   "/software/ndsh-desktop/downloads/linux/Nonead-DSH-Desktop-2.1.2-linux.AppImage"
     }
   },
   "beta": { "…": "same structure" },
@@ -162,7 +162,7 @@ The `X-DSH-Desktop-Target-Version` guard exists because the client re-validates 
 4. **Write the release document** (`version` + `sha256` + `installers`). This is the only action that makes a release public: one write atomically publishes the version and points at the installers, so there is no intermediate state where a new version is announced while the old installer is still being served.
 5. Verify `/version` on all three channels and all three download endpoints (use the script in section 9).
 
-**Consequence of reversing the order**: announcing `2.0.8` first while `/downloads/windows` still serves `2.0.4` makes users download the wrong build; if `sha256` was published too, the hard gate rejects it with "does not match the published digest", which is very hard to diagnose.
+**Consequence of reversing the order**: announcing `2.1.2` first while `/downloads/windows` still serves `2.0.4` makes users download the wrong build; if `sha256` was published too, the hard gate rejects it with "does not match the published digest", which is very hard to diagnose.
 
 **Rollback**: point the release document back at the previous version (artifacts stay, the old version remains downloadable), then re-run step 5.
 

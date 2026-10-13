@@ -19,8 +19,8 @@ it.each(['zh', undefined] as const)('synchronizes tray language at boot and on c
   const native = {
     platform: 'win32', get locale() { return nativeLocale },
     setLocalePreference: (preference: DesktopLocale | undefined) => { nativeLocale = preference ?? 'zh' },
-    updates: { isPackaged: true, canDownload: true, currentVersion: '2.0.8-beta.1', statePath: '/tmp/update',
-      request: vi.fn(async () => new Response('{"version":"2.0.8-beta.1"}', { headers: { 'x-test': 'yes' } })),
+    updates: { isPackaged: true, canDownload: true, currentVersion: '2.1.2-beta.1', statePath: '/tmp/update',
+      request: vi.fn(async () => new Response('{"version":"2.1.2-beta.1"}', { headers: { 'x-test': 'yes' } })),
     },
     schedule: (value: DesktopShellSpec) => { shell = value; return disposeShell },
     registerTrayItem: (value: DesktopTrayItem) => { tray = value; return { refresh() {}, dispose: disposeTray } },
@@ -76,7 +76,7 @@ it.each(['zh', undefined] as const)('synchronizes tray language at boot and on c
     expect(invoke).toHaveBeenCalledOnce()
     const response = await runtime.updates.request('https://example.invalid', { headers: { accept: 'application/json' } })
     expect(response.headers.get('x-test')).toBe('yes')
-    expect(await response.json()).toEqual({ version: '2.0.8-beta.1' })
+    expect(await response.json()).toEqual({ version: '2.1.2-beta.1' })
     await stopShell()
     expect(disposeShell).toHaveBeenCalledOnce()
   } finally { await release(); parent.close(); child.close(); port1.close(); port2.close() }
@@ -92,7 +92,7 @@ it('runs the Host-owned update check without a tray command', async () => {
   const disposeCheck = vi.fn()
   const native = {
     platform: 'win32', locale: 'en',
-    updates: { isPackaged: true, canDownload: true, currentVersion: '2.0.8', statePath: '/tmp/update',
+    updates: { isPackaged: true, canDownload: true, currentVersion: '2.1.2', statePath: '/tmp/update',
       request: vi.fn(async () => new Response('{}')) },
     registerUpdateCheck: (check: () => Promise<void>) => { registered = check; return { dispose: disposeCheck } },
   } as unknown as DesktopRuntime

@@ -113,12 +113,10 @@ export function applyDesktopSettings(
     inject: () => ({ api }),
   }, DesktopTerminalSettingsAction))
 
-  // The launcher owns Market selection through Desktop settings. Its bundle
-  // remains active, but must not expose a second switch in the plugin list.
-  ctx.slots.inject('plugins.bundle.hidden', () => ctx.slots.register({
-    name: 'plugins.bundle.hidden',
-    key: 'dshmarket',
-  }, () => null))
+  // 上游 0.2.1-alpha.2 移除了 `plugins.bundle.hidden`（现存 slot：plugins.item /
+  // plugins.bundle.config / plugins.bundle.activation / plugins.row.config /
+  // plugins.add.actions / plugins.detail.*），因此不再能隐藏 dshmarket 在插件列表里的开关；
+  // 市场选择仍由 Desktop settings 拥有（DesktopSettingsController 的 readMarket/selectMarket）。
 
   return Object.freeze({
     api,
