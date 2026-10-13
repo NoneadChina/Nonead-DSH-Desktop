@@ -75,7 +75,7 @@ describe('Desktop WebServer port policy', () => {
     contexts.push(context)
 
     await expect(context.plugin(DesktopWebServer, { host: '0.0.0.0', port: 0 }))
-      .rejects.toThrow('requires loopback until LAN HTTPS is available')
+      .rejects.toThrow('is an unspecified (wildcard) address')
   })
 
   it('increments only after the requested loopback bind reports EADDRINUSE', async () => {
