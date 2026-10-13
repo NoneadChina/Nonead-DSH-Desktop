@@ -2,7 +2,7 @@
 import { delimiter } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import type { Context } from '@deepseek-ai/cordis'
-import type { ProfileContext } from '@deepseek-ai/dsh-app-boot'
+import { readProfilePatches, type ProfileContext } from '@deepseek-ai/dsh-app-boot'
 import type { AppReady } from '@deepseek-ai/dsh-cmdline'
 import type { DesktopPnpmBootstrap } from './pnpm.ts'
 import { withDesktopPnpmPolicy } from './pnpm-policy.ts'
@@ -16,7 +16,11 @@ export function createDesktopProfileBoot(prepared: PreparedDesktopProfile, pnpm:
     throw new Error('Desktop Profile context and package-manager identity disagree')
   }
   const inheritedPath = Object.entries(process.env).find(([key]) => key.toUpperCase() === 'PATH')?.[1]
-  const context: ProfileContext = {
+  // 重读路径（配置编辑器写入校验、HMR、插件管理）只拿得到本 context，而它们内部的
+  // readProfilePatches 会做 […磁盘层, …patchPath, …home, …overlays]。桌面组合出的层若不从这里
+  // 出去，重读就会丢掉它们——旧版由 ProfileContext.readPatches 重新组合，故不存在该问题。
+  // 基线用 readProfilePatches 自身算，保证与重读逻辑逐字一致；按序列化键去重，避免重复追加。
+  const contextSeed = {
     name: options.profileName,
     dir: prepared.profile.dir,
     patchPath: prepared.profile.patchPath,
@@ -24,8 +28,17 @@ export function createDesktopProfileBoot(prepared: PreparedDesktopProfile, pnpm:
     cwd: process.cwd(),
     home: prepared.homeDir,
     startedBundles: prepared.profile.layers.map(layer => layer.packageName),
-    overlays: structuredClone(prepared.overlays ?? []),
     telemetryDisabledEnv: options.telemetryDisabled,
+  }
+  const baselineKey = (patch: unknown): string => JSON.stringify(patch)
+  const diskKeys = new Set(readProfilePatches(options.profileName, {
+    ...contextSeed,
+    overlays: [],
+  } as ProfileContext).map(baselineKey))
+  const composedOverlays = prepared.patches.filter(patch => !diskKeys.has(baselineKey(patch)))
+  const context: ProfileContext = {
+    ...contextSeed,
+    overlays: structuredClone([...(prepared.overlays ?? []), ...composedOverlays]),
     packageManager: {
       command: pnpm.appExecutable,
       args: ['--import', pathToFileURL(pnpm.clearEnvironmentPath).href, pnpm.pnpmBinPath,
