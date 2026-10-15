@@ -15,7 +15,7 @@ it('shows the remote-control pill before native actions and removes its dot afte
   const noop = async () => {}
   const props = { api: { openTerminal: noop, restart: noop, restartToRecovery: noop, reloadRenderer: noop, toggleDeveloperTools: noop, checkForUpdates: noop },
     setMode: noop, t: (key: keyof typeof zh) => zh[key],
-    environment: { mode: 'extended', platform: 'darwin', version: '2.1.2-beta.1', material: 'transparent' } as DesktopClientEnvironment }
+    environment: { mode: 'extended', platform: 'darwin', version: '2.0.8-beta.1', material: 'transparent' } as DesktopClientEnvironment }
   await act(async () => { root!.render(createElement(DesktopFrameTitlebarView, { ...props, remoteControl: { seen: false, open } })) })
   const button = container.querySelector<HTMLButtonElement>('.dshDesktopRemoteControl')!
   expect(button.textContent).toContain('远程控制')

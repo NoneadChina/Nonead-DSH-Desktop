@@ -2,50 +2,6 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/) 与 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [0.6.8] - 未发布
-
-> **数字孪生不再停在「数据已停止更新 Ns」。** 0.6.6 让停滞**如实可见**，这一版让它**不再发生**：
-> 遥测从「孪生去问」改成「worker 主动推」。
-
-### 变更 — 数字孪生跟随桌面程序的颜色主题
-
-- **DOM 部分**改用宿主设计 token 着色（`var(--dsw-alias-*, <原来的深色值>)`）：token 随宿主投影的
-  `body[data-ds-dark-theme]` 翻转 ⇒ 面板自动跟随「设置 → 外观」里选的主题，也跟随第三方主题，
-  **无需 JS**。逗号后的 fallback 就是原来的深色值，因此在**没有**宿主 token 层的环境里渲染结果
-  与改动前逐字一致。
-- **WebGL 部分**（CSS 够不到）由 JS 重刷：新增 `src/client/theme.js`（主题判定 + 3D 色板 +
-  `MutationObserver` 观察）；`twin-panel` 建场景时按当前主题取色板，切换时调
-  `scene.applyTheme()` 重建基座网格（`GridHelper` 把线色烘进几何体顶点色，改色只能换几何体），
-  回退臂的材质色同样跟随。
-- **判定只认 `body[data-ds-dark-theme]`**，不退回 `prefers-color-scheme` —— 否则
-  「浅色主题 + 深色系统」会被判反。拿不到 body 时按浅色处理且不抛错。
-- 顺带修掉两个**不存在**的 token 引用（`--dsw-alias-bg-elevated` 与
-  `--dsw-alias-border-secondary`，DSH 设计系统里没有定义）：写了只会静默落到 fallback，而浅色
-  fallback 落在深色主题上就是一块白底。改动前已在本机 `dsh-client-ui-theme` /
-  `-layout` 包里逐个核实真实 token 名。
-- 回归用例 4 个（色板真的进网格顶点色、主题判定不退回系统偏好、观察器回调与取消、CSS 只引用
-  真实 token）。
-
-### 修复 — 机器人运动期间孪生不再停更（主动推送遥测）
-
-- **根因**：孪生的读与运动指令共用同一条**单线程 stdin 队列**（`python/ur_worker.py` 的
-  `for line in sys.stdin`），而运动类工具的确认循环（`_movej_confirm` / `_movel_confirm` /
-  `_wait_robot_idle`，60 s 预算）会一直占住它 —— 读只能排队到 2.5 s 预算耗尽。**但数据本身从未
-  停过**：RTDE 由 URBasic 自己的接收线程以 500 Hz 写进 `model.dataDir`，读它与命令队列无关。
-- **修法**：worker 起一个 20 Hz 的后台线程（`_twin_push_snapshot` + `_twin_push_loop`），把关节角与
-  TCP **主动推**成一行**不带 `id`** 的协议 JSON；宿主的 `_onLine` 先于「按 id 匹配响应」识别它，写入
-  `latestTelemetry` 缓存；孪生的每一帧**优先读缓存（零 worker 往返）**，只有缓存超过 300 ms 或缺失时
-  才回退到显式读。
-- **协议向后兼容**：没有 `id` 是唯一标志 —— 旧宿主只会把它记成一条「匹配不上的响应」，无副作用。
-- **推送与响应共用一把写锁**（`_PROTOCOL_LOCK`）：并发写 stdout 若不整行原子，两条 JSON 会交错，
-  表现为随机丢帧与莫名超时。
-- **严格校验**：关节角或 TCP 不足 6 维的推送**直接丢弃**，绝不用半截姿态覆盖上一笔好读数
-  （否则机械臂会肉眼可见地跳一下）。
-- **可关**：`DSH_UR_TWIN_PUSH=0` 关掉推送做对照（孪生随即退回 0.6.6 的「读 + stale」行为）。
-- **实测证据**：新增 `scripts/probe-twin-push-continuity.mjs` —— 假 worker 的 `call()` 永不 settle
-  （精确模拟「队列被占住」）时，**有推送：20 帧 / 最大帧间隔 112 ms；无推送：仅 3 个 `stale`**。
-  回归用例 5 个（推送优先零调用、过期回退、抛错降级、推送行入缓存且不计 unknown、dispose 清缓存）。
-
 ## [0.6.6] - 未发布
 
 > 下面代码注释里写的 `0.6.6` 指的就是这条未发布的改动；`package.json` **已升到 0.6.6**，

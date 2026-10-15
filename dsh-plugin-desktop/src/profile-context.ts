@@ -1,12 +1,13 @@
 /** Launcher facts shared by embedded and isolated Desktop Hosts. */
-import { delimiter } from 'node:path'
+import { delimiter, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import type { Context } from '@deepseek-ai/cordis'
-import { readProfilePatches, type ProfileContext } from '@deepseek-ai/dsh-app-boot'
+import type { ProfileContext } from '@deepseek-ai/dsh-app-boot'
 import type { AppReady } from '@deepseek-ai/dsh-cmdline'
 import type { DesktopPnpmBootstrap } from './pnpm.ts'
+import { findOverlayPackage } from './package-overlay.ts'
 import { withDesktopPnpmPolicy } from './pnpm-policy.ts'
-import { desktopInstallAnchor, type PreparedDesktopProfile } from './profile.ts'
+import { desktopInstallAnchor, prepareDesktopProfile, type PreparedDesktopProfile } from './profile.ts'
 
 /** Keep package operations and subsequent HMR on the launcher's actual Profile. */
 export function createDesktopProfileBoot(prepared: PreparedDesktopProfile, pnpm: DesktopPnpmBootstrap) {
@@ -16,29 +17,22 @@ export function createDesktopProfileBoot(prepared: PreparedDesktopProfile, pnpm:
     throw new Error('Desktop Profile context and package-manager identity disagree')
   }
   const inheritedPath = Object.entries(process.env).find(([key]) => key.toUpperCase() === 'PATH')?.[1]
-  // 重读路径（配置编辑器写入校验、HMR、插件管理）只拿得到本 context，而它们内部的
-  // readProfilePatches 会做 […磁盘层, …patchPath, …home, …overlays]。桌面组合出的层若不从这里
-  // 出去，重读就会丢掉它们——旧版由 ProfileContext.readPatches 重新组合，故不存在该问题。
-  // 基线用 readProfilePatches 自身算，保证与重读逻辑逐字一致；按序列化键去重，避免重复追加。
-  const contextSeed = {
+  const context: ProfileContext = {
     name: options.profileName,
     dir: prepared.profile.dir,
     patchPath: prepared.profile.patchPath,
     installAnchor: desktopInstallAnchor(),
+    // Compatibility checks must inspect the same artifact as the module loader,
+    // even before pluginPackages exists. Never inspect stale ancestor copies.
+    resolvePackageManifest: packageName => findOverlayPackage(packageName, {
+      installPackageUrl: pathToFileURL(desktopInstallAnchor()).href,
+      profilePackageUrl: pathToFileURL(join(prepared.profile.dir, 'package.json')).href,
+    })?.selected.manifestPath,
     cwd: process.cwd(),
     home: prepared.homeDir,
     startedBundles: prepared.profile.layers.map(layer => layer.packageName),
+    overlays: structuredClone(prepared.overlays ?? []),
     telemetryDisabledEnv: options.telemetryDisabled,
-  }
-  const baselineKey = (patch: unknown): string => JSON.stringify(patch)
-  const diskKeys = new Set(readProfilePatches(options.profileName, {
-    ...contextSeed,
-    overlays: [],
-  } as ProfileContext).map(baselineKey))
-  const composedOverlays = prepared.patches.filter(patch => !diskKeys.has(baselineKey(patch)))
-  const context: ProfileContext = {
-    ...contextSeed,
-    overlays: structuredClone([...(prepared.overlays ?? []), ...composedOverlays]),
     packageManager: {
       command: pnpm.appExecutable,
       args: ['--import', pathToFileURL(pnpm.clearEnvironmentPath).href, pnpm.pnpmBinPath,
@@ -54,6 +48,25 @@ export function createDesktopProfileBoot(prepared: PreparedDesktopProfile, pnpm:
         npm_config_disturl: 'https://electronjs.org/headers',
       },
     },
+    // The pinned app-boot patch delegates both manager operations and HMR here.
+    // CLI reconstruction would drop Desktop shell/platform overrides and bypass
+    // the disabled-bundle, Market-provider and AA admission rules.
+    //
+    // `profilePatches` is the caller's pending profile patch document, supplied
+    // by the config editor while a settings write is still being validated. It
+    // replaces only the profile layer; everything else above stays ours. When
+    // absent (HMR, package operations) preparation reads the document from disk
+    // as before.
+    readPatches: profilePatches => [...prepareDesktopProfile(
+      options.telemetryDisabled ?? '', prepared.homeDir, options.platform, options.profileName,
+      options.pluginStatePath, options.marketSelection,
+      {
+        aaEnabled: options.aaEnabled,
+        lanAddresses: prepared.lanAddresses,
+        generationMode: prepared.mode,
+        ...(profilePatches === undefined ? {} : { profilePatches }),
+      },
+    ).patches, ...context.overlays],
   }
   let ready = false
   let disposed = false

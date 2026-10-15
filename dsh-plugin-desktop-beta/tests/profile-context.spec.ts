@@ -57,14 +57,13 @@ it('rereads user patches while preserving the Desktop composition and root file'
   expect(readFileSync(prepared.profile.patchPath, 'utf8')).toContain('disabled: true')
 })
 
-it('keeps the official layout rows when a saved mode hot-reloads the Profile', () => {
+it('keeps the running generation\'s layout rows when a saved mode hot-reloads the Profile', () => {
   const { prepared, ctx } = fixture()
   expect(prepared.mode).toBe('compatibility')
   // Setup and the mode picker save the mode into the patch layer mid-generation.
   writeFileSync(prepared.profile.patchPath, '- id: desktop-shell\n  config:\n    mode: extended\n')
   const rows = composeEntries([readProfilePatches('test', ctx.profileContext)])
-  // 持久化的 extended/advanced 在每个解析边界都被规整为 compatibility（仅存的发行模式）。
-  expect(rows.find(row => row.id === 'desktop-shell')?.config).toEqual(expect.objectContaining({ mode: 'compatibility' }))
+  expect(rows.find(row => row.id === 'desktop-shell')?.config).toEqual(expect.objectContaining({ mode: 'extended' }))
   // The open compatibility page never installs Desktop's layout; keep the official one.
   expect(rows.find(row => row.id === 'ui-layout')?.disabled ?? false).toBe(false)
 })
@@ -103,7 +102,7 @@ it('checks the selected artifact while still denying incompatible active Profile
   const ancestor = join(home, 'profiles', 'node_modules', packageName)
   mkdirSync(ancestor, { recursive: true })
   writeFileSync(join(ancestor, 'package.json'), JSON.stringify({
-    name: packageName, version: '99.0.0', peerDependencies: { '@deepseek-ai/dsh-llm': '0.2.1-alpha.2' },
+    name: packageName, version: '99.0.0', peerDependencies: { '@deepseek-ai/dsh-llm': '0.1.5-rc.2' },
   }))
   const base = pathToFileURL(join(prepared.profile.dir, 'package.json')).href
   const entries = [{ id: 'session-probe', name: packageName }]

@@ -2,61 +2,6 @@
 
 This project adheres to [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
-## [0.6.8] - Unreleased
-
-> **The digital twin no longer sits on "data stopped updating Ns".** 0.6.6 made a stall *visible*;
-> this release makes it *not happen*: telemetry went from "the twin asks" to "the worker pushes".
-
-### Changed — the digital twin follows the desktop app's colour theme
-
-- **The DOM half** is now coloured with the host's design tokens
-  (`var(--dsw-alias-*, <previous dark value>)`): the tokens flip with the host's
-  `body[data-ds-dark-theme]` projection, so the panel follows whatever theme is selected under
-  Settings → Appearance — and any third-party theme — **with no JS involved**. The value after the
-  comma is the previous dark colour, so in an environment **without** a host token layer the
-  rendering is exactly what it was before.
-- **The WebGL half** (which CSS cannot reach) is repainted by JS: new `src/client/theme.js` (theme
-  detection + 3D palette + `MutationObserver`); `twin-panel` builds the scene with the current
-  theme's palette and calls `scene.applyTheme()` on a theme change to rebuild the base grid
-  (`GridHelper` bakes its line colours into the geometry's vertex colours, so recolouring means
-  replacing the geometry). The fallback arm's material colour follows too.
-- **Detection only trusts `body[data-ds-dark-theme]`** and never falls back to
-  `prefers-color-scheme` — otherwise "light theme + dark system" would be read backwards. With no
-  `body` available it treats the theme as light and does not throw.
-- Also fixed two references to tokens that **do not exist** (`--dsw-alias-bg-elevated` and
-  `--dsw-alias-border-secondary` are not defined in the DSH design system): they silently fell back,
-  and a light fallback on a dark theme is a white card. The real token names were verified one by
-  one in the local `dsh-client-ui-theme` / `-layout` packages before this change.
-- Four regression cases (the palette really reaches the grid's vertex colours, detection does not
-  fall back to the system preference, the observer fires and unsubscribes, the CSS references only
-  real tokens).
-
-### Fixed — the twin keeps following the robot while it moves (pushed telemetry)
-
-- **Root cause**: the twin's reads and every motion command share one **single-threaded stdin queue**
-  (`for line in sys.stdin` in `python/ur_worker.py`), and the motion confirmation loops
-  (`_movej_confirm` / `_movel_confirm` / `_wait_robot_idle`, 60 s budget) hold it for tens of seconds,
-  so a read simply queues until its 2.5 s budget expires. **The data itself never stopped**: RTDE is
-  written at 500 Hz by URBasic's own receiver thread into `model.dataDir`, which has nothing to do with
-  the command queue.
-- **Fix**: the worker now runs a 20 Hz background thread (`_twin_push_snapshot` + `_twin_push_loop`) that
-  **pushes** joint angles and TCP as a JSON line **without `id`**; the host's `_onLine` recognises it
-  *before* matching responses by id and stores it in a `latestTelemetry` cache; every twin frame reads
-  that cache first (**zero worker round trips**) and only falls back to an explicit read when it is older
-  than 300 ms or missing.
-- **Wire compatibility**: the absent `id` is the only marker — an older host just records it as an
-  unmatched response, with no side effects.
-- **One write lock for pushes and responses** (`_PROTOCOL_LOCK`): concurrent writes to stdout that are
-  not line-atomic interleave two JSON lines, which shows up as randomly dropped frames and odd timeouts.
-- **Strict validation**: a push whose joint angles or TCP are not 6-dimensional is **dropped outright**,
-  never allowed to overwrite a good reading with half a pose (the arm would visibly jump).
-- **Off switch**: `DSH_UR_TWIN_PUSH=0` disables the push channel for comparison (the twin then falls back
-  to the 0.6.6 "read + stale" behaviour).
-- **Evidence**: new `scripts/probe-twin-push-continuity.mjs` — with a fake worker whose `call()` never
-  settles (precisely "the queue is occupied"): **with push: 20 frames, max frame gap 112 ms; without push:
-  only 3 `stale` events.** Five regression cases cover push-priority, staleness fallback, error fallback,
-  push lines not counted as unmatched responses, and cache clearing on dispose.
-
 ## [0.6.6] - Unreleased
 
 > Code comments below refer to this unreleased change as `0.6.6`; `package.json` is **already 0.6.6**,

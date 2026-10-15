@@ -2,7 +2,7 @@ openapi: 3.1.0
 
 info:
   title: Nonead DSH Desktop Release Service
-  version: 2.1.2
+  version: 2.0.8
   summary: Version discovery and installer delivery for the Nonead DSH Desktop client.
   description: |
     Machine-readable contract for the two fixed endpoints the Nonead DSH Desktop client
@@ -86,9 +86,9 @@ paths:
 
         | channel | shape | valid | rejected |
         | --- | --- | --- | --- |
-        | `stable` | `x.y.z` | `2.1.2` | `2.1.2-beta.1` |
-        | `beta` | `x.y.z-beta.N` | `2.1.2-beta.1` | `2.1.2-beta`, `2.1.2-beta.1.2` |
-        | `next` | `x.y.z-next` | `2.1.2-next` | `2.1.2-next.1` |
+        | `stable` | `x.y.z` | `2.0.8` | `2.0.8-beta.1` |
+        | `beta` | `x.y.z-beta.N` | `2.0.8-beta.1` | `2.0.8-beta`, `2.0.8-beta.1.2` |
+        | `next` | `x.y.z-next` | `2.0.8-next` | `2.0.8-next.1` |
 
         `sha256` keys are `windows`, `mac`, and `linux` — **not** `win32`/`darwin`. Invalid
         or unknown keys are ignored per key, so a wrong key name silently disables the
@@ -123,7 +123,7 @@ paths:
                 stable:
                   summary: Stable channel
                   value:
-                    version: 2.1.2
+                    version: 2.0.8
                     channel: stable
                     sha256:
                       windows: 6ee55ab2d084b5ff391375120e2f301df79ab6b4effb54645e87b979163f8bda
@@ -132,14 +132,14 @@ paths:
                 beta:
                   summary: Beta channel with the required channel field
                   value:
-                    version: 2.1.2-beta.1
+                    version: 2.0.8-beta.1
                     channel: beta
                     sha256:
                       windows: 764e7f2ce6a311a918815b5bbf2323f5b2ea5958654b1fcf4c5bb83ae30dd878
                 next:
                   summary: Next channel; exactly one `next` identifier, never `next.1`
                   value:
-                    version: 2.1.2-next
+                    version: 2.0.8-next
                     channel: next
         default:
           description: >-
@@ -220,7 +220,7 @@ paths:
                 type: string
                 format: uri
                 examples:
-                  - https://cdn.nonead.com/software/ndsh-desktop/artifacts/2.1.2/Nonead-DSH-Desktop-2.1.2-x64-Setup.exe
+                  - https://cdn.nonead.com/software/ndsh-desktop/artifacts/2.0.8/Nonead-DSH-Desktop-2.0.8-x64-Setup.exe
             Cache-Control:
               description: Send `no-store`.
               schema:
@@ -256,7 +256,7 @@ components:
       schema:
         type: string
         pattern: '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$'
-        examples: ['2.1.2', '2.1.2-beta.1', '2.1.2-next']
+        examples: ['2.0.8', '2.0.8-beta.1', '2.0.8-next']
     InstallationId:
       name: X-DSH-Desktop-Installation-Id
       in: header
@@ -278,7 +278,7 @@ components:
         just returned. Use it for accounting and to detect a rotated release.
       schema:
         type: string
-        examples: ['2.1.2']
+        examples: ['2.0.8']
     AcceptJson:
       name: Accept
       in: header
@@ -338,7 +338,7 @@ components:
           type: string
           pattern: '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
           description: Stable release. Prerelease identifiers are not allowed here.
-          examples: ['2.1.2']
+          examples: ['2.0.8']
         channel:
           type: string
           const: stable
@@ -346,7 +346,7 @@ components:
         sha256:
           $ref: '#/components/schemas/Sha256Digests'
       examples:
-        - version: 2.1.2
+        - version: 2.0.8
           channel: stable
           sha256:
             windows: 6ee55ab2d084b5ff391375120e2f301df79ab6b4effb54645e87b979163f8bda
@@ -362,7 +362,7 @@ components:
           type: string
           pattern: '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)-beta\.(0|[1-9][0-9]*)$'
           description: Exactly two prerelease identifiers, `beta` then a numeric counter.
-          examples: ['2.1.2-beta.1']
+          examples: ['2.0.8-beta.1']
         channel:
           type: string
           const: beta
@@ -370,7 +370,7 @@ components:
         sha256:
           $ref: '#/components/schemas/Sha256Digests'
       examples:
-        - version: 2.1.2-beta.1
+        - version: 2.0.8-beta.1
           channel: beta
           sha256:
             windows: 764e7f2ce6a311a918815b5bbf2323f5b2ea5958654b1fcf4c5bb83ae30dd878
@@ -384,9 +384,9 @@ components:
           type: string
           pattern: '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)-next$'
           description: >-
-            Exactly one prerelease identifier, `next`. A version such as `2.1.2-next.1`
+            Exactly one prerelease identifier, `next`. A version such as `2.0.8-next.1`
             is rejected because it carries two identifiers.
-          examples: ['2.1.2-next']
+          examples: ['2.0.8-next']
         channel:
           type: string
           const: next
@@ -394,7 +394,7 @@ components:
         sha256:
           $ref: '#/components/schemas/Sha256Digests'
       examples:
-        - version: 2.1.2-next
+        - version: 2.0.8-next
           channel: next
 
     ReleaseDocument:
@@ -421,7 +421,7 @@ components:
         version:
           type: string
           description: Canonical SemVer matching this channel's shape.
-          examples: ['2.1.2']
+          examples: ['2.0.8']
         sha256:
           $ref: '#/components/schemas/Sha256Digests'
         installers:
@@ -446,5 +446,5 @@ components:
       pattern: '^(https://|/)'
       description: Absolute https URL or same-origin absolute path.
       examples:
-        - /software/ndsh-desktop/downloads/windows/Nonead-DSH-Desktop-2.1.2-x64-Setup.exe
-        - https://cdn.nonead.com/software/ndsh-desktop/artifacts/2.1.2/Nonead-DSH-Desktop-2.1.2-mac.dmg
+        - /software/ndsh-desktop/downloads/windows/Nonead-DSH-Desktop-2.0.8-x64-Setup.exe
+        - https://cdn.nonead.com/software/ndsh-desktop/artifacts/2.0.8/Nonead-DSH-Desktop-2.0.8-mac.dmg

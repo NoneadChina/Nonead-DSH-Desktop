@@ -145,9 +145,7 @@ async function invokeUpdate(route: MarketRoute, compatVersion?: string, name = '
   return { status, body: JSON.parse(body) as Record<string, unknown> }
 }
 
-describe('dsh-market Desktop install compatibility', {
-  timeout: process.platform === 'win32' ? 30_000 : 10_000,
-}, () => {
+describe('dsh-market Desktop install compatibility', () => {
   it('offers the host-provided market update when the Profile omits dshmarket', async () => {
     for (const name of ['HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'http_proxy', 'https_proxy', 'all_proxy']) {
       vi.stubEnv(name, '')
@@ -244,7 +242,7 @@ describe('dsh-market Desktop install compatibility', {
     expect(runExternalMarketPluginInstall).toHaveBeenCalledOnce()
     expect(runExternalMarketPluginInstall.mock.calls[0]?.[0]).toEqual([
       'add',
-      expect.stringMatching(/^@liustack\/modlens@\d+\.\d+\.\d+/),
+      '@liustack/modlens@3.18.1',
       '--reporter=ndjson',
     ])
     expect(runExternalMarketPluginInstall.mock.calls[0]?.[1]).toBe('/private/dsh-invoking')
@@ -333,17 +331,6 @@ describe('dsh-market Desktop install compatibility', {
     const result = await invokeUpdate(route, compatVersion)
     dispose()
 
-    if (compatVersion === undefined) {
-      // 目标版本被归一到内置市场版本，与 installedVersion 相等 => 已是最新，无需安装。
-      expect(result.status).toBe(200)
-      expect(result.body).toMatchObject({ ok: true, skipped: 'current' })
-      expect(runPlugin).not.toHaveBeenCalled()
-      expect(JSON.parse(readFileSync(join(profileDir, 'package.json'), 'utf8'))).toMatchObject({
-        dependencies: {},
-        dsh: { profile: { bundles: ['orphan'] } },
-      })
-      return
-    }
     expect(result.status).toBe(200)
     expect(result.body).toMatchObject({ ok: true })
     expect(runPlugin).toHaveBeenCalledOnce()
