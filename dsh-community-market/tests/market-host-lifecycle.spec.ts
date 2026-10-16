@@ -124,6 +124,7 @@ describe('community market Host capability lifecycle', () => {
     // the storage domain arrives (or does not) through a soft injection.
     expect(marketInject).toEqual(['webServer'])
     expect(harness.injectedNames()).toContainEqual(['storageDomain'])
+    expect(harness.injectedNames()).toContainEqual(['pluginManager', 'profileContext'])
     await expect(harness.request(marketRoutes.state)).resolves.toMatchObject({
       status: 200,
       body: { sources: [] },
@@ -132,41 +133,45 @@ describe('community market Host capability lifecycle', () => {
 
     harness.dispose()
   })
-  it('exposes restart independently when a shell has no terminal integration', async () => {
+  it('serves package operations once the official plugin manager and its profile are live', async () => {
     const harness = createHarness()
     apply(harness.context as never)
-    harness.provide('desktopActions', { requestRestart: vi.fn(async () => {}) })
-    harness.provide('desktopProfiles', { current: { name: 'next', dir: 'C:/fixture-profile' } })
-    harness.provide('desktopPnpm', {})
+    const listBundles = vi.fn(async () => [])
+    harness.provide('pluginManager', { listBundles, installBundle: vi.fn(), setBundleEnabled: vi.fn(), removeBundle: vi.fn() })
+    harness.provide('profileContext', { name: 'next', dir: 'C:/fixture-profile' })
+    await expect(harness.request(marketRoutes.installations)).resolves.toMatchObject({
+      status: 200,
+      body: { installations: [] },
+    })
+    expect(listBundles).toHaveBeenCalledOnce()
     await expect(harness.request(marketRoutes.state)).resolves.toMatchObject({
-      body: { desktopActions: { openTerminal: false, requestRestart: true } },
+      body: { desktopActions: { openTerminal: false } },
     })
     harness.dispose()
   })
-  it('keeps desktop routes fail-closed until capabilities are live and after they are disposed', async () => {
+  it('keeps package routes fail-closed until the official manager is live and after it is disposed', async () => {
     const harness = createHarness()
     apply(harness.context as never)
 
     await expect(harness.request(marketRoutes.installable)).resolves.toMatchObject({ status: 503 })
+    await expect(harness.request(marketRoutes.installations)).resolves.toMatchObject({ status: 503 })
     await expect(harness.request(marketRoutes.state)).resolves.toMatchObject({
       status: 200,
-      body: { desktopActions: { openTerminal: false, requestRestart: false } },
+      body: { desktopActions: { openTerminal: false } },
     })
 
-    harness.provide('desktopActions', {
-      openTerminal: vi.fn(),
-      requestRestart: vi.fn(async () => {}),
-    })
+    harness.provide('desktopActions', { openTerminal: vi.fn() })
     await expect(harness.request(marketRoutes.state)).resolves.toMatchObject({
-      body: { desktopActions: { openTerminal: true, requestRestart: false } },
+      body: { desktopActions: { openTerminal: true } },
     })
 
-    harness.provide('desktopProfiles', { current: { name: 'web', dir: 'C:/fixture-profile' } })
-    harness.provide('desktopPnpm', {})
+    harness.provide('profileContext', { name: 'web', dir: 'C:/fixture-profile' })
+    harness.provide('pluginManager', { listBundles: vi.fn(async () => []), installBundle: vi.fn(), setBundleEnabled: vi.fn(), removeBundle: vi.fn() })
     await expect(harness.request(marketRoutes.installable)).resolves.toMatchObject({ status: 404 })
 
-    harness.remove('desktopPnpm')
+    harness.remove('pluginManager')
     await expect(harness.request(marketRoutes.installable)).resolves.toMatchObject({ status: 503 })
+    await expect(harness.request(marketRoutes.installations)).resolves.toMatchObject({ status: 503 })
 
     harness.dispose()
   })

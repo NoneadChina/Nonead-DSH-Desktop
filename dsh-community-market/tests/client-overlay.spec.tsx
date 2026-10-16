@@ -49,6 +49,10 @@ vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => {
       props.onClick === undefined ? <span>{children}</span> : <button {...props}>{children}</button>
     ),
     StateDot: ({ state }: { state: string }) => <span data-state={state} />,
+    Switch: ({ checked, disabled, label, onChange }: { checked: boolean; disabled?: boolean; label: string; onChange: (next: boolean) => void }) => (
+      <input type="checkbox" role="switch" aria-label={label} checked={checked} disabled={disabled} onChange={() => onChange(!checked)} />
+    ),
+    Toast: ({ text }: { text: string; onDone: () => void }) => <div role="status">{text}</div>,
     Tooltip: passthrough,
     IconCheckOutlineRegular: icon,
     IconChevronDownOutlineRegular: icon,
@@ -115,7 +119,7 @@ const source: MarketSourceView = {
 const stateWithSource: MarketStateResponse = {
   sources: [source],
   builtIns: [],
-  desktopActions: { openTerminal: true, requestRestart: true },
+  desktopActions: { openTerminal: true },
 }
 
 const catalogWithItem: MarketCatalogResponse = {
@@ -158,7 +162,7 @@ describe('community market overlay', () => {
     const state: MarketStateResponse = {
       sources: [],
       builtIns: [],
-      desktopActions: { openTerminal: true, requestRestart: true },
+      desktopActions: { openTerminal: true },
     }
     const request = vi.fn<typeof fetch>(async () => response(state))
     vi.stubGlobal('fetch', request)

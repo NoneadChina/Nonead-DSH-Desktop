@@ -11,15 +11,15 @@ Installed plugins and their dependency trees run locally with the user's permiss
 ## Package-operation boundary
 
 - Installation starts only after explicit user confirmation.
-- The confirmation shows the Host-resolved npm package, npm `latest` stable version, and active Profile.
+- The confirmation shows the Host-resolved package identity, its exact version, and the active Profile.
 - Provider commands, scripts, HTML, headers, credentials, and package-manager argv are never accepted from catalog data.
-- Automatic installation requires one valid npm package identity and a valid `dsh.bundle.patch` declaration in the official npm `latest` manifest.
+- Automatic installation requires one valid npm package identity and a valid `dsh.bundle.patch` declaration in the official npm `latest` manifest. A catalog item may instead carry a commit-pinned GitHub `installSource`; that path requires a canonical GitHub repository identity, an exact 40-character commit, and the same valid `dsh.bundle.patch` declaration in that commit's `package.json`.
 - Source-provided versions and verification claims are not installation authority.
-- Market package changes use only `desktopPnpm.run(argv)` and run one at a time.
-- The Renderer submits source/item identities for install or an opaque Desktop `bundleId` for uninstall; it never chooses an arbitrary package name at execution time.
-- Installed inventory comes from current Profile direct dependencies, so packages installed by other markets or the DSH CLI are visible. Removable direct dependencies offer uninstall only; Market exposes no enable or disable operation.
+- Market package changes go only through the official `pluginManager` service, which supplies its own package-manager argv, and they run one at a time.
+- The Renderer submits source/item identities for install or a package name from the current Profile inventory for uninstall; it never chooses an arbitrary package name at execution time.
+- Installed inventory is the official plugin manager's bundle list for the active Profile, reduced to community plugins, so packages installed by other markets or the DSH CLI are visible. The Market exposes enable, disable, and uninstall, each gated by the manager's own `readOnlyReason`, `error`, and `removable` flags.
 - Market creates no install receipt, install-specific snapshot, retry, cleanup, or rollback. Recovery is owned by Desktop's unified three-slot healthy-start checkpoints.
-- A successful mutation may issue a short-lived one-shot restart grant. Restart remains an explicit user action.
+- A successful mutation applies live where the Host runs HMR. When the manager reports `restart-required`, the completion notice says the change takes effect after the next restart; the Market never restarts Desktop.
 - **Open DSH Terminal** carries an empty body and only opens Desktop's terminal; it never pastes or executes a displayed command.
 
 These rules constrain authority and identity. They do not make a third-party plugin safe.
@@ -30,7 +30,7 @@ Adding or selecting a source is an explicit local action. A remote manifest cann
 
 Production source requests are HTTPS-only and credential-free. They enforce bounded redirects, timeouts, concurrency, decoded response size, item counts, nesting, and string lengths. Redirect and DNS targets are checked against loopback, private, link-local, and cloud-metadata destinations. JSON must satisfy the published schema before normalization.
 
-Exactly one source is selected for browsing. Source failure never silently selects a fallback, changes the active Profile, or blocks Nonead DSH Desktop startup.
+Exactly one source is selected for browsing. Source failure never silently selects a fallback, changes the active Profile, or blocks DSH Desktop startup.
 
 ## Reporting a vulnerability
 

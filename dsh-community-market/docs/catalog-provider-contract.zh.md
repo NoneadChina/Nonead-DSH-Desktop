@@ -2,7 +2,7 @@
 
 [English](catalog-provider-contract.md)
 
-状态：**已实现的公开 v1 契约。** 带版本的 Schema、生成类型、严格校验、来源持久化、受限网络与媒体边界、标准 HTTP adapter、经过审核的 DSH 1024Store 与 dshfind adapter、完整本地索引，以及可加载的 Host/Client 入口均已在 Nonead DSH Desktop 中实现并通过测试。本文档和 fixture 是 `manifestVersion` 与 `schemaVersion` `1.x` 的公开互操作契约。
+状态：**已实现的公开 v1 契约。** 带版本的 Schema、生成类型、严格校验、来源持久化、受限网络与媒体边界、标准 HTTP adapter、经过审核的 DSH 1024Store 与 dshfind adapter、完整本地索引，以及可加载的 Host/Client 入口均已在 DSH Desktop 中实现并通过测试。本文档和 fixture 是 `manifestVersion` 与 `schemaVersion` `1.x` 的公开互操作契约。
 
 ## 决策摘要
 
@@ -13,7 +13,7 @@
 - 已有公开 API 无法直接输出标准 page 结构的 provider，可以提出经过审核的 adapter 合作接入。合作只会增加本地、经过测试的 Market 代码，绝不允许 provider 下发可执行 adapter 代码。
 - DSH 1024Store 是当前与本项目合作的目录提供方之一。市场已包含经过审核的内置 adapter；这个 adapter 不会自动选择 1024Store，也不会在当前来源失败时用它兜底。
 - dshfind 是另一个可选合作提供方。它经过审查的 adapter 只接受无歧义的结构化 npm 证据作为结构安装候选；其他条目仍然只能浏览。它不会被默认选择、优先排序、推荐或用作兜底。
-- 某个来源出现在内置选项中或受到 adapter 支持，不代表 Nonead Corporation 推荐、审核或背书该来源及其收录的插件。
+- 某个来源出现在内置选项中或受到 adapter 支持，不代表 Anywhere Labs 推荐、审核或背书该来源及其收录的插件。
 - 所有 provider 必须先转换成同一个标准化模型，数据才能到达市场界面或安装边界。
 
 这些是产品与信任边界，不是后续团队为了实现方便就可以修改的默认值。
@@ -137,7 +137,7 @@ Provider 输入绝不提供 Host provenance。Response 成功后，adapter 注�
 - 标准化插件条目；
 - 带可选不透明 next cursor 和 total 的分页信息。
 
-每个条目都有稳定的来源内身份、展示文本和由 Host 注入的明确 provenance。它可以声明 npm package、规范化 repository 加可选 subdirectory，或同时声明两者；也可以包含有界的描述元数据、分类、capability、兼容性声明、更新时间和 Host 已解析的媒体。条目绝不包含 install command、shell fragment、HTML、script、可执行 callback、远程媒体 URL 或文件系统路径。
+每个条目都有稳定的来源内身份、展示文本和由 Host 注入的明确 provenance。它可以声明 npm package、规范化 repository 加可选 subdirectory，或同时声明两者；还可以额外声明 `installSource`，为该 repository 身份锁定一个精确的 GitHub commit。它也可以包含有界的描述元数据、分类、capability、兼容性声明、更新时间和 Host 已解析的媒体。条目绝不包含 install command、shell fragment、HTML、script、可执行 callback、远程媒体 URL 或文件系统路径。
 
 同一页 provider response 中，每个条目的 `id` 必须唯一。Adapter 必须在注入 provenance 之前拒绝重复 ID。标准化快照中的每个 `provenance.itemId` 必须与所在条目的 `id` 完全一致。
 
@@ -236,7 +236,7 @@ dshfind 文档说明匿名配额为每分钟 30 次、突发 10 次，而当前�
 
 dshfind response 可能包含 `install.cmd`、其他安装 claim 和 `install.methods`。命令文本与普通 claim 都不是执行权限：adapter 会在标准化前丢弃 `install.cmd`，不展示、不执行，也绝不从中解析 package 身份。Adapter 可以输出结构化 npm package 身份和只作信息展示的 provider 版本，但自动安装 preview 会忽略该版本并解析 npm 官方 `latest` manifest。Preview 要求 npm identity 一致、latest 是精确稳定版本、DSH bundle 声明合法，并且当前 Profile 可以安装。
 
-Adapter 可以标准化有界纯文本身份、描述、标签/分类、更新时间，以及规范、无凭据的 `https://github.com/owner/repository` 链接。当前 API 没有插件图标或 README 字段。任何 owner 头像 fallback 都必须标记为 `publisher-avatar` 并通过 Host 媒体边界解析；adapter 不获取或渲染远程 README 内容。dshfind 的分数、等级、`official`/精选标记、风险标记和安装结论仍是 provider 自有运营声明，绝不会成为 Nonead Corporation 的安全审核、推荐或验证信号。
+Adapter 可以标准化有界纯文本身份、描述、标签/分类、更新时间，以及规范、无凭据的 `https://github.com/owner/repository` 链接。当前 API 没有插件图标或 README 字段。任何 owner 头像 fallback 都必须标记为 `publisher-avatar` 并通过 Host 媒体边界解析；adapter 不获取或渲染远程 README 内容。dshfind 的分数、等级、`official`/精选标记、风险标记和安装结论仍是 provider 自有运营声明，绝不会成为 Anywhere Labs 的安全审核、推荐或验证信号。
 
 这一合作只会让 dshfind 作为可选合作来源显示；它**不会**成为默认、优先、官方、推荐、已审核或兜底来源，来源失败也不会触发对其他 provider 的隐藏切换。
 
@@ -246,8 +246,8 @@ Adapter 可以标准化有界纯文本身份、描述、标签/分类、更新�
 
 - 获取 manifest 或 snapshot 是只读操作，绝不会调用 pnpm、DSH、shell 或 lifecycle script。
 - 远程数据不能提供 install command、自定义包管理器参数、环境变量或工作目录。
-- 浏览记录还不是安装目标。当前路径要求一个明确且合法的 npm package 身份。
-- Preview 解析 npm `latest`，并要求 identity 一致、版本精确稳定、DSH bundle 声明合法且当前 Profile 可以安装。
+- 浏览记录还不是安装目标。安装目标是明确且合法的 npm package 身份，或锁定 commit 的 GitHub `installSource`（其规范化 repository 身份与精确的 40 位 commit 都必须通过校验）。
+- Preview 对 npm 身份解析 npm `latest`，对 GitHub 身份解析锁定 commit 的 `package.json`，并要求 identity 一致、版本精确稳定、DSH bundle 声明合法且当前 Profile 可以安装。
 - 执行阶段消费一次性 preview，并拒绝目录或 Profile 身份已经变化的操作。
 - 最终确认展示精确来源记录、锁定的 npm package 与版本、当前 profile 和本地代码风险提示。
 - 只有用户明确操作后才开始安装，并使用现有的受管当前 profile 服务。

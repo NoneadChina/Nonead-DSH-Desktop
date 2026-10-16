@@ -11,15 +11,15 @@
 ## Package 操作边界
 
 - 只有用户明确确认后才开始安装。
-- 确认框展示 Host 解析出的 npm package、npm `latest` 稳定版本和当前 Profile。
+- 确认框展示 Host 解析出的 package 身份、其精确版本和当前 Profile。
 - 不接受目录数据提供的命令、脚本、HTML、header、凭据或 package-manager argv。
-- 自动安装要求唯一合法的 npm package 身份，并要求 npm 官方 `latest` manifest 声明合法的 `dsh.bundle.patch`。
+- 自动安装要求唯一合法的 npm package 身份，并要求 npm 官方 `latest` manifest 声明合法的 `dsh.bundle.patch`。目录条目也可以改为携带锁定 commit 的 GitHub `installSource`；这条路径要求规范的 GitHub repository 身份、精确的 40 位 commit，以及该 commit 的 `package.json` 声明同样合法的 `dsh.bundle.patch`。
 - 来源提供的版本和验证结论不构成安装权限。
-- Market package 修改只使用 `desktopPnpm.run(argv)`，同一时间只执行一个。
-- Renderer 在安装时提交来源/条目身份，在卸载时提交 Desktop 返回的不透明 `bundleId`；执行时不能自行选择任意 package name。
-- 已安装清单来自当前 Profile 的直接依赖，因此其他市场或 DSH CLI 安装的 package 也会显示。可移除的直接依赖只提供卸载；Market 不暴露启用或禁用操作。
+- Market 的 package 变更只通过官方 `pluginManager` 服务执行（由它提供 package-manager argv），同一时间只执行一个。
+- Renderer 在安装时提交来源/条目身份，在卸载时提交当前 Profile 清单中的 package name；执行时不能自行选择任意 package name。
+- 已安装清单是官方插件管理器为当前 Profile 提供的 bundle 列表，只保留社区插件，因此其他市场或 DSH CLI 安装的 package 也会显示。Market 提供启用、停用和卸载，每个操作都由管理器自己的 `readOnlyReason`、`error` 和 `removable` 标志决定是否可用。
 - Market 不创建安装 receipt、安装专用快照、重试、清理或回滚。恢复统一由 Desktop 的三个健康启动 checkpoint 槽位负责。
-- 修改成功后可以签发短时、一次性重启许可，但重启始终需要用户明确操作。
+- 修改成功后，Host 运行 HMR 时改动会实时生效。管理器报告 `restart-required` 时，完成提示会说明改动在下次重启后生效；Market 永远不会重启 Desktop。
 - **打开 DSH 终端**使用空 body，只负责打开 Desktop 终端，不会粘贴或执行界面中的命令。
 
 这些规则限制操作权限和 package 身份，但不能让第三方插件变得安全。
@@ -30,7 +30,7 @@
 
 生产环境来源请求仅允许 HTTPS 且不携带凭据，并限制重定向、超时、并发、解码后响应大小、条目数、嵌套和字符串长度。每次重定向和 DNS 目标都会检查 loopback、私有网络、link-local 和云 metadata 地址。JSON 必须先通过公开 Schema 再进入标准化。
 
-同一时间只选择一个来源浏览。来源故障不会静默选择兜底、修改当前 Profile 或阻止 Nonead DSH Desktop 启动。
+同一时间只选择一个来源浏览。来源故障不会静默选择兜底、修改当前 Profile 或阻止 DSH Desktop 启动。
 
 ## 报告安全问题
 

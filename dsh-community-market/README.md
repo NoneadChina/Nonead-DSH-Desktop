@@ -2,41 +2,41 @@
 
 [中文说明](README.zh.md)
 
-DSH Community Market is the open plugin market built into [Nonead DSH Desktop](../README.en.md). It discovers plugins from user-selected catalog sources and performs simple npm package operations against the active Desktop Profile.
+DSH Community Market is the open plugin market built into [DSH Desktop](../README.en.md). It discovers plugins from user-selected catalog sources and delegates managed package operations against the active Desktop Profile to the official plugin manager.
 
 > A catalog listing or an installable result is not a security review, compatibility guarantee, or endorsement. Installed plugins run locally with the user's permissions.
 
-The package declares a standard `dsh.bundle.patch`. Desktop Next exposes it in the official Plugins page alongside independently selectable dshmarket and Agents Anywhere. Stable/Beta retain their existing market selectors.
+The package declares a standard `dsh.bundle.patch`. Nonead DSH Desktop and the Beta Desktop select it per Profile through the Desktop Market setting, whose value is exactly one of `disabled`, `community-market`, or `dsh-market`: `dsh-community-market` and `dshmarket` are mutually exclusive, and the selected market bundle is a Desktop built-in bundle rather than a community plugin.
 
 ## Product behavior
 
 The Market has four views:
 
 1. **Discover** browses the selected source, with search, category filters, details, and source attribution.
-2. **Installable** shows normalized entries that expose one unambiguous npm package identity. It does not trust a source-provided version.
-3. **Installed** reads direct plugin dependencies from the active Profile. It includes plugins installed by this Market, another market, or the DSH CLI. Removable plugins offer **Uninstall** only; core bundles remain read-only.
+2. **Installable** shows normalized entries that expose one unambiguous install identity: an npm package name or a commit-pinned GitHub source. It does not trust a source-provided version.
+3. **Installed** lists the active Profile's community plugins as the official plugin manager reports them, including plugins installed by this Market, another market, or the DSH CLI, and lets the user enable, disable, or uninstall them. Official plugins, bundles the installation ships, DeepSeek's own packages, and Desktop's built-in bundles (`dsh-community-market`, `dshmarket`, `@agents-anywhere/dsh-bridge-next`, and the Desktop product packages) are managed on the official Plugins page and do not appear here.
 4. **Sources** saves, orders, and selects catalog sources. Exactly one source is active for browsing.
 
-The Renderer never sends a package name or package-manager command for an installation. It submits the selected source and item identity, then the Host resolves the normalized package identity it previously observed.
+The Renderer never sends a package name or package-manager command for an installation. It submits the selected source and item identity, then the Host resolves the normalized install identity it previously observed.
 
 ## Automatic installation
 
-Automatic installation deliberately has a small qualification boundary:
+Automatic installation deliberately has a small qualification boundary. An entry qualifies through exactly one install identity:
 
-- the selected catalog entry exposes exactly one valid npm package name;
-- the package is not a Desktop-owned product bundle;
-- the official npm registry's `latest` endpoint returns the same package name and an exact stable version; and
-- that npm manifest declares a valid `dsh.bundle.patch` path.
+- an npm identity: the selected catalog entry exposes exactly one valid npm package name; the official npm registry's `latest` endpoint returns the same package name and an exact stable version; and that npm manifest declares a valid `dsh.bundle.patch` path; or
+- a commit-pinned GitHub identity: the entry declares a GitHub `installSource` with an exact 40-character commit together with a canonical `github.com` repository identity, and that commit's `package.json` declares a valid package name, an exact stable version, and the same bundle patch path.
 
-Source versions, verification badges, repository equality, deprecation metadata, lifecycle scripts, engine ranges, tarball integrity metadata, and build-allowance claims do not decide Market eligibility. pnpm remains responsible for resolving and installing the requested exact npm version.
+Either identity must not name a Desktop-owned product bundle.
 
-After confirmation, the Host calls only `desktopPnpm.run(argv)`, adds the exact npm version, and reconciles the package into `dsh.profile.bundles`. The Market creates no install receipt, snapshot, retry, cleanup, or rollback path. Recovery is handled by Desktop's unified three-slot healthy-start checkpoints.
+Source versions, verification badges, repository equality, deprecation metadata, lifecycle scripts, engine ranges, tarball integrity metadata, and build-allowance claims do not decide Market eligibility. pnpm remains responsible for resolving and installing the requested exact version.
 
-## Uninstall and cross-market compatibility
+After confirmation, the Host calls the official plugin manager's `installBundle` with the exact `name@version` target, or the pinned `github:owner/repo#commit` target for a GitHub identity, saved exactly and activated. The manager validates the bundle, restores the Profile manifest and lockfile when installation fails, selects the bundle, and applies it live where the Host runs HMR. The Market creates no install receipt, snapshot, retry, cleanup, or rollback path of its own. When the manager reports that a restart is still required, the Market says so in its completion notice instead of prompting for one.
 
-The Installed view is derived from the active Profile's direct dependencies and bundle list, not from Market receipts or the selected catalog. This makes plugins installed by external markets and the DSH CLI visible without special integration.
+## Enable, disable, uninstall, and cross-market compatibility
 
-Uninstall preview accepts only the generation-scoped opaque `bundleId` returned by Desktop inventory. The Host resolves it to the current direct dependency, confirms it is removable, and runs `desktopPnpm.run(['remove', packageName])`. The Market does not provide enable or disable operations.
+The Installed view is derived from the official plugin manager's bundle list, not from Market receipts or the selected catalog. This makes plugins installed by external markets and the DSH CLI visible without special integration. The view keeps to community plugins: a bundle the manager marks official, a bundle the installation ships, a package in the `@deepseek-ai` scope, or one of Desktop's built-in bundles is left to the official Plugins page.
+
+Enable and disable call the manager's `setBundleEnabled` directly and keep the dependency installed. Uninstall preview accepts a package name from that list; the Host confirms through the manager that the bundle is still removable before the preview and again before execution, then calls `removeBundle`, which deselects and unloads the bundle before pnpm removes it. The manager's `readOnlyReason`, `error`, and `removable` flags decide which actions a listed bundle offers.
 
 ## Catalog sources
 
@@ -46,13 +46,13 @@ Anyone may publish a source implementing the public [`catalog-source`](docs/sche
 
 [dshfind](https://dshfind.com) is another optional cooperating source. Its adapter walks the provider's versioned REST pages and normalizes structured npm identity without executing provider command text. Any provider-supplied version remains informational; automatic installation still resolves npm `latest`.
 
-Source requests are HTTPS-only, credential-free, bounded, and protected against unsafe redirects and private-network destinations. A source failure never changes the user's selected source or blocks Nonead DSH Desktop startup.
+Source requests are HTTPS-only, credential-free, bounded, and protected against unsafe redirects and private-network destinations. A source failure never changes the user's selected source or blocks DSH Desktop startup.
 
 ## Manual installation
 
-When automatic installation is unavailable, the details dialog may show a bounded, display-only npm command reconstructed by the Host. **Open DSH Terminal** only opens Desktop's terminal; it does not paste or execute the command.
+When automatic installation is unavailable, the details dialog may show a bounded, display-only `dsh plugin add` command reconstructed by the Host. **Open DSH Terminal** only opens Desktop's terminal; it does not paste or execute the command.
 
-If an automatic installation starts but pnpm fails, Desktop keeps a bounded tail of stdout and stderr, writes it to the Desktop log, and shows the same diagnostic output in a failure dialog. The dialog offers a Host-derived exact command and **Open DSH Terminal** for manual follow-up; it never retries the consumed confirmation automatically.
+If an automatic installation starts but the official manager reports a failure, the Market records the manager's bounded pnpm output in the Desktop log and shows the same diagnostic output in a failure dialog. The dialog offers a Host-derived exact command and **Open DSH Terminal** for manual follow-up; it never retries the consumed confirmation automatically.
 
 ## Documentation
 
@@ -61,7 +61,7 @@ If an automatic installation starts but pnpm fails, Desktop keeps a bounded tail
 - [Catalog provider contract](docs/catalog-provider-contract.md)
 - [Catalog adapter guide](docs/catalog-adapter-guide.md)
 - [Security](SECURITY.md)
-- [Desktop plugin services](../dsh-plugin-desktop/docs/plugin-services.md)
+- [Desktop plugin services](../dsh-plugin-desktop-beta/docs/plugin-services.md)
 
 ## License and attribution
 

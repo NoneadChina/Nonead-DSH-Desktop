@@ -12,7 +12,7 @@ import {
   readMarketInstallations,
   readMarketState,
   readMoreMarketCatalog,
-  requestMarketRestart,
+  setMarketInstallationEnabled,
 } from '../src/client/api.js'
 
 afterEach(() => {
@@ -89,9 +89,8 @@ describe('community market client API', () => {
         }
         return {
           action: 'uninstall',
-          receiptId: 'receipt-1',
           packageName: 'dsh-plugin-safe',
-          restartToken: 'restart-token-1',
+          application: 'applied',
         }
       },
       status: 200,
@@ -152,22 +151,22 @@ describe('community market client API', () => {
     expect(refreshedUrl.searchParams.get('refresh')).toBe('1')
   })
 
-  it('opens the terminal without a command and sends only the one-shot token when restarting', async () => {
+  it('opens the terminal without a command and toggles a profile bundle by package name', async () => {
     const fetch = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => (
       { ok: true, json: async () => ({ ok: true }) } as Response
     ))
     vi.stubGlobal('fetch', fetch)
 
     await openMarketTerminal()
-    await requestMarketRestart('opaque-restart-token')
+    await setMarketInstallationEnabled('dsh-plugin-safe', false)
 
     expect(fetch.mock.calls[0]).toEqual([
       '/api/community-market/desktop/open-terminal',
       expect.objectContaining({ method: 'POST', body: JSON.stringify({}) }),
     ])
     expect(fetch.mock.calls[1]).toEqual([
-      '/api/community-market/desktop/request-restart',
-      expect.objectContaining({ method: 'POST', body: JSON.stringify({ restartToken: 'opaque-restart-token' }) }),
+      '/api/community-market/installations/enabled',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ packageName: 'dsh-plugin-safe', enabled: false }) }),
     ])
   })
 
@@ -189,7 +188,7 @@ describe('community market client API', () => {
     const body = {
       sources: [],
       builtIns: [],
-      desktopActions: { openTerminal: false, requestRestart: false },
+      desktopActions: { openTerminal: false },
     }
     const request = vi.fn<typeof fetch>(async () => new Response(JSON.stringify(body), {
       headers: { 'content-type': 'application/json' },

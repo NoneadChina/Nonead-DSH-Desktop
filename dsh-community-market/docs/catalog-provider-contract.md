@@ -2,7 +2,7 @@
 
 [中文](catalog-provider-contract.zh.md)
 
-Status: **Implemented public v1 contract.** The versioned Schemas, generated types, strict validation, source persistence, constrained network and media boundaries, standard HTTP adapter, reviewed DSH 1024Store and dshfind adapters, complete local indexing, and loadable Host/Client entries are implemented and tested in Nonead DSH Desktop. This document and its fixtures are the public interoperability contract for `manifestVersion` and `schemaVersion` `1.x`.
+Status: **Implemented public v1 contract.** The versioned Schemas, generated types, strict validation, source persistence, constrained network and media boundaries, standard HTTP adapter, reviewed DSH 1024Store and dshfind adapters, complete local indexing, and loadable Host/Client entries are implemented and tested in DSH Desktop. This document and its fixtures are the public interoperability contract for `manifestVersion` and `schemaVersion` `1.x`.
 
 ## Decision summary
 
@@ -13,7 +13,7 @@ Status: **Implemented public v1 contract.** The versioned Schemas, generated typ
 - Providers with an existing public API that cannot emit the standard page shape may propose a reviewed adapter integration. Cooperation adds local, tested Market code; it never allows a provider to send executable adapter code.
 - DSH 1024Store is one of the catalog providers currently cooperating with this project. A reviewed built-in adapter is included; it does not select or fall back to 1024Store automatically.
 - dshfind is another optional cooperating provider. Its reviewed adapter accepts only unambiguous structured npm evidence for structural install candidacy; other entries remain browse-only. It is neither selected by default nor used as a preferred, recommended, or fallback source.
-- A source being bundled as a choice or supported by an adapter does not mean that Nonead Corporation has recommended, audited, or endorsed the source or the plugins it lists.
+- A source being bundled as a choice or supported by an adapter does not mean that Anywhere Labs has recommended, audited, or endorsed the source or the plugins it lists.
 - Every provider is converted into one normalized model before data reaches the market UI or installation boundary.
 
 These are product and trust decisions, not implementation defaults that a later team may change for convenience.
@@ -137,7 +137,7 @@ A public v1 normalized snapshot contains:
 - normalized plugin items;
 - pagination metadata with an optional opaque next cursor and total.
 
-Each item has stable source-local identity, display text, and explicit Host-injected provenance. It may identify an npm package, a canonical repository plus optional subdirectory, or both. It may also contain bounded descriptive metadata, categories, capabilities, compatibility claims, update time, and Host-resolved media. It never contains an install command, shell fragment, HTML, script, executable callback, remote media URL, or filesystem path.
+Each item has stable source-local identity, display text, and explicit Host-injected provenance. It may identify an npm package, a canonical repository plus optional subdirectory, or both, and it may additionally declare an `installSource` that pins one exact GitHub commit for that repository identity. It may also contain bounded descriptive metadata, categories, capabilities, compatibility claims, update time, and Host-resolved media. It never contains an install command, shell fragment, HTML, script, executable callback, remote media URL, or filesystem path.
 
 Within one provider page, every item `id` must be unique. The adapter rejects duplicate IDs before provenance is injected. In the normalized snapshot, every `provenance.itemId` must exactly equal its containing item `id`.
 
@@ -236,7 +236,7 @@ dshfind documents an anonymous quota of 30 requests per minute with a burst of 1
 
 The dshfind response may contain `install.cmd`, other installation claims, and `install.methods`. Command text and ordinary claims are not execution authority: the adapter discards `install.cmd` before normalization, never displays or executes it, and never parses package identity from it. The adapter may emit a structured npm package identity and an informational provider version, but automatic install preview ignores that provider version and resolves the official npm `latest` manifest. Preview requires matching npm identity, an exact stable latest version, a valid DSH bundle declaration, and active-Profile availability.
 
-The adapter may normalize bounded plain-text identity, description, tags/category, update time, and a canonical credential-free `https://github.com/owner/repository` link. The current API exposes no plugin icon or README field. Any owner-avatar fallback must be labelled `publisher-avatar` and resolved through the Host media boundary; the adapter does not fetch or render remote README content. dshfind scores, grades, `official`/featured labels, risk labels, and installation conclusions remain provider-owned operational claims and never become an Nonead Corporation security review, recommendation, or verification signal.
+The adapter may normalize bounded plain-text identity, description, tags/category, update time, and a canonical credential-free `https://github.com/owner/repository` link. The current API exposes no plugin icon or README field. Any owner-avatar fallback must be labelled `publisher-avatar` and resolved through the Host media boundary; the adapter does not fetch or render remote README content. dshfind scores, grades, `official`/featured labels, risk labels, and installation conclusions remain provider-owned operational claims and never become an Anywhere Labs security review, recommendation, or verification signal.
 
 This cooperation makes dshfind visible as an optional partner choice only. It does **not** make it default, preferred, official, recommended, audited, or a fallback, and source failure never causes a hidden switch to another provider.
 
@@ -246,8 +246,8 @@ Catalog browsing and plugin installation are separate operations:
 
 - Fetching a manifest or snapshot is read-only and never invokes pnpm, DSH, a shell, or a lifecycle script.
 - Remote data cannot supply an install command, custom package-manager arguments, environment variables, or a working directory.
-- A browse record is not yet an install target. The current path requires one unambiguous valid npm package identity.
-- Preview resolves npm `latest` and requires matching identity, an exact stable version, a valid DSH bundle declaration, and active-Profile availability.
+- A browse record is not yet an install target. An install target is either one unambiguous valid npm package identity or a commit-pinned GitHub `installSource` whose canonical repository identity and exact 40-character commit both validate.
+- Preview resolves npm `latest` for an npm identity, or the pinned commit's `package.json` for a GitHub identity, and requires matching identity, an exact stable version, a valid DSH bundle declaration, and active-Profile availability.
 - Execution consumes a one-shot preview and rejects changed catalog or Profile identity.
 - The final confirmation shows the exact source record, pinned npm package and version, active profile, and local-code warning.
 - Installation begins only after that explicit user gesture and uses the existing managed active-profile service.

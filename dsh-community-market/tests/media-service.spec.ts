@@ -14,7 +14,7 @@ import {
 const candidate = (overrides: Partial<MarketMediaCandidate> = {}): MarketMediaCandidate => ({
   remoteUrl: 'https://github.com/anywhere-labs.png?size=128',
   role: 'publisher-avatar',
-  alt: 'Nonead Corporation',
+  alt: 'Anywhere Labs',
   sourceRecordId: '018f1f77-a5c4-7b73-a9ae-0242ac120002',
   itemId: 'anywhere-labs/deepseek-harness-desktop',
   allowedHostnames: ['github.com', 'avatars.githubusercontent.com'],
