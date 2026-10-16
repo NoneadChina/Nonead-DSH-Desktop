@@ -1,4 +1,4 @@
-/** Headless version checks against the public Nonead DSH Desktop release service. */
+/** Headless version checks against the public DSH Desktop release service. */
 
 import {
   assertDesktopInstallationId,
@@ -6,7 +6,7 @@ import {
   type DesktopInstallationId,
 } from './desktop-installation-id.ts'
 
-/** Public endpoint returning the latest Nonead DSH Desktop version for a requested channel. */
+/** Public endpoint returning the latest DSH Desktop version for a requested channel. */
 export const DESKTOP_VERSION_ENDPOINT = 'https://www.nonead.com/software/ndsh-desktop/version'
 
 /** Header carrying the installed Desktop version to the fixed version endpoint. */
@@ -72,7 +72,7 @@ export type UpdateCheckResult = {
    * a hard integrity gate before execution; they are optional only because
    * the version endpoint does not publish digests yet.
    */
-  readonly installerSha256?: Readonly<Partial<Record<'win32' | 'darwin' | 'linux', string>>>
+  readonly installerSha256?: Readonly<Partial<Record<'win32' | 'darwin', string>>>
 }
 
 const SEMVER_PATTERN =
@@ -115,7 +115,7 @@ export function compareSemVerVersions(left: string, right: string): number | nul
 }
 
 /**
- * Check the fixed Nonead DSH Desktop version endpoint for a release in one channel.
+ * Check the fixed DSH Desktop version endpoint for a release in one channel.
  * @param options - installed version, caller-owned signal, and optional request adapter.
  * @returns a successful comparison, or null when any request or validation step fails.
  */
@@ -265,7 +265,15 @@ export function parseCanonicalChannelVersion(
   const parsed = parseCanonicalVersion(input)
   if (parsed === null) return null
   if (channel === 'stable') return parsed.prerelease.length === 0 ? parsed : null
-  if (channel === 'next' && parsed.prerelease.length === 1 && parsed.prerelease[0] === 'next') return parsed
+  // Next historically marked every build with a `-next` prerelease. Its product
+  // name and version are no longer preview-scoped, so an ordinary release
+  // version (`x.y.z`) is canonical for Next as well; the legacy `-next` and
+  // `-next.N` shapes stay accepted for already-published builds. The response's
+  // declared `channel` field remains the gate that separates the streams.
+  if (channel === 'next') {
+    if (parsed.prerelease.length === 0) return parsed
+    if (parsed.prerelease.length === 1 && parsed.prerelease[0] === 'next') return parsed
+  }
   return parsed.prerelease.length === 2
     && parsed.prerelease[0] === channel
     && isNumeric(parsed.prerelease[1]!)
@@ -275,13 +283,13 @@ export function parseCanonicalChannelVersion(
 
 /**
  * Extract optional per-platform installer digests from the parsed version
- * response: `{ "version": "2.0.2", "sha256": { "windows": "<hex>", "mac": "<hex>", "linux": "<hex>" } }`.
+ * response: `{ "version": "2.0.2", "sha256": { "windows": "<hex>", "mac": "<hex>" } }`.
  * Hex digits are case-normalized; absent or malformed fields simply leave the
  * digest gate unset for that platform.
  */
 function parseInstallerDigestResponse(value: unknown): UpdateCheckResult['installerSha256'] | undefined {
   if (!isRecord(value) || !isRecord(value.sha256)) return undefined
-  const digests: Partial<Record<'win32' | 'darwin' | 'linux', string>> = {}
+  const digests: Partial<Record<'win32' | 'darwin', string>> = {}
   const normalize = (digest: unknown): string | undefined => {
     if (typeof digest !== 'string') return undefined
     const normalized = digest.trim().toLowerCase()
@@ -289,10 +297,8 @@ function parseInstallerDigestResponse(value: unknown): UpdateCheckResult['instal
   }
   const windows = normalize(value.sha256.windows)
   const mac = normalize(value.sha256.mac)
-  const linux = normalize(value.sha256.linux)
   if (windows !== undefined) digests.win32 = windows
   if (mac !== undefined) digests.darwin = mac
-  if (linux !== undefined) digests.linux = linux
   return Object.keys(digests).length > 0 ? digests : undefined
 }
 

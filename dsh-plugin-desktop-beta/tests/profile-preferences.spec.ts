@@ -192,17 +192,10 @@ describe('Desktop Profile preferences', () => {
       ...PREFERENCES,
       extra: true,
     } as DesktopProfilePreferences, RECORDED_AT)).rejects.toThrow('exactly the supported fields')
-    // Legacy mode markers stay writable and read back normalized to compatibility;
-    // an unknown mode is still rejected.
-    const legacy = temporaryDirectory('dsh-profile-preferences-legacy-')
-    await expect(writeDesktopProfilePreferences(userData, legacy, {
-      ...PREFERENCES,
-      mode: 'advanced',
-    }, RECORDED_AT)).resolves.toMatchObject({ mode: 'compatibility' })
     await expect(writeDesktopProfilePreferences(userData, profile, {
       ...PREFERENCES,
-      mode: 'glass',
-    } as unknown as DesktopProfilePreferences, RECORDED_AT)).rejects.toThrow('mode must be compatibility')
+      mode: 'advanced',
+    }, RECORDED_AT)).rejects.toThrow('openBrowser requires compatibility mode')
     await expect(writeDesktopProfilePreferences(userData, profile, {
       ...PREFERENCES,
       openBrowser: false,

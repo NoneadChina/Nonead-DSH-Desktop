@@ -8,6 +8,7 @@ import {
   Notification,
   shell,
 } from 'electron'
+import { configureDeveloperLogging, type DiagnosticPreferences } from './developer-logging.ts'
 import { spawn } from 'node:child_process'
 import { RemoteControlOffer, remoteControlOfferCopy } from './remote-control-offer.ts'
 import { readFileSync } from 'node:fs'
@@ -18,6 +19,7 @@ import { desktopTerminalStateDirectory, openDesktopTerminal } from './desktop-te
 import { showDesktopMessageBox } from './desktop-dialog-window.ts'
 import { packagedDependencyPath } from './packaged-runtime-path.ts'
 import { ElectronShellGeneration } from './electron-shell-generation.ts'
+import { editingContextMenuLabels } from './context-menu.ts'
 import { isPlatformLoginDestination, type DesktopPlatformLoginRequest } from './platform-login.ts'
 import { PLATFORM_LOGIN_TITLE, platformLoginUrl } from './platform-login-window.ts'
 import type { DesktopOpenWorkspaceDelivery } from './launch-workspace-contract.ts'
@@ -34,7 +36,6 @@ import type {
   DesktopTrayItemGroup,
   DesktopTrayItemRegistration,
   DesktopUpdateAdapter,
-  DesktopUpdateCheckRegistration,
 } from './runtime.ts'
 import type { RendererBootReport } from './renderer-boot-contract.ts'
 import {
@@ -53,6 +54,7 @@ import {
   rendererRecoveryCopy,
 } from './tray-locale.ts'
 import {
+  assertSecureDownloadUrl,
   desktopUpdateFilename,
   downloadDesktopUpdate,
   pendingDesktopUpdateArtifact,
@@ -97,10 +99,13 @@ export function desktopPreloadPath(moduleUrl: string = import.meta.url): string 
 const PRODUCT_VERSION = desktopProductVersion()
 
 /** Main-process deadline for one Renderer generation to settle its client Loader. */
-export const RENDERER_BOOT_TIMEOUT_MS = 30_000
+export const RENDERER_BOOT_TIMEOUT_MS = 120_000
 
 /** HTTP statuses whose Response must be constructed without a body stream. */
 const NULL_BODY_STATUSES = new Set([204, 205, 304])
+
+/** Redirect hops accepted before the artifact transport reports a loop. */
+const MAX_ARTIFACT_REDIRECTS = 8
 
 /**
  * Download-request adapter over Electron `net.request`. `net.fetch` cannot
@@ -113,12 +118,27 @@ export function requestDesktopArtifact(url: string, init: RequestInit): Promise<
     const request = net.request({ url, method: 'GET', redirect: 'manual' })
     let finalUrl = url
     let settled = false
+    let hops = 0
     const headers = new Headers(init.headers)
     // Approximates the fetch `cache: 'no-store` intent over the Chromium net stack.
     headers.set('cache-control', 'no-cache')
     headers.forEach((value, key) => { request.setHeader(key, value) })
     request.on('redirect', (_status, _method, redirectUrl) => {
-      finalUrl = redirectUrl
+      if (settled) return
+      const rejectHop = (error: unknown): void => {
+        settled = true
+        request.abort()
+        reject(error instanceof Error ? error : new Error(String(error)))
+      }
+      hops += 1
+      if (hops > MAX_ARTIFACT_REDIRECTS) { rejectHop(new Error('dsh-plugin-desktop: too many update redirects')); return }
+      let next: string
+      try { next = new URL(redirectUrl, finalUrl).href }
+      catch { rejectHop(new Error('dsh-plugin-desktop: update redirect has no usable location')); return }
+      // Every hop is validated: one open redirect on the release endpoint would otherwise let any
+      // HTTPS host deliver the installer.
+      try { assertSecureDownloadUrl(next) } catch (error) { rejectHop(error); return }
+      finalUrl = next
       request.followRedirect()
     })
     request.on('response', incoming => {
@@ -178,8 +198,10 @@ export function requestDesktopArtifact(url: string, init: RequestInit): Promise<
   })
 }
 
-/** Native adapter used by the Nonead DSH Desktop launcher and owned by its Cordis shell plugin. */
+/** Native adapter used by the DSH Desktop launcher and owned by its Cordis shell plugin. */
 export class ElectronDesktopRuntime implements DesktopRuntime {
+  configureDeveloperLogging(preferences: DiagnosticPreferences): void { configureDeveloperLogging(preferences) }
+
   setupOnboarding?: import('./setup-onboarding-bridge.ts').DesktopOnboardingBridge
   readonly platform: DesktopPlatform
   private readonly platformStrategy: ElectronPlatformStrategy
@@ -191,7 +213,6 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
   private mountTask: Promise<void> | undefined
   private quitting = false
   private readonly trayItems = new Map<symbol, DesktopTrayItem>()
-  private updateCheck: (() => Promise<void>) | undefined
   private terminalSpec: DesktopTerminalSpec | undefined
   private diagnosticExport: Promise<void> | undefined
   private readonly workspaceAdmission: ElectronWorkspaceAdmission
@@ -340,6 +361,7 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
         logError: message => { this.logError(message) },
         mainWindowState: this.mainWindowState,
         platformLoginTitle: () => PLATFORM_LOGIN_TITLE[this.currentLocale],
+        editingContextMenuLabels: () => editingContextMenuLabels(this.currentLocale),
         setupOnboarding: this.setupOnboarding,
         chromeActions: {
           ...(remoteOffer ? { remoteControl: {
@@ -362,19 +384,8 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
           developerTools: () => { this.toggleDeveloperTools() },
           exportDiagnostics: () => this.exportDiagnostics(),
           checkForUpdates: async () => {
-            // The Host-registered check is the primary surface: it reaches the
-            // same interactive flow without depending on a tray command, which a
-            // desktop without a status area never exposes to the operator.
-            const registered = this.updateCheck
-            if (registered !== undefined) {
-              await registered()
-              return
-            }
             const command = [...this.trayItems.values()].find(item => item.id === 'check-for-updates')
-            if (command === undefined || command.enabled?.() === false) {
-              this.logError('dsh-plugin-desktop: no update check is available; the desktop-updates plugin did not register one')
-              throw new Error('Desktop update check is unavailable')
-            }
+            if (command === undefined || command.enabled?.() === false) throw new Error('Desktop update check is unavailable')
             await command.invoke()
           },
         },
@@ -492,19 +503,6 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
         this.trayItems.delete(key)
         this.rebuildTrayMenu()
         this.rebuildApplicationMenu()
-      },
-    }
-  }
-
-  /** @inheritdoc */
-  registerUpdateCheck(check: () => Promise<void>): DesktopUpdateCheckRegistration {
-    this.updateCheck = check
-    let active = true
-    return {
-      dispose: () => {
-        if (!active) return
-        active = false
-        if (this.updateCheck === check) this.updateCheck = undefined
       },
     }
   }
@@ -808,12 +806,9 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
   }
 
   private async showDesktopMessageBox(options: Electron.MessageBoxOptions): Promise<Electron.MessageBoxReturnValue> {
-    // A dialog that cannot present itself must leave a trace: it otherwise
-    // reaches the operator as an interactive flow that silently never finishes.
-    const report = (message: string): void => { this.logError(message) }
     return this.generation === undefined
-      ? await showDesktopMessageBox(options, undefined, report)
-      : await this.generation.showMessageBox(options, report)
+      ? await showDesktopMessageBox(options)
+      : await this.generation.showMessageBox(options)
   }
 
   private async showUpdateSaveDialog(options: Electron.SaveDialogOptions): Promise<Electron.SaveDialogReturnValue> {
@@ -888,7 +883,7 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
     version: string,
     signal: AbortSignal,
     channel: DesktopReleaseChannel = 'stable',
-    installerSha256?: Readonly<Partial<Record<'win32' | 'darwin' | 'linux', string>>>,
+    installerSha256?: Readonly<Partial<Record<'win32' | 'darwin', string>>>,
   ): Promise<void> {
     const copy = desktopNativeCopy(this.currentLocale)
     const platform = this.platformStrategy.updateDownloadPlatform
@@ -931,23 +926,6 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
       return
     }
 
-    if (platform === 'linux') {
-      // An AppImage carries no installer step, so the download is already the
-      // finished artifact: it was made executable, and all that remains is
-      // showing the user which file to swap in for the running image.
-      shell.showItemInFolder(artifactPath)
-      await this.showUpdateMessageBox({
-        type: 'info',
-        title: copy.updateDownloadedTitle,
-        message: copy.updateReady(version),
-        detail: copy.linuxInstallInstructions,
-        buttons: [copy.ok],
-        defaultId: 0,
-        noLink: true,
-      })
-      return
-    }
-
     const result = await this.showUpdateMessageBox({
       type: 'info',
       title: copy.updateDownloadedTitle,
@@ -972,10 +950,10 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
     version: string,
     channel: DesktopReleaseChannel = 'stable',
   ): Promise<string | undefined> {
-    if (this.platform !== 'darwin' && this.platform !== 'win32' && this.platform !== 'linux') return undefined
+    if (this.platform !== 'darwin' && this.platform !== 'win32') return undefined
     const copy = desktopNativeCopy(this.currentLocale)
     const filename = desktopUpdateFilename(this.platform, version, channel)
-    const extension = this.platform === 'darwin' ? 'dmg' : this.platform === 'linux' ? 'AppImage' : 'exe'
+    const extension = this.platform === 'darwin' ? 'dmg' : 'exe'
     const result = await this.showUpdateSaveDialog({
       title: copy.saveInstallerTitle,
       defaultPath: join(app.getPath('downloads'), filename),
@@ -983,9 +961,7 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
       filters: [{
         name: this.platform === 'darwin'
           ? copy.diskImage
-          : this.platform === 'linux'
-            ? copy.linuxAppImage
-            : copy.windowsInstaller,
+          : copy.windowsInstaller,
         extensions: [extension],
       }],
       properties: ['createDirectory', 'showOverwriteConfirmation', 'dontAddToRecent'],
@@ -1003,7 +979,7 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
   }
 
   private async performUpdateArtifactCleanup(): Promise<void> {
-    if (this.platform !== 'darwin' && this.platform !== 'win32' && this.platform !== 'linux') return
+    if (this.platform !== 'darwin' && this.platform !== 'win32') return
     const userDataPath = app.getPath('userData')
     const artifact = await pendingDesktopUpdateArtifact(userDataPath, PRODUCT_VERSION, this.platform)
     if (artifact === undefined) return
@@ -1089,6 +1065,12 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
 
   private buildTrayTemplate(spec: DesktopShellSpec): Electron.MenuItemConstructorOptions[] {
     const show = (): void => { this.show() }
+    const changeMode = (mode: DesktopShellSpec['mode']): void => {
+      if (!this.platformStrategy.canToggleShellMode || mode === spec.mode) return
+      void spec.requestModeChange(mode).catch((cause: unknown) => {
+        this.logError(`dsh-plugin-desktop: failed to change shell mode: ${cause instanceof Error ? cause.message : String(cause)}`)
+      })
+    }
     const tools = this.contributedTrayItems('tools')
     const profiles = this.contributedTrayItems('profiles')
     const status = this.contributedTrayItems('status')
@@ -1113,7 +1095,14 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
       { type: 'separator' },
       {
         label: desktopTrayLabel(this.locale, 'shellMode', desktopTrayLabel(this.locale, spec.mode)),
-        enabled: false,
+        enabled: this.platformStrategy.canToggleShellMode,
+        submenu: (['compatibility', 'extended', 'advanced'] as const).map(mode => ({
+          label: desktopTrayLabel(this.locale, mode),
+          type: 'radio',
+          checked: mode === spec.mode,
+          enabled: this.platformStrategy.canToggleShellMode,
+          click: () => { changeMode(mode) },
+        })),
       },
       { type: 'separator' },
       { label: desktopTrayLabel(this.locale, 'quit'), click: () => { spec.requestQuit(0) } },

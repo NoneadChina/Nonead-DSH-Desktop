@@ -128,7 +128,7 @@ function normalizedSelection(input: DesktopSetupWizardInput): DesktopSetupWizard
     windowsMaterial: input.windowsMaterial,
     openBrowser: browserAccess,
     networkExposure: browserAccess ? input.networkExposure : 'loopback',
-    market: 'dsh-market',
+    market: 'disabled',
     aaEnabled: input.aaEnabled === true,
     notifications: { ...input.notifications },
   }
@@ -252,6 +252,8 @@ function ModeOptions({
 }): JSX.Element {
   const modes: readonly { readonly value: DesktopSetupWizardMode; readonly title: string; readonly body: string }[] = [
     { value: 'compatibility', title: copy.compatibilityMode, body: copy.compatibilityModeBody },
+    { value: 'extended', title: copy.extendedMode, body: input.platform === 'linux' ? copy.unavailableOnLinux : copy.extendedModeBody },
+    { value: 'advanced', title: copy.advancedMode, body: input.platform === 'linux' ? copy.unavailableOnLinux : copy.advancedModeBody },
   ]
   return <RadioGroup
     aria-label={copy.presentationTitle}

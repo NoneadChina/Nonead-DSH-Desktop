@@ -12,7 +12,11 @@ import {
   DesktopNativeActions,
   DesktopRestartMenuItems,
 } from '../src/client/DesktopNativeActions.tsx'
-import { DesktopVersionControl } from '../src/client/ExtendedTitlebar.tsx'
+import {
+  DesktopModeControl,
+  DesktopVersionControl,
+  selectDesktopFrameMode,
+} from '../src/client/ExtendedTitlebar.tsx'
 import {
   desktopBrowserUrlsShouldRender,
   DesktopSettingsSection,
@@ -481,28 +485,6 @@ describe('Desktop settings API', () => {
     expect(fetcher).not.toHaveBeenCalled()
   })
 
-  it('falls back to the loopback update route when the bridge refuses the manual check', async () => {
-    const fetcher = vi.fn(async () => json({ accepted: true }))
-    const api = createDesktopSettingsApi(fetcher, {
-      invoke: async action => {
-        if (action === 'check-for-updates') throw new Error('Desktop update check is unavailable')
-      },
-    })
-
-    await expect(api.checkForUpdates()).resolves.toBeUndefined()
-    expect(fetcher).toHaveBeenCalledExactlyOnceWith(desktopSettingsPaths.updateCheck, expect.anything())
-  })
-
-  it('keeps the bridge failure when the loopback update route is unavailable too', async () => {
-    const fetcher = vi.fn(async () => json({ accepted: true }, 403))
-    const api = createDesktopSettingsApi(fetcher, {
-      invoke: async () => { throw new Error('Desktop update check is unavailable') },
-    })
-
-    await expect(api.checkForUpdates()).rejects.toThrow('Desktop update check is unavailable')
-    expect(fetcher).toHaveBeenCalledExactlyOnceWith(desktopSettingsPaths.updateCheck, expect.anything())
-  })
-
   it('detects only a usable preload bridge', () => {
     const bridge = { invoke: async () => {} }
     expect(desktopRendererActionsBridge({ [DESKTOP_RENDERER_ACTIONS_BRIDGE]: bridge })).toBe(bridge)
@@ -555,6 +537,29 @@ describe('Desktop native action presentation', () => {
     expect(markup).toContain('v2.0.3')
     expect(markup).toContain('aria-label="Current version v2.0.3"')
     expect(markup).toContain('data-slot="hover-card-trigger"')
+  })
+
+  it('renders the active presentation pill through a shadcn hover-card trigger', () => {
+    const markup = renderToStaticMarkup(createElement(DesktopModeControl, {
+      mode: 'extended',
+      setMode: vi.fn(async () => {}),
+      restart: vi.fn(async () => {}),
+      t,
+    }))
+
+    expect(markup).toContain('Extended mode')
+    expect(markup).toContain('aria-label="Window mode: Extended mode"')
+    expect(markup).toContain('data-slot="hover-card-trigger"')
+  })
+
+  it('persists a presentation change before requesting the confirmed restart', async () => {
+    const order: string[] = []
+    const setMode = vi.fn(async (mode: string) => { order.push(`mode:${mode}`) })
+    const restart = vi.fn(async () => { order.push('restart') })
+
+    await selectDesktopFrameMode('advanced', setMode, restart)
+
+    expect(order).toEqual(['mode:advanced', 'restart'])
   })
 
   it('keeps explicit text labels in settings', () => {
@@ -624,7 +629,23 @@ describe('Desktop native action presentation', () => {
     }
   })
 
-  it.each([DESKTOP_PACKAGE_NAME, 'dsh-desktop-next'])('keeps %s settings styles out of another plugin lifecycle', owner => {
+  it('fills native select popups in the dark palette', () => {
+    let css = ''
+    const style = { id: '', dataset: {} as Record<string, string>, get textContent() { return css }, set textContent(value: string) { css = value }, remove: vi.fn() }
+    vi.stubGlobal('document', { getElementById: () => null, createElement: () => style, head: { appendChild: vi.fn() } })
+    try {
+      installDesktopSettingsStyles()
+      // Chromium paints the Windows and Linux popup from the control's own
+      // background; upstream's transparent selects need an opaque option fill
+      // under the dark palette, and only there.
+      expect(css).toContain('body[data-ds-dark-theme] select :is(option, optgroup) { background-color: var(--dsw-alias-bg-layer-2); }')
+      expect(css.split('select :is(option, optgroup)')).toHaveLength(2)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it.each([DESKTOP_PACKAGE_NAME, 'nonead-dsh-desktop'])('keeps %s settings styles out of another plugin lifecycle', owner => {
     let connected = false
     const style = { id: '', dataset: {} as Record<string, string>, textContent: '', remove: () => { connected = false } }
     vi.stubGlobal('document', {

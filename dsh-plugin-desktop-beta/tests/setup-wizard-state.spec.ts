@@ -222,7 +222,7 @@ describe('Desktop Setup Wizard state', () => {
     const profile = temporaryDirectory('dsh-setup-state-profile-')
     for (const desktopVersion of ['2.0.5', '2.0.6-beta.1']) {
       const state = await recordSetup(userData, profile, outcome, { ...CURRENT_VERSIONS, desktopVersion })
-      for (const nextVersion of ['2.0.4', '2.0.6', '2.0.8-beta.1']) {
+      for (const nextVersion of ['2.0.4', '2.0.6', '2.0.7-beta.1']) {
         expect(desktopSetupWizardRequired(state, { ...CURRENT_VERSIONS, desktopVersion: nextVersion })).toBe(false)
       }
       expect(readDesktopSetupWizardState(userData, profile)).toEqual(state)

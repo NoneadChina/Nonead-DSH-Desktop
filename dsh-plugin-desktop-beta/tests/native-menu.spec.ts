@@ -17,13 +17,13 @@ describe('native macOS application menu', () => {
   })
 
   it('localizes the complete Simplified Chinese menu while retaining native roles', () => {
-    const template = macApplicationMenuTemplate('Nonead DSH Desktop', 'zh-CN')
+    const template = macApplicationMenuTemplate('DSH Desktop', 'zh-CN')
 
     expect(template.map(item => item.label)).toEqual([
-      'Nonead DSH Desktop', '文件', '编辑', '显示', '窗口',
+      'DSH Desktop', '文件', '编辑', '显示', '窗口',
     ])
     expect(submenu(template[0]!).map(item => item.label).filter(Boolean)).toEqual([
-      '关于 Nonead DSH Desktop', '服务', '隐藏 Nonead DSH Desktop', '隐藏其他', '全部显示', '退出 Nonead DSH Desktop',
+      '关于 DSH Desktop', '服务', '隐藏 DSH Desktop', '隐藏其他', '全部显示', '退出 DSH Desktop',
     ])
     expect(submenu(template[1]!)).toEqual([
       expect.objectContaining({ label: '关闭窗口', role: 'close' }),
@@ -41,20 +41,20 @@ describe('native macOS application menu', () => {
   })
 
   it('keeps the English fallback complete', () => {
-    const template = macApplicationMenuTemplate('Nonead DSH Desktop', 'en')
+    const template = macApplicationMenuTemplate('DSH Desktop', 'en')
 
     expect(template.map(item => item.label)).toEqual([
-      'Nonead DSH Desktop', 'File', 'Edit', 'View', 'Window',
+      'DSH Desktop', 'File', 'Edit', 'View', 'Window',
     ])
     expect(submenu(template[0]!)).toEqual(expect.arrayContaining([
-      expect.objectContaining({ label: 'About Nonead DSH Desktop', role: 'about' }),
-      expect.objectContaining({ label: 'Quit Nonead DSH Desktop', role: 'quit' }),
+      expect.objectContaining({ label: 'About DSH Desktop', role: 'about' }),
+      expect.objectContaining({ label: 'Quit DSH Desktop', role: 'quit' }),
     ]))
   })
 
   it('places trusted desktop actions in the application submenu', () => {
     const invokeTerminal = vi.fn()
-    const template = macApplicationMenuTemplate('Nonead DSH Desktop', 'en', [{
+    const template = macApplicationMenuTemplate('DSH Desktop', 'en', [{
       label: 'Open DSH Terminal',
       click: invokeTerminal,
     }, {

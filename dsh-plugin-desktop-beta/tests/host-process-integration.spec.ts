@@ -58,7 +58,7 @@ it.each([false, true])('boots a separate Web Host with client plugins (AA enable
     const restarts: string[] = []
     const runtime = {
       platform: 'win32', locale: 'en',
-      updates: { isPackaged: false, canDownload: false, currentVersion: '2.0.8-beta.1', statePath: join(home, 'updates') },
+      updates: { isPackaged: false, canDownload: false, currentVersion: '2.0.7-beta.1', statePath: join(home, 'updates') },
       schedule(spec: DesktopShellSpec) { shell = spec; return async () => {} },
       registerTrayItem() { return { refresh() {}, dispose() {} } },
       setLocalePreference() {}, setThemeSource() {},

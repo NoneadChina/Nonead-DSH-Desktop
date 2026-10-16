@@ -262,8 +262,12 @@ class DesktopUpdateLifecycleOwner implements DesktopUpdateLifecycle {
         } else {
           await this.options.adapter.downloadAndOpen(version, controller.signal, channel, ...digestArguments)
         }
-      } catch {
-        // Network, filesystem, and installer-opening failures are deliberately silent.
+      } catch (error) {
+        // The UI stays silent on network, filesystem, and installer-opening failures. A refusal
+        // such as a digest mismatch or a rejected redirect is indistinguishable from those, so
+        // report it on the host's stderr, which the desktop shell keeps in its log.
+        const code = error instanceof Error && 'code' in error ? ` (${String(error.code)})` : ''
+        process.stderr.write(`dsh-plugin-desktop: update download failed${code}: ${error instanceof Error ? error.message : String(error)}\n`)
       } finally {
         if (this.downloadController === controller) this.downloadController = undefined
         this.downloadingVersion = undefined
@@ -359,8 +363,8 @@ function parseState(text: string): ParsedUpdateState {
 
 function updateAvailableNotification(locale: DesktopLocale, version: string): DesktopNotification {
   return locale === 'zh'
-    ? { title: 'Nonead DSH Desktop 有可用更新', body: `版本 ${version} 已可下载。打开 Nonead DSH Desktop 即可继续。` }
-    : { title: 'Nonead DSH Desktop Update Available', body: `Version ${version} is ready to download. Open Nonead DSH Desktop to continue.` }
+    ? { title: 'DSH Desktop 有可用更新', body: `版本 ${version} 已可下载。打开 DSH Desktop 即可继续。` }
+    : { title: 'DSH Desktop Update Available', body: `Version ${version} is ready to download. Open DSH Desktop to continue.` }
 }
 
 async function readState(filename: string): Promise<string> {

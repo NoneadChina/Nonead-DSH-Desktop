@@ -94,12 +94,7 @@ describe('Desktop factory reset', () => {
     expect([...readDesktopDisabledBundles(pluginStatePath, 'desktop')]).toEqual([])
     expect([...readDesktopDisabledBundles(pluginStatePath, 'work')]).toEqual([])
     expect([...readDesktopDisabledBundles(pluginStatePath, 'unrelated')]).toEqual(['third-party-plugin'])
-    // The surviving profile keeps its own preferences; the legacy mode marker was
-    // stored normalized on the write path.
-    expect(readDesktopProfilePreferences(userDataDir, unrelated)).toMatchObject({
-      ...oldPreferences,
-      mode: 'compatibility',
-    })
+    expect(readDesktopProfilePreferences(userDataDir, unrelated)).toMatchObject(oldPreferences)
     expect(readDesktopSetupWizardState(userDataDir, unrelated)?.outcome).toBe('completed')
     expect(readDesktopSetupWizardState(locations.other.userDataDir, unrelated)?.outcome).toBe('skipped')
   })

@@ -56,8 +56,7 @@ function exactBoolean(value: string | null): boolean | undefined {
 }
 
 function exactMode(value: string | null): DesktopSetupWizardMode | undefined {
-  // Compatibility is the only presentation mode; legacy values normalize to it.
-  return value === 'compatibility' || value === 'extended' || value === 'advanced' ? 'compatibility' : undefined
+  return value === 'compatibility' || value === 'extended' || value === 'advanced' ? value : undefined
 }
 
 function exactMacosMaterial(value: string | null): DesktopSetupWizardMacosMaterial | undefined {
@@ -162,6 +161,7 @@ export class DesktopSetupWizardWindow {
     const customFrame = auxiliaryWindowHasCustomFrame(input.platform)
     const window = createDesktopLocalWindow({
       partition: 'dsh-setup-wizard',
+      locale: this.options.locale,
       title: copy.title,
       ...auxiliaryWindowChromeOptions(input.platform),
       width: 880,

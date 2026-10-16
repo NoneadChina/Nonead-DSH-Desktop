@@ -1,4 +1,4 @@
-/** Nonead DSH Desktop Host plugin: owns the selected native shell generation. */
+/** DSH Desktop Host plugin: owns the selected native shell generation. */
 
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { fileURLToPath } from 'node:url'
@@ -6,7 +6,6 @@ import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-cmdline'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import type {} from '@deepseek-ai/dsh-client-connection'
-import { desktopApplicationIconPath } from './application-icon-path.ts'
 import {
   handleRendererBootRequest,
   RENDERER_BOOT_REPORT_PATH,
@@ -54,6 +53,7 @@ import type { DesktopLocale, DesktopShellMode } from './runtime.ts'
 import type {} from './runtime.ts'
 import {
   desktopBrowserAccessEnabled,
+  desktopListeningPort,
   desktopNetworkExposureForBrowserAccess,
   desktopWebServerHost,
   type DesktopNetworkExposure,
@@ -82,7 +82,7 @@ export const name = 'desktop-shell'
 
 /** Services required before the shell can register its renderer generation. */
 /** Services required by the desktop shell; `desktopRuntime` is probed, not required. */
-export const inject = ['webServer', 'webRuntime', 'appExit', 'settings', 'connection']
+export const inject = ['webServer', 'appExit', 'settings', 'connection']
 
 /**
  * Standard settings namespace shared by tray and configuration surfaces, the
@@ -151,8 +151,8 @@ export function apply(ctx: Context, config: DesktopShellConfig): void {
   const runtime = ctx.get('desktopRuntime')
   if (runtime === undefined) {
     process.stderr.write(
-      'dsh-plugin-desktop: this profile is composed with the Nonead DSH Desktop shell, which requires the desktop launcher (desktopRuntime).\n'
-      + 'Start it with `dsh-desktop`, or select this profile inside the packaged Nonead DSH Desktop application.\n'
+      'dsh-plugin-desktop: this profile is composed with the DSH Desktop shell, which requires the desktop launcher (desktopRuntime).\n'
+      + 'Start it with `dsh-desktop`, or select this profile inside the packaged DSH Desktop application.\n'
       + 'The desktop terminal, profile, and update rows stay inactive in an ordinary DSH boot.\n',
     )
     return
@@ -173,8 +173,11 @@ export function apply(ctx: Context, config: DesktopShellConfig): void {
   if (ctx.webServer.host !== desktopWebServerHost(resolved.networkExposure)) {
     throw new Error('dsh-plugin-desktop: desktop shell WebServer host does not match networkExposure')
   }
-  lanHttps.attach(ctx.webServer.port)
-  const iconPath = desktopApplicationIconPath(runtime.platform)
+  lanHttps.attach(desktopListeningPort(ctx.webServer))
+  const iconFilename = runtime.platform === 'darwin'
+    ? 'app-icon-mac.png'
+    : 'app-icon.png'
+  const iconPath = fileURLToPath(new URL(`../build/${iconFilename}`, import.meta.url))
   const trayIcons = {
     templatePath: fileURLToPath(new URL('../build/tray-iconTemplate.png', import.meta.url)),
     bluePath: fileURLToPath(new URL('../build/tray-icon-blue.png', import.meta.url)),
@@ -421,7 +424,7 @@ export function apply(ctx: Context, config: DesktopShellConfig): void {
         resolved.linuxMaterial,
       )
       const url = desktopRendererUrl(
-        ctx.webServer.port,
+        desktopListeningPort(ctx.webServer),
         resolved.mode,
         runtime.platform,
         runtime.updates.currentVersion,
@@ -434,7 +437,7 @@ export function apply(ctx: Context, config: DesktopShellConfig): void {
         authenticationUrl: ctx.connection.authenticatedUrl(new URL(url).origin),
         rendererAccessHeader: browserAccess.rendererHeader,
         productName: DESKTOP_PRODUCT_NAME,
-        windowTitle: DESKTOP_PRODUCT_NAME,
+        windowTitle: 'DeepSeek Harness Desktop',
         iconPath,
         trayIcons,
         readLocalePreference: () => {

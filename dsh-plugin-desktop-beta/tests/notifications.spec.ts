@@ -256,7 +256,7 @@ describe('desktop notifications Host plugin', () => {
 
     expect(harness.notifyAttention.mock.calls).toEqual([
       [{ title: 'Background Job Completed', body: 'A background job has finished.' }],
-      [{ title: 'Background Job Failed', body: 'A background job could not finish. Open Nonead DSH Desktop for details.' }],
+      [{ title: 'Background Job Failed', body: 'A background job could not finish. Open DSH Desktop for details.' }],
     ])
     expect(JSON.stringify(harness.notifyAttention.mock.calls)).not.toMatch(/Users|private|secret|session-123/u)
   })
@@ -299,8 +299,8 @@ describe('desktop notifications Host plugin', () => {
     }, 6))
 
     expect(harness.notifyAttention.mock.calls).toEqual([
-      [{ title: 'Background Job Failed', body: 'A background job could not finish. Open Nonead DSH Desktop for details.' }],
-      [{ title: 'User Turn Failed', body: 'A user-initiated turn could not finish. Open Nonead DSH Desktop for details.' }],
+      [{ title: 'Background Job Failed', body: 'A background job could not finish. Open DSH Desktop for details.' }],
+      [{ title: 'User Turn Failed', body: 'A user-initiated turn could not finish. Open DSH Desktop for details.' }],
     ])
   })
 
@@ -370,7 +370,7 @@ describe('desktop notifications Host plugin', () => {
     await harness.sessionEvent(active, userMessage('schedule', 8))
     await harness.sessionEvent(active, event('turn/end', { turn: 3, reason: { kind: 'error', error: { code: 'UNKNOWN', message: 'private error' } } }, 9))
     expect(harness.notifyAttention.mock.calls).toEqual([[
-      { title: 'Automation Task Failed', body: 'An automation task could not finish. Open Nonead DSH Desktop for details.' },
+      { title: 'Automation Task Failed', body: 'An automation task could not finish. Open DSH Desktop for details.' },
     ]])
     harness.notifyAttention.mockClear()
     await harness.updateSettings({ ...DesktopNotificationSettingsSchema({} as DesktopNotificationSettings), notifyOnScheduleFailure: false })
@@ -400,7 +400,7 @@ describe('desktop notifications Host plugin', () => {
     expect(harness.notifyAttention).toHaveBeenCalledOnce()
     expect(harness.notifyAttention).toHaveBeenCalledWith({
       title: 'User Turn Failed',
-      body: 'A user-initiated turn could not finish. Open Nonead DSH Desktop for details.',
+      body: 'A user-initiated turn could not finish. Open DSH Desktop for details.',
     })
   })
 

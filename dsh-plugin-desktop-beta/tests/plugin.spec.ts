@@ -352,6 +352,7 @@ describe('desktop Host plugin', () => {
       openBrowser: false,
       networkExposure: 'loopback',
       logLevel: 'info',
+      developerLogging: false,
     })
     expect(() => DesktopSettingsSchema({ port: -1 } as DesktopSettings)).toThrow()
     expect(() => DesktopSettingsSchema({ port: 1.5 } as DesktopSettings)).toThrow()
@@ -461,7 +462,7 @@ describe('desktop Host plugin', () => {
       mode: 'compatibility',
       url: 'http://127.0.0.1:43120/?dsh-desktop-mode=compatibility&dsh-desktop-platform=darwin&dsh-desktop-version=2.0.0&dsh-desktop-material=transparent&dsh-desktop-titlebar-inset=36',
       authenticationUrl: 'http://127.0.0.1:43120/?token=test-token',
-      productName: 'Nonead DSH Desktop Beta',
+      productName: 'DSH Desktop Beta',
       windowTitle: 'DeepSeek Harness Desktop',
       rendererAccessHeader: {
         name: 'x-dsh-desktop-renderer',
@@ -620,21 +621,18 @@ describe('desktop Host plugin', () => {
     expect(JSON.parse(body)).toEqual({ allowed: false })
   })
 
-  it.each([
-    ['win32', 'app-icon.ico'],
-    ['linux', 'app-icon.png'],
-  ] as const)(
-    'keeps the platform application icon on %s',
-    (platform, expected) => {
+  it.each(['win32', 'linux'] as const)(
+    'keeps the full-size application icon on %s',
+    (platform) => {
       const harness = createHarness(platform)
 
       apply(harness.ctx, harness.config)
 
-      expect(harness.shell()?.iconPath.endsWith(join('build', expected))).toBe(true)
+      expect(harness.shell()?.iconPath.endsWith(join('build', 'app-icon.png'))).toBe(true)
     },
   )
 
-  it('requests one orderly restart after the settings form commits another appearance', async () => {
+  it('requests one orderly restart after the settings form commits another mode', async () => {
     vi.useFakeTimers()
     const harness = createHarness()
     apply(harness.ctx, harness.config)
@@ -642,13 +640,8 @@ describe('desktop Host plugin', () => {
     await harness.notify({})
     expect(harness.restart).not.toHaveBeenCalled()
 
-    // A legacy mode marker is not an appearance change: it reads as compatibility.
-    await harness.notify({ mode: 'advanced' })
-    await vi.runAllTimersAsync()
-    expect(harness.restart).not.toHaveBeenCalled()
-
     harness.restart.mockImplementation(() => new Promise<void>(() => {}))
-    await harness.notify({ macosMaterial: 'off' })
+    await harness.notify({ mode: 'advanced' })
     await vi.runAllTimersAsync()
     expect(harness.restart).toHaveBeenCalledOnce()
   })
@@ -669,7 +662,7 @@ describe('desktop Host plugin', () => {
     }
 
     await harness.shell()?.applySetupSettings?.({
-      mode: 'compatibility',
+      mode: 'extended',
       macosMaterial: 'off',
       windowsMaterial: 'off',
       openBrowser: false,
@@ -678,7 +671,7 @@ describe('desktop Host plugin', () => {
     })
 
     expect(harness.update).toHaveBeenCalledWith(DESKTOP_SETTINGS_ENTRY_ID, {
-      mode: 'compatibility',
+      mode: 'extended',
       macosMaterial: 'off',
       windowsMaterial: 'off',
       openBrowser: false,
@@ -687,12 +680,12 @@ describe('desktop Host plugin', () => {
     expect(harness.update).toHaveBeenCalledWith('desktop-notifications', notifications)
 
     // Setup's continuation owns the restart that applies its own choice.
-    await harness.notify({ mode: 'compatibility', macosMaterial: 'off' })
+    await harness.notify({ mode: 'extended', macosMaterial: 'off' })
     await vi.runAllTimersAsync()
     expect(harness.restart).not.toHaveBeenCalled()
 
     // A later, different choice still asks for its own restart.
-    await harness.notify({ port: 43_189 })
+    await harness.notify({ mode: 'advanced' })
     await vi.runAllTimersAsync()
     expect(harness.restart).toHaveBeenCalledOnce()
   })
@@ -708,8 +701,8 @@ describe('desktop Host plugin', () => {
     })
 
     await expect(harness.shell()?.applySetupSettings?.({
-      mode: 'compatibility',
-      macosMaterial: 'off',
+      mode: 'extended',
+      macosMaterial: 'transparent',
       windowsMaterial: 'off',
       openBrowser: false,
       networkExposure: 'loopback',
@@ -723,13 +716,13 @@ describe('desktop Host plugin', () => {
         notifyOnScheduleFailure: false,
       },
     })).rejects.toThrow('refused')
-    await harness.notify({ mode: 'compatibility', macosMaterial: 'off' })
+    await harness.notify({ mode: 'extended' })
     await vi.runAllTimersAsync()
     expect(harness.restart).not.toHaveBeenCalled()
 
-    // Back to the running appearance, then Setup's appearance again from the picker.
-    await harness.notify({ macosMaterial: 'transparent' })
-    await harness.notify({ macosMaterial: 'off' })
+    // Back to the running mode, then Setup's mode again from the mode picker.
+    await harness.notify({ mode: 'compatibility' })
+    await harness.notify({ mode: 'extended' })
     await vi.runAllTimersAsync()
     expect(harness.restart).toHaveBeenCalledOnce()
   })
@@ -742,8 +735,8 @@ describe('desktop Host plugin', () => {
     harness.update.mockRejectedValueOnce(new Error('refused'))
 
     await expect(harness.shell()?.applySetupSettings?.({
-      mode: 'compatibility',
-      macosMaterial: 'off',
+      mode: 'extended',
+      macosMaterial: 'transparent',
       windowsMaterial: 'off',
       openBrowser: false,
       networkExposure: 'loopback',
@@ -758,13 +751,12 @@ describe('desktop Host plugin', () => {
       },
     })).rejects.toThrow('refused')
 
-    // The choice was never saved, so the next volatile update asks for its own restart.
-    await harness.notify({ mode: 'compatibility', macosMaterial: 'off' })
+    await harness.notify({ mode: 'extended' })
     await vi.runAllTimersAsync()
     expect(harness.restart).toHaveBeenCalledOnce()
   })
 
-  it('hot-applies browser and LAN access without a restart for a legacy custom mode', async () => {
+  it('hot-applies browser and LAN access but restarts when a custom mode withdraws them', async () => {
     vi.useFakeTimers()
     const harness = createHarness()
     apply(harness.ctx, harness.config)
@@ -778,13 +770,11 @@ describe('desktop Host plugin', () => {
 
     const enabledHarness = createHarness('darwin', true)
     apply(enabledHarness.ctx, enabledHarness.config)
-    // A legacy custom-mode marker reads as compatibility, so browser and LAN access
-    // stay hot-applied instead of forcing a restart.
-    await enabledHarness.notify({ mode: 'advanced', networkExposure: 'lan' })
+    await enabledHarness.notify({ mode: 'advanced' })
     await vi.runAllTimersAsync()
-    expect(enabledHarness.restart).not.toHaveBeenCalled()
-    expect(enabledHarness.browserAccess.ordinaryBrowserEnabled).toBe(true)
-    expect(enabledHarness.setLanHttpsEnabled).toHaveBeenLastCalledWith(true)
+    expect(enabledHarness.restart).toHaveBeenCalledOnce()
+    expect(enabledHarness.browserAccess.ordinaryBrowserEnabled).toBe(false)
+    expect(enabledHarness.setLanHttpsEnabled).toHaveBeenLastCalledWith(false)
   })
 
   it('requests one orderly restart after the configured Web port changes', async () => {
@@ -877,7 +867,7 @@ describe('desktop Host plugin', () => {
     expect(() => apply(harness.ctx, configFixture({ networkExposure: 'lan' }).config)).not.toThrow()
   })
 
-  it('validates the effective Linux mode after legacy markers normalize', () => {
+  it('validates the effective Linux mode while a browser migration is deferred', () => {
     const harness = createHarness('linux')
     apply(harness.ctx, harness.config)
 
@@ -894,15 +884,23 @@ describe('desktop Host plugin', () => {
       networkExposure: 'loopback',
       logLevel: 'info',
     }
-    // Every accepted marker reads as compatibility, which Linux supports and which
-    // keeps ordinary-browser access legal.
-    for (const mode of ['compatibility', 'extended', 'advanced'] as const) {
-      expect(() => harness.validate({ ...settings, mode })).not.toThrow()
-      expect(() => harness.validate({ ...settings, mode, openBrowser: true })).not.toThrow()
-      expect(() => harness.validate({ ...settings, mode, networkExposure: 'lan' })).not.toThrow()
-    }
-    // An unknown mode is still refused before the update commits.
-    expect(() => harness.validate({ ...settings, mode: 'glass' as DesktopSettings['mode'] })).toThrow()
+    expect(() => harness.validate({ ...settings, mode: 'advanced' })).toThrow(
+      'supported on macOS and Windows',
+    )
+    expect(() => harness.validate({ ...settings, mode: 'extended' })).toThrow(
+      'supported on macOS and Windows',
+    )
+    expect(() => harness.validate({ ...settings, mode: 'compatibility' })).not.toThrow()
+    expect(() => harness.validate({
+      ...settings,
+      mode: 'advanced',
+      openBrowser: true,
+    })).toThrow('browser access requires compatibility mode')
+    expect(() => harness.validate({
+      ...settings,
+      mode: 'advanced',
+      networkExposure: 'lan',
+    })).toThrow('supported on macOS and Windows')
   })
 
   it('accepts a deferred LAN preference independently of browser mode on supported platforms', () => {

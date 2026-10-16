@@ -232,12 +232,9 @@ describe('DesktopSetupWizardWindow', () => {
     const linuxInput = input({ platform: 'linux', mode: 'compatibility' })
     const result = new DesktopSetupWizardWindow({ locale: 'en', input: linuxInput }).run()
     await vi.waitFor(() => { expect(electron.windows).toHaveLength(1) })
-    // Custom modes no longer exist, so Linux accepts every mode marker; the
-    // remaining capability rule is LAN exposure without browser access.
-    navigate(electron.windows[0]!, completeUrl({ ...linuxInput, openBrowser: false, networkExposure: 'lan' }))
-    expect(electron.windows[0]?.destroy).not.toHaveBeenCalled()
-    // A legacy marker is accepted and normalizes to compatibility on every platform.
     navigate(electron.windows[0]!, completeUrl({ ...linuxInput, mode: 'advanced' }))
-    await expect(result).resolves.toMatchObject({ action: 'complete', selection: { mode: 'compatibility' } })
+    expect(electron.windows[0]?.destroy).not.toHaveBeenCalled()
+    electron.windows[0]?.listeners.get('closed')?.()
+    await expect(result).resolves.toEqual({ action: 'quit' })
   })
 })

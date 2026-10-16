@@ -166,18 +166,6 @@ describe('desktop profile composition', {
     ])
   })
 
-  it('never composes the shipped brand skin as a Profile bundle', () => {
-    expect(desktopBundleList([
-      '@deepseek-ai/dsh-base',
-      'dsh-nonead-client-skin',
-      'third-party-one',
-    ])).toEqual([
-      '@deepseek-ai/dsh-base',
-      '@deepseek-ai/dsh-web-app',
-      'third-party-one',
-    ])
-  })
-
   it('repairs a base-only CLI profile without replacing dependencies', () => {
     const home = temporaryHome()
     const dir = ensureDesktopProfile(home)
@@ -461,6 +449,19 @@ virtualStoreDirMaxLength: 60
         trustedHosts: ['lab.internal', '192.168.1.5', '10.0.0.7'],
       }),
     }))
+    // dsh 0.2.1-alpha.2 dropped the webRuntime service; Connection keeps the
+    // invocation authorities and appends Desktop's trust after them.
+    const connection = rows.find(row => row.id === 'connection')
+    expect(connection?.inject).toEqual(['webStartup'])
+    expect(connection?.config).toEqual(expect.objectContaining({
+      trustedHosts: {
+        __jsExpr: '[...new Set([...(ctx.webStartup.trustedHosts), ...["lab.internal","192.168.1.5","10.0.0.7"]])]',
+      },
+    }))
+    const evaluateTrust = new Function('ctx', `return ${(connection?.config as { trustedHosts: { __jsExpr: string } }).trustedHosts.__jsExpr}`) as
+      (ctx: { webStartup: { trustedHosts: string[] } }) => string[]
+    expect(evaluateTrust({ webStartup: { trustedHosts: ['cli.internal', '10.0.0.7'] } }))
+      .toEqual(['cli.internal', '10.0.0.7', 'lab.internal', '192.168.1.5'])
     expect(rows.find(row => row.id === 'desktop-webserver')).toEqual(expect.objectContaining({
       config: { host: '127.0.0.1', port: 43_120 },
     }))
@@ -747,7 +748,7 @@ virtualStoreDirMaxLength: 60
     }))
   })
 
-  it('keeps a custom layout and preserves browser and LAN access for a legacy advanced mode', () => {
+  it('keeps a custom layout and withdraws incompatible browser and LAN access', () => {
     const home = temporaryHome()
     writeDesktopShellPreferences(home, [
       'mode: advanced',
@@ -759,13 +760,10 @@ virtualStoreDirMaxLength: 60
     const prepared = prepareDesktopProfile(undefined, home, 'darwin')
     const rows = composeEntries([prepared.patches])
 
-    // `advanced` is a legacy marker: the stored value still boots, but every read
-    // normalizes it to compatibility, which keeps the official layout rows and the
-    // browser access the user asked for. The patch layer keeps the raw value.
-    expect(prepared.mode).toBe('compatibility')
+    expect(prepared.mode).toBe('advanced')
     expect(prepared.port).toBe(43_189)
-    expect(prepared.openBrowser).toBe(true)
-    expect(prepared.networkExposure).toBe('lan')
+    expect(prepared.openBrowser).toBe(false)
+    expect(prepared.networkExposure).toBe('loopback')
     expect(rows.find(row => row.id === 'desktop-shell')).toEqual(expect.objectContaining({
       disabled: false,
       config: expect.objectContaining({ mode: 'advanced', port: 43_189 }),
@@ -787,9 +785,9 @@ virtualStoreDirMaxLength: 60
       name: '@deepseek-ai/dsh-settings',
     }))
     expect(prepared.settingsDocument).toBe(join(home, 'settings.yaml'))
-    expect(rows.find(row => row.id === 'ui-layout')?.disabled ?? false).toBe(false)
-    expect(rows.find(row => row.id === 'ui-sidebar')?.disabled ?? false).toBe(false)
-    expect(rows.find(row => row.id === 'ui-conversation')?.disabled ?? false).toBe(false)
+    expect(rows.find(row => row.id === 'ui-layout')?.disabled).toBe(true)
+    expect(rows.find(row => row.id === 'ui-sidebar')?.disabled).toBe(false)
+    expect(rows.find(row => row.id === 'ui-conversation')?.disabled).toBe(false)
   })
 
   it('leaves every editable startup field to the profile patch the config editor writes', () => {
@@ -820,9 +818,9 @@ virtualStoreDirMaxLength: 60
     // field may survive to the composed row with anything but the user's value.
     expect(composeEntries([prepared.patches]).find(row => row.id === 'desktop-shell'))
       .toEqual(expect.objectContaining({ disabled: false, config: expect.objectContaining(edited) }))
-    // `networkExposure` is resolved on the read path instead of by overwriting the
-    // stored intent the user just edited, and compatibility keeps browser access.
-    expect(prepared).toMatchObject({ mode: 'compatibility', port: 43_189, networkExposure: 'lan' })
+    // `networkExposure` is still withdrawn to loopback -- but on the read path, not
+    // by overwriting the stored intent the user just edited.
+    expect(prepared).toMatchObject({ mode: 'advanced', port: 43_189, networkExposure: 'loopback' })
   })
 
   it('composes a pending patch document in place of the one on disk', () => {
@@ -836,7 +834,7 @@ virtualStoreDirMaxLength: 60
       profilePatches: [{ id: 'desktop-shell', config: { mode: 'advanced', port: 43_189 } }],
     })
 
-    expect(pending.mode).toBe('compatibility')
+    expect(pending.mode).toBe('advanced')
     expect(pending.port).toBe(43_189)
     expect(composeEntries([pending.patches]).find(row => row.id === 'desktop-shell'))
       .toEqual(expect.objectContaining({
@@ -854,14 +852,12 @@ virtualStoreDirMaxLength: 60
     ['compatibility', 'extended', false],
     ['extended', 'compatibility', true],
     ['advanced', 'compatibility', true],
-  ] as const)('keeps the %s generation\'s layout rows while the stored %s mode normalizes to compatibility', (running, stored, disabled) => {
+  ] as const)('keeps the %s generation\'s layout rows after the Profile switches to %s', (running, stored, disabled) => {
     // First-run Setup and the mode picker both save the mode into the patch layer
     // while the window keeps its renderer, and the save hot-reloads the Profile.
     // Recomposing the layout rows from the stored mode dropped (or restored)
     // `ui-layout` under a page built for the other layout owner, so the client
     // plugins waited on a layout service forever and the window went to recovery.
-    // `extended`/`advanced` are legacy markers now: the stored value still gates
-    // the running generation's rows, but reads normalize it to compatibility.
     const home = temporaryHome()
     writeDesktopShellPreferences(home, [`mode: ${stored}`])
 
@@ -870,13 +866,13 @@ virtualStoreDirMaxLength: 60
     })
     const rows = composeEntries([reloaded.patches])
 
-    expect(reloaded.mode).toBe('compatibility')
+    expect(reloaded.mode).toBe(stored)
     expect(rows.find(row => row.id === 'desktop-shell')?.config).toEqual(expect.objectContaining({ mode: stored }))
     expect(rows.find(row => row.id === 'ui-layout')?.disabled ?? false).toBe(disabled)
     expect(rows.find(row => row.id === 'ui-sidebar')?.disabled ?? false).toBe(false)
-    // The next generation composes from what was saved, which is compatibility.
+    // The next generation composes from what was saved.
     const next = composeEntries([prepareDesktopProfile(undefined, home, 'win32').patches])
-    expect(next.find(row => row.id === 'ui-layout')?.disabled ?? false).toBe(false)
+    expect(next.find(row => row.id === 'ui-layout')?.disabled ?? false).toBe(stored !== 'compatibility')
   })
 
   it('renames its own legacy settings sections to the entry ids 0.1.7 imports by', () => {
@@ -1012,7 +1008,7 @@ virtualStoreDirMaxLength: 60
     ].join('\n'))
   })
 
-  it('lands the not-yet-imported settings document in the profile before the Loader starts', () => {
+  it('starts in the mode the not-yet-imported settings document is about to apply', () => {
     // The setup wizard (and every 0.1.6 install) leaves the chosen mode in the
     // harness-home document, which 0.1.7 only merges into the profile after the
     // Loader is up. Reading the composed row alone opened the first window in
@@ -1033,11 +1029,10 @@ virtualStoreDirMaxLength: 60
     const first = prepareDesktopProfile(undefined, home, 'win32')
     const rows = composeEntries([first.patches])
 
-    // Merged field by field, like the import: the document's raw mode, the row's
-    // port. The mode only ever *reads* as compatibility now.
-    expect(first).toMatchObject({ mode: 'compatibility', port: 43_189 })
-    expect(rows.find(row => row.id === 'ui-layout')?.disabled ?? false).toBe(false)
-    expect(rows.find(row => row.id === 'ui-sidebar')?.disabled ?? false).toBe(false)
+    // Merged field by field, like the import: the document's mode, the row's port.
+    expect(first).toMatchObject({ mode: 'extended', port: 43_189 })
+    expect(rows.find(row => row.id === 'ui-layout')?.disabled).toBe(true)
+    expect(rows.find(row => row.id === 'ui-sidebar')?.disabled).toBe(false)
     expect(rows.find(row => row.id === 'desktop-shell')?.config)
       .toEqual(expect.objectContaining({ mode: 'extended', port: 43_189 }))
     // Persisted in the profile's own row, where the config editor edits it later;
@@ -1048,13 +1043,13 @@ virtualStoreDirMaxLength: 60
     // Only Desktop's shell section leaves the document; the import still merges the rest.
     expect(readFileSync(settingsPath, 'utf8')).toBe(['agent-preset-registry:', '  selectedDefault: minimal', ''].join('\n'))
     // Every later composition (HMR, the import's own) reads the same row.
-    expect(prepareDesktopProfile(undefined, home, 'win32').mode).toBe('compatibility')
+    expect(prepareDesktopProfile(undefined, home, 'win32').mode).toBe('extended')
 
     // A profile without its own desktop-shell row gets one, shaped as the editor writes it.
     const fresh = temporaryHome()
     const freshPatch = join(ensureDesktopProfile(fresh), 'cordis.patch.yml')
     writeFileSync(join(fresh, 'settings.yaml'), ['desktop-shell:', '  mode: advanced', ''].join('\n'))
-    expect(prepareDesktopProfile(undefined, fresh, 'win32').mode).toBe('compatibility')
+    expect(prepareDesktopProfile(undefined, fresh, 'win32').mode).toBe('advanced')
     expect(readFileSync(freshPatch, 'utf8')).toContain(
       ['- id: desktop-shell', `  name: ${DESKTOP_PACKAGE_NAME}`, '  config:', '    mode: advanced', ''].join('\n'))
 
@@ -1072,8 +1067,6 @@ virtualStoreDirMaxLength: 60
     // Only volatile fields are importable; one stray key drops the whole section.
     rejected('win32', ['mode: extended', 'width: 1600'])
     rejected('win32', ['mode: extended', 'logLevel: verbose'])
-    // The import's own combination checks read the section's raw mode, so a legacy
-    // marker still rejects browser access and Linux the way it always did.
     rejected('win32', ['mode: extended', 'openBrowser: true'])
     rejected('linux', ['mode: extended'])
 
@@ -1112,7 +1105,7 @@ virtualStoreDirMaxLength: 60
     }))
   })
 
-  it('keeps the official root layout when a legacy extended window mode normalizes to compatibility', () => {
+  it('replaces the official root layout for extended window mode while retaining its occupants', () => {
     const home = temporaryHome()
     writeDesktopShellPreferences(home, [
       'mode: extended',
@@ -1123,17 +1116,15 @@ virtualStoreDirMaxLength: 60
     const prepared = prepareDesktopProfile(undefined, home, 'win32')
     const rows = composeEntries([prepared.patches])
 
-    // A removed Windows Mica preference still boots and renders opaque, and the
-    // legacy `extended` marker resolves to compatibility instead of taking over
-    // the official layout rows.
+    // A removed Windows Mica preference still boots and renders opaque.
     expect(prepared).toEqual(expect.objectContaining({
-      mode: 'compatibility',
+      mode: 'extended',
       macosMaterial: 'off',
       windowsMaterial: 'off',
     }))
-    expect(rows.find(row => row.id === 'ui-layout')?.disabled ?? false).toBe(false)
-    expect(rows.find(row => row.id === 'ui-sidebar')?.disabled ?? false).toBe(false)
-    expect(rows.find(row => row.id === 'ui-conversation')?.disabled ?? false).toBe(false)
+    expect(rows.find(row => row.id === 'ui-layout')?.disabled).toBe(true)
+    expect(rows.find(row => row.id === 'ui-sidebar')?.disabled).toBe(false)
+    expect(rows.find(row => row.id === 'ui-conversation')?.disabled).toBe(false)
     expect(rows.find(row => row.id === 'desktop-shell')).toEqual(expect.objectContaining({
       config: expect.objectContaining({
         mode: 'extended',
@@ -1149,9 +1140,9 @@ virtualStoreDirMaxLength: 60
     const path = join(home, 'desktop-settings.json')
     writeFileSync(path, JSON.stringify({ 'dsh-desktop': { mode: 'advanced' } }))
 
-    expect(readDesktopShellMode({ path })).toBe('compatibility')
+    expect(readDesktopShellMode({ path })).toBe('advanced')
     expect(desktopStartupSettingsFromSettings({ 'dsh-desktop': { mode: 'advanced', port: 43_189 } })).toEqual({
-      mode: 'compatibility',
+      mode: 'advanced',
       port: 43_189,
       macosMaterial: 'transparent',
       windowsMaterial: 'off',
@@ -1160,7 +1151,7 @@ virtualStoreDirMaxLength: 60
       networkExposure: 'loopback',
     })
     expect(desktopStartupSettingsFromSettings({ 'dsh-desktop': { mode: 'advanced' } })).toEqual({
-      mode: 'compatibility',
+      mode: 'advanced',
       port: 43_120,
       macosMaterial: 'transparent',
       windowsMaterial: 'off',
@@ -1171,27 +1162,36 @@ virtualStoreDirMaxLength: 60
     expect(desktopShellModeFromSettings({ unrelated: { enabled: true } })).toBe('compatibility')
   })
 
-  it('treats legacy LAN exposure as browser access once every mode normalizes to compatibility', () => {
-    for (const mode of ['compatibility', 'extended', 'advanced']) {
-      expect(desktopStartupSettingsFromSettings({
-        'dsh-desktop': {
-          mode,
-          openBrowser: false,
-          networkExposure: 'lan',
-        },
-      })).toMatchObject({
-        mode: 'compatibility',
-        openBrowser: true,
+  it('treats legacy LAN exposure as browser access only in compatibility mode', () => {
+    expect(desktopStartupSettingsFromSettings({
+      'dsh-desktop': {
+        mode: 'advanced',
+        openBrowser: false,
         networkExposure: 'lan',
-      })
-    }
+      },
+    })).toMatchObject({
+      mode: 'advanced',
+      openBrowser: false,
+      networkExposure: 'loopback',
+    })
+    expect(desktopStartupSettingsFromSettings({
+      'dsh-desktop': {
+        mode: 'compatibility',
+        openBrowser: false,
+        networkExposure: 'lan',
+      },
+    })).toMatchObject({
+      mode: 'compatibility',
+      openBrowser: true,
+      networkExposure: 'lan',
+    })
   })
 
   it('rejects invalid settings roots, sections, modes, and YAML', () => {
     expect(() => desktopShellModeFromSettings([])).toThrow('must be a map')
     expect(() => desktopShellModeFromSettings({ 'dsh-desktop': true })).toThrow('settings must be a map')
     expect(() => desktopShellModeFromSettings({ 'dsh-desktop': { mode: 'glass' } })).toThrow(
-      'mode must be "compatibility"',
+      'must be "compatibility", "extended", or "advanced"',
     )
     for (const port of [-1, 1.5, 65_536, '43189']) {
       expect(() => desktopStartupSettingsFromSettings({ 'dsh-desktop': { port } })).toThrow(

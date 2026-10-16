@@ -84,7 +84,7 @@ class MacPlatformStrategy implements ElectronPlatformStrategy {
 
 class LinuxPlatformStrategy implements ElectronPlatformStrategy {
   readonly platform = 'linux'
-  readonly updateDownloadPlatform = 'linux'
+  readonly updateDownloadPlatform = undefined
   readonly canPickDirectory = false
   readonly canToggleShellMode = false
   readonly hidesWindowOnClose = false

@@ -23,6 +23,11 @@ export interface DesktopSetupWizardCopy {
   readonly presentationBody: string
   readonly compatibilityMode: string
   readonly compatibilityModeBody: string
+  readonly extendedMode: string
+  readonly extendedModeBody: string
+  readonly advancedMode: string
+  readonly advancedModeBody: string
+  readonly unavailableOnLinux: string
   readonly windowMaterial: string
   readonly windowMaterialBody: string
   readonly materialOff: string
@@ -90,9 +95,9 @@ const COPY: Record<DesktopLocale, DesktopSetupWizardCopy> = {
     aaNextDesktop: 'If the Agents-Anywhere desktop app is installed on this computer, manage the connection directly in that app.',
 
     beta: 'Beta',
-    title: 'Set up Nonead DSH Desktop',
+    title: 'Set up DSH Desktop',
     profile: 'Profile',
-    welcomeTitle: 'Welcome to Nonead DSH Desktop',
+    welcomeTitle: 'Welcome to DSH Desktop',
     welcomeBody: 'Set up window appearance, phone connection, and notifications for the current Profile.',
     firstProfileSetup: 'Complete Desktop setup before using this configuration environment (Profile) for the first time.',
     startSetup: 'Start setup',
@@ -100,6 +105,11 @@ const COPY: Record<DesktopLocale, DesktopSetupWizardCopy> = {
     presentationBody: 'Choose a window layout and desktop controls.',
     compatibilityMode: 'Compatibility mode',
     compatibilityModeBody: 'Use the official client layout with an independent Desktop control bar above it. This mode offers the best compatibility.',
+    extendedMode: 'Extended mode',
+    extendedModeBody: 'Add an independent titlebar and sidebar around the official content area, with optional glass effects.',
+    advancedMode: 'Enhanced mode',
+    advancedModeBody: 'Use a desktop layout with adjusted sidebars, content panels, and window controls.',
+    unavailableOnLinux: 'This mode is currently available on macOS and Windows.',
     windowMaterial: 'Choose a window material',
     windowMaterialBody: 'Choose a window background effect.',
     materialOff: 'Solid background',
@@ -129,7 +139,7 @@ const COPY: Record<DesktopLocale, DesktopSetupWizardCopy> = {
     marketDisabled: 'Turn off plugin market',
     marketDisabledBody: 'Do not load a plugin market interface.',
     communityMarket: 'dsh-community-market',
-    communityMarketBody: 'The open market built into Nonead DSH Desktop, including custom data sources.',
+    communityMarketBody: 'The open market built into DSH Desktop, including custom data sources.',
     dshMarket: 'dsh-market',
     dshMarketBody: 'The popular community market powered by awesome-dsh-plugin data.',
     notificationsTitle: 'Set up Desktop notifications',
@@ -150,7 +160,7 @@ const COPY: Record<DesktopLocale, DesktopSetupWizardCopy> = {
     confirmSkip: 'Skip setup',
     successTitle: 'Setup complete',
     successBody: 'Desktop settings have been saved for the current Profile.',
-    startUsing: 'Start using Nonead DSH Desktop',
+    startUsing: 'Start using DSH Desktop',
     invalidState: 'Setup information could not be loaded. Close this window and try again.',
   },
   zh: {
@@ -165,9 +175,9 @@ const COPY: Record<DesktopLocale, DesktopSetupWizardCopy> = {
     aaNextDesktop: '如果本机已安装 Agents-Anywhere 桌面端，直接在桌面端管理连接即可。',
 
     beta: 'Beta',
-    title: '设置 Nonead DSH Desktop',
+    title: '设置 DSH Desktop',
     profile: 'Profile',
-    welcomeTitle: '欢迎使用 Nonead DSH Desktop',
+    welcomeTitle: '欢迎使用 DSH Desktop',
     welcomeBody: '为当前 Profile 设置窗口外观、手机连接和桌面通知。',
     firstProfileSetup: '首次使用此配置环境（Profile），请先完成桌面设置。',
     startSetup: '开始设置',
@@ -175,6 +185,11 @@ const COPY: Record<DesktopLocale, DesktopSetupWizardCopy> = {
     presentationBody: '选择窗口布局和桌面操作方式。',
     compatibilityMode: '兼容模式',
     compatibilityModeBody: '使用官方客户端布局，顶部提供独立的桌面控制栏。兼容性最好。',
+    extendedMode: '扩展模式',
+    extendedModeBody: '在官方内容区域外提供独立顶栏和侧边栏，可搭配玻璃背景。',
+    advancedMode: '增强模式',
+    advancedModeBody: '使用桌面专用布局，调整侧边栏、内容面板和窗口操作方式。',
+    unavailableOnLinux: '此模式目前支持 macOS 和 Windows。',
     windowMaterial: '选择窗口材质',
     windowMaterialBody: '选择窗口背景效果。',
     materialOff: '纯色背景',
@@ -204,7 +219,7 @@ const COPY: Record<DesktopLocale, DesktopSetupWizardCopy> = {
     marketDisabled: '关闭插件市场',
     marketDisabledBody: '不加载插件市场界面。',
     communityMarket: 'dsh-community-market',
-    communityMarketBody: 'Nonead DSH Desktop 内置的开放市场，并支持自定义数据源。',
+    communityMarketBody: 'DSH Desktop 内置的开放市场，并支持自定义数据源。',
     dshMarket: 'dsh-market',
     dshMarketBody: '使用 awesome-dsh-plugin 数据的热门社区市场。',
     notificationsTitle: '设置桌面通知',

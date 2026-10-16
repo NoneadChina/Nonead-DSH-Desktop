@@ -22,7 +22,7 @@ function fixture() {
   const onFailure = vi.fn()
   const options = {
     host: { desktopLaunchEnvironment: createLaunchEnvironmentSnapshot([]) },
-    runtime: { platform: 'win32', locale: 'en', updates: { currentVersion: '2.0.8-beta.1' } },
+    runtime: { platform: 'win32', locale: 'en', updates: { currentVersion: '2.0.7-beta.1' } },
     rendererToken: 'fixture', prepareCertificate: async () => ({ failureCode: 'fixture' }),
     bindHost: (value: DesktopStartupGenerationHost) => { host = value }, requestQuit() {}, onFailure,
   } as unknown as IsolatedHostOptions

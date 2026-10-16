@@ -45,6 +45,11 @@ export class CompatibilityShell {
       sandbox: true,
       webSecurity: true,
     } })
+    // Let the native window material show through the extended sidebar.
+    // CSS transparency alone cannot cross an opaque WebContentsView surface.
+    if (spec.mode === 'extended' && spec.material !== 'off') {
+      this.content.setBackgroundColor('#00000000')
+    }
     window.contentView.addChildView(this.content)
     window.contentView.addChildView(this.chromeView)
     window.on('resize', this.resize)
@@ -100,7 +105,7 @@ export class CompatibilityShell {
   }
 
   private state(): CompatibilityChromeState {
-    return { mode: 'compatibility', locale: this.actions.locale(), version: this.actions.version, platform: this.platform, material: this.spec.material, ...(this.remoteControl ? { remoteControl: this.remoteControl } : {}) }
+    return { mode: this.spec.mode === 'extended' ? 'extended' : 'compatibility', locale: this.actions.locale(), version: this.actions.version, platform: this.platform, material: this.spec.material, ...(this.remoteControl ? { remoteControl: this.remoteControl } : {}) }
   }
 
   private readonly resize = (): void => {
@@ -166,6 +171,8 @@ export class CompatibilityShell {
       case 'terminal': this.actions.openTerminal(); return
       case 'check-for-updates': return this.actions.checkForUpdates()
       case 'mode-compatibility': return this.spec.requestModeChange('compatibility')
+      case 'mode-extended': return this.spec.requestModeChange('extended')
+      case 'mode-advanced': return this.spec.requestModeChange('advanced')
       case 'restart': return this.actions.restart()
       case 'restart-recovery': return this.actions.restartToRecovery()
       case 'reload': this.actions.reload(); return

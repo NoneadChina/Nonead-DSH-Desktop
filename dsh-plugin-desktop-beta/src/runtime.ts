@@ -12,7 +12,7 @@ import type {
 } from './window-material.ts'
 import type { DesktopSetupWizardSettings } from './setup-wizard-settings.ts'
 
-/** Electron platforms supported by the Nonead DSH Desktop native adapter. */
+/** Electron platforms supported by the DSH Desktop native adapter. */
 export type DesktopPlatform = 'darwin' | 'win32' | 'linux'
 
 /** Native presentation modes selected by the desktop-shell Cordis row. */
@@ -92,12 +92,6 @@ export interface DesktopTrayItemRegistration {
   dispose(): void
 }
 
-/** Lifecycle handle returned for the Host-owned interactive update check. */
-export interface DesktopUpdateCheckRegistration {
-  /** Remove the registration. Repeated disposal has no effect. */
-  dispose(): void
-}
-
 /** Native notification shown by a desktop-owned Host plugin. */
 export interface DesktopNotification {
   /** Notification heading. */
@@ -135,7 +129,7 @@ export interface DesktopUpdateAdapter {
     version: string,
     signal: AbortSignal,
     channel?: DesktopReleaseChannel,
-    installerSha256?: Readonly<Partial<Record<'win32' | 'darwin' | 'linux', string>>>,
+    installerSha256?: Readonly<Partial<Record<'win32' | 'darwin', string>>>,
   ): Promise<void>
   /** Present a native status notification without blocking the Host tree. */
   notify(notification: DesktopNotification): void
@@ -189,6 +183,9 @@ export interface DesktopShellSpec extends DesktopWindowConfig {
 
 /** Electron bootstrap capability supplied before the profile tree mounts. */
 export interface DesktopRuntime {
+  /** Apply live metadata tracing preferences in the Electron supervisor. */
+  configureDeveloperLogging?(preferences: { developerLogging?: boolean; logLevel: 'debug' | 'info' | 'warn' | 'error' }): void
+
   /** Current Electron platform. */
   readonly platform: DesktopPlatform
 
@@ -225,18 +222,6 @@ export interface DesktopRuntime {
    * @returns a refreshable, idempotent registration handle.
    */
   registerTrayItem(item: DesktopTrayItem): DesktopTrayItemRegistration
-
-  /**
-   * Publish the Host-owned interactive update check.
-   *
-   * The renderer bridge runs this command directly instead of dispatching the
-   * tray command, so a manual check stays reachable on a platform whose desktop
-   * never shows the status area that also hosts the tray menu. Implementations
-   * without an update surface omit the method, which keeps the tray fallback.
-   * @param check - interactive check owned by the contributing Host plugin.
-   * @returns a disposable registration handle.
-   */
-  registerUpdateCheck?(check: () => Promise<void>): DesktopUpdateCheckRegistration
 
   /** Open a native terminal containing packaged DSH command shims. */
   openTerminal(): void
@@ -286,7 +271,7 @@ export interface DesktopRuntime {
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
-    /** Electron adapter provided by the Nonead DSH Desktop launcher. */
+    /** Electron adapter provided by the DSH Desktop launcher. */
     desktopRuntime: DesktopRuntime
   }
 }

@@ -22,7 +22,7 @@ import {
 
 describe('Desktop relaunch arguments', () => {
   const argv = [
-    '/Applications/Nonead DSH Desktop.app/Contents/MacOS/Nonead DSH Desktop',
+    '/Applications/DSH Desktop.app/Contents/MacOS/DSH Desktop',
     'desktop-main.cjs',
     '--profile=work',
     DESKTOP_RECOVERY_MODE_ARGUMENT,
@@ -66,7 +66,7 @@ describe('Desktop relaunch arguments', () => {
     expect(desktopSafeModeRequested([argv[0]!, `${DESKTOP_SAFE_MODE_ARGUMENT}=true`])).toBe(false)
   })
   describe('AppImage relaunch', () => {
-    const appImage = '/home/user/Apps/Nonead-DSH-Desktop.AppImage'
+    const appImage = '/home/user/Apps/DSH-Desktop.AppImage'
 
     function recorder() {
       const relaunches: Array<{ args?: string[] } | undefined> = []

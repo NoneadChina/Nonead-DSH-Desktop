@@ -9,14 +9,14 @@ describe('desktop crash evidence', () => {
     const reporter = { start: vi.fn() }
 
     startDesktopCrashReporting(reporter, {
-      productName: 'Nonead DSH Desktop',
+      productName: 'DSH Desktop',
       version: '2.0.1',
       platform: 'win32',
       arch: 'x64',
     })
 
     expect(reporter.start).toHaveBeenCalledWith({
-      productName: 'Nonead DSH Desktop',
+      productName: 'DSH Desktop',
       uploadToServer: false,
       globalExtra: {
         appVersion: '2.0.1',

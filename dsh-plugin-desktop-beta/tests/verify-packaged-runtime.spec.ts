@@ -63,7 +63,7 @@ function context(
     ...(arch === undefined ? {} : { arch }),
     packager: {
       ...(executableName === undefined ? {} : { executableName }),
-      appInfo: { productFilename: 'Nonead DSH Desktop Beta' },
+      appInfo: { productFilename: 'DSH Desktop Beta' },
     },
   }
 }
@@ -278,9 +278,10 @@ describe('packaged desktop runtime verification', () => {
         calls.push('report')
       },
       () => { calls.push('aa') },
+      () => { calls.push('runtime'); return [] },
     )
 
-    expect(calls).toEqual(['static', 'aa', 'report'])
+    expect(calls).toEqual(['static', 'aa', 'runtime', 'report'])
   })
 
   it.skipIf(process.platform === 'win32')('rejects a 0644 packaged uv before signing', () => {
@@ -333,13 +334,13 @@ describe('packaged desktop runtime verification', () => {
   it.each([
     [
       'darwin',
-      join('/build', 'Nonead DSH Desktop Beta.app', 'Contents', 'Resources', 'app.asar'),
-      join('/build', 'Nonead DSH Desktop Beta.app', 'Contents', 'MacOS', 'Nonead DSH Desktop Beta'),
+      join('/build', 'DSH Desktop Beta.app', 'Contents', 'Resources', 'app.asar'),
+      join('/build', 'DSH Desktop Beta.app', 'Contents', 'MacOS', 'DSH Desktop Beta'),
     ],
     [
       'win32',
       join('/build', 'resources', 'app.asar'),
-      join('/build', 'Nonead DSH Desktop Beta.exe'),
+      join('/build', 'DSH Desktop Beta.exe'),
     ],
   ])('inspects the %s selective ASAR layout', (platform, expectedPath, expectedExecutable) => {
     const runtimeContext = context('/build', platform)

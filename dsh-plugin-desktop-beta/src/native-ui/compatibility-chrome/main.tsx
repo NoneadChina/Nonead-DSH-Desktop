@@ -38,7 +38,7 @@ export function Chrome() {
     document.documentElement.lang = state?.locale === 'zh' ? 'zh-CN' : 'en'
   }, [state?.locale])
   const copy = state?.locale === 'zh' ? zh : en
-  if (!state) return <header className="dshDesktopFrameTitlebar">Nonead DSH Desktop {failed && <span role="alert">{copy.operationFailed}</span>}</header>
+  if (!state) return <header className="dshDesktopFrameTitlebar">DSH Desktop {failed && <span role="alert">{copy.operationFailed}</span>}</header>
   return <DesktopFrameTitlebarView
     key={generation}
     api={api}
@@ -48,6 +48,7 @@ export function Chrome() {
     } } : {})}
     t={key => copy[key]}
     environment={{ ...state, material: state.material !== 'off' && state.platform === 'darwin' ? 'transparent' : 'off' }}
+    setMode={mode => mode === state.mode ? Promise.resolve() : invoke(`mode-${mode}`)}
   />
 }
 

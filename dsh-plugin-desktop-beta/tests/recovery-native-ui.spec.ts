@@ -101,7 +101,7 @@ describe('Recovery native terminal action', () => {
       {
         leading: createElement(RecoveryActionLink, { children: 'Back', href: 'dsh-profile-selector://cancel' }),
         children: createElement(RecoveryActionLink, {
-          children: 'Restart Nonead DSH Desktop',
+          children: 'Restart DSH Desktop',
           href: 'dsh-profile-selector://restart',
           variant: 'default',
         }),

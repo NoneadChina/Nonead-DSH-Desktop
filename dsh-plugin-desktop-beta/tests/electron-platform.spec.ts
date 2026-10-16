@@ -93,7 +93,7 @@ describe('electronPlatformStrategy', () => {
     const window = createWindow()
 
     expect(strategy.platform).toBe('linux')
-    expect(strategy.updateDownloadPlatform).toBe('linux')
+    expect(strategy.updateDownloadPlatform).toBeUndefined()
     expect(strategy.canPickDirectory).toBe(false)
     expect(strategy.canToggleShellMode).toBe(false)
     // No Linux desktop guarantees a status area, so a hidden window would have

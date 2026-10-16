@@ -1,4 +1,4 @@
-/** Headless, confirmation-gated downloads for Nonead DSH Desktop installers. */
+/** Headless, confirmation-gated downloads for DSH Desktop installers. */
 
 import { createHash, randomUUID, timingSafeEqual } from 'node:crypto'
 import { chmod, lstat, mkdir, open, readFile, rename, unlink } from 'node:fs/promises'
@@ -13,13 +13,12 @@ import {
 } from './update-checker.ts'
 
 /** Desktop platforms with a fixed installer download endpoint. */
-export type DesktopDownloadPlatform = 'darwin' | 'win32' | 'linux'
+export type DesktopDownloadPlatform = 'darwin' | 'win32'
 
 /** Fixed download endpoints that record one user-confirmed installer download. */
 export const DESKTOP_DOWNLOAD_URLS: Readonly<Record<DesktopDownloadPlatform, string>> = {
-  darwin: 'https://www.nonead.com/software/ndsh-desktop/downloads/mac',
-  win32: 'https://www.nonead.com/software/ndsh-desktop/downloads/windows',
-  linux: 'https://www.nonead.com/software/ndsh-desktop/downloads/linux',
+  darwin: 'https://www.dshdesktop.cn/api/downloads/mac',
+  win32: 'https://www.dshdesktop.cn/api/downloads/windows',
 }
 
 /** Header pinning a download request and response to the checked release. */
@@ -111,16 +110,6 @@ const DMG_TRAILER_MAGIC = Buffer.from('koly', 'ascii')
 const DOS_HEADER_BYTES = 64
 const PE_OFFSET_POSITION = 0x3c
 const PE_MAGIC = Buffer.from([0x50, 0x45, 0x00, 0x00])
-const ELF_HEADER_BYTES = 4
-const ELF_HEADER_MAGIC = Buffer.from([0x7f, 0x45, 0x4c, 0x46])
-const APPIMAGE_MAGIC_OFFSET = 8
-const APPIMAGE_MAGIC = Buffer.from([0x41, 0x49, 0x02])
-/**
- * Mode applied to a downloaded AppImage. Downloads are written private (0600),
- * which leaves the image unrunnable, and an AppImage has no installer step to
- * restore the executable bit.
- */
-const EXECUTABLE_FILE_MODE = 0o755
 
 interface DownloadPaths {
   readonly completed: string
@@ -206,7 +195,6 @@ export async function downloadDesktopUpdate(options: DownloadDesktopUpdateOption
     throwIfAborted(options.signal)
     await unlinkIfPresent(paths.completed)
     await rename(paths.temporary, paths.completed)
-    if (platform === 'linux') await chmod(paths.completed, EXECUTABLE_FILE_MODE)
     return paths.completed
   } catch (cause) {
     failure = options.signal?.aborted === true || isAbortFailure(cause) ? aborted(cause) : cause
@@ -229,9 +217,11 @@ export function desktopUpdateFilename(
 ): string {
   validatedPlatform(platform)
   validatedVersion(version, channel)
-  const extension = platform === 'darwin' ? 'dmg' : platform === 'linux' ? 'AppImage' : 'exe'
-  const platformName = platform === 'darwin' ? 'mac' : platform === 'linux' ? 'linux' : 'windows'
-  const product = channel === 'next' ? 'Nonead-DSH-NEXT' : channel === 'beta' ? 'Nonead-DSH-Desktop-Beta' : 'Nonead-DSH-Desktop'
+  const extension = platform === 'darwin' ? 'dmg' : 'exe'
+  const platformName = platform === 'darwin' ? 'mac' : 'windows'
+  // The Nonead application publishes on the stable channel, so both `stable` and
+  // the legacy `next` channel name its artifacts; only Beta keeps its own prefix.
+  const product = channel === 'beta' ? 'DSH-Desktop-Beta' : 'Nonead-DSH-Desktop'
   return `${product}-${version}-${platformName}.${extension}`
 }
 
@@ -302,7 +292,7 @@ export async function resolveDesktopUpdateArtifact(
 }
 
 function validatedPlatform(platform: DesktopDownloadPlatform): DesktopDownloadPlatform {
-  if (platform !== 'darwin' && platform !== 'win32' && platform !== 'linux') {
+  if (platform !== 'darwin' && platform !== 'win32') {
     throw new UpdateDownloadError('invalid-options', `Unsupported update download platform: ${String(platform)}`)
   }
   return platform
@@ -360,7 +350,7 @@ function validatedArtifactPath(path: string, platform: DesktopDownloadPlatform):
   if (path.length === 0 || /[\0\r\n]/u.test(path) || !isAbsolute(path)) {
     throw new UpdateDownloadError('invalid-options', 'The update destination path must be absolute.')
   }
-  const expectedExtension = platform === 'darwin' ? '.dmg' : platform === 'linux' ? '.appimage' : '.exe'
+  const expectedExtension = platform === 'darwin' ? '.dmg' : '.exe'
   if (extname(path).toLowerCase() !== expectedExtension) {
     throw new UpdateDownloadError('invalid-options', `The update destination must use ${expectedExtension}.`)
   }
@@ -407,8 +397,7 @@ async function parseArtifactRecord(text: string): Promise<DesktopUpdateArtifact>
     || typeof value !== 'object'
     || (value as { stateVersion?: unknown }).stateVersion !== UPDATE_ARTIFACT_STATE_VERSION
     || ((value as { platform?: unknown }).platform !== 'darwin'
-      && (value as { platform?: unknown }).platform !== 'win32'
-      && (value as { platform?: unknown }).platform !== 'linux')
+      && (value as { platform?: unknown }).platform !== 'win32')
     || typeof (value as { version?: unknown }).version !== 'string'
     || typeof (value as { path?: unknown }).path !== 'string'
     || Object.keys(value).some(key => !['stateVersion', 'platform', 'version', 'path'].includes(key))) {
@@ -579,17 +568,6 @@ async function validateArtifact(filename: string, platform: DesktopDownloadPlatf
       }
       return
     }
-    if (platform === 'linux') {
-      if (stat.size < APPIMAGE_MAGIC_OFFSET + APPIMAGE_MAGIC.byteLength) throw invalidArtifact(platform)
-      const header = Buffer.alloc(APPIMAGE_MAGIC_OFFSET + APPIMAGE_MAGIC.byteLength)
-      const headerResult = await handle.read(header, 0, header.byteLength, 0)
-      if (headerResult.bytesRead !== header.byteLength
-        || !header.subarray(0, ELF_HEADER_BYTES).equals(ELF_HEADER_MAGIC)
-        || !header.subarray(APPIMAGE_MAGIC_OFFSET).equals(APPIMAGE_MAGIC)) {
-        throw invalidArtifact(platform)
-      }
-      return
-    }
 
     if (stat.size < DOS_HEADER_BYTES) throw invalidArtifact(platform)
     const dosHeader = Buffer.alloc(DOS_HEADER_BYTES)
@@ -614,9 +592,7 @@ function invalidArtifact(platform: DesktopDownloadPlatform): UpdateDownloadError
     'invalid-artifact',
     platform === 'darwin'
       ? 'The downloaded file is not a UDIF disk image.'
-      : platform === 'linux'
-        ? 'The downloaded file is not an AppImage.'
-        : 'The downloaded file is not a PE executable.',
+      : 'The downloaded file is not a PE executable.',
   )
 }
 

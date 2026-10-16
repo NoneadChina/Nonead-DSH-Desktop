@@ -210,9 +210,8 @@ function optionalBoolean(values: Record<string, unknown>, key: string, fallback:
 
 function parseMode(value: unknown): DesktopSetupWizardMode {
   if (value === undefined) return 'compatibility'
-  // Compatibility is the only presentation mode; legacy values normalize to it.
-  if (value === 'compatibility' || value === 'extended' || value === 'advanced') return 'compatibility'
-  throw invalid('dsh-desktop.mode must be compatibility')
+  if (value === 'compatibility' || value === 'extended' || value === 'advanced') return value
+  throw invalid('dsh-desktop.mode must be compatibility, extended, or advanced')
 }
 
 function parseExposure(value: unknown): DesktopSetupWizardNetworkExposure {
