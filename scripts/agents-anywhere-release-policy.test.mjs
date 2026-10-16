@@ -44,7 +44,7 @@ function fixture(t, desktopVersion = version) {
   return { root, patch }
 }
 
-test('accepts the latest AA across Stable, Beta and Next runtime peers', t => {
+test('accepts the latest AA across Beta and Next runtime peers', t => {
   const { root } = fixture(t)
   assert.equal(assertPreparedAaRelease(root, commit).commit, commit)
 })
@@ -96,16 +96,16 @@ test('pins the AA staging type graph while keeping both Desktop runtime peer ran
   assert.equal(staged.resolutions.react, '18.3.1')
 })
 
-test('rejects the former stable-old/beta-new split even if the tarball is valid', t => {
+test('rejects a workspace left on an older AA artifact even if the tarball is valid', t => {
   const { root, patch } = fixture(t)
-  patch('dsh-plugin-desktop/package.json', data => { data.dependencies[AA_PACKAGE] = 'file:../vendor/agents-anywhere/old.tgz' })
-  assert.throws(() => assertPreparedAaRelease(root, commit), /dsh-plugin-desktop references a different AA artifact/)
+  patch('dsh-plugin-desktop-beta/package.json', data => { data.dependencies[AA_PACKAGE] = 'file:../vendor/agents-anywhere/old.tgz' })
+  assert.throws(() => assertPreparedAaRelease(root, commit), /dsh-plugin-desktop-beta references a different AA artifact/)
 })
 
 test('rejects a Next install left on the old AA artifact', t => {
   const { root, patch } = fixture(t)
-  patch('dsh-desktop-next/package.json', data => { data.dependencies[AA_PACKAGE] = 'file:../vendor/agents-anywhere/old.tgz' })
-  assert.throws(() => assertPreparedAaRelease(root, commit), /dsh-desktop-next references a different AA artifact/)
+  patch('nonead-dsh-desktop/package.json', data => { data.dependencies[AA_PACKAGE] = 'file:../vendor/agents-anywhere/old.tgz' })
+  assert.throws(() => assertPreparedAaRelease(root, commit), /nonead-dsh-desktop references a different AA artifact/)
 })
 
 test('rejects a prepared artifact after AA main advances', t => {
@@ -115,7 +115,7 @@ test('rejects a prepared artifact after AA main advances', t => {
 
 test('rejects stale installed code despite updated manifests and provenance', t => {
   const { root, patch } = fixture(t)
-  patch(`dsh-plugin-desktop/node_modules/${AA_PACKAGE}/package.json`, data => { data.version = '0.1.0-old' })
+  patch(`dsh-plugin-desktop-beta/node_modules/${AA_PACKAGE}/package.json`, data => { data.version = '0.1.0-old' })
   assert.throws(() => assertPreparedAaRelease(root, commit), /outdated installed AA package/)
 })
 

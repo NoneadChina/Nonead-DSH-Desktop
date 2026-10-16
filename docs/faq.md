@@ -6,7 +6,7 @@
 
 ## Nonead DSH Desktop 是什么？
 
-Nonead DSH Desktop 是面向 Windows 和 macOS 的开源 DeepSeek Harness 桌面客户端。它把官方 Harness 的本地 Web UI、Host 服务和插件系统装进原生桌面应用，并提供窗口、系统托盘、终端、更新和 profile 管理。
+Nonead DSH Desktop 是面向 Windows 和 macOS 的开源 DeepSeek Harness 桌面客户端。它把官方 Harness 的本地 Web UI、Host 服务和插件系统装进原生桌面应用，并提供窗口、系统托盘、终端、更新、profile 管理，以及内置的 DSH Community Market 插件市场。
 
 ## 这是 DeepSeek 官方产品吗？
 
@@ -14,11 +14,11 @@ Nonead DSH Desktop 是面向 Windows 和 macOS 的开源 DeepSeek Harness 桌面
 
 ## 支持哪些操作系统？
 
-当前正式安装包支持 Windows x64 和 universal macOS（Intel 与 Apple Silicon）。Linux x64 的 AppImage 与 deb 已由 CI 构建，但尚未随任何已发布版本一同发出；在发布说明中看到 Linux 产物之前，不要根据源码中存在跨平台兼容代码推断已经发布了对应安装包。Linux 暂不提供 arm64 产物。
+正式安装包的发行脚本只覆盖 Windows x64 和 universal macOS（Intel 与 Apple Silicon）：根 `package.json` 提供 `dist:mac:*` 与 `dist:win:*`。Linux x64 的 AppImage 与 Debian 包由 CI 的 `desktop-linux` 作业调用 Beta 工作区（`dsh-plugin-desktop-beta`）的 `dist:linux` 构建，仅支持 x64；在发布说明中看到 Linux 产物之前，不要根据源码中存在跨平台兼容代码推断已经发布了对应安装包。
 
 ## 需要安装 Node.js、pnpm 或 DSH 吗？
 
-不需要。安装包已经包含 Electron、Node.js、pnpm 和固定版本的 DSH 依赖。普通用户下载安装后即可启动，Desktop 也不会修改系统全局 PATH 或用户的 shell 配置。
+不需要。安装包已经包含 Electron、Node.js、pnpm 和固定版本的 DSH 依赖（当前 pin 为上游 DSH `0.2.1-alpha.3`）。普通用户下载安装后即可启动，Desktop 也不会修改系统全局 PATH 或用户的 shell 配置。
 
 ## 首次启动需要下载运行环境吗？
 
@@ -26,7 +26,7 @@ Nonead DSH Desktop 是面向 Windows 和 macOS 的开源 DeepSeek Harness 桌面
 
 ## Nonead DSH Desktop 会修改官方 Harness 吗？
 
-不会。仓库固定一个未修改的官方 Harness 上游版本。Desktop 只提供兼容模式：它在独立 overlay frame 下运行上游默认 Web client，不会直接修改上游源码。旧的持久化值 `extended` 与 `advanced` 仍能被解析，但读取时一律归一为兼容模式。
+不会。仓库以一个固定的上游 commit 原样引入未修改的官方 Harness（当前 pin 为 DSH `0.2.1-alpha.3`，见根 `upstream.json`）。兼容模式在独立 overlay frame 下运行上游默认 Web client；扩展窗口与增强模式分别通过插件/profile composition 边界安装各自的 Desktop root registration，并继续承载官方 slot occupant。所有模式都不会直接修改上游源码。
 
 ## 数据是否保存在本地？
 
@@ -34,15 +34,29 @@ Desktop Host、profile 和 DSH home 位于本机。是否向外部服务发送�
 
 ## 可以安装 DSH 插件吗？
 
-可以。Nonead DSH Desktop 使用官方 Harness 插件体系。可以从托盘打开 DSH Terminal，然后运行 `dsh plugin add`、`dsh plugin remove` 和 `dsh plugin update`；命令默认作用于当前激活的 profile，插件变更后需要重启 Desktop。
+可以。Nonead DSH Desktop 使用官方 Harness 插件体系。可以从托盘打开 DSH Terminal，然后运行 `dsh plugin add`、`dsh plugin remove` 和 `dsh plugin update`；命令默认作用于当前激活的 profile，插件变更后需要重启 Desktop。桌面还内置 DSH Community Market（在 Profile 的 bundles 中与 `dsh-market` 二选一）和品牌皮肤插件 `dsh-nonead-client-skin`（每个 profile 默认加载）。
 
 ## Desktop profile 和已有 web profile 会自动同步吗？
 
 不会自动复制插件。每个 profile 都有自己的 bundle 和依赖组合；切换 profile 后，终端中的默认插件命令会作用于当前 profile，也可以使用 `--profile <name>` 显式指定目标。
 
+## 右侧「文件」这类面板一直报 HTTP 4xx，怎么排查？
+
+右侧「文件」这类面板出现莫名的 HTTP 4xx 时，常见原因是某个已启用的插件在启动时缺少它依赖的服务，于是一直停在 pending 状态：它注册的路由从未出现，界面上的请求就拿到了 4xx。
+
+在数据目录的 `logs/` 文件夹里搜索 `pending (waiting for service:`，命中行会给出插件名和它缺少的服务名：
+
+```text
+better-sidebar (dsh-better-sidebar): pending (waiting for service: webRuntime)
+```
+
+数据目录默认是 `~/.dsh`，所以日志默认在 `~/.dsh/logs/`；用“导出诊断”也能拿到同一批日志。停用该插件（或在 DSH Terminal 中执行 `dsh plugin remove`）并重启 Desktop，官方面板即可恢复。
+
 ## 应用如何更新？
 
 打包后的应用会在后台检查稳定版本，但不会静默安装。发现新版本后先征得用户确认；下载前可以在原生保存对话框中选择安装包的目录和文件名，取消保存不会开始下载。macOS 下载并打开 DMG，Windows 下载并启动 NSIS 安装程序。升级完成并重新启动后，应用会询问是否删除或保留安装包。网络或下载失败不会破坏当前安装。
+
+版本检查请求固定端点 `https://www.nonead.com/software/ndsh-desktop/version`，并在请求头里携带当前安装版本、通道（`stable` 或 `beta`）和本机生成并持久保存的随机安装 UUID。安装包下载来自 `https://www.dshdesktop.cn/api/downloads/mac` 与 `https://www.dshdesktop.cn/api/downloads/windows`，下载请求及其重定向不携带安装标识或当前版本。服务端发布 SHA-256 摘要后，下载路径会强制校验摘要；在摘要发布之前，Windows 更新安装包只校验 PE 版本资源中的 ProductName 与 ProductVersion。
 
 ## 应用会走我的系统代理吗？
 
@@ -59,4 +73,4 @@ Desktop Host、profile 和 DSH home 位于本机。是否向外部服务发送�
 
 ## 在哪里下载和报告问题？
 
-从[项目下载页](https://www.nonead.com)或[最新 GitHub Release](https://github.com/anywhere-labs/deepseek-harness-desktop/releases/latest)下载安装包。遇到问题时先查看[用户指南的排查部分](user-guide.md#排查)，仍无法解决再提交 [GitHub Issue](https://github.com/anywhere-labs/deepseek-harness-desktop/issues/new/choose)，并附上操作系统、应用版本、复现步骤和错误信息。
+从[项目下载页](https://www.dshdesktop.cn/)或[最新 GitHub Release](https://github.com/anywhere-labs/deepseek-harness-desktop/releases/latest)下载安装包。遇到问题时先查看[用户指南的排查部分](user-guide.md#排查)，仍无法解决再提交 [GitHub Issue](https://github.com/anywhere-labs/deepseek-harness-desktop/issues/new/choose)，并附上操作系统、应用版本、复现步骤和错误信息。

@@ -26,13 +26,13 @@ Nonead DSH Desktop integrates the local Web UI, Host service, and plugin system 
 
 ## Download and install
 
-Current release installers support Windows x64, macOS, and Linux. No extra environment is needed — download, install, and start using it with one click.
+Current release installers support Windows x64 and macOS (Universal, covering Intel and Apple Silicon). No extra environment is needed — download, install, and start using it with one click. CI also builds Linux x64 AppImage and deb artifacts, but they have not shipped with any published release yet.
 
 | Platform | Download | Installation |
 | --- | --- | --- |
-| Windows x64 | [Download installer](https://www.nonead.com/software/ndsh-desktop/downloads/windows) | Run the NSIS installer and follow its prompts |
-| macOS Universal | [Download DMG](https://www.nonead.com/software/ndsh-desktop/downloads/mac) | Open the DMG and drag Nonead DSH Desktop into Applications |
-| Linux x64 | [Download AppImage](https://www.nonead.com/software/ndsh-desktop/downloads/linux) | Make it executable and run it; the in-app update downloads this same AppImage |
+| Windows x64 | [Download installer](https://www.dshdesktop.cn/api/downloads/windows) | Run the NSIS installer and follow its prompts |
+| macOS Universal | [Download DMG](https://www.dshdesktop.cn/api/downloads/mac) | Open the DMG and drag Nonead DSH Desktop into Applications |
+| Linux x64 | No published installer yet | CI-built AppImage and deb artifacts are not published; on Linux the in-app updater only checks for a version and never downloads an installer |
 
 See the [user guide](docs/user-guide.en.md) and [FAQ](docs/faq.en.md) for plugin commands, platform details, and troubleshooting.
 
@@ -62,9 +62,9 @@ Ordinary users can start with the [user guide](docs/user-guide.en.md); the devel
 | Join the unified plugin-contract discussion | [DSH Community Fabric Draft](dsh-community-fabric/README.md) |
 | See the research behind the unified plugin framework | [Framework and real-plugin research](dsh-community-fabric/docs/research/mature-plugin-frameworks.md) |
 | Read the plugin market product and safety design | [DSH Community Market](dsh-community-market/README.md) |
-| See what Desktop plugins can use | [Desktop plugin API](dsh-plugin-desktop/docs/plugin-services.md) |
+| See what Desktop plugins can use | [Desktop plugin API](dsh-plugin-desktop-beta/docs/plugin-services.md) |
 | Understand how the desktop works | [Architecture](docs/architecture.en.md) |
-| Read package-level build and release details | [`dsh-plugin-desktop/README.md`](dsh-plugin-desktop/README.md) |
+| Read package-level build and release details | [`dsh-plugin-desktop-beta/README.md`](dsh-plugin-desktop-beta/README.md) |
 
 ## Features
 
@@ -97,9 +97,11 @@ On the normal first launch of each uninitialized profile, Desktop shows its nati
 
 The Web service listens on the local loopback interface by default. When **Open in browser** is enabled, Desktop hands the page to the system default browser after the Web service is actually ready; this preference does not change the listener exposure. **Desktop settings** shows the actual local URL below the control. LAN access is a separate opt-in setting and exposes the currently available LAN URLs when enabled.
 
+Ordinary browser access is disabled by default. The shell mints one random credential per Host generation, and only requests carrying it (the `x-dsh-desktop-renderer` header) count as the Electron renderer; while the option is off, every other request is denied.
+
 > **Danger:** LAN exposure has no authentication. Anyone on the same local network can open DSH and directly operate your computer. Enable it only on a fully trusted network and with great care.
 
-The automatic updater's fixed version-check request sends the installed version in the `X-Nonead-DSH-Desktop-Version` header and a locally generated, persistently stored random UUID in the `X-Nonead-DSH-Desktop-Installation-Id` header; the value is not derived from hardware information. Package download requests and their download redirects do not receive these headers.
+The automatic updater's fixed version-check request goes to `https://www.nonead.com/software/ndsh-desktop/version`: it sends the installed version in the `X-DSH-Desktop-Version` header, `stable` or `beta` in `X-DSH-Desktop-Channel`, and a locally generated, persistently stored random UUID in the `X-DSH-Desktop-Installation-Id` header; the value is not derived from hardware information. Installers download from the official download service at `https://www.dshdesktop.cn/api/downloads/mac` and `https://www.dshdesktop.cn/api/downloads/windows` with the channel and a pinned `X-DSH-Desktop-Target-Version`; download requests and their redirects do not receive the installation identity or the installed version. Whenever the service publishes SHA-256 digests, the download path enforces them as a hard integrity gate; until those digests exist, a Windows update installer is only checked against the ProductName and ProductVersion in its PE version resource.
 
 ## Plugin Ecosystem
 
@@ -109,9 +111,11 @@ Nonead DSH Desktop does not modify upstream source, and it is not a fixed, hardc
 
 We want the plugin ecosystem to work like a phone app store: every plugin is built against the same set of rules, so plugins can be installed together and work together without interfering with each other.
 
+The installer also ships the brand skin plugin `dsh-nonead-client-skin`: it is distributed inside the installer and loaded by default for every profile through profile composition.
+
 ### For developers
 
-Unlike many other projects, this project itself is a DSH [plugin](docs/plugin-development.en.md): the desktop shell uses the same plugin composition mechanism as third-party plugins. Desktop plugin capabilities are now available. We provide Desktop services so plugin developers can integrate their plugins with desktop capabilities: for example, viewing and switching work profiles, or installing, updating, and removing plugins in the active profile. See the [Desktop plugin API](dsh-plugin-desktop/docs/plugin-services.md) for complete usage details. See [Why Nonead DSH Desktop](docs/why-desktop.en.md) and [Plugin development](docs/plugin-development.en.md) for the reasoning and the third-party boundary.
+Unlike many other projects, this project itself is a DSH [plugin](docs/plugin-development.en.md): the desktop shell uses the same plugin composition mechanism as third-party plugins. Desktop plugin capabilities are now available. We provide Desktop services so plugin developers can integrate their plugins with desktop capabilities: for example, viewing and switching work profiles, or installing, updating, and removing plugins in the active profile. See the [Desktop plugin API](dsh-plugin-desktop-beta/docs/plugin-services.md) for complete usage details. See [Why Nonead DSH Desktop](docs/why-desktop.en.md) and [Plugin development](docs/plugin-development.en.md) for the reasoning and the third-party boundary.
 
 ## Relationship to DeepSeek Harness
 
@@ -143,15 +147,15 @@ Also, and you.
 
 ## Development
 
-Desktop source lives in `dsh-plugin-desktop/`. The outer repository uses Yarn, while the pinned `deepseek-harness/` submodule keeps its own pnpm workspace. From the repository root:
+The two desktop workspaces are `nonead-dsh-desktop/` (product name Nonead DSH Desktop, driven by the root `:stable` commands) and `dsh-plugin-desktop-beta/` (the Beta desktop, driven by the root `:beta` commands). The outer repository uses Yarn, while the pinned `deepseek-harness/` submodule keeps its own pnpm workspace. From the repository root:
 
 ```sh
 git submodule update --init --recursive
 corepack yarn install --immutable
-corepack yarn dev
+corepack yarn dev:beta
 ```
 
-Use `corepack yarn check` for the headless gate. The [architecture](docs/architecture.en.md) and package [`README`](dsh-plugin-desktop/README.md) describe the full build, test, and release boundaries. See [CONTRIBUTING.en.md](CONTRIBUTING.en.md) for how to contribute.
+`corepack yarn dev:stable` launches Nonead DSH Desktop. Use `corepack yarn check` for the headless gate. The [architecture](docs/architecture.en.md) and package [`README`](dsh-plugin-desktop-beta/README.md) describe the full build, test, and release boundaries. See [CONTRIBUTING.en.md](CONTRIBUTING.en.md) for how to contribute.
 
 ## Community
 

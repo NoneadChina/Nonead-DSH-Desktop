@@ -48,8 +48,8 @@ test('check is read-only and rejects stale installed copies', async t => {
   await assert.rejects(prepareMarket(root, { check: true, fetcher: reply('1.59.0'), runInstall: () => assert.fail('must not install') }), /market:prepare/)
   assert.equal(readFileSync(join(root, 'yarn.lock'), 'utf8'), 'original lock\n')
   await prepareMarket(root, { fetcher: reply('1.59.0'), runInstall: install })
-  write('dsh-desktop-next/node_modules/dshmarket/package.json', { name: 'dshmarket', version: '1.0.0' })
-  await assert.rejects(prepareMarket(root, { check: true, fetcher: reply('1.59.0') }), /dsh-desktop-next/)
+  write('nonead-dsh-desktop/node_modules/dshmarket/package.json', { name: 'dshmarket', version: '1.0.0' })
+  await assert.rejects(prepareMarket(root, { check: true, fetcher: reply('1.59.0') }), /nonead-dsh-desktop/)
 })
 
 test('restores manifests and the lockfile after an interrupted installation', async t => {
@@ -73,6 +73,6 @@ test('does not accept an offline or malformed latest response', async () => {
 test('all root launch, build and packaging entry points prepare the market first', () => {
   const { scripts } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
   const entrypoints = Object.entries(scripts).filter(([name]) => /^(build$|dev(?::|$)|start(?::|$)|package:dir|dist:)/.test(name))
-  assert.ok(entrypoints.length >= 18)
+  assert.ok(entrypoints.length >= 14)
   for (const [name, command] of entrypoints) assert.ok(command.startsWith('yarn market:prepare && '), name)
 })

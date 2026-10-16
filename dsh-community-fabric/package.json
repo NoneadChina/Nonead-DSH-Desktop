@@ -4,7 +4,6 @@
   "private": true,
   "description": "Documentation-first home for a community DSH plugin interoperability standard",
   "license": "MIT",
-  "author": "Nonead Corporation",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"

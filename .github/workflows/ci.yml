@@ -96,7 +96,7 @@ jobs:
         run: |
           node --input-type=module <<'NODE'
           import { readFileSync, writeFileSync } from 'node:fs'
-          for (const workspace of ['dsh-plugin-desktop', 'dsh-plugin-desktop-beta']) {
+          for (const workspace of ['dsh-plugin-desktop-beta']) {
             const path = `${workspace}/package.json`
             const manifest = JSON.parse(readFileSync(path, 'utf8'))
             const smoke = ' && yarn run verify:aa'
@@ -109,19 +109,19 @@ jobs:
         run: yarn check
       - name: Install Chromium for Next window regression
         if: needs.changes.outputs.product == 'true'
-        run: yarn workspace dsh-desktop-next exec playwright install --with-deps chromium
+        run: yarn workspace nonead-dsh-desktop exec playwright install --with-deps chromium
       - name: Verify Next window controls in the official frontend
         if: needs.changes.outputs.product == 'true'
-        run: yarn workspace dsh-desktop-next verify:window-controls
+        run: yarn workspace nonead-dsh-desktop verify:window-controls
       - name: Verify Next Profile onboarding without a Host
         if: needs.changes.outputs.product == 'true'
-        run: yarn workspace dsh-desktop-next verify:onboarding
+        run: yarn workspace nonead-dsh-desktop verify:onboarding
       - name: Verify Next native protocol mutations in Electron
         if: needs.changes.outputs.product == 'true'
-        run: xvfb-run --auto-servernum yarn workspace dsh-desktop-next verify:protocol --no-sandbox
+        run: xvfb-run --auto-servernum yarn workspace nonead-dsh-desktop verify:protocol --no-sandbox
       - name: Verify Next native sidebar Browser in Electron
         if: needs.changes.outputs.product == 'true'
-        run: xvfb-run --auto-servernum yarn workspace dsh-desktop-next verify:sidebar-browser --no-sandbox
+        run: xvfb-run --auto-servernum yarn workspace nonead-dsh-desktop verify:sidebar-browser --no-sandbox
 
   # Windows-only logic and unsigned NSIS/portable builds on a real Windows runner:
   # updates, window options, pwsh sandbox, volume diagnostics, and packaging.
@@ -133,7 +133,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        workspace: [dsh-plugin-desktop, dsh-plugin-desktop-beta]
+        workspace: [dsh-plugin-desktop-beta]
     steps:
       - uses: actions/checkout@v6
         with:
@@ -180,7 +180,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        workspace: [dsh-plugin-desktop, dsh-plugin-desktop-beta]
+        workspace: [dsh-plugin-desktop-beta]
     steps:
       - uses: actions/checkout@v6
         with:
@@ -213,7 +213,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        workspace: [dsh-plugin-desktop, dsh-plugin-desktop-beta]
+        workspace: [dsh-plugin-desktop-beta]
     steps:
       - uses: actions/checkout@v6
         with:

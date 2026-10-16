@@ -28,9 +28,11 @@ The plugin boundary also tells us what not to expose. Third-party plugins can on
 The current Desktop product provides:
 
 - Native windows, a tray, and single-instance lifecycle on macOS and Windows.
-- Compatibility as the only presentation mode: the unmodified upstream default client below an independent Desktop frame, with capability-gated native materials and drag regions. Legacy persisted `extended` and `advanced` values still parse, but reads normalize them to compatibility mode.
+- Compatibility, extended, and enhanced presentation modes. Compatibility preserves the upstream client below an independent Desktop frame; extended uses its own Desktop layout/sidebar registration to host official occupants in an inverted L; enhanced retains a separate root registration with compact internal captions. Desktop frames provide capability-gated native materials and drag regions.
 - Multiple profile selection. Desktop exposes the active profile identity for the current generation, and switching takes effect through an orderly restart.
+- The built-in DSH Community Market: selectable from a profile's bundles and mutually exclusive with `dsh-market`.
 - A bundled terminal and pinned pnpm environment. They apply only to processes created by Desktop and do not modify the user's global PATH.
+- The brand skin plugin `dsh-nonead-client-skin`, distributed inside the installer and inserted for every profile through profile composition.
 - A controlled set of extension interfaces for plugin developers (see [plugin development](plugin-development.en.md)).
 - Version discovery and confirmation-gated installer downloads, handing off to a macOS DMG or Windows NSIS installer.
 
@@ -40,10 +42,10 @@ The current Desktop product provides:
 - Override the upstream layout, sidebar, or conversation composition in compatibility mode.
 - Copy records into a separate “Desktop database”; official profiles share the DSH home for sessions and settings by default.
 - Give third-party plugins an undefined private Electron API.
-- Present roadmap items such as a plugin marketplace, mobile remote control, or Channels as shipped features.
+- Present roadmap items such as mobile remote control as shipped features.
 
 ## Who should read this
 
 - Users who want to install and use Harness: start with the [user guide](user-guide.en.md).
-- Users installing or building DSH plugins: read [plugin development](plugin-development.en.md), then the [Desktop service contract](../dsh-plugin-desktop/docs/plugin-services.md).
-- Maintainers working on startup, profiles, or packaging: read the [architecture](architecture.en.md) and the package [README](../dsh-plugin-desktop/README.md).
+- Users installing or building DSH plugins: read [plugin development](plugin-development.en.md), then the [Desktop service contract](../dsh-plugin-desktop-beta/docs/plugin-services.md).
+- Maintainers working on startup, profiles, or packaging: read the [architecture](architecture.en.md) and the package [README](../dsh-plugin-desktop-beta/README.md).

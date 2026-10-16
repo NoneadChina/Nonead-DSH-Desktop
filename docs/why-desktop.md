@@ -28,9 +28,11 @@ Nonead DSH Desktop 的目标不是重新实现 Harness，而是把同一个运�
 当前 Desktop 主要提供：
 
 - macOS 和 Windows 原生窗口、托盘和单实例生命周期。
-- 只保留兼容这一种呈现模式：在独立 Desktop frame 下运行未修改的上游默认客户端，并按能力提供原生材质与拖动区域。旧的持久化值 `extended` 与 `advanced` 仍能被解析，但读取时一律归一为兼容模式。
+- 兼容、扩展窗口和增强三种呈现模式。兼容模式在独立 Desktop frame 下保留上游默认客户端；扩展窗口使用自己独立注册的 Desktop layout/sidebar surface 承载官方 occupant 并形成倒 L；增强模式保留独立 root registration 与紧凑内部 caption。Desktop frame 还会按能力提供原生材质与拖动区域。
 - 多 profile 选择。当前 generation 的 profile 身份由 Desktop 明确提供，切换通过有序重启生效。
+- 内置的 DSH Community Market 插件市场：从 Profile 的 bundles 中选择，与 `dsh-market` 互斥。
 - 内置终端和固定版本 pnpm 环境。它们只作用于 Desktop 自己创建的进程，不修改用户的全局 PATH。
+- 随安装包分发的品牌皮肤插件 `dsh-nonead-client-skin`，由 Profile 组合为每个 Profile 默认加载。
 - 面向插件开发者的一组受控扩展接口（详见[插件开发](plugin-development.md)）。
 - 版本检查、用户确认后的安装包下载，以及 macOS DMG/Windows NSIS 的平台交接。
 
@@ -40,10 +42,10 @@ Nonead DSH Desktop 的目标不是重新实现 Harness，而是把同一个运�
 - 不在兼容模式中覆盖上游 layout、sidebar 或 conversation 组合。
 - 不把记录复制到另一个“Desktop 数据库”；官方 profile 默认共享 DSH home 中的会话和设置。
 - 不给第三方插件一个未定义的 Electron 私有 API。
-- 不把 roadmap（插件市场、手机远程、Channels）写成当前版本已经交付的功能。
+- 不把 roadmap（手机远程控制）写成当前版本已经交付的功能。
 
 ## 适合谁
 
 - 只想安装后直接使用 Harness 的用户：从[用户指南](user-guide.md)开始。
-- 想安装或开发 DSH 插件的用户：先读[插件开发](plugin-development.md)，再看 [Desktop service contract](../dsh-plugin-desktop/docs/plugin-services.md)。
-- 想理解启动、profile 和打包边界的维护者：阅读[架构说明](architecture.md)和包级 [README](../dsh-plugin-desktop/README.md)。
+- 想安装或开发 DSH 插件的用户：先读[插件开发](plugin-development.md)，再看 [Desktop service contract](../dsh-plugin-desktop-beta/docs/plugin-services.md)。
+- 想理解启动、profile 和打包边界的维护者：阅读[架构说明](architecture.md)和包级 [README](../dsh-plugin-desktop-beta/README.md)。

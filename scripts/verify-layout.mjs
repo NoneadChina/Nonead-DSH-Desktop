@@ -13,16 +13,13 @@ const fail = message => { throw new Error(`verify-layout: ${message}`) }
 
 const workspace = readJson('package.json')
 const upstream = readJson('upstream.json')
-const stablePlugin = readJson('dsh-plugin-desktop/package.json')
 const betaPlugin = readJson('dsh-plugin-desktop-beta/package.json')
-const nextDesktop = readJson('dsh-desktop-next/package.json')
-const nextReference = readJson('dsh-desktop-next/upstream-reference.json')
+const nextDesktop = readJson('nonead-dsh-desktop/package.json')
+const nextReference = readJson('nonead-dsh-desktop/upstream-reference.json')
 const fabric = readJson('dsh-community-fabric/package.json')
 const market = readJson('dsh-community-market/package.json')
-const brandSkin = readJson('dsh-nonead-client-skin/package.json')
 const upstreamPackage = readJson('deepseek-harness/package.json')
 
-if (stablePlugin.name !== 'dsh-plugin-desktop') fail('the stable Desktop workspace must retain dsh-plugin-desktop')
 if (betaPlugin.name !== 'dsh-plugin-desktop-beta') fail('the Beta Desktop workspace must publish as dsh-plugin-desktop-beta')
 if (!['stable', 'beta'].includes(upstream.activeChannel)) fail('the pinned upstream checkout must follow a declared release channel')
 const activeUpstream = upstream.channels?.[upstream.activeChannel]
@@ -31,30 +28,26 @@ if (activeUpstream === undefined) fail('the active upstream channel is missing')
 if (workspace.packageManager !== 'yarn@4.18.0') {
   fail('the product workspace must pin yarn@4.18.0')
 }
+// The former Stable Desktop workspace (dsh-plugin-desktop) was removed; Beta,
+// Next, Fabric and the Market are the Desktop workspaces that remain.
 if (JSON.stringify(workspace.workspaces) !== JSON.stringify([
-  'dsh-plugin-desktop',
   'dsh-plugin-desktop-beta',
-  'dsh-desktop-next',
+  'nonead-dsh-desktop',
   'dsh-community-fabric',
   'dsh-community-market',
-  'dsh-nonead-client-skin',
 ])) {
-  fail('the root Yarn workspace must contain the desktop, community-fabric, community-market, and brand-skin packages')
+  fail('the root Yarn workspace must contain the beta desktop, community-fabric, and community-market packages')
 }
 for (const [name, manifest] of [
-  ['dsh-plugin-desktop', stablePlugin],
   ['dsh-plugin-desktop-beta', betaPlugin],
-  ['dsh-desktop-next', nextDesktop],
+  ['nonead-dsh-desktop', nextDesktop],
   ['dsh-community-fabric', fabric],
   ['dsh-community-market', market],
-  ['dsh-nonead-client-skin', brandSkin],
 ]) {
   if (manifest.packageManager !== undefined) fail(`${name} must inherit the root Yarn release`)
 }
 if (fabric.name !== 'dsh-community-fabric') fail('the Fabric workspace must own dsh-community-fabric')
 if (market.name !== 'dsh-community-market') fail('the market workspace must own dsh-community-market')
-if (brandSkin.name !== 'dsh-nonead-client-skin') fail('the brand-skin workspace must own dsh-nonead-client-skin')
-if (brandSkin.private !== true) fail('the brand skin must stay a private product package, never a published plugin')
 const claudePath = resolve(root, 'CLAUDE.md')
 const claudeStat = lstatSync(claudePath)
 // Windows checkouts materialize the symlink as a regular file holding the
@@ -68,12 +61,10 @@ if (claudeTarget !== 'AGENTS.md') {
 for (const legacyFile of [
   'pnpm-lock.yaml',
   'pnpm-workspace.yaml',
-  'dsh-plugin-desktop/pnpm-lock.yaml',
-  'dsh-plugin-desktop/pnpm-workspace.yaml',
   'dsh-plugin-desktop-beta/pnpm-lock.yaml',
   'dsh-plugin-desktop-beta/pnpm-workspace.yaml',
-  'dsh-desktop-next/pnpm-lock.yaml',
-  'dsh-desktop-next/pnpm-workspace.yaml',
+  'nonead-dsh-desktop/pnpm-lock.yaml',
+  'nonead-dsh-desktop/pnpm-workspace.yaml',
   'dsh-community-fabric/pnpm-lock.yaml',
   'dsh-community-fabric/pnpm-workspace.yaml',
   'dsh-community-market/pnpm-lock.yaml',
@@ -93,7 +84,6 @@ if (typeof upstreamPackage.packageManager !== 'string' || !upstreamPackage.packa
 
 for (const [owner, manifest] of [
   ['root', workspace],
-  ['stable desktop', stablePlugin],
   ['beta desktop', betaPlugin],
   ['next desktop', nextDesktop],
   ['fabric', fabric],
@@ -127,17 +117,23 @@ if (run('git', ['remote', 'get-url', 'origin'], upstreamDir) !== upstream.reposi
 if (upstreamPackage.version !== activeUpstream.sourceVersion) {
   fail('deepseek-harness package version differs from upstream.json')
 }
-for (const [channel, plugin] of [['stable', stablePlugin], ['beta', betaPlugin]]) {
-  const metadata = upstream.channels?.[channel]
-  if (metadata?.package !== plugin.name) fail(`${channel} upstream metadata points at the wrong package`)
-  for (const name of Object.keys(plugin.dependencies).filter(name => name === '@deepseek-ai/dsh' || name.startsWith('@deepseek-ai/dsh-'))) {
+// Every declared upstream channel that still has a Desktop workspace on disk
+// must load that channel's recorded DSH runtime family. A channel whose
+// workspace was removed keeps its vendored runtime, which
+// `corepack yarn check:vendored-runtime` verifies on its own.
+for (const [channel, metadata] of Object.entries(upstream.channels ?? {})) {
+  if (typeof metadata?.package !== 'string') fail(`upstream metadata for ${channel} does not name a Desktop package`)
+  if (!existsSync(resolve(root, metadata.package, 'package.json'))) continue
+  const plugin = readJson(`${metadata.package}/package.json`)
+  if (plugin.name !== metadata.package) fail(`${channel} upstream metadata points at the wrong package`)
+  for (const name of Object.keys(plugin.dependencies ?? {}).filter(name => name === '@deepseek-ai/dsh' || name.startsWith('@deepseek-ai/dsh-'))) {
     if (plugin.dependencies[name] !== metadata.runtimePackageVersion) {
       fail(`${plugin.name} ${name} must use the recorded ${channel} DSH runtime package family`)
     }
   }
 }
 
-if (nextDesktop.name !== 'dsh-desktop-next' || nextDesktop.private !== true) fail('Next must remain a private experimental package')
+if (nextDesktop.name !== 'nonead-dsh-desktop' || nextDesktop.private !== true) fail('Next must remain a private experimental package')
 for (const [name, version] of Object.entries(nextDesktop.dependencies)) {
   if ((name === '@deepseek-ai/dsh' || name.startsWith('@deepseek-ai/dsh-')) && version !== nextReference.version) fail(`Next ${name} must match the pinned upstream family`)
 }

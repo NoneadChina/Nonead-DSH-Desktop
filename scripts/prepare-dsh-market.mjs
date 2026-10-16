@@ -5,7 +5,7 @@ import { createRequire } from 'node:module'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
-export const MARKET_WORKSPACES = ['dsh-plugin-desktop', 'dsh-plugin-desktop-beta', 'dsh-desktop-next']
+export const MARKET_WORKSPACES = ['dsh-plugin-desktop-beta', 'nonead-dsh-desktop']
 export const marketResolution = version => `patch:dshmarket@npm%3A${version}#./.yarn/patches/dshmarket-desktop.patch`
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const registry = 'https://registry.npmjs.org/dshmarket/latest'
@@ -88,5 +88,5 @@ if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.m
   const args = process.argv.slice(2)
   if (args.some(arg => arg !== '--check')) throw new Error('Usage: corepack yarn market:prepare [--check]')
   const version = await prepareMarket(root, { check: args.includes('--check') })
-  console.log(`dshmarket latest verified: ${version} in Stable, Beta and Next`)
+  console.log(`dshmarket latest verified: ${version} in ${MARKET_WORKSPACES.join(', ')}`)
 }
