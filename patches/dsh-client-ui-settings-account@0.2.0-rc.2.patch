@@ -1,325 +1,7 @@
 diff --git a/lib/client.js b/lib/client.js
 --- a/lib/client.js
 +++ b/lib/client.js
-@@ -912,40 +912,6 @@ window.__ModuleLoader__.load({
- 		/** Validate public questionnaire options. */
- 		const ContactConfig = Schema.object(ContactConfigFields);
- 		//#endregion
--		//#region lib/types/client/contact-url.js
--		/**
--		* Build an external questionnaire URL without authentication credentials.
--		* @param config - questionnaire destination and supported source option.
--		* @param context - account, build and environment facts sampled by the caller.
--		* @returns questionnaire URL with hidden, optionally prefilled context fields.
--		*/
--		function contactUrl(config, context) {
--			const url = new URL(config.contactFormUrl);
--			const ratio = Number.isFinite(context.pixelRatio) ? context.pixelRatio : 1;
--			const width = Math.round(context.width * ratio);
--			const height = Math.round(context.height * ratio);
--			const fields = {
--				uid: context.uid,
--				source: config.contactSource,
--				harness_version: context.version,
--				os_version: void 0,
--				device_brand: void 0,
--				device_info: context.deviceInfo,
--				app_locale: context.locale,
--				screen_resolution: width > 0 && height > 0 ? `${width}x${height}` : void 0
--			};
--			for (const [name, value] of Object.entries(fields)) {
--				url.searchParams.set(`hide_${name}`, "1");
--				url.searchParams.delete(`prefill_${name}`);
--				if (value) url.searchParams.set(`prefill_${name}`, value);
--			}
--			url.searchParams.delete("prefill_app_version");
--			url.searchParams.delete("hide_app_version");
--			url.searchParams.delete("prefill_device_model");
--			url.searchParams.delete("hide_device_model");
--			return url.href;
--		}
--		//#endregion
- 		//#region lib/types/client/authorize-url.js
- 		/** Platform authorization links that carry the Desktop palette into the login page. */
- 		/**
-@@ -1313,114 +1279,6 @@ window.__ModuleLoader__.load({
- 			});
- 		}
- 		//#endregion
--		//#region lib/types/client/SignOutDialog.js
--		/** Account sign-out confirmation with the current task impact. */
--		/** @param props - task impact at opening, localized copy, and account actions. @returns sign-out confirmation. */
--		function SignOutDialog({ running, signOut, close, t }) {
--			const [busy, setBusy] = (0, react.useState)(false);
--			const [failed, setFailed] = (0, react.useState)(false);
--			const dismiss = () => {
--				if (!busy) close();
--			};
--			const confirm = async () => {
--				setBusy(true);
--				setFailed(false);
--				try {
--					await signOut();
--					close();
--				} catch {
--					setFailed(true);
--				} finally {
--					setBusy(false);
--				}
--			};
--			return (0, react_jsx_runtime.jsxs)(_deepseek_ai_dsh_client_ui_primitives.Modal, {
--				open: true,
--				headless: true,
--				title: t("signOut"),
--				onClose: dismiss,
--				className: SignInDialog_module_css_default.dialog,
--				children: [(0, react_jsx_runtime.jsxs)("div", {
--					className: SignInDialog_module_css_default.content,
--					children: [
--						(0, react_jsx_runtime.jsxs)("div", {
--							className: SignInDialog_module_css_default.header,
--							children: [(0, react_jsx_runtime.jsx)("h2", {
--								className: SignInDialog_module_css_default.title,
--								children: t("signOut")
--							}), (0, react_jsx_runtime.jsx)("button", {
--								type: "button",
--								className: SignInDialog_module_css_default.close,
--								"aria-label": t("close"),
--								disabled: busy,
--								onClick: dismiss,
--								children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconCloseOutlineRegular, { size: 14 })
--							})]
--						}),
--						(0, react_jsx_runtime.jsx)("p", {
--							className: SignInDialog_module_css_default.description,
--							children: t(running === "unknown" ? "signOutUnknownDescription" : running ? "signOutRunningDescription" : "signOutDescription")
--						}),
--						failed && (0, react_jsx_runtime.jsx)("p", {
--							className: SignInDialog_module_css_default.description,
--							role: "alert",
--							children: t("failed")
--						})
--					]
--				}), (0, react_jsx_runtime.jsxs)("div", {
--					className: SignInDialog_module_css_default.actions,
--					children: [(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
--						variant: "outline",
--						className: SignInDialog_module_css_default.secondaryButton,
--						disabled: busy,
--						onClick: dismiss,
--						children: t("cancel")
--					}), (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
--						variant: "primary",
--						className: SignInDialog_module_css_default.primaryButton,
--						disabled: busy,
--						onClick: () => {
--							confirm();
--						},
--						children: t("signOut")
--					})]
--				})]
--			});
--		}
--		//#endregion
--		//#region lib/types/client/LogoutIcon.js
--		/** Figma IcDsLogOutOutline16 glyph, stored inline for theme-aware rendering. */
--		/** @returns the account menu logout glyph. */
--		function LogoutIcon() {
--			return (0, react_jsx_runtime.jsx)("span", {
--				style: {
--					width: 16,
--					height: 16,
--					position: "relative"
--				},
--				"aria-hidden": "true",
--				children: (0, react_jsx_runtime.jsxs)("svg", {
--					style: {
--						position: "absolute",
--						left: 1.168,
--						top: 1.214
--					},
--					width: "13.664",
--					height: "13.571",
--					viewBox: "0 0 14 14",
--					fill: "none",
--					xmlns: "http://www.w3.org/2000/svg",
--					children: [(0, react_jsx_runtime.jsx)("path", {
--						d: "M3.9961 1.40039C3.37842 1.40039 2.96028 1.40039 2.63867 1.42871C2.32631 1.45627 2.17171 1.50666 2.06641 1.56543C1.85606 1.68288 1.68189 1.85605 1.56446 2.06641C1.50569 2.17173 1.45625 2.32627 1.42871 2.63867C1.40036 2.9603 1.39942 3.37827 1.39942 3.9961L1.39942 9.5752C1.39942 10.193 1.40036 10.611 1.42871 10.9326C1.45625 11.245 1.50569 11.3996 1.56445 11.5049C1.68188 11.7153 1.85605 11.8884 2.06641 12.0059C2.17171 12.0646 2.32631 12.115 2.63867 12.1426C2.96028 12.1709 3.37842 12.1709 3.9961 12.1709V13.5713C3.4033 13.5713 2.91297 13.5721 2.51563 13.5371C2.10906 13.5013 1.73277 13.4233 1.38379 13.2285C0.946838 12.9845 0.585697 12.6235 0.341799 12.1865C0.14725 11.8377 0.0700118 11.4621 0.0341815 11.0557C-0.000847399 10.6583 1.58129e-06 10.1681 1.85029e-06 9.5752L2.09416e-06 3.9961C1.83027e-06 3.40325 -0.000846367 2.91297 0.0341818 2.51563C0.0700164 2.10924 0.147239 1.73362 0.341799 1.38477C0.585703 0.947758 0.946825 0.586744 1.38379 0.342775C1.73277 0.148001 2.10906 0.0700381 2.51563 0.0341813C2.91297 -0.000823893 3.40331 1.37805e-06 3.9961 1.71712e-06L3.9961 1.40039Z",
--						fill: "currentColor"
--					}), (0, react_jsx_runtime.jsx)("path", {
--						d: "M13.6426 6.51953C13.6705 6.6957 13.6705 6.8756 13.6426 7.05176C13.5902 7.38188 13.4302 7.64112 13.2539 7.86035C13.0857 8.06937 12.8546 8.29971 12.6006 8.55371L9.3086 11.8447L8.31836 10.8545L11.6104 7.56348C11.637 7.53681 11.6628 7.51104 11.6875 7.48633H3.74317V6.08594H11.6885C11.6635 6.06088 11.6374 6.03487 11.6104 6.00781L8.31836 2.7168L9.3086 1.72656L12.6006 5.01758C12.8547 5.27169 13.0857 5.50185 13.2539 5.71094C13.4303 5.93018 13.5902 6.18939 13.6426 6.51953Z",
--						fill: "currentColor"
--					})]
--				})
--			});
--		}
--		//#endregion
- 		//#region \0dsh-css:D:\qwq\desktop\wt-dsh-master\deepseek-harness\packages\client\ui-settings-account\src\client\AccountAvatar.module.css.mjs
- 		const css$5 = ".R_S27W_image{corner-shape:round;object-fit:cover;border-radius:50%;width:100%;height:100%;display:block}";
- 		const tagId$5 = "@deepseek-ai/dsh-client-ui-settings-account/AccountAvatar.module.css";
-@@ -1633,7 +1491,7 @@ window.__ModuleLoader__.load({
- 		* @param props - sidebar geometry, settings navigation and account operations.
- 		* @returns account menu launcher.
- 		*/
--		function AccountMenu({ subscribeSessionExpired, subscribeModelSignInRequired, wide, settingsShortcut, openSettings, openOnboarding, settingsOpen, useAccount, useTheme, signOut, hasRunningAccountTasks, refreshAccount, bonusNoticeShown, bonusNoticeDismissed, contactUs, showLogin, start, cancel, t }) {
-+		function AccountMenu({ subscribeSessionExpired, subscribeModelSignInRequired, wide, settingsShortcut, openSettings, openOnboarding, settingsOpen, useAccount, useTheme, refreshAccount, bonusNoticeShown, bonusNoticeDismissed, showLogin, start, cancel, t }) {
- 			const anchor = (0, react.useRef)(null);
- 			const settingsWasOpen = (0, react.useRef)(false);
- 			(0, react.useEffect)(() => {
-@@ -1656,23 +1514,6 @@ window.__ModuleLoader__.load({
- 			const [open, setOpen] = (0, react.useState)(false);
- 			const trigger = (0, react.useRef)(null);
- 			const [busy, setBusy] = (0, react.useState)(false);
--			const [signOutImpact, setSignOutImpact] = (0, react.useState)();
--			const requestSignOut = async () => {
--				setBusy(true);
--				try {
--					setSignOutImpact(await hasRunningAccountTasks());
--					setOpen(false);
--				} catch (_error) {
--					setSignOutImpact("unknown");
--					setOpen(false);
--				} finally {
--					setBusy(false);
--				}
--			};
--			const beginSignIn = () => {
--				setOpen(false);
--				start().catch(() => void 0);
--			};
- 			return (0, react_jsx_runtime.jsxs)("div", {
- 				ref: anchor,
- 				className: AccountMenu_module_css_default.root,
-@@ -1697,70 +1538,25 @@ window.__ModuleLoader__.load({
- 						onShown: bonusNoticeShown,
- 						onDismiss: bonusNoticeDismissed
- 					}, account.notice.orderId),
--					(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Menu, {
--						open,
--						side: "top",
--						portal: true,
--						autoFocus: true,
-+					(0, react_jsx_runtime.jsx)("div", {
- 						className: AccountMenu_module_css_default.anchor,
--						listClassName: signedIn ? void 0 : AccountMenu_module_css_default.signedOutMenu,
--						anchor: (0, react_jsx_runtime.jsxs)("button", {
-+						children: (0, react_jsx_runtime.jsxs)("button", {
- 							ref: trigger,
- 							type: "button",
- 							className: AccountMenu_module_css_default.trigger,
- 							"data-collapsed": !wide,
--							"data-signed-out": !signedIn,
--							"aria-label": t("menu"),
--							"aria-haspopup": "menu",
--							"aria-expanded": open,
-+							"aria-label": t("settings"),
- 							onClick: () => {
--								setOpen((value) => !value);
-+								openSettings();
- 							},
--							children: [signedIn ? (0, react_jsx_runtime.jsx)("span", {
-+							children: [(0, react_jsx_runtime.jsx)("span", {
- 								className: AccountMenu_module_css_default.avatar,
--								children: (0, react_jsx_runtime.jsx)(AccountAvatar, { url: profile?.status === "ready" ? profile.value.avatarUrl : null })
--							}) : (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconEllipsisOutlineMedium, { size: 14 }), wide && (0, react_jsx_runtime.jsx)("span", {
-+								children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconSettingsOutlineMedium, { size: 14 })
-+							}), wide && (0, react_jsx_runtime.jsx)("span", {
- 								className: AccountMenu_module_css_default.label,
--								children: signedIn ? label : t("more")
-+								children: t("settings")
- 							})]
--						}),
--						items: [
--							{
--								id: "settings",
--								label: t("settings"),
--								icon: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconSettingsOutlineMedium, { size: 16 }),
--								...settingsShortcut === void 0 ? {} : { shortcut: settingsShortcut }
--							},
--							{
--								id: "contact",
--								label: t("contactUs"),
--								icon: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconPaperPlaneOutlineMedium, { size: 16 })
--							},
--							...signedIn ? [{
--								id: "signout",
--								label: t("signOut"),
--								icon: (0, react_jsx_runtime.jsx)(LogoutIcon, {}),
--								disabled: busy
--							}] : [{
--								id: "signin",
--								label: t("signIn"),
--								icon: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconUserOutlineMedium, { size: 16 })
--							}]
--						],
--						onClose: () => {
--							setOpen(false);
--						},
--						onSelect: (id) => {
--							if (id === "settings") {
--								setOpen(false);
--								trigger.current?.focus();
--								openSettings();
--							} else if (id === "contact") {
--								setOpen(false);
--								contactUs();
--							} else if (id === "signin") beginSignIn();
--							else requestSignOut();
--						}
-+						})
- 					}),
- 					account.loginVisible && !account.onboarding && (0, react_jsx_runtime.jsx)(SignInDialog, {
- 						account,
-@@ -1776,14 +1572,6 @@ window.__ModuleLoader__.load({
- 							openOnboarding("deepseek-official");
- 						}
- 					}),
--					signedIn && signOutImpact !== void 0 && (0, react_jsx_runtime.jsx)(SignOutDialog, {
--						running: signOutImpact,
--						signOut,
--						close: () => {
--							setSignOutImpact(void 0);
--						},
--						t
--					})
- 				]
- 			});
- 		}
-@@ -2815,16 +2603,11 @@ window.__ModuleLoader__.load({
- 			loading: "Loading…",
- 			backToHarness: "Back to DeepSeek Harness",
- 			settings: "Settings",
--			contactUs: "Feedback",
- 			menu: "Account menu",
- 			nav: "Account",
- 			signedIn: "Signed in to DeepSeek",
- 			signedOut: "Not signed in",
- 			signIn: "Sign in",
--			signOut: "Sign out",
--			signOutUnknownDescription: "Could not check running tasks. Signing out may interrupt tasks using this account. Sign out now?",
--			signOutDescription: "Signing out will not delete any data. You can sign in to this account again.",
--			signOutRunningDescription: "Tasks are currently running. Signing out will interrupt them. Sign out now?",
- 			cancel: "Cancel",
- 			open: "Open browser",
- 			initializing: "Starting sign in…",
-@@ -2873,16 +2656,11 @@ window.__ModuleLoader__.load({
- 			loading: "加载中…",
- 			backToHarness: "返回 DeepSeek Harness",
- 			settings: "设置",
--			contactUs: "意见反馈",
- 			menu: "账号菜单",
- 			nav: "账号与余额",
- 			signedIn: "已登录 DeepSeek",
- 			signedOut: "尚未登录",
- 			signIn: "登录",
--			signOut: "退出登录",
--			signOutUnknownDescription: "暂时无法确认任务状态。退出登录可能会中断使用此账号的任务，是否继续？",
--			signOutDescription: "退出登录不会丢失任何数据，你仍可以登录此账号。",
--			signOutRunningDescription: "当前有进程正在执行中，点击“退出登录”，将会打断进程，是否即刻退出登录？",
- 			cancel: "取消",
- 			open: "打开浏览器",
- 			initializing: "正在发起登录…",
-@@ -3338,6 +3116,7 @@ window.__ModuleLoader__.load({
+@@ -3338,6 +3338,7 @@
  			}, [exiting]);
  			return (0, react_dom.createPortal)((0, react_jsx_runtime.jsxs)("div", {
  				className: OnboardingSurface_module_css_default.onboardingOverlay,
@@ -327,7 +9,7 @@ diff --git a/lib/client.js b/lib/client.js
  				"data-exiting": exiting || void 0,
  				role: "presentation",
  				children: [(0, react_jsx_runtime.jsx)("div", {
-@@ -4035,29 +3814,16 @@ window.__ModuleLoader__.load({
+@@ -4035,29 +4036,16 @@
  								children: t("onboardingRetry")
  							})]
  						}),
@@ -367,7 +49,7 @@ diff --git a/lib/client.js b/lib/client.js
  						})
  					]
  				}, step)
-@@ -4099,7 +3865,46 @@ window.__ModuleLoader__.load({
+@@ -4099,7 +4087,46 @@
  		* @param props - shell overlay bindings and account-owned actions.
  		* @returns the unfinished flow, retained briefly after successful completion unless motion is reduced.
  		*/
@@ -415,7 +97,7 @@ diff --git a/lib/client.js b/lib/client.js
  			const locale = props.t("onboardingArtworkLocale");
  			const state = useOnboarding((value) => value);
  			const account = useAccount((value) => value);
-@@ -4156,10 +3961,38 @@ window.__ModuleLoader__.load({
+@@ -4156,10 +4183,38 @@
  		* Read the same safe credential fact used by native login.
  		* @returns configured API-key presence; rejects when the desktop bridge is unavailable.
  		*/
@@ -457,56 +139,8 @@ diff --git a/lib/client.js b/lib/client.js
  		}
  		//#endregion
  		//#region lib/types/client/account-refresh.js
-@@ -4338,35 +4171,6 @@ window.__ModuleLoader__.load({
- 				subscribeModelSignInRequired: (listener) => ctx.remote.$on("deepseek-account/model-sign-in-required", listener),
- 				...nativePlatform === void 0 ? {} : { openPlatformPage: platformPageOpener(refreshAccount) },
- 				refreshAccount,
--				contactUs() {
--					const profile = snapshot.details?.profile;
--					const context = {
--						uid: profile?.status === "ready" ? profile.value.id : null,
--						version: "0.2.0-rc.2",
--						locale: ctx.locale.getSnapshot().active === "zh" ? "zh-CN" : "en",
--						width: window.screen.width,
--						height: window.screen.height,
--						pixelRatio: window.devicePixelRatio
--					};
--					const openForm = (deviceInfo) => {
--						window.open(contactUrl(config, {
--							...context,
--							deviceInfo
--						}), "_blank", "noopener,noreferrer");
--					};
--					const readDeviceInfo = globalThis.dshDesktop?.deviceInfo;
--					if (readDeviceInfo === void 0) {
--						openForm(navigator.userAgent);
--						return;
--					}
--					(async () => {
--						let deviceInfo = "";
--						try {
--							deviceInfo = await readDeviceInfo();
--						} catch (_error) {}
--						openForm(deviceInfo);
--					})();
--				},
- 				showLogin(visible) {
- 					publish({
- 						...snapshot,
-@@ -4420,19 +4224,9 @@ window.__ModuleLoader__.load({
- 				async cancel(id) {
- 					if (!(await ctx.remote.account.cancelSignIn(id)).ok) throw new Error("account cancel failed");
- 				},
--				async hasRunningAccountTasks() {
--					const result = await ctx.remote.account.hasRunningAccountTasks();
--					if (!result.ok) throw new Error("account task query failed");
--					return result.value;
--				},
--				async signOut() {
--					const result = await ctx.remote.account.signOut(client());
--					if (result.ok) return;
--					throw result.error;
--				}
+@@ -4432,7 +4487,7 @@
+ 				}
  			};
  			if ("dshDesktop" in globalThis) {
 -				const controller = new DesktopOnboardingController(ctx.configForms.get(DESKTOP_ONBOARDING_NAMESPACE), ctx.configForms.get("ui-chat"), (enabled) => ctx.configForms.developerTools.setEnabled(enabled), operations.hooks.account, readOnboardingApiKeyPresence, ctx.configForms.describe());
@@ -514,7 +148,7 @@ diff --git a/lib/client.js b/lib/client.js
  				ctx.effect(() => () => {
  					controller.dispose();
  				}, "account: desktop onboarding lifetime");
-@@ -4452,8 +4246,10 @@ window.__ModuleLoader__.load({
+@@ -4452,8 +4507,10 @@
  				ctx.slots.inject("shell.overlay", () => ctx.slots.register({
  					name: "shell.overlay",
  					id: "desktop-onboarding",
