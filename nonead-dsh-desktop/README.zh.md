@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-基于固定版本上游 DeepSeek Harness **0.2.1-alpha.3** 构建的独立实验包：渠道与 pin 记录在 `upstream.json`，配套运行时包随附在 `vendor/dsh-runtime/0.2.1-alpha.3/`。主窗口直接加载官方发布的 `@deepseek-ai/dsh-web-frontend`，复用官方 Web 应用、插件管理器和基本桌面样式；在此之上还提供系统托盘、桌面设置和工具、Profile、恢复、Agents Anywhere 手机远控、社区市场、dshmarket，以及随安装包分发的品牌皮肤。
+基于固定版本上游 DeepSeek Harness **0.2.1-alpha.4** 构建的独立实验包：渠道与 pin 记录在 `upstream.json`，配套运行时包随附在 `vendor/dsh-runtime/0.2.1-alpha.4/`。主窗口直接加载官方发布的 `@deepseek-ai/dsh-web-frontend`，复用官方 Web 应用、插件管理器和基本桌面样式；在此之上还提供系统托盘、桌面设置和工具、Profile、恢复、Agents Anywhere 手机远控、社区市场、dshmarket，以及随安装包分发的品牌皮肤。
 
 包名为 `nonead-dsh-desktop`，产品名为 **Nonead DSH Desktop**，应用 id 为 `ai.deepseek.dsh.desktop`。早期版本以 `dsh-desktop-next`／`DSH NEXT` 发布同一个壳，本文仍沿用简称 **Next**。改名覆盖产品名、包名与目录名、`nonead-dsh-desktop:*` IPC 通道、临时目录前缀、`DSH_NONEAD_*` 环境变量前缀，以及日志与数据文件名。`src/legacy-names.ts` 让存量安装跨过改名继续可用：每个读取点先找新文件名，找不到再回退一次旧名；在拥有该文件的写入方以新名保存之前，不做任何隐式改写。
 
@@ -98,9 +98,9 @@ export async function record(ctx: Context) {
 
 屏幕共享应在用户点击“共享”时直接调用 `navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })`。macOS 15 及以上使用 Electron 的系统选择器，其余系统使用原生菜单选择来源，不自动选择屏幕。系统选择器的单次共享授权可能不同于全局屏幕录制权限。权限服务本身不录制媒体，屏幕共享也不授予电脑输入控制能力。打包 Next 时保留产品自己的 `NSMicrophoneUsageDescription`，主应用和 Helper 签名直接使用固定上游 checkout 中的 `apps/desktop/scripts/macos-entitlements.plist`。语音输入通过 `getUserMedia` 触发 Chromium/macOS 的录音授权，语音插件旁不再提供额外权限按钮。
 
-内置官方 `@deepseek-ai/dsh-experimental-computer-use-cua-driver-native@0.2.1-alpha.3`，**默认停用**。在**插件**页顶部的 Computer Use 分区中启用，并查看实际加载状态。入口复用官方插件槽位、开关和插件管理服务；Profile 条目 ID 为 `computer-use-cua-driver-native`。共享的 `computer-use` 注册服务已提供。操作和截图沿用现有对话工具卡片及图片附件；理解截图需要模型路由声明支持图片输入。开关左侧的齿轮打开授权弹窗。
+内置官方 `@deepseek-ai/dsh-experimental-computer-use-cua-driver-native@0.2.1-alpha.4`，**默认停用**。在**插件**页顶部的 Computer Use 分区中启用，并查看实际加载状态。入口复用官方插件槽位、开关和插件管理服务；Profile 条目 ID 为 `computer-use-cua-driver-native`。共享的 `computer-use` 注册服务已提供。操作和截图沿用现有对话工具卡片及图片附件；理解截图需要模型路由声明支持图片输入。开关左侧的齿轮打开授权弹窗。
 
-版本限定的 Yarn 补丁位于 `patches/dsh-experimental-computer-use-cua-driver-native@0.2.1-alpha.3.patch`。存在 `desktopPermissions` 时，`check_permissions` 通过桌面服务查询权限；`prompt: true` 为缺失的权限打开授权弹窗，再以 `prompt: false` 由驱动执行只读检查。驱动始终报告其实际权限，不根据桌面返回值假定授权成功。没有桌面服务时保留上游行为。固定的 `@trycua/cua-driver@0.28.0` 二进制、操作工具、图片处理和关闭流程保持上游实现。只能注册一个 provider，但这不会自动串行化多个会话对同一桌面的操作。
+版本限定的 Yarn 补丁位于 `patches/dsh-experimental-computer-use-cua-driver-native@0.2.1-alpha.4.patch`。存在 `desktopPermissions` 时，`check_permissions` 通过桌面服务查询权限；`prompt: true` 为缺失的权限打开授权弹窗，再以 `prompt: false` 由驱动执行只读检查。驱动始终报告其实际权限，不根据桌面返回值假定授权成功。没有桌面服务时保留上游行为。固定的 `@trycua/cua-driver@0.28.0` 二进制、操作工具、图片处理和关闭流程保持上游实现。只能注册一个 provider，但这不会自动串行化多个会话对同一桌面的操作。
 
 单元测试对安装后的补丁插件使用模拟原生 SDK。可选的原生验证要求 SDK 支持当前平台，会加载并关闭真实插件，不发送输入、不截图：
 
@@ -155,7 +155,7 @@ Next 在运行时提供一个应用自有的 Profile 层；它的重组钩子让
 打包入口和 Next 自动更新客户端已接入；发布仍需生成并验证对应平台的安装包，再配置线上 Next 渠道。不迁移 Stable/Beta 数据。我们自己的增强／扩展窗口模式继续留待后续迁移。更新服务尚未发布 Next 时会显示暂时不可用，不会安装 Stable/Beta 包。增强窗口模式仍隐藏。Node/Electron 的无图形检查不代表跨平台安装包和视觉验收完成。
 
 - Windows 更新安装包只对照其 PE 版本资源中的 `ProductName` 与 `ProductVersion` 校验。版本服务发布 SHA-256 摘要后即强制校验，目前服务端尚未发布。
-- Agents Anywhere 桥接需先在凭据机上用 `corepack yarn aa:prepare-release` 重新构建，才能与 `0.2.1-alpha.3` profile 兼容。
+- Agents Anywhere 桥接需先在凭据机上用 `corepack yarn aa:prepare-release` 重新构建，才能与 `0.2.1-alpha.4` profile 兼容。
 - `corepack yarn check` 需要 `.git` 目录：双语文档门禁通过 Git 解析被跟踪的 `*.i18n.yaml` 记录与文档 blob 哈希。
 
 ## 打包与更新

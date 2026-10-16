@@ -6,7 +6,11 @@ const read = (path: string) => JSON.parse(readFileSync(new URL(path, import.meta
 it('declares every official optional bundle as a discoverable, version-aligned installation dependency', () => {
   const next = read('../package.json')
   const require = createRequire(new URL('../package.json', import.meta.url))
+  // 0.2.1-alpha.4 replaced the experimental plugin-market bundle with the official plugin manager, so
+  // the bundle is still named in app-boot's list while no longer being published as a runtime package.
+  const retired = new Set(['@deepseek-ai/dsh-experimental-plugin-market-bundle'])
   for (const name of OPTIONAL_BUNDLES) {
+    if (retired.has(name)) continue
     expect(next.dependencies[name], name).toBe(next.dependencies['@deepseek-ai/dsh-app-boot'])
     const installed = JSON.parse(readFileSync(require.resolve(`${name}/package.json`), 'utf8'))
     expect(installed.version, name).toBe(next.dependencies[name])
@@ -16,7 +20,7 @@ it('declares every official optional bundle as a discoverable, version-aligned i
 
 it('archives the application like upstream Desktop while keeping fuses and native inventory aligned with Beta', () => {
   const next = read('../package.json'); const beta = read('../../dsh-plugin-desktop-beta/package.json')
-  expect(next.version).toBe('2.1.3')
+  expect(next.version).toBe('2.1.4')
   expect(next.build.appId).toBe('ai.deepseek.dsh.desktop')
   expect(next.build.asar).toBe(true)
   for (const platform of ['mac', 'win', 'linux']) expect(next.build[platform].asar, platform).toBeUndefined()

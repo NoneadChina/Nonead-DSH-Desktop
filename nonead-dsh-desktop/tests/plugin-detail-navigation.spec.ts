@@ -82,6 +82,8 @@ function fixture() {
     useStore: (select: (state: unknown) => unknown) => select(navigation.getSnapshot()), actions: navigation.actions,
     t: (key: string) => key, ensure: vi.fn(), resolveText: (text: string) => text,
     useConfigurations: () => [], usePluginManager: () => state, useConfigLedger: () => ledger, setEnabled, setRowEnabled,
+    // 0.2.1-alpha.4 binds the contributed plugin tabs as usePluginTabs; this fixture contributes none.
+    usePluginTabs: () => [],
     renderSlot: (name: string, owner: Record<string, unknown>, options?: unknown) => {
       if (name === 'plugins.overview') overview = owner as typeof overview
       return jsx('slot', { name, owner, options })

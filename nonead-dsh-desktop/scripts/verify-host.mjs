@@ -1,4 +1,4 @@
-/** Exercise the actual 0.2.1-alpha.3 Host, credentials, Market routes and AA manifest without Electron UI. */
+/** Exercise the actual 0.2.1-alpha.4 Host, credentials, Market routes and AA manifest without Electron UI. */
 import assert from 'node:assert/strict'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
