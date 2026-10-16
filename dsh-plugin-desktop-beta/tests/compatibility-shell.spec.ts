@@ -28,7 +28,7 @@ vi.mock('electron', () => ({
   },
 }))
 
-function fixture(platform: 'darwin' | 'win32' = 'darwin', mode: DesktopShellSpec['mode'] = 'compatibility', material: DesktopShellSpec['material'] = 'off') {
+function fixture(platform: 'darwin' | 'win32' = 'darwin', mode: 'compatibility' | 'extended' = 'compatibility', material: DesktopShellSpec['material'] = 'off') {
   const ipc = { handle: vi.fn(), removeHandler: vi.fn() }
   const webContents = Object.assign(new EventEmitter(), {
     ipc,
@@ -69,27 +69,22 @@ describe('isolated compatibility shell', () => {
   })
 
   it.each([
-    ['darwin', 'extended', 'transparent'],
-    ['darwin', 'advanced', 'transparent'],
-    ['win32', 'extended', 'off'],
-    ['darwin', 'extended', 'off'],
-    ['darwin', 'compatibility', 'transparent'],
-  ] as const)('keeps the %s %s %s content surface opaque behind the transparent chrome', (platform, mode, material) => {
-    // Compatibility is the only presentation mode, so a legacy `extended` or
-    // `advanced` generation no longer tints the content view; the transparent
-    // material lives on the chrome view alone.
+    ['darwin', 'extended', 'transparent', true],
+    ['win32', 'extended', 'off', false],
+    ['darwin', 'extended', 'off', false],
+    ['darwin', 'compatibility', 'transparent', false],
+  ] as const)('preserves the content material boundary for %s %s %s', (platform, mode, material, transparent) => {
     const { shell } = fixture(platform, mode, material)
-    expect(shell.content.setBackgroundColor).not.toHaveBeenCalled()
-    expect(shell.chromeView.setBackgroundColor).toHaveBeenCalledWith('#00000000')
+    if (transparent) expect(shell.content.setBackgroundColor).toHaveBeenCalledExactlyOnceWith('#00000000')
+    else expect(shell.content.setBackgroundColor).not.toHaveBeenCalled()
     shell.dispose()
   })
 
-  it.each(['compatibility', 'extended', 'advanced'] as const)('isolates the %s chrome with native bounds outside the content document', async mode => {
+  it.each(['compatibility', 'extended'] as const)('isolates %s chrome with native bounds outside the content document', async mode => {
     const { shell, window, webContents, handler, event } = fixture('darwin', mode)
     await shell.load()
-    // Every stored marker reads back as compatibility.
-    expect(handler(event(), 'state')).toMatchObject({ mode: 'compatibility' })
-    expect(webContents.loadFile).toHaveBeenCalledWith(expect.stringMatching(/native-ui[\\/]compatibility-chrome\.html$/))
+    expect(handler(event(), 'state')).toMatchObject({ mode })
+    expect(webContents.loadFile).toHaveBeenCalledWith(expect.stringMatching(/native-ui\/compatibility-chrome\.html$/))
     expect(window.contentView.addChildView).toHaveBeenCalledWith(shell.content)
     expect(shell.content).toMatchObject({ options: { webPreferences: {
       partition: 'persist:dsh-desktop-renderer', preload: '/desktop/preload.cjs',
@@ -186,6 +181,8 @@ describe('isolated compatibility shell', () => {
     await handler(event(), 'check-for-updates')
     await handler(event(), 'mode-compatibility')
     expect(spec.requestModeChange).toHaveBeenCalledWith('compatibility')
+    await handler(event(), 'mode-extended')
+    expect(spec.requestModeChange).toHaveBeenCalledWith('extended')
     expect(actions.restart).not.toHaveBeenCalled()
     await handler(event(), 'restart')
     await handler(event(), 'restart-recovery')
@@ -203,7 +200,7 @@ describe('isolated compatibility shell', () => {
     const { shell, handler, event, spec, actions } = fixture()
     await shell.load()
     vi.mocked(spec.requestModeChange).mockRejectedValueOnce(new Error('write failed'))
-    await expect(handler(event(), 'mode-compatibility')).rejects.toThrow('write failed')
+    await expect(handler(event(), 'mode-advanced')).rejects.toThrow('write failed')
     expect(actions.restart).not.toHaveBeenCalled()
     vi.mocked(actions.checkForUpdates).mockRejectedValueOnce(new Error('update failed'))
     await expect(handler(event(), 'check-for-updates')).rejects.toThrow('update failed')

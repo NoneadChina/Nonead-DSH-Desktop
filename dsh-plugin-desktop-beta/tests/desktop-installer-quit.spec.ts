@@ -11,23 +11,23 @@ describe('Desktop installer quit request', () => {
   it('accepts only the dedicated flag on Windows', () => {
     expect(DESKTOP_INSTALLER_QUIT_FLAG).toBe('--dsh-installer-quit')
     expect(isDesktopInstallerQuitRequest(
-      ['Nonead DSH Desktop.exe', DESKTOP_INSTALLER_QUIT_FLAG],
+      ['DSH Desktop.exe', DESKTOP_INSTALLER_QUIT_FLAG],
       'win32',
     )).toBe(true)
-    expect(isDesktopInstallerQuitRequest(['Nonead DSH Desktop.exe', '--quit'], 'win32')).toBe(false)
+    expect(isDesktopInstallerQuitRequest(['DSH Desktop.exe', '--quit'], 'win32')).toBe(false)
     expect(isDesktopInstallerQuitRequest(
-      ['Nonead DSH Desktop', DESKTOP_INSTALLER_QUIT_FLAG],
+      ['DSH Desktop', DESKTOP_INSTALLER_QUIT_FLAG],
       'darwin',
     )).toBe(false)
   })
 
   it('distinguishes background Node re-entry from an explicit application launch', () => {
-    expect(isDesktopBackgroundNodeRequest(['Nonead DSH Desktop.exe'])).toBe(false)
-    expect(isDesktopBackgroundNodeRequest(['Nonead DSH Desktop.exe', '--profile', 'desktop'])).toBe(false)
-    expect(isDesktopBackgroundNodeRequest(['Nonead DSH Desktop.exe', 'C:\\app\\pnpm\\bin\\pnpm.mjs', 'install'])).toBe(true)
-    expect(isDesktopBackgroundNodeRequest(['Nonead DSH Desktop.exe', '--require', 'C:\\runtime\\clear-env.cjs'])).toBe(true)
-    expect(isDesktopBackgroundNodeRequest(['Nonead DSH Desktop.exe', '--import=file:///runtime/clear-env.mjs'])).toBe(true)
-    expect(isDesktopBackgroundNodeRequest(['Nonead DSH Desktop.exe', '--expose-internals', 'desktop-cli.js'])).toBe(true)
+    expect(isDesktopBackgroundNodeRequest(['DSH Desktop.exe'])).toBe(false)
+    expect(isDesktopBackgroundNodeRequest(['DSH Desktop.exe', '--profile', 'desktop'])).toBe(false)
+    expect(isDesktopBackgroundNodeRequest(['DSH Desktop.exe', 'C:\\app\\pnpm\\bin\\pnpm.mjs', 'install'])).toBe(true)
+    expect(isDesktopBackgroundNodeRequest(['DSH Desktop.exe', '--require', 'C:\\runtime\\clear-env.cjs'])).toBe(true)
+    expect(isDesktopBackgroundNodeRequest(['DSH Desktop.exe', '--import=file:///runtime/clear-env.mjs'])).toBe(true)
+    expect(isDesktopBackgroundNodeRequest(['DSH Desktop.exe', '--expose-internals', 'desktop-cli.js'])).toBe(true)
   })
 
   it('handles first- and second-instance requests without showing a window', () => {

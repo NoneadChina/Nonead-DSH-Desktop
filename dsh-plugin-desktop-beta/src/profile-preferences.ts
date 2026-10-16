@@ -122,9 +122,8 @@ function assertAbsolutePath(label: string, value: string): string {
 }
 
 function assertMode(value: unknown, error: ErrorFactory): DesktopShellMode {
-  // Compatibility is the only presentation mode; legacy values normalize to it.
-  if (value === 'compatibility' || value === 'extended' || value === 'advanced') return 'compatibility'
-  throw error('mode must be compatibility')
+  if (value === 'compatibility' || value === 'extended' || value === 'advanced') return value
+  throw error('mode must be compatibility, extended, or advanced')
 }
 
 function assertExposure(value: unknown, error: ErrorFactory): DesktopNetworkExposure {

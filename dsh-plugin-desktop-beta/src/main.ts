@@ -1,4 +1,4 @@
-/** Nonead DSH Desktop executable: minimal Electron bootstrap around the Host Cordis root. */
+/** DSH Desktop executable: minimal Electron bootstrap around the Host Cordis root. */
 
 // Tool subprocesses start the private Node runner through this Electron binary,
 // so that runner child needs ELECTRON_RUN_AS_NODE. Exporting it from this
@@ -8,7 +8,9 @@
 // runner child alone.
 
 import { formatUnexpectedHostExit, startIsolatedDesktopHost } from './host-process.ts'
-import { app, crashReporter, nativeImage, safeStorage, session, shell } from 'electron'
+import * as desktopOffice from './desktop-office.ts'
+import { desktopPrimaryRuntime, resolveDesktopOfficeConfig } from './desktop-office.ts'
+import { app, crashReporter, safeStorage, session, shell } from 'electron'
 import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -34,8 +36,6 @@ import {
   isDesktopInstallerQuitRequest,
 } from './desktop-installer-quit.ts'
 import { createDesktopBrowserAccess } from './desktop-browser-access.ts'
-import { desktopApplicationIconPath } from './application-icon-path.ts'
-import { setDesktopApplicationIcon } from './desktop-application-icon.ts'
 import {
   installDesktopDshRuntime,
   installDesktopPnpmRuntime,
@@ -63,10 +63,13 @@ import type {
   DesktopLifecycleRendererFailureReason,
 } from './lifecycle-events.ts'
 import { FileExporter } from './file-exporter.ts'
+import { initializeDeveloperLogging, diagnosticRunId } from './developer-logging.ts'
+import { installHostDeveloperLogging } from './host-developer-logging.ts'
 import { installAgentErrorLogging } from './agent-error-logging.ts'
 import { observeDesktopPreferenceSettings } from './settings-bridge.ts'
 import {
   desktopLanBrowserUrls,
+  desktopListeningPort,
   desktopLoopbackBrowserUrl,
 } from './desktop-network.ts'
 import { desktopLanAddresses } from './lan-addresses.ts'
@@ -87,6 +90,7 @@ import { LogFileSink } from './log-files.ts'
 import { maskSecrets } from './mask-secrets.ts'
 import { resolveDesktopShellEnvironment } from './shell-environment.ts'
 import { installProfilePackageResolver } from './module-resolution.ts'
+import { DesktopPluginPackages } from './plugin-packages.ts'
 import { packagedDependencyPath } from './packaged-runtime-path.ts'
 import {
   beginDesktopProfileStartup,
@@ -527,6 +531,7 @@ async function start(): Promise<void> {
     process.stderr.write(`${BIN_NAME}: file logging unavailable: ${maskSecrets(detail)}\n`)
     logSink = undefined
   }
+  initializeDeveloperLogging((level, line) => logSink?.writeRecord(level, JSON.parse(line)))
   const electronLogger = new ElectronStderrLogger(logSink)
   if (safeModeRequested) {
     safeModePaths = ensureDesktopSafeModeEnvironment(desktopUserDataDir)
@@ -752,16 +757,6 @@ async function start(): Promise<void> {
     startupStage = 'shell-environment'
     lifecycleRecorder.transitionStartupStage(startupStage)
     if (process.platform === 'win32') app.setAppUserModelId(DESKTOP_APP_ID)
-    // Windows takes a taskbar button's icon from the window that owns it, and Desktop
-    // opens windows before the Host shell mounts: startup dialogs, recovery, Profile
-    // selection and the Platform sign-in window. Validate and publish the shipped icon
-    // here so none of them can be created without it.
-    const launchIconPath = desktopApplicationIconPath(process.platform)
-    const launchIcon = nativeImage.createFromPath(launchIconPath)
-    if (launchIcon.isEmpty()) {
-      throw new Error(`dsh-plugin-desktop: failed to load application icon ${launchIconPath}`)
-    }
-    setDesktopApplicationIcon(launchIcon)
     if (app.isPackaged && process.cwd() === '/') process.chdir(app.getPath('home'))
     const shellEnvironmentResolution = await resolveDesktopShellEnvironment({
       environment: process.env,
@@ -1616,6 +1611,12 @@ async function start(): Promise<void> {
       clearEnvironmentPath: pnpmRuntime.clearEnvironmentPath,
       dshBootstrapPath,
     }
+    // The bundled interpreter payload of this CPU: beside the application when packaged, prepared by `prepare:runtime` in development.
+    const primaryRuntime = desktopPrimaryRuntime({
+      packaged: app.isPackaged,
+      resourcesPath: process.resourcesPath,
+      packageRoot: fileURLToPath(new URL('..', import.meta.url)),
+    })
     await healDesktopProfileModuleFallback(homeDir, prepared.profile)
     if (profilePreferences === undefined) {
       throw new Error(`${BIN_NAME}: active Profile preferences were not initialized`)
@@ -1627,7 +1628,7 @@ async function start(): Promise<void> {
         host: { prepared, profilePreferences, homeDir, activeProfileName, pluginManagementStatePath,
           selectionStatePath, marketUserDataDir, releaseUserDataLocations, desktopLaunchEnvironment,
           desktopProxyOverlay: proxyResolution.overlay,
-          desktopPnpmBootstrap, logDirectory: join(desktopUserDataDir, 'logs', 'host') },
+          desktopPnpmBootstrap, primaryRuntime, diagnosticRunId: diagnosticRunId(), logDirectory: join(desktopUserDataDir, 'logs', 'host') },
         runtime, rendererToken: browserAccess.rendererHeader.value,
         prepareCertificate: prepareHostCertificate,
         bindHost: host => generation.bindHost(host), requestQuit,
@@ -1711,6 +1712,8 @@ async function start(): Promise<void> {
             () => releasePackageResolver,
             'dsh-plugin-desktop: profile package resolution',
           )
+          // Official plugin metadata and package lookups read the packages this resolver loads.
+          await hostCtx.plugin(DesktopPluginPackages)
           hostCtx.provide(DSH_LAUNCH_ENVIRONMENT_KEY, desktopLaunchEnvironment)
           hostCtx.provide('desktopBrowserAccess', browserAccess)
           hostCtx.provide('desktopLanHttps', lanHttps)
@@ -1734,6 +1737,15 @@ async function start(): Promise<void> {
           }
           // Registered before the plugin tree mounts, so no agent can fail unrecorded.
           installAgentErrorLogging(hostCtx)
+          installHostDeveloperLogging(hostCtx)
+          // Office skills and the workspace dependency tool need the bundled payload; a packaged Host without it fails here.
+          const office = resolveDesktopOfficeConfig(primaryRuntime, homeDir)
+          if (office === undefined) {
+            hostCtx.logger.warn(`${BIN_NAME}: Office skills are unavailable; run yarn prepare:runtime to prepare the primary runtime`)
+          } else {
+            await hostCtx.plugin(desktopOffice, office)
+            hostCtx.logger.info(`${BIN_NAME}: Office skills mounted from ${office.source}`)
+          }
           await hostCtx.plugin(DesktopProfileService, {
             current: {
               name: activeProfileName,
@@ -1806,7 +1818,7 @@ async function start(): Promise<void> {
                 : []
               return {
                 localUrl: hostCtx.connection.authenticatedUrl(
-                  desktopLoopbackBrowserUrl(hostCtx.webServer.port),
+                  desktopLoopbackBrowserUrl(desktopListeningPort(hostCtx.webServer)),
                 ),
                 lanUrls: lanOrigins.map(url => hostCtx.connection.authenticatedUrl(url)),
                 lanState: lan.state,

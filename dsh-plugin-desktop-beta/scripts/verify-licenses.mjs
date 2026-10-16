@@ -141,7 +141,7 @@ if (noticesArg !== -1) {
   const lines = [
     '# Third-Party Notices',
     '',
-    'Nonead DSH Desktop distributes the following third-party packages inside its installers.',
+    'DSH Desktop distributes the following third-party packages inside its installers.',
     'Each package ships with its own license text in the application files; this list records',
     'the package names, versions, and licenses for transparency.',
     '',

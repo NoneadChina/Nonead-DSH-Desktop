@@ -26,7 +26,7 @@ describe('Desktop launch workspace path', () => {
   })
 
   it('never reads the executable slot', () => {
-    expect(desktopLaunchWorkspaceRequest(['C:\\Program Files\\Nonead DSH Desktop\\Nonead DSH Desktop.exe'], 'win32'))
+    expect(desktopLaunchWorkspaceRequest(['C:\\Program Files\\DSH Desktop\\DSH Desktop.exe'], 'win32'))
       .toBeUndefined()
     expect(desktopLaunchWorkspaceRequest(['/opt/dsh/dsh-desktop', '/home/anna/work'], 'linux'))
       .toEqual({ path: '/home/anna/work', explicit: false })
@@ -99,10 +99,10 @@ describe('Desktop launch workspace path', () => {
 
   it('reads nothing from a background Node re-entry command line', () => {
     const vectors = [
-      ['Nonead DSH Desktop.exe', 'C:\\app\\pnpm\\bin\\pnpm.mjs', 'install'],
-      ['Nonead DSH Desktop.exe', '--require', 'C:\\runtime\\clear-env.cjs'],
-      ['Nonead DSH Desktop.exe', '--import=file:///runtime/clear-env.mjs'],
-      ['Nonead DSH Desktop.exe', '--expose-internals', 'desktop-cli.js'],
+      ['DSH Desktop.exe', 'C:\\app\\pnpm\\bin\\pnpm.mjs', 'install'],
+      ['DSH Desktop.exe', '--require', 'C:\\runtime\\clear-env.cjs'],
+      ['DSH Desktop.exe', '--import=file:///runtime/clear-env.mjs'],
+      ['DSH Desktop.exe', '--expose-internals', 'desktop-cli.js'],
     ]
     for (const argv of vectors) {
       expect(isDesktopBackgroundNodeRequest(argv)).toBe(true)

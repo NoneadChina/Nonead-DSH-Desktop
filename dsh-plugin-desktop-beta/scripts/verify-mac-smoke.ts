@@ -11,6 +11,7 @@ import {
   macSmokeExecutableSlices,
   type MacUniversalArch,
 } from './mac-universal.ts'
+import { verifyDesktopMacRuntime } from './verify-mac-runtime.ts'
 
 /** Injectable filesystem and command boundaries for smoke verification. */
 export interface MacSmokeVerificationOptions {
@@ -28,6 +29,8 @@ export interface MacSmokeVerificationOptions {
   readonly run: (command: string, args: readonly string[]) => void
   /** Remove the detached empty mount point. */
   readonly removeMountPoint: (mountPoint: string) => void
+  /** Check resources beside the application, such as the bundled interpreter payloads, inside the mounted image. */
+  readonly verifyRuntime?: (appPath: string) => void
   /** Probe a physical path inside the mounted application. */
   readonly exists: (path: string) => boolean
   /** Report file metadata for a physical path inside the mounted application. */
@@ -59,12 +62,13 @@ function defaultOptions(): MacSmokeVerificationOptions {
     distDir: process.argv[2] === undefined
       ? join(packageRoot, 'dist', 'mac-smoke')
       : resolve(process.argv[2]),
-    productName: 'Nonead DSH Desktop Beta',
+    productName: 'DSH Desktop Beta',
     executableSlices: macSmokeExecutableSlices(macSmokeArchitecture(process.env)),
     listDmgs,
     makeMountPoint: () => mkdtempSync(join(tmpdir(), 'dsh-desktop-dmg-smoke-')),
     run,
     removeMountPoint: mountPoint => rmdirSync(mountPoint),
+    verifyRuntime: appPath => verifyDesktopMacRuntime(appPath, false),
     exists: existsSync,
     stat: path => {
       const result = statSync(path)
@@ -152,6 +156,7 @@ export function verifyMacSmoke(
       }
       options.run('lipo', [nativePath, '-verify_arch', entry.arch])
     }
+    options.verifyRuntime?.(appPath)
   } catch (cause) {
     failure = cause
   }

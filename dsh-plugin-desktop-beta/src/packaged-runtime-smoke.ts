@@ -18,6 +18,7 @@ import { rgPath } from '@vscode/ripgrep'
 import AdmZip from 'adm-zip'
 import { exportDiagnosticsZip } from './diagnostic-export.ts'
 import { installProfilePackageResolver } from './module-resolution.ts'
+import type {} from '@deepseek-ai/dsh-session-persistence'
 
 const OK_MARKER = 'DSH_PACKAGED_RUNTIME_OK'
 
@@ -45,7 +46,7 @@ assert(/^ripgrep\s/u.test(rgVersion), `received an invalid ripgrep version: ${JS
 if (process.platform === 'win32') {
   const sessionBackend = await import('@deepseek-ai/dsh-session-persistence-jsonl')
   assert(
-    typeof sessionBackend.default === 'function',
+    typeof sessionBackend.apply === 'function',
     'could not import the Windows JSONL session backend without fs-ext',
   )
 } else {
@@ -57,7 +58,7 @@ if (process.platform === 'win32') {
 async function smokeSessionMigration(): Promise<void> {
   const { Context } = await import('@deepseek-ai/cordis')
   const { SessionId } = await import('@deepseek-ai/dsh-session')
-  const { default: JsonlSessionPersistence } = await import('@deepseek-ai/dsh-session-persistence-jsonl')
+  const { apply: JsonlSessionPersistence } = await import('@deepseek-ai/dsh-session-persistence-jsonl')
   const root = mkdtempSync(join(tmpdir(), 'dsh-packaged-session-migration-'))
   const id = SessionId('packaged-migration')
   const directory = join(root, '_no-cwd', id)

@@ -58,7 +58,6 @@ function values(overrides: Partial<DesktopSetupWizardSettings> = {}): DesktopSet
 }
 
 describe('Desktop Setup Wizard settings document', () => {
-
   it('returns platform defaults for an absent exact settings document', () => {
     const root = temporaryDirectory()
     expect(readDesktopSetupWizardSettings(join(root, 'settings.yaml')))
@@ -177,8 +176,7 @@ describe('Desktop Setup Wizard settings document', () => {
     await updateDesktopSetupWizardSettings(path, next)
 
     expect(lstatSync(path).isFile()).toBe(true)
-    // The legacy marker is written normalized: compatibility is the only mode.
-    expect(readDesktopSetupWizardSettings(path)).toEqual({ ...next, mode: 'compatibility' })
+    expect(readDesktopSetupWizardSettings(path)).toEqual(next)
   })
 
   it('does not overwrite malformed syntax, invalid roots, or invalid known values', async () => {
@@ -212,7 +210,7 @@ describe('Desktop Setup Wizard settings document', () => {
     }
   })
 
-  it('requires a complete update, withdraws LAN without browser access, and normalizes legacy modes', async () => {
+  it('requires a complete update and withdraws LAN exposure with browser access', async () => {
     const path = join(temporaryDirectory(), 'settings.json')
     const incomplete = values({
       openBrowser: false,
@@ -232,22 +230,17 @@ describe('Desktop Setup Wizard settings document', () => {
       networkExposure: 'loopback',
     })
 
-    // A legacy marker is accepted and normalized, and compatibility keeps the
-    // browser access the selection asked for.
-    const legacy = values({ mode: 'advanced', openBrowser: true, networkExposure: 'lan' })
-    await expect(updateDesktopSetupWizardSettings(path, legacy)).resolves.toMatchObject({
-      mode: 'compatibility',
-      openBrowser: true,
-      networkExposure: 'lan',
+    const incompatible = values({ mode: 'advanced', openBrowser: true, networkExposure: 'lan' })
+    await expect(updateDesktopSetupWizardSettings(path, incompatible)).resolves.toMatchObject({
+      mode: 'advanced',
+      openBrowser: false,
+      networkExposure: 'loopback',
     })
     expect(readDesktopSetupWizardSettings(path)).toMatchObject({
-      mode: 'compatibility',
-      openBrowser: true,
-      networkExposure: 'lan',
+      mode: 'advanced',
+      openBrowser: false,
+      networkExposure: 'loopback',
     })
-    await expect(updateDesktopSetupWizardSettings(path, values({
-      mode: 'glass' as DesktopSetupWizardSettings['mode'],
-    }))).rejects.toThrow('mode must be compatibility')
   })
 
   it('projects legacy LAN exposure as explicit compatibility browser access', () => {
@@ -266,7 +259,7 @@ describe('Desktop Setup Wizard settings document', () => {
     })
   })
 
-  it('atomically normalizes legacy browser handoff and LAN under the only mode', async () => {
+  it('atomically withdraws legacy browser handoff and LAN from custom modes', async () => {
     const root = temporaryDirectory()
     const yamlPath = join(root, 'legacy.yaml')
     writeFileSync(yamlPath, [
@@ -279,8 +272,6 @@ describe('Desktop Setup Wizard settings document', () => {
       '',
     ].join('\n'))
 
-    // `advanced` is a legacy marker that reads as compatibility, so stored LAN
-    // intent becomes the explicit browser-access grant.
     await expect(migrateDesktopBrowserAccessSettings(yamlPath)).resolves.toBe(true)
     await expect(migrateDesktopBrowserAccessSettings(yamlPath)).resolves.toBe(false)
     const migrated = readFileSync(yamlPath, 'utf8')
@@ -288,8 +279,8 @@ describe('Desktop Setup Wizard settings document', () => {
     expect(parseDocument(migrated).toJS()).toMatchObject({
       'dsh-desktop': {
         mode: 'advanced',
-        openBrowser: true,
-        networkExposure: 'lan',
+        openBrowser: false,
+        networkExposure: 'loopback',
         future: 'keep',
       },
     })
@@ -298,8 +289,8 @@ describe('Desktop Setup Wizard settings document', () => {
     writeFileSync(jsonPath, `${JSON.stringify({
       'dsh-desktop': {
         mode: 'extended',
-        openBrowser: false,
-        networkExposure: 'lan',
+        openBrowser: true,
+        networkExposure: 'loopback',
       },
       untouched: { value: 1 },
     })}\n`)
@@ -307,8 +298,8 @@ describe('Desktop Setup Wizard settings document', () => {
     expect(JSON.parse(readFileSync(jsonPath, 'utf8'))).toMatchObject({
       'dsh-desktop': {
         mode: 'extended',
-        openBrowser: true,
-        networkExposure: 'lan',
+        openBrowser: false,
+        networkExposure: 'loopback',
       },
       untouched: { value: 1 },
     })
@@ -373,10 +364,9 @@ describe('Desktop Setup Wizard settings document', () => {
       openBrowser: false,
       networkExposure: 'loopback',
     })
-    const stored: DesktopSetupWizardSettings = { ...next, mode: 'compatibility' }
 
-    await expect(updateDesktopSetupWizardSettings(path, next)).resolves.toEqual(stored)
-    expect(readDesktopSetupWizardSettings(path)).toEqual(stored)
+    await expect(updateDesktopSetupWizardSettings(path, next)).resolves.toEqual(next)
+    expect(readDesktopSetupWizardSettings(path)).toEqual(next)
     expect(readFileSync(lockPath, 'utf8')).toBe('owner\n')
   })
 
@@ -384,7 +374,7 @@ describe('Desktop Setup Wizard settings document', () => {
     const root = temporaryDirectory()
     const path = join(root, 'settings.yaml')
     const lockPath = `${path}.lock`
-    const contents = 'dsh-desktop:\n  mode: advanced\n  openBrowser: false\n  networkExposure: lan\n'
+    const contents = 'dsh-desktop:\n  mode: advanced\n  openBrowser: true\n'
     writeFileSync(path, contents)
     writeFileSync(lockPath, 'owner\n')
 
@@ -392,9 +382,9 @@ describe('Desktop Setup Wizard settings document', () => {
     expect(readFileSync(path, 'utf8')).not.toBe(contents)
     expect(readFileSync(lockPath, 'utf8')).toBe('owner\n')
     expect(readDesktopSetupWizardSettings(path)).toMatchObject({
-      mode: 'compatibility',
-      openBrowser: true,
-      networkExposure: 'lan',
+      mode: 'advanced',
+      openBrowser: false,
+      networkExposure: 'loopback',
     })
   })
 
@@ -451,7 +441,7 @@ describe('Desktop Setup Wizard settings document', () => {
     ].join('\n')
     writeFileSync(path, contents, { mode: 0o600 })
 
-    expect(readDesktopSetupWizardSettings(path)).toMatchObject({ mode: 'compatibility', windowsMaterial: 'off' })
+    expect(readDesktopSetupWizardSettings(path)).toMatchObject({ mode: 'advanced', windowsMaterial: 'off' })
     await expect(migrateDesktopWindowMaterialSettings(path)).resolves.toBe(false)
     expect(readFileSync(path, 'utf8')).toBe(contents)
   })
@@ -531,9 +521,7 @@ describe('Desktop Setup Wizard settings document', () => {
     ])
 
     const result = readDesktopSetupWizardSettings(path)
-    // Every write stores the normalized mode, so the legacy marker's normalized
-    // form is what a reader can observe.
-    expect([first, second].map(value => ({ ...value, mode: 'compatibility' as const }))).toContainEqual(result)
+    expect([first, second]).toContainEqual(result)
     expect(parseDocument(readFileSync(path, 'utf8')).toJS()).toMatchObject({
       unrelated: { keep: true },
     })
@@ -562,7 +550,7 @@ describe('Desktop Setup Wizard settings under the 0.1.7 section keys', () => {
     writeFileSync(path, renamed)
 
     expect(readDesktopSetupWizardSettings(path)).toMatchObject({
-      mode: 'compatibility',
+      mode: 'extended',
       windowsMaterial: 'off',
       macosMaterial: 'off',
       notifications: { notifyOnJobCompletion: false, enabled: true },
@@ -579,7 +567,7 @@ describe('Desktop Setup Wizard settings under the 0.1.7 section keys', () => {
     expect(text).toContain('# user comment')
     const document = parseDocument(text).toJS() as Record<string, Record<string, unknown>>
     expect(Object.keys(document)).toEqual(['desktop-shell', 'desktop-notifications'])
-    expect(document['desktop-shell']).toMatchObject({ mode: 'compatibility', windowsMaterial: 'off', logLevel: 'debug' })
+    expect(document['desktop-shell']).toMatchObject({ mode: 'advanced', windowsMaterial: 'off', logLevel: 'debug' })
     expect(document['desktop-notifications']).toMatchObject({ notifyOnTurnCompletion: false })
   })
 

@@ -62,10 +62,7 @@ export function parseDesktopClientEnvironment(search: string): DesktopClientEnvi
   }
   return {
     version,
-    // Compatibility is the only presentation mode. A legacy Host may still send
-    // `extended` or `advanced`; those markers validate and normalize to it here
-    // so an older Electron Host can boot this renderer without switching modes.
-    mode: 'compatibility',
+    mode: mode as DesktopClientMode,
     platform: platform as DesktopClientPlatform,
     material,
   }

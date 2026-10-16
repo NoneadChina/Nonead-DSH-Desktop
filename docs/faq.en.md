@@ -6,7 +6,7 @@ This page answers common questions about installation, supported platforms, the 
 
 ## What is Nonead DSH Desktop?
 
-Nonead DSH Desktop is an open-source DeepSeek Harness desktop client for Windows and macOS. It packages the official Harness local Web UI, Host service, and plugin system into a native desktop application with a window, system tray, terminal, updates, and profile management.
+Nonead DSH Desktop is an open-source DeepSeek Harness desktop client for Windows and macOS. It packages the official Harness local Web UI, Host service, and plugin system into a native desktop application with a window, system tray, terminal, updates, profile management, and the built-in DSH Community Market.
 
 ## Is this an official DeepSeek product?
 
@@ -14,11 +14,11 @@ No. Nonead DSH Desktop is an independent, community-maintained open-source proje
 
 ## Which operating systems are supported?
 
-Current release installers support Windows x64 and universal macOS (Intel and Apple Silicon). Linux x64 AppImage and deb artifacts are built by CI but have not shipped with any published release yet; until you see Linux artifacts in the release notes, cross-platform compatibility code in the source tree does not imply that an installer has been released for that platform. Linux arm64 artifacts are not offered.
+The release scripts cover Windows x64 and universal macOS (Intel and Apple Silicon): the root `package.json` provides `dist:mac:*` and `dist:win:*`. Linux x64 AppImage and Debian artifacts are built by CI's `desktop-linux` job through the Beta workspace's (`dsh-plugin-desktop-beta`) `dist:linux`, x64 only; until you see Linux artifacts in the release notes, cross-platform compatibility code in the source tree does not imply that an installer has been released for that platform.
 
 ## Do I need to install Node.js, pnpm, or DSH?
 
-No. The installer includes Electron, Node.js, pnpm, and pinned DSH dependencies. Ordinary users can install and launch directly, and Desktop does not modify the global system PATH or user shell configuration.
+No. The installer includes Electron, Node.js, pnpm, and pinned DSH dependencies (the current pin is upstream DSH `0.2.1-alpha.3`). Ordinary users can install and launch directly, and Desktop does not modify the global system PATH or user shell configuration.
 
 ## Does the first launch download a runtime?
 
@@ -26,7 +26,7 @@ No separate Node.js or Harness core download is required. The installer is large
 
 ## Does Nonead DSH Desktop modify official Harness?
 
-No. The repository pins an unmodified official Harness checkout. Desktop ships compatibility mode only: it runs the upstream default Web client below an independent overlay frame and never edits upstream source. Legacy persisted `extended` and `advanced` values still parse, but reads normalize them to compatibility mode.
+No. The repository pulls an unmodified official Harness checkout at a fixed upstream commit (the current pin is DSH `0.2.1-alpha.3`, recorded in the root `upstream.json`). Compatibility mode runs the upstream default Web client below an independent overlay frame. Extended and enhanced modes each install their own Desktop-owned root registration through the plugin/profile composition boundary while retaining the official slot occupants. None of these modes edits upstream source.
 
 ## Is data stored locally?
 
@@ -34,15 +34,29 @@ The Desktop Host, profiles, and DSH home live on the local machine. Whether cont
 
 ## Can I install DSH plugins?
 
-Yes. Nonead DSH Desktop uses the official Harness plugin system. Open DSH Terminal from the tray and run `dsh plugin add`, `dsh plugin remove`, or `dsh plugin update`. These commands default to the active profile, and Desktop must be restarted after plugin changes.
+Yes. Nonead DSH Desktop uses the official Harness plugin system. Open DSH Terminal from the tray and run `dsh plugin add`, `dsh plugin remove`, or `dsh plugin update`. These commands default to the active profile, and Desktop must be restarted after plugin changes. Desktop also includes DSH Community Market (mutually exclusive with `dsh-market` in a profile's bundles) and the brand skin plugin `dsh-nonead-client-skin`, which every profile loads by default.
 
 ## Does the Desktop profile automatically sync with an existing web profile?
 
 No plugins are copied automatically. Each profile has its own bundle and dependency composition. After switching profiles, default plugin commands target the active profile; `--profile <name>` can always select one explicitly.
 
+## The "Files" panel on the right keeps returning HTTP 4xx. How do I troubleshoot it?
+
+Unexplained HTTP 4xx responses from a panel such as "Files" on the right usually mean an enabled plugin lacks a service it depends on and stays pending: the routes it registers never appear, so the interface's requests receive a 4xx.
+
+Search the `logs/` folder in the data directory for `pending (waiting for service:`. A matching line names the plugin and the service it is missing:
+
+```text
+better-sidebar (dsh-better-sidebar): pending (waiting for service: webRuntime)
+```
+
+The data directory defaults to `~/.dsh`, so the log is at `~/.dsh/logs/` by default; "Export diagnostics" packages the same logs. Disable that plugin (or run `dsh plugin remove` in DSH Terminal) and restart Desktop; the official panel recovers.
+
 ## How are updates installed?
 
 Packaged applications check for stable releases in the background but never install silently. A newer version requires confirmation. Before downloading, a native save dialog lets you choose the installer's directory and filename; cancelling it does not start a download. macOS downloads and opens a DMG; Windows downloads and starts an NSIS installer. After the upgrade and next launch, the app asks whether to delete or keep the installer. Network and download failures leave the current installation intact.
+
+The version check goes to the fixed endpoint `https://www.nonead.com/software/ndsh-desktop/version` and sends the installed version, the channel (`stable` or `beta`), and a locally generated, persistently stored random installation UUID in request headers. Installers download from `https://www.dshdesktop.cn/api/downloads/mac` and `https://www.dshdesktop.cn/api/downloads/windows`; download requests and their redirects carry neither the installation identity nor the installed version. Once the service publishes SHA-256 digests, the download path enforces them; until then, a Windows update installer is verified only against the ProductName and ProductVersion in its PE version resource.
 
 ## Does the app use my system proxy?
 
@@ -59,4 +73,4 @@ A few rules worth knowing:
 
 ## Where can I download the app or report a problem?
 
-Download from the [project download page](https://www.nonead.com) or the [latest GitHub Release](https://github.com/anywhere-labs/deepseek-harness-desktop/releases/latest). Check the [troubleshooting section](user-guide.en.md#troubleshooting) first. If the problem remains, open a [GitHub Issue](https://github.com/anywhere-labs/deepseek-harness-desktop/issues/new/choose) with the operating system, app version, reproduction steps, and error details.
+Download from the [project download page](https://www.dshdesktop.cn/) or the [latest GitHub Release](https://github.com/anywhere-labs/deepseek-harness-desktop/releases/latest). Check the [troubleshooting section](user-guide.en.md#troubleshooting) first. If the problem remains, open a [GitHub Issue](https://github.com/anywhere-labs/deepseek-harness-desktop/issues/new/choose) with the operating system, app version, reproduction steps, and error details.

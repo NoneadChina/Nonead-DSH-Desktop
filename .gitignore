@@ -14,16 +14,9 @@ dsh-plugin-desktop/lib/
 dsh-community-market/lib/
 
 .env.yarn
-dsh-desktop-next/lib/
-dsh-desktop-next/dist/
-dsh-desktop-next/.desktop-next/
-
-# Local scratch working directories: agent investigation output and the pnpm
-# content-addressable store. Neither is product source.
-.tmp-investigate/
-.tmp_*
-.pnpm-store/
-
-# Local shortcut and runtime log
-GitLab.lnk
-debug.log
+nonead-dsh-desktop/lib/
+nonead-dsh-desktop/dist/
+nonead-dsh-desktop/.nonead-dsh-desktop/
+nonead-dsh-desktop/.desktop-build/
+dsh-plugin-desktop/.desktop-build/
+dsh-plugin-desktop-beta/.desktop-build/

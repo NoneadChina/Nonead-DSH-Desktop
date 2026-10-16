@@ -1,3 +1,4 @@
+import { installUiDiagnostics } from './ui-diagnostics.ts'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
@@ -15,10 +16,12 @@ import { registerDesktopOnboarding } from './onboarding.tsx'
 import { createElement } from 'react'
 import { SetupWizardApp, type EmbeddedSetupWizard } from '../native-ui/setup-wizard/App.tsx'
 import './onboarding.css'
+import { applyAdvancedShell } from './advanced-shell.ts'
 import { startRendererBootReporter } from './boot-health.ts'
 import { applyDesktopSettings } from './desktop-settings.ts'
 import { installDesktopDirectoryPickerBridge } from './directory-picker.ts'
 import { parseDesktopClientEnvironment } from './environment.ts'
+import { applyExtendedShell } from './extended-shell.ts'
 import { installDesktopLaunchWorkspaceBridge } from './launch-workspace.ts'
 import { DESKTOP_SETTINGS_FORMS_SERVICE } from './settings-bridge.ts'
 import { installSidebarFooterStyles } from './sidebar-footer-styles.ts'
@@ -125,11 +128,12 @@ export const inject = [
 export function apply(ctx: ClientContext): void {
   const environment = parseDesktopClientEnvironment(window.location.search)
   if (!environment) return
+  ctx.effect(installUiDiagnostics, 'Desktop client failure diagnostics')
   ctx.effect(
     () => provideDesktopWindow(ctx, desktopWindowService(environment)),
     'dsh-plugin-desktop: native window geometry service',
   )
-  applyDesktopSettings(ctx, environment)
+  const desktopSettings = applyDesktopSettings(ctx, environment)
   registerDesktopOnboarding(ctx, (snapshot, locale, finish, renderNavigation) => createElement<{ embedded?: EmbeddedSetupWizard }>(SetupWizardApp, {
     embedded: { input: snapshot.input, locale, renderNavigation, finish: selection => finish(snapshot.profile, selection) },
   }))
@@ -149,9 +153,11 @@ export function apply(ctx: ClientContext): void {
       'dsh-plugin-desktop: native directory picker bridge',
     )
   }
-  // Scoped rather than module-level on purpose: upstream's `uiWorkspace` injects
-  // `layout`, and naming it in the module-level inject list would deadlock the
-  // two against each other.
+  if (environment.mode === 'advanced') applyAdvancedShell(ctx, environment)
+  if (environment.mode === 'extended') applyExtendedShell(ctx, environment, desktopSettings)
+  // Scoped rather than module-level on purpose: the shells above provide
+  // `layout`, and upstream's `uiWorkspace` injects it. Naming `uiWorkspace` in
+  // the module-level inject list would deadlock the two against each other.
   // Not gated on win32 either — the launcher's folder argument works on Linux.
   ctx.inject(['workspaces', 'uiWorkspace'], (scope: ClientContext) => {
     scope.effect(

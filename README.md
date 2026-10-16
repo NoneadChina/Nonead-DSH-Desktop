@@ -20,19 +20,19 @@
   <img src="https://www.nonead.com/assets/img/desktop-Nonead.jpg" alt="Nonead DSH Desktop 中文对话界面" width="100%">
 </p>
 
-Nonead DSH Desktop 将 [DeepSeek Harness](https://github.com/noneadchina) 的本地 Web UI、Host 服务和插件系统集成到原生桌面应用中。项目固定并原样运行特定上游版本；Nonead DSH Desktop 提供窗口、托盘、终端、更新和工作配置，并通过 DeepSeek Harness 提供的插件机制与上游能力组合。
+Nonead DSH Desktop 将 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的本地 Web UI、Host 服务和插件系统集成到原生桌面应用中。项目固定并原样运行特定上游版本；Nonead DSH Desktop 提供窗口、托盘、终端、更新和工作配置，并通过 DeepSeek Harness 提供的插件机制与上游能力组合。
 
 <a id="run"></a>
 
 ## 下载与安装
 
-当前正式安装包支持 Windows x64、macOS 与 Linux。无需额外环境，下载安装，一键使用。
+当前正式安装包支持 Windows x64 与 macOS（Universal，含 Intel 与 Apple Silicon）。无需额外环境，下载安装，一键使用。CI 会构建 Linux x64 的 AppImage 与 deb，但这些产物尚未随任何已发布版本一同发出。
 
 | 平台 | 下载 | 安装方式 |
 | --- | --- | --- |
-| Windows x64 | [下载安装程序](https://www.nonead.com/software/ndsh-desktop/downloads/windows) | 运行 NSIS 安装程序并按提示完成安装 |
-| macOS Universal | [下载 DMG](https://www.nonead.com/software/ndsh-desktop/downloads/mac) | 打开 DMG，将 Nonead DSH Desktop 拖入 Applications |
-| Linux x64 | [下载 AppImage](https://www.nonead.com/software/ndsh-desktop/downloads/linux) | 赋予可执行权限后直接运行；应用内更新下载的也是这个 AppImage |
+| Windows x64 | [下载安装程序](https://www.dshdesktop.cn/api/downloads/windows) | 运行 NSIS 安装程序并按提示完成安装 |
+| macOS Universal | [下载 DMG](https://www.dshdesktop.cn/api/downloads/mac) | 打开 DMG，将 Nonead DSH Desktop 拖入 Applications |
+| Linux x64 | 暂无已发布安装包 | CI 构建的 AppImage 与 deb 尚未发布；Linux 上应用内更新只检查版本，不下载安装包 |
 
 详细步骤、插件命令和故障排查见[用户指南](docs/user-guide.md)与[常见问题](docs/faq.md)。
 
@@ -62,9 +62,9 @@ Nonead DSH Desktop 将 [DeepSeek Harness](https://github.com/noneadchina) 的本
 | 参与统一插件 contract 讨论 | [DSH Community Fabric Draft](dsh-community-fabric/README.zh.md) |
 | 了解统一插件框架为什么这样设计 | [成熟框架与真实插件调研](dsh-community-fabric/docs/research/mature-plugin-frameworks.zh.md) |
 | 查看插件市场的产品与安全设计 | [DSH Community Market](dsh-community-market/README.zh.md) |
-| 了解桌面插件可以使用的能力 | [桌面插件接口说明](dsh-plugin-desktop/docs/plugin-services.zh.md) |
+| 了解桌面插件可以使用的能力 | [桌面插件接口说明](dsh-plugin-desktop-beta/docs/plugin-services.zh.md) |
 | 了解桌面应用如何工作 | [架构说明](docs/architecture.md) |
-| 查阅包级构建与发布细节 | [`dsh-plugin-desktop/README.md`](dsh-plugin-desktop/README.md) |
+| 查阅包级构建与发布细节 | [`dsh-plugin-desktop-beta/README.md`](dsh-plugin-desktop-beta/README.md) |
 
 ## 主要功能
 
@@ -97,9 +97,11 @@ Nonead DSH Desktop 将 [DeepSeek Harness](https://github.com/noneadchina) 的本
 
 Web 服务默认仅监听本机回环地址。开启“用浏览器打开”后，Desktop 会在 Web 服务实际就绪时交给系统默认浏览器打开；这个选项不会改变网络暴露范围。“桌面设置”会在选项下显示实际的本机 URL。局域网访问是一个独立的可选设置，开启后还会显示当前可用的局域网 URL。
 
+普通浏览器访问默认关闭。桌面壳为每个 Host 世代生成一个随机凭据，只有携带该凭据（`x-dsh-desktop-renderer` header）的请求才被当作 Electron 渲染器；关闭时其余请求一律拒绝。
+
 > **危险：** 向局域网开放不提供鉴权；所有与你处于同一局域网的人都能直接打开 DSH 并操作你的电脑。请只在完全信任的网络中谨慎开启。
 
-自动更新的固定版本检查请求会在 `X-Nonead-DSH-Desktop-Version` header 中携带当前安装版本，在 `X-Nonead-DSH-Desktop-Channel` 中携带 `stable` 或 `beta`，并在 `X-Nonead-DSH-Desktop-Installation-Id` header 中携带一个由本机生成并持久保存的随机 UUID；它不是从硬件信息推导出的标识。安装包下载会携带通道和 `X-Nonead-DSH-Desktop-Target-Version`，但下载请求及其重定向不会携带安装标识或当前版本。
+自动更新的固定版本检查会请求 `https://www.nonead.com/software/ndsh-desktop/version`：在 `X-DSH-Desktop-Version` header 中携带当前安装版本，在 `X-DSH-Desktop-Channel` 中携带 `stable` 或 `beta`，并在 `X-DSH-Desktop-Installation-Id` header 中携带一个由本机生成并持久保存的随机 UUID；它不是从硬件信息推导出的标识。安装包下载来自官方下载服务 `https://www.dshdesktop.cn/api/downloads/mac` 与 `https://www.dshdesktop.cn/api/downloads/windows`，会携带通道和 `X-DSH-Desktop-Target-Version`，但下载请求及其重定向不会携带安装标识或当前版本。服务端发布 SHA-256 摘要时下载路径会强制校验；在摘要发布前，Windows 更新安装包只校验 PE 版本资源中的 ProductName 与 ProductVersion。
 
 ## 插件生态
 
@@ -109,9 +111,11 @@ Nonead DSH Desktop 没有修改上游源码，也不是一个固定写死的外�
 
 我们希望插件生态像手机应用一样：每个插件按同一套规则开发，装在一起也能一起工作、互不干扰。
 
+安装包还内置品牌皮肤插件 `dsh-nonead-client-skin`：它随安装包分发，并通过 Profile 组合为每个 Profile 默认加载。
+
 ### 给开发者
 
-与许多其他项目不同，这个项目本身就是一个 DSH [插件](docs/plugin-development.md)：桌面壳与第三方插件使用相同的插件组合机制。Desktop 的插件能力已经可以使用。我们提供了 Desktop 服务，让插件开发者能够把插件与桌面能力集成起来：例如查看和切换工作配置，或在当前配置中安装、更新和移除插件。完整用法见[桌面插件接口说明](dsh-plugin-desktop/docs/plugin-services.zh.md)。为什么选择这样的边界、哪些能力不会暴露给第三方插件，见[为什么做 Nonead DSH Desktop](docs/why-desktop.md)和[插件开发指南](docs/plugin-development.md)。
+与许多其他项目不同，这个项目本身就是一个 DSH [插件](docs/plugin-development.md)：桌面壳与第三方插件使用相同的插件组合机制。Desktop 的插件能力已经可以使用。我们提供了 Desktop 服务，让插件开发者能够把插件与桌面能力集成起来：例如查看和切换工作配置，或在当前配置中安装、更新和移除插件。完整用法见[桌面插件接口说明](dsh-plugin-desktop-beta/docs/plugin-services.zh.md)。为什么选择这样的边界、哪些能力不会暴露给第三方插件，见[为什么做 Nonead DSH Desktop](docs/why-desktop.md)和[插件开发指南](docs/plugin-development.md)。
 
 ## 与 DeepSeek Harness 的关系
 
@@ -143,15 +147,38 @@ Nonead DSH Desktop 由 **Nonead Corporation** 开发与维护，并作为独立�
 
 ## 开发
 
-稳定版与 Beta 桌面包分别位于 `dsh-plugin-desktop/` 和 `dsh-plugin-desktop-beta/`。外层仓库使用 Yarn，固定的 `deepseek-harness/` 子模块继续使用自己的 pnpm workspace。从仓库根目录执行：
+两个桌面 workspace 是 `nonead-dsh-desktop/`（产品名 Nonead DSH Desktop，根脚本以 `:stable` 后缀调用）和 `dsh-plugin-desktop-beta/`（Beta 桌面，根脚本以 `:beta` 后缀调用）。外层仓库使用 Yarn，固定的 `deepseek-harness/` 子模块继续使用自己的 pnpm workspace。从仓库根目录执行：
 
 ```sh
 git submodule update --init --recursive
 corepack yarn install --immutable
-corepack yarn dev
+corepack yarn dev:beta
 ```
 
-headless 检查使用 `corepack yarn check`；完整的构建、测试和发布边界见[架构说明](docs/architecture.md)和包级 [`README`](dsh-plugin-desktop/README.md)。如何参与贡献见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+`corepack yarn dev:stable` 启动 Nonead DSH Desktop。headless 检查使用 `corepack yarn check`；完整的构建、测试和发布边界见[架构说明](docs/architecture.md)和包级 [`README`](dsh-plugin-desktop-beta/README.md)。如何参与贡献见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
+## 社区交流
+
+选择你习惯的平台讨论使用问题、插件开发与项目动态。
+
+<table>
+  <thead>
+    <tr>
+      <th align="center">企业微信</th>
+      <th align="center">QQ 群</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="center"><img src="assets/community-wechat-group.png" alt="Nonead DSH Desktop 企业微信二维码" title="扫码添加企业微信" width="180" height="180"></td>
+      <td align="center"><img src="assets/community-qq-group.jpg" alt="Nonead DSH Desktop QQ 群二维码" width="180" height="180"></td>
+    </tr>
+  </tbody>
+</table>
+
+Discord：[加入 Nonead DSH Desktop 社区](https://discord.gg/TJeGqKRNM)
+
+如果你想加入我们的技术团队，请联系 [t4wefan@qq.com](mailto:t4wefan@qq.com)。
 
 ## 友情链接
 

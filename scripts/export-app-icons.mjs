@@ -8,9 +8,8 @@ import { fileURLToPath } from 'node:url'
 
 const root = resolve(import.meta.dirname, '..')
 export const ICON_PACKAGES = Object.freeze({
-  stable: 'dsh-plugin-desktop',
   beta: 'dsh-plugin-desktop-beta',
-  next: 'dsh-desktop-next',
+  stable: 'nonead-dsh-desktop',
 })
 const outputs = ['app-icon.png', 'app-icon-mac.png', 'app-icon.ico', 'app-icon.icns']
 const hash = bytes => createHash('sha256').update(bytes).digest('hex')
@@ -56,7 +55,7 @@ function developerDirectory() {
 async function main() {
   const args = process.argv.slice(2)
   const requested = args.includes('--channel') ? args[args.indexOf('--channel') + 1] : 'all'
-  if (requested !== 'all' && !Object.hasOwn(ICON_PACKAGES, requested)) throw new Error('Use --channel stable, beta, next, or all')
+  if (requested !== 'all' && !Object.hasOwn(ICON_PACKAGES, requested)) throw new Error('Use --channel beta, stable, or all')
   const selected = Object.entries(ICON_PACKAGES).filter(([channel]) => requested === 'all' || requested === channel)
   if (args.includes('--check')) {
     for (const [channel, name] of selected) {

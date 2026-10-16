@@ -12,8 +12,8 @@ function options(overrides: Partial<MacReleaseVerificationOptions> = {}) {
   const verifyEntitlements = vi.fn()
   const value: MacReleaseVerificationOptions = {
     distDir: '/release/dist',
-    productName: 'Nonead DSH Desktop Beta',
-    listDmgs: () => ['/release/dist/Nonead-DSH-Desktop-Beta-2.0.0-universal.dmg'],
+    productName: 'DSH Desktop Beta',
+    listDmgs: () => ['/release/dist/DSH-Desktop-Beta-2.0.0-universal.dmg'],
     makeMountPoint: () => '/private/tmp/dsh-desktop-dmg-test',
     run: (command, args) => { calls.push({ command, args: [...args] }) },
     removeMountPoint,
@@ -26,28 +26,28 @@ function options(overrides: Partial<MacReleaseVerificationOptions> = {}) {
 describe('macOS release artifact verification', () => {
   it('mounts one DMG and verifies signature, Gatekeeper, and the stapled ticket', () => {
     const harness = options()
-    const appPath = join('/private/tmp/dsh-desktop-dmg-test', 'Nonead DSH Desktop Beta.app')
+    const appPath = join('/private/tmp/dsh-desktop-dmg-test', 'DSH Desktop Beta.app')
 
     expect(verifyMacRelease(harness.value)).toEqual({
       appPath,
-      dmgPath: '/release/dist/Nonead-DSH-Desktop-Beta-2.0.0-universal.dmg',
+      dmgPath: '/release/dist/DSH-Desktop-Beta-2.0.0-universal.dmg',
     })
 
     expect(harness.calls).toEqual([
       {
         command: 'hdiutil',
         args: [
-          'attach', '/release/dist/Nonead-DSH-Desktop-Beta-2.0.0-universal.dmg',
+          'attach', '/release/dist/DSH-Desktop-Beta-2.0.0-universal.dmg',
           '-mountpoint', '/private/tmp/dsh-desktop-dmg-test', '-nobrowse', '-readonly',
         ],
       },
       {
         command: 'lipo',
-        args: [join(appPath, 'Contents', 'MacOS', 'Nonead DSH Desktop Beta'), '-verify_arch', 'x86_64'],
+        args: [join(appPath, 'Contents', 'MacOS', 'DSH Desktop Beta'), '-verify_arch', 'x86_64'],
       },
       {
         command: 'lipo',
-        args: [join(appPath, 'Contents', 'MacOS', 'Nonead DSH Desktop Beta'), '-verify_arch', 'arm64'],
+        args: [join(appPath, 'Contents', 'MacOS', 'DSH Desktop Beta'), '-verify_arch', 'arm64'],
       },
       ...MACOS_UNIVERSAL_NATIVE_ENTRIES.flatMap(entry => [{
         command: 'lipo',
@@ -79,7 +79,7 @@ describe('macOS release artifact verification', () => {
       },
     ])
     expect(harness.removeMountPoint).toHaveBeenCalledWith('/private/tmp/dsh-desktop-dmg-test')
-    expect(harness.verifyEntitlements).toHaveBeenCalledWith(appPath, 'Nonead DSH Desktop Beta')
+    expect(harness.verifyEntitlements).toHaveBeenCalledWith(appPath, 'DSH Desktop Beta')
   })
 
   it('rejects a release missing microphone signature access and detaches the image', () => {
@@ -92,6 +92,17 @@ describe('macOS release artifact verification', () => {
     expect(harness.calls.some(call => call.command === 'spctl')).toBe(false)
     expect(harness.calls.at(-1)).toEqual({ command: 'hdiutil', args: ['detach', '/private/tmp/dsh-desktop-dmg-test'] })
     expect(harness.removeMountPoint).toHaveBeenCalledOnce()
+  })
+
+  it('checks bundled resources inside the mounted application after the signature checks', () => {
+    const order: string[] = []
+    const harness = options({
+      verifyEntitlements: () => { order.push('entitlements') },
+      verifyRuntime: appPath => { order.push(`runtime:${appPath}`) },
+    })
+    verifyMacRelease(harness.value)
+    expect(order).toEqual(['entitlements', `runtime:${join('/private/tmp/dsh-desktop-dmg-test', 'DSH Desktop Beta.app')}`])
+    expect(harness.calls.some(call => call.command === 'spctl')).toBe(true)
   })
 
   it('rejects absent or ambiguous release images before mounting', () => {

@@ -7,6 +7,7 @@ import { DSH_LAUNCH_ENVIRONMENT_KEY, type LaunchEnvironmentSnapshot } from '@dee
 import { DESKTOP_PACKAGE_NAME as BIN_NAME } from './product-identity.ts'
 import { observeDesktopPreferenceSettings } from './settings-bridge.ts'
 import { installProfilePackageResolver } from './module-resolution.ts'
+import { DesktopPluginPackages } from './plugin-packages.ts'
 import { createDesktopWebProfile, listDesktopProfiles, canDeleteDesktopProfile, deleteDesktopProfile, selectDesktopProfile } from './profile-manager.ts'
 import { DesktopProfileService } from './profile-service.ts'
 import { DesktopActionsService } from './desktop-actions.ts'
@@ -16,15 +17,19 @@ import DesktopSettingsController from './desktop-settings-controller.ts'
 import { clearDesktopProfilePreferences, desktopProfilePreferencesFromSettings, readDesktopProfilePreferences, writeDesktopProfilePreferences, type DesktopProfilePreferences, type DesktopProfilePreferencesStateV1 } from './profile-preferences.ts'
 import { clearDesktopProfileUsageHistory, type DesktopReleaseUserDataLocations } from './profile-channel-admission.ts'
 import { desktopInstallAnchor, type PreparedDesktopProfile } from './profile.ts'
-import { desktopLanBrowserUrls, desktopLoopbackBrowserUrl } from './desktop-network.ts'
+import { desktopLanBrowserUrls, desktopListeningPort, desktopLoopbackBrowserUrl } from './desktop-network.ts'
 import { DESKTOP_LAN_HTTPS_CA_PATH, type DesktopLanHttpsRuntime } from './lan-https-runtime.ts'
 import type { DesktopBrowserAccess } from './desktop-browser-access.ts'
 import type { DesktopPnpmBootstrap } from './pnpm.ts'
 import type { DesktopRuntime } from './runtime.ts'
 import type { DesktopStartupGenerationHost } from './startup-generation.ts'
 import { FileExporter } from './file-exporter.ts'
+import { initializeDeveloperLogging, diagnosticRunId } from './developer-logging.ts'
+import { installHostDeveloperLogging } from './host-developer-logging.ts'
 import { installAgentErrorLogging } from './agent-error-logging.ts'
 import { LogFileSink } from './log-files.ts'
+import * as desktopOffice from './desktop-office.ts'
+import { resolveDesktopOfficeConfig, type DesktopPrimaryRuntime } from './desktop-office.ts'
 
 function desktopProfileMarketSnapshot(market: DesktopMarketProvider): DesktopMarketSnapshot {
   return Object.freeze({
@@ -54,7 +59,10 @@ export interface DesktopHostOptions {
    */
   desktopProxyOverlay: Readonly<Record<string, string>>
   desktopPnpmBootstrap: DesktopPnpmBootstrap
+  /** Bundled interpreter payload of this CPU; a packaged Host fails without it, a development Host skips Office until `prepare:runtime` ran. */
+  primaryRuntime?: DesktopPrimaryRuntime
   logDirectory: string
+  diagnosticRunId?: string
 }
 
 export async function bootDesktopHost(options: DesktopHostOptions, runtime: DesktopRuntime,
@@ -72,6 +80,8 @@ export async function bootDesktopHost(options: DesktopHostOptions, runtime: Desk
   const logSink = new LogFileSink(options.logDirectory, {
     maxFileBytes: 10 * 1024 * 1024, maxDirectoryBytes: 200 * 1024 * 1024,
   })
+  logSink.purgeOlderThan(7)
+  initializeDeveloperLogging((level, line) => logSink.writeRecord(level, JSON.parse(line)), options.diagnosticRunId ?? diagnosticRunId())
   let fileExporter: FileExporter | undefined
     let currentProfilePreferences: DesktopProfilePreferences = profilePreferences
     let profilePreferencesWriteTail: Promise<void> = Promise.resolve()
@@ -127,6 +137,8 @@ export async function bootDesktopHost(options: DesktopHostOptions, runtime: Desk
           () => releasePackageResolver,
           'dsh-plugin-desktop: profile package resolution',
         )
+        // Official plugin metadata and package lookups read the packages this resolver loads.
+        await hostCtx.plugin(DesktopPluginPackages)
         hostCtx.provide(DSH_LAUNCH_ENVIRONMENT_KEY, desktopLaunchEnvironment)
         hostCtx.provide('desktopBrowserAccess', browserAccess)
         hostCtx.provide('desktopLanHttps', lanHttps)
@@ -150,6 +162,15 @@ export async function bootDesktopHost(options: DesktopHostOptions, runtime: Desk
         }
         // Registered before the plugin tree mounts, so no agent can fail unrecorded.
         installAgentErrorLogging(hostCtx)
+        installHostDeveloperLogging(hostCtx)
+        // Office skills and the workspace dependency tool need the bundled payload; a packaged Host without it fails here.
+        const office = resolveDesktopOfficeConfig(options.primaryRuntime, homeDir)
+        if (office === undefined) {
+          hostCtx.logger.warn(`${BIN_NAME}: Office skills are unavailable; run yarn prepare:runtime to prepare the primary runtime`)
+        } else {
+          await hostCtx.plugin(desktopOffice, office)
+          hostCtx.logger.info(`${BIN_NAME}: Office skills mounted from ${office.source}`)
+        }
         await hostCtx.plugin(DesktopProfileService, {
           current: {
             name: activeProfileName,
@@ -222,7 +243,7 @@ export async function bootDesktopHost(options: DesktopHostOptions, runtime: Desk
               : []
             return {
               localUrl: hostCtx.connection.authenticatedUrl(
-                desktopLoopbackBrowserUrl(hostCtx.webServer.port),
+                desktopLoopbackBrowserUrl(desktopListeningPort(hostCtx.webServer)),
               ),
               lanUrls: lanOrigins.map(url => hostCtx.connection.authenticatedUrl(url)),
               lanState: lan.state,

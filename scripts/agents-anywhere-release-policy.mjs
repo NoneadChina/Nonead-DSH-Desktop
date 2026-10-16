@@ -5,7 +5,7 @@ import { basename, join } from 'node:path'
 
 export const AA_REPOSITORY = 'https://github.com/anywhere-labs/Agents-Anywhere.git'
 export const AA_PACKAGE = '@agents-anywhere/dsh-bridge-next'
-export const AA_WORKSPACES = ['dsh-plugin-desktop', 'dsh-plugin-desktop-beta', 'dsh-desktop-next']
+export const AA_WORKSPACES = ['dsh-plugin-desktop-beta', 'nonead-dsh-desktop']
 export const AA_PEERS = ['@deepseek-ai/dsh-typert-protocol', '@deepseek-ai/dsh-llm', '@deepseek-ai/dsh-session']
 
 export function aaConnectorResolution(artifact) {

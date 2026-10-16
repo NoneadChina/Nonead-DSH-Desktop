@@ -1,4 +1,4 @@
-/** Cordis Host plugin for scheduled and interactive Nonead DSH Desktop updates. */
+/** Cordis Host plugin for scheduled and interactive DSH Desktop updates. */
 
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
@@ -51,9 +51,6 @@ export function apply(ctx: Context, config: Config): void {
       registerTrayItem: item => ctx.desktopRuntime.registerTrayItem(item),
     })
     const rendererOrigin = `http://127.0.0.1:${String(ctx.webServer.port)}`
-    // The tray menu carries the same command for operators who have a status
-    // area; the registration keeps the check reachable without one.
-    const updateCheck = ctx.desktopRuntime.registerUpdateCheck?.(() => lifecycle.checkNow())
     const unregister = ctx.webServer.register({
       kind: 'exact',
       path: DESKTOP_UPDATE_CHECK_PATH,
@@ -78,7 +75,6 @@ export function apply(ctx: Context, config: Config): void {
       },
     })
     return async () => {
-      updateCheck?.dispose()
       unregister()
       await lifecycle.dispose()
     }

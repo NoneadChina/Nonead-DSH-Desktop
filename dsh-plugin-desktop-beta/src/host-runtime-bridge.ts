@@ -1,5 +1,5 @@
 /** Native capability adapters; frontend HTTP and WebSocket connections are unchanged. */
-import type { DesktopLocale, DesktopRuntime, DesktopShellSpec, DesktopTrayItem, DesktopTrayItemRegistration, DesktopUpdateAdapter, DesktopUpdateCheckRegistration } from './runtime.ts'
+import type { DesktopLocale, DesktopRuntime, DesktopShellSpec, DesktopTrayItem, DesktopTrayItemRegistration, DesktopUpdateAdapter } from './runtime.ts'
 import { HostRpc } from './host-rpc.ts'
 import { parseDesktopPlatformLoginRequest } from './platform-login.ts'
 
@@ -59,7 +59,7 @@ export function createHostRuntime(rpc: HostRpc, snapshot: RuntimeSnapshot): Desk
       },
       confirmDownload: (version, channel) => send('update:confirmDownload', [version, channel]),
       showManualCheckResult: result => send('update:showManualCheckResult', [result]),
-      downloadAndOpen: (version, signal, channel) => send('update:downloadAndOpen', [version, channel], signal),
+      downloadAndOpen: (version, signal, channel, installerSha256) => send('update:downloadAndOpen', [version, channel, installerSha256], signal),
       notify: notification => { void send('update:notify', [notification]) },
     },
     schedule(spec) {
@@ -105,22 +105,7 @@ export function createHostRuntime(rpc: HostRpc, snapshot: RuntimeSnapshot): Desk
       publish()
       return { refresh: publish, dispose() { trayPublishers.delete(id); releases.forEach(release => release()); void send('tray:dispose', [id]) } }
     },
-    registerUpdateCheck(check) {
-      const method = `update-check:${++sequence}`
-      const release = rpc.handle(method, () => check())
-      // The command is interactive: it owns native dialogs and a download
-      // confirmation, so its registration travels with the same setup barrier.
-      trackSetup(send('update:registerCheck', [method]))
-      let active = true
-      return {
-        dispose() {
-          if (!active) return
-          active = false
-          release()
-          void send('update:unregisterCheck', [method])
-        },
-      }
-    },
+    configureDeveloperLogging(preferences) { void send('native:configureDeveloperLogging', [preferences]) },
     show() { void send('native:show') },
     notifyAttention(value) { void send('native:notifyAttention', [value]) },
     openTerminal() { void send('native:openTerminal') },
@@ -152,7 +137,6 @@ export function createHostRuntime(rpc: HostRpc, snapshot: RuntimeSnapshot): Desk
 /** Install only the declared native surface; never expose arbitrary Electron APIs. */
 export function bindNativeRuntime(rpc: HostRpc, runtime: DesktopRuntime): () => Promise<void> {
   const trays = new Map<string, DesktopTrayItemRegistration>()
-  let updateCheck: { readonly method: string; readonly registration: DesktopUpdateCheckRegistration } | undefined
   const shells = new Map<string, () => Promise<void>>()
   const preferences = new Map<string, { locale: any; theme: any }>()
   const releases: (() => void)[] = []
@@ -164,6 +148,10 @@ export function bindNativeRuntime(rpc: HostRpc, runtime: DesktopRuntime): () => 
     'setThemeSource', 'prepareToQuit'] as const) {
     handle(`native:${method}`, args => (runtime[method] as (...args: any[]) => unknown).apply(runtime, args))
   }
+  handle('native:configureDeveloperLogging', ([preferences]) => {
+    if (!preferences || typeof preferences.developerLogging !== 'boolean' || !['debug', 'info', 'warn', 'error'].includes(preferences.logLevel)) throw new TypeError('Invalid logging preferences')
+    runtime.configureDeveloperLogging?.(preferences)
+  })
   handle('native:platformLogin', ([request]) => { runtime.platformLogin(parseDesktopPlatformLoginRequest(request)) })
   handle('native:setLocalePreference', ([preference]) => {
     runtime.setLocalePreference(preference)
@@ -206,33 +194,16 @@ export function bindNativeRuntime(rpc: HostRpc, runtime: DesktopRuntime): () => 
     trays.set(id, runtime.registerTrayItem({ ...project(data), submenu: data.submenu ? () => data.submenu.map(project) : undefined }))
   })
   handle('tray:dispose', ([id]) => { trays.get(id)?.dispose(); trays.delete(id) })
-  handle('update:registerCheck', ([method]) => {
-    if (typeof method !== 'string' || method.length === 0) throw new Error('Invalid update check registration')
-    const current = updateCheck
-    if (current?.method === method) return
-    current?.registration.dispose()
-    // The check waits on the operator, so it must never be abandoned by the
-    // generic Host deadline: 0 disables the caller-owned timeout.
-    const registration = runtime.registerUpdateCheck?.(() => rpc.call(method, [], undefined, 0))
-    updateCheck = registration === undefined ? undefined : { method, registration }
-  })
-  handle('update:unregisterCheck', ([method]) => {
-    const current = updateCheck
-    if (current === undefined || current.method !== method) return
-    current.registration.dispose()
-    updateCheck = undefined
-  })
   handle('update:request', async ([url, init], signal) => {
     const response = await runtime.updates.request(url, { ...init, signal })
     return { body: await response.text(), status: response.status, headers: [...response.headers.entries()] }
   })
   handle('update:confirmDownload', ([version, channel]) => runtime.updates.confirmDownload(version, channel))
   handle('update:showManualCheckResult', ([result]) => runtime.updates.showManualCheckResult(result))
-  handle('update:downloadAndOpen', ([version, channel], signal) => runtime.updates.downloadAndOpen(version, signal, channel))
+  handle('update:downloadAndOpen', ([version, channel, installerSha256], signal) => runtime.updates.downloadAndOpen(version, signal, channel, installerSha256))
   handle('update:notify', ([value]) => runtime.updates.notify(value))
   return async () => {
     trays.forEach(tray => tray.dispose()); trays.clear()
-    updateCheck?.registration.dispose(); updateCheck = undefined
     await Promise.all([...shells.values()].map(dispose => dispose())); shells.clear(); preferences.clear()
     releases.forEach(release => release())
   }

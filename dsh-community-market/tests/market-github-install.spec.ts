@@ -1,9 +1,6 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { Readable } from 'node:stream'
 import { describe, expect, it, vi } from 'vitest'
-import { MarketInstallService, type MarketDesktopPnpm } from '../src/install/service.js'
+import type { BundleInfo, ChangeResult } from '@deepseek-ai/dsh-plugin-manager'
+import { MarketInstallService, type MarketPluginManager } from '../src/install/service.js'
 import type { CatalogSnapshot } from '../src/contracts/index.js'
 
 const source = {
@@ -13,16 +10,8 @@ const source = {
   commit: '0123456789abcdef0123456789abcdef01234567',
   subdirectory: 'packages/plugin',
 }
-
-async function profile(): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), 'market-github-install-'))
-  await writeFile(join(dir, 'package.json'), JSON.stringify({
-    name: 'fixture-profile',
-    dependencies: {},
-    dsh: { profile: { bundles: [] } },
-  }))
-  return dir
-}
+const target = 'github:example/plugin#0123456789abcdef0123456789abcdef01234567&path:/packages/plugin'
+const profile = () => ({ name: 'desktop', dir: '/fixtures/profiles/desktop' })
 
 function snapshot(): CatalogSnapshot {
   return {
@@ -48,28 +37,31 @@ function snapshot(): CatalogSnapshot {
   }
 }
 
+function manager(installed: (spec: string) => ChangeResult) {
+  const bundles: BundleInfo[] = []
+  return {
+    listBundles: vi.fn(async () => [...bundles]),
+    listPlugins: vi.fn(async () => []),
+    installBundle: vi.fn(async (spec: string) => {
+      const result = installed(spec)
+      if (result.bundle !== undefined) {
+        bundles.push({
+          name: result.bundle, official: false, availability: 'profile', enabled: true, installed: true,
+          optional: false, removable: true, rows: [], overrides: [], ...(result.version === undefined ? {} : { version: result.version }),
+        })
+      }
+      return result
+    }),
+    setBundleEnabled: vi.fn(),
+    removeBundle: vi.fn(),
+  } satisfies MarketPluginManager
+}
+
 describe('Market GitHub install target', () => {
-  it('verifies the source first and runs a pinned, shell-free pnpm target', async () => {
-    const profileDir = await profile()
-    const calls: string[][] = []
-    const pnpm: MarketDesktopPnpm = {
-      run(argv) {
-        calls.push([...argv])
-        return {
-          stdout: Readable.from([]),
-          stderr: Readable.from([]),
-          done: (async () => {
-            await writeFile(join(profileDir, 'package.json'), JSON.stringify({
-              name: 'fixture-profile',
-              dependencies: { 'dsh-plugin-git': '1.2.3' },
-              dsh: { profile: { bundles: ['dsh-plugin-git'] } },
-            }))
-            return { exitCode: 0, signal: null }
-          })(),
-          cancel: vi.fn(),
-        }
-      },
-    }
+  it('verifies the source first and installs the pinned, shell-free target through the official manager', async () => {
+    const official = manager(spec => ({
+      changed: true, application: 'applied', stage: 'enable', target: spec, bundle: 'dsh-plugin-git', version: '1.2.3',
+    }))
     const verifier = {
       verify: vi.fn(async candidate => ({
         packageName: 'dsh-plugin-git',
@@ -77,26 +69,40 @@ describe('Market GitHub install target', () => {
         source: candidate.source!,
       })),
     }
-    const service = new MarketInstallService(
-      () => ({ name: 'desktop', dir: profileDir }),
-      pnpm,
-      verifier,
-    )
+    const service = new MarketInstallService(profile, official, verifier)
     try {
       service.observeCatalog(snapshot())
       const preview = await service.previewInstall('source-1', 'example/plugin', new AbortController().signal)
       expect(preview).toMatchObject({ packageName: 'dsh-plugin-git', version: '1.2.3' })
-      await service.executePreview(preview.intent, new AbortController().signal)
-      expect(calls).toEqual([[
-        'add',
-        '--save-exact',
-        'github:example/plugin#0123456789abcdef0123456789abcdef01234567&path:/packages/plugin',
-      ]])
+      await expect(service.executePreview(preview.intent, new AbortController().signal)).resolves.toEqual({
+        action: 'install', packageName: 'dsh-plugin-git', version: '1.2.3', application: 'applied',
+      })
+      expect(official.installBundle.mock.calls).toEqual([[target, { enabled: true, saveExact: true }]])
       expect(verifier.verify).toHaveBeenCalledWith(expect.objectContaining({ source }), expect.any(AbortSignal))
-      expect(JSON.parse(await readFile(join(profileDir, 'package.json'), 'utf8')).dependencies).toEqual({ 'dsh-plugin-git': '1.2.3' })
+      await expect(service.listInstallations(new AbortController().signal)).resolves.toMatchObject([
+        { packageName: 'dsh-plugin-git', version: '1.2.3', enabled: true },
+      ])
     } finally {
       service.dispose()
-      await rm(profileDir, { recursive: true, force: true })
+    }
+  })
+
+  it('reports a package whose manifest names something other than the verified plugin', async () => {
+    const official = manager(spec => ({
+      changed: true, application: 'applied', stage: 'enable', target: spec, bundle: 'dsh-plugin-impostor', version: '9.9.9',
+    }))
+    const service = new MarketInstallService(profile, official, {
+      verify: vi.fn(async candidate => ({ packageName: 'dsh-plugin-git', version: '1.2.3', source: candidate.source! })),
+    })
+    try {
+      service.observeCatalog(snapshot())
+      const preview = await service.previewInstall('source-1', 'example/plugin', new AbortController().signal)
+      await expect(service.executePreview(preview.intent, new AbortController().signal)).rejects.toMatchObject({
+        code: 'operation-failed',
+        details: 'expected dsh-plugin-git, installed dsh-plugin-impostor',
+      })
+    } finally {
+      service.dispose()
     }
   })
 })

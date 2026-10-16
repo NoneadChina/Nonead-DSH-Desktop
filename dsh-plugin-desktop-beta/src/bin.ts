@@ -1,4 +1,4 @@
-/** Headless-safe npm launcher for the Nonead DSH Desktop Electron executable. */
+/** Headless-safe npm launcher for the DSH Desktop Electron executable. */
 
 import { spawn } from 'node:child_process'
 import { readFileSync } from 'node:fs'
@@ -26,7 +26,7 @@ export interface DesktopCliRequest {
 /** Human-readable launcher help. */
 export const DESKTOP_CLI_HELP = `Usage: dsh-plugin-desktop-beta [options] [folder]
 
-Launch Nonead DSH Desktop Beta with the selected Web-capable profile.
+Launch DSH Desktop Beta with the selected Web-capable profile.
 
 Arguments:
   folder                register the folder as a workspace and open it
@@ -83,7 +83,7 @@ export function defaultDesktopUserDataDirectory(
   if (platform === 'win32') {
     const appData = environment.APPDATA
     if (appData === undefined || appData.length === 0) {
-      throw new Error('APPDATA is unavailable; cannot locate Nonead DSH Desktop diagnostics')
+      throw new Error('APPDATA is unavailable; cannot locate DSH Desktop diagnostics')
     }
     return path.join(appData, DESKTOP_PRODUCT_NAME)
   }
@@ -117,7 +117,7 @@ async function launchElectron(workspacePath?: string): Promise<number> {
       + `  npm install -g ${DESKTOP_PACKAGE_NAME}\n`
       + 'Or add electron to the profile before launching:\n'
       + '  dsh plugin --profile <name> add electron\n'
-      + 'Or use the packaged Nonead DSH Desktop application.\n',
+      + 'Or use the packaged DSH Desktop application.\n',
     )
     return 1
   }

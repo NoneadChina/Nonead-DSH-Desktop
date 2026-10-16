@@ -11,8 +11,9 @@ const probe = readFileSync(new URL('../dsh-plugin-desktop-beta/src/renderer-surf
 assert.ok(probe)
 
 export async function verifyDesktopOnboardingBrowser({ url, cookie, headers }) {
-  const { chromium } = createRequire(new URL('../dsh-desktop-next/package.json', import.meta.url))('playwright')
-  const browser = await chromium.launch({ headless: true, ...(process.env.DSH_NEXT_TEST_BROWSER_CHANNEL ? { channel: process.env.DSH_NEXT_TEST_BROWSER_CHANNEL } : {}) })
+  const { chromium } = createRequire(new URL('../nonead-dsh-desktop/package.json', import.meta.url))('playwright')
+  const browserChannel = process.env.DSH_NONEAD_TEST_BROWSER_CHANNEL ?? process.env.DSH_NEXT_TEST_BROWSER_CHANNEL
+  const browser = await chromium.launch({ headless: true, ...(browserChannel ? { channel: browserChannel } : {}) })
   let page
   const errors = []
   let required = true, accountPending = false, restartPending = false, rejectSave = true, restartRequests = 0
@@ -102,19 +103,23 @@ export async function verifyDesktopOnboardingBrowser({ url, cookie, headers }) {
     const { appVersion, profileName, platform, ...selection } = input
     assert.deepEqual(submissions, [{ profile: 'desktop', selection: { ...selection, mode: 'compatibility', market: 'dsh-market', aaEnabled: true, openBrowser: true, networkExposure: 'lan' } }])
     assert.equal(restartRequests, 0)
-    // The setup-complete page no longer offers DeepSeek sign-in: it thanks the user and
-    // points at the Community Market plugin, so no authorization may start from it.
-    assert.equal(await surface.getByRole('button', { name: '登录 DeepSeek', exact: true }).count(), 0)
-    await surface.getByText('感谢你使用 Nonead DSH Desktop 桌面应用。').waitFor()
-    await surface.getByText(/dsh-nonead-universal-robots/u).waitFor()
-    await click('开始使用')
-    await surface.waitFor({ state: 'hidden' })
+    await click('登录 DeepSeek')
+    const login = page.getByRole('dialog', { name: '开始使用', exact: true })
+    await login.waitFor()
+    assert.equal(restartRequests, 0)
+    await login.getByRole('button', { name: '关闭', exact: true }).click()
+    await login.waitFor({ state: 'hidden' })
     assert.equal(accountPending, false)
     accountPending = true
     await page.reload()
-    await click('开始使用')
-    await surface.waitFor({ state: 'hidden' })
-    assert.equal(accountPending, false)
+    await click('登录 DeepSeek')
+    await login.getByRole('button', { name: '添加 API Key', exact: true }).click()
+    const credential = page.getByRole('dialog').filter({ hasText: 'API Key' })
+    await credential.waitFor()
+    assert.equal(restartRequests, 0)
+    assert.equal(await page.locator('#root').evaluate(element => element.inert), true)
+    await credential.getByRole('button', { name: '稍后配置', exact: true }).click()
+    await credential.waitFor({ state: 'hidden' })
     await page.setViewportSize({ width: 1040, height: 720 })
     await page.reload()
     await page.getByRole('button', { name: /^(插件|Plugins)$/ }).waitFor()

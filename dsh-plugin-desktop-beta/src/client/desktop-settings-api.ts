@@ -392,25 +392,7 @@ export function createDesktopSettingsApi(
       await native('developer', () => post(fetcher, DEVELOPER_TOOLS_TOGGLE_PATH, {}))
     },
     async checkForUpdates() {
-      const request = (): Promise<Response> => post(fetcher, UPDATE_CHECK_PATH, {})
-      if (bridge === undefined) {
-        parseDesktopActionAcceptance(await readResponse(await request()))
-        return
-      }
-      try {
-        await bridge.invoke('check-for-updates')
-      } catch (cause) {
-        // The bridge runs the check through the Host's registered command. When
-        // that command is unavailable — a desktop without a status area, or a
-        // tray command the Host never published — the same interactive flow
-        // stays reachable through its loopback route, which the window reaches
-        // with its own credentials.
-        try {
-          parseDesktopActionAcceptance(await readResponse(await request()))
-        } catch {
-          throw cause
-        }
-      }
+      await native('check-for-updates', () => post(fetcher, UPDATE_CHECK_PATH, {}))
     },
     async exportDiagnostics() {
       await native('diagnostics', () => post(fetcher, DIAGNOSTICS_EXPORT_PATH, {}))

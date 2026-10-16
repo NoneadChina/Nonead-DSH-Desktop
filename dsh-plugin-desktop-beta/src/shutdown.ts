@@ -1,6 +1,13 @@
 /** Application-level quit sources that must remain active before any window mounts. */
 
-/** Maximum grace allowed for the Cordis tree to dispose before native exit. */
+/**
+ * Maximum grace allowed for the whole teardown before native exit.
+ *
+ * The bound is intentionally shorter than the escalation inside `DesktopHostProcess.stop` (10s
+ * graceful, then 5s each for SIGTERM and SIGKILL): a slow teardown must not hold the quit open.
+ * The forced exit that ends an overrun still honours a queued relaunch, so a requested restart
+ * never closes the app without starting it again.
+ */
 export const DESKTOP_SHUTDOWN_TIMEOUT_MS = 5_000
 
 /** Bounded, escalating shutdown controller for the Electron application. */

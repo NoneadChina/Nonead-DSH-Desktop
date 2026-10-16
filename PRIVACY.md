@@ -1,13 +1,13 @@
-# Nonead DSH Desktop Privacy Policy
+# DSH Desktop Privacy Policy
 
 [中文](PRIVACY.zh.md)
 
-- **Version:** 1.1
-- **Effective and last updated:** September 28, 2026
+- **Version:** 1.2
+- **Effective and last updated:** October 15, 2026
 
-Nonead DSH Desktop is a local-first, open-source desktop application. This policy explains what information the official Nonead DSH Desktop distribution and official online services process, why they process it, who receives it, and what choices you have.
+DSH Desktop is a local-first, open-source desktop application. This policy explains what information the official DSH Desktop distribution and official online services process, why they process it, who receives it, and what choices you have.
 
-In this policy, “we” means the **Nonead Corporation project maintainer team** that maintains and publishes the official Nonead DSH Desktop distribution under the [`anywhere-labs`](https://github.com/anywhere-labs) GitHub organization and operates the official `nonead.com` services. Nonead DSH Desktop is an independent community project and has no affiliation, partnership, authorization, or endorsement relationship with DeepSeek.
+In this policy, “we” means the **Anywhere Labs project maintainer team** that maintains and publishes the official DSH Desktop distribution under the [`anywhere-labs`](https://github.com/anywhere-labs) GitHub organization and operates the official `dshdesktop.cn` download service and the official `nonead.com` release endpoints. DSH Desktop is an independent community project and has no affiliation, partnership, authorization, or endorsement relationship with DeepSeek.
 
 For privacy questions or rights requests, email [t4wefan@qq.com](mailto:t4wefan@qq.com). Do not put installation identifiers, logs, credentials, or other private information in a public GitHub Issue.
 
@@ -15,42 +15,44 @@ For privacy questions or rights requests, email [t4wefan@qq.com](mailto:t4wefan@
 
 This policy applies to:
 
-- Nonead DSH Desktop provided through the [official GitHub repository](https://github.com/anywhere-labs/dsh-desktop) and official release channels;
-- the official website, version-check service, and download redirects under `https://www.nonead.com/`; and
+- DSH Desktop provided through the [official GitHub repository](https://github.com/anywhere-labs/dsh-desktop) and official release channels;
+- the official website and download redirects under `https://www.dshdesktop.cn/`;
+- the official version-check endpoint at `https://www.nonead.com/software/ndsh-desktop/version`; and
 - privacy requests, support email, or issue reports that you voluntarily send to the project maintainers.
 
-This policy does not control processing performed by third-party forks, modified builds, third-party distributors, model providers, plugins, marketplace sources, or package services. If a third-party build still calls the hard-coded official `nonead.com` endpoints, this policy applies to the information those official endpoints actually receive, but not to other processing by that build or its distributor.
+This policy does not control processing performed by third-party forks, modified builds, third-party distributors, model providers, plugins, marketplace sources, or package services. If a third-party build still calls the hard-coded official `dshdesktop.cn` endpoints, this policy applies to the information those official endpoints actually receive, but not to other processing by that build or its distributor.
 
 ## 2. Summary
 
-- Nonead DSH Desktop profiles, settings, workspaces, sessions, logs, and crash files remain on your device by default.
-- The official update service does not require a Nonead DSH Desktop account. Its version-check code does not intentionally send prompts, responses, file contents, workspace paths, profile names, session contents, API keys, MAC addresses, or hardware serial numbers.
+- DSH Desktop profiles, settings, workspaces, sessions, logs, and crash files remain on your device by default.
+- The official update service does not require a DSH Desktop account. Its version-check code does not intentionally send prompts, responses, file contents, workspace paths, profile names, session contents, API keys, MAC addresses, or hardware serial numbers.
 - Packaged macOS and Windows builds check for updates by default and send a locally generated, persistently stored random installation UUID. This is a pseudonymous identifier that may qualify as personal data under applicable law. It is not a hardware ID and does not guarantee one value per physical machine.
 - Installer downloads do not receive that installation UUID from Desktop, although the website, download host, and network infrastructure still receive ordinary network metadata.
-- Diagnostic archives are created locally only when you export them and are never uploaded automatically by Nonead DSH Desktop.
-- Model services, plugins, marketplace sources, and package services that you choose process data under their own terms. They do not become subject to this policy merely because Nonead DSH Desktop can connect to them.
+- Diagnostic archives are created locally only when you export them and are never uploaded automatically by DSH Desktop.
+- Model services, plugins, marketplace sources, and package services that you choose process data under their own terms. They do not become subject to this policy merely because DSH Desktop can connect to them.
 
 ## 3. Official version checks
 
 ### 3.1 When the request occurs
 
-Packaged macOS and Windows applications request the following endpoint about 60 seconds after startup by default:
+Packaged macOS and Windows applications request the following endpoint shortly after startup — about 30 seconds in Nonead DSH Desktop and about 60 seconds in the Beta edition:
 
 ```text
 GET https://www.nonead.com/software/ndsh-desktop/version
 ```
 
-Another check occurs about six hours after each completed check. You can also select **Check for Updates** manually. Development runs, unpackaged launches, and Linux do not currently use this packaged automatic-update flow.
+Another check occurs about six hours later. You can also select **Check for Updates** manually. Development runs and unpackaged launches do not use this packaged automatic-update flow, and Linux builds never download or install an update.
 
 ### 3.2 What the request contains
 
 The client explicitly adds:
 
-- `Accept: application/json`; and
-- `X-DSH-Desktop-Installation-Id: <random UUID v4>`.
-- `X-DSH-Desktop-Version: <canonical installed stable version>`.
+- `Accept: application/json`;
+- `X-DSH-Desktop-Installation-Id: <random UUID v4>`;
+- `X-DSH-Desktop-Version: <canonical installed version>`; and
+- `X-DSH-Desktop-Channel: <stable, beta, or next>`.
 
-The application adds no query parameters or request body to this GET request. Like every internet request, the official service and its infrastructure also receive the IP address, request time, TLS and connection details, and standard request metadata generated by the networking stack. That metadata may include a User-Agent, cookies, accepted compression, and operating-system or runtime-version information. The current code does not explicitly require the Electron network session to omit existing credentials, so we do not promise that a version request can never include session data. We also do not describe “two headers explicitly set by the client” as “only two fields leave the device.”
+The application adds no query parameters or request body to this GET request. Like every internet request, the official service and its infrastructure also receive the IP address, request time, TLS and connection details, and standard request metadata generated by the networking stack. That metadata may include a User-Agent, cookies, accepted compression, and operating-system or runtime-version information. The current code does not explicitly require the Electron network session to omit existing credentials, so we do not promise that a version request can never include session data. We also do not describe “the headers explicitly set by the client” as “only those fields leave the device.”
 
 The version-check code does not intentionally attach prompts, responses, file contents, workspace paths, profile names, session contents, model credentials, MAC addresses, or hardware serial numbers.
 
@@ -67,8 +69,8 @@ The installation UUID:
 
 Default locations are:
 
-- macOS: `~/Library/Application Support/Nonead DSH Desktop/identity/installation-id`;
-- Windows: `%APPDATA%\Nonead DSH Desktop\identity\installation-id`.
+- Nonead DSH Desktop: `~/.dsh/electron-user-data/identity/installation-id` under your user home directory (`%USERPROFILE%\.dsh\electron-user-data\identity\installation-id` on Windows);
+- Beta edition: `~/Library/Application Support/DSH Desktop Beta/identity/installation-id` on macOS and `%APPDATA%\DSH Desktop Beta\identity\installation-id` on Windows.
 
 Deleting this file only causes a new UUID to be generated at the next launch. It **does not stop later version checks or prevent the new UUID from being sent**.
 
@@ -76,18 +78,18 @@ Deleting this file only causes a new UUID to be generated at the next launch. It
 
 Version-check data may be used only to:
 
-- return the latest stable version and support update notices;
+- return the latest version for the requested release channel and support update notices;
 - recognize repeated requests from the same Desktop user-data directory as one installation, enabling deduplicated, aggregate update-service usage trends;
 - maintain service reliability, investigate abnormal requests, and prevent abuse; and
 - meet applicable legal obligations.
 
-We do not use the installation UUID for advertising profiles or cross-service tracking, and we do not sell it. A version check requires no login, and the client sends no name, email address, or Nonead DSH Desktop account ID in that request.
+We do not use the installation UUID for advertising profiles or cross-service tracking, and we do not sell it. A version check requires no login, and the client sends no name, email address, or DSH Desktop account ID in that request.
 
 ## 4. Installer downloads, the website, and project communications
 
 | Scenario | Trigger | Information that may be processed | Purpose and recipients |
 | --- | --- | --- | --- |
-| Installer download | You click a download or confirm a download after an update is found | IP address, time, standard network metadata, and the platform shown by the `/mac`, `/windows`, or `/linux` path | `nonead.com`, its hosting service, and the final download host use this information to deliver the file, protect the service, and measure download service usage. Desktop does not add the installation UUID to the download request. |
+| Installer download | You click a download or confirm a download after an update is found | IP address, time, standard network metadata, and the platform shown by the `/mac` or `/windows` path | `dshdesktop.cn`, its hosting service, and the final download host use this information to deliver the file, protect the service, and measure download service usage. Desktop does not add the installation UUID to the download request. |
 | Website visit | You open the website in a browser | IP address, time, browser and device network metadata, and the requested page | Website hosting and network infrastructure use it to deliver the page, protect the service, and diagnose failures. |
 | GitHub Issue, discussion, or contribution | You submit it | Account details, text, attachments, code, and metadata that you make public | GitHub and the project maintainers use it to process issues, contributions, and community communications. Public submissions are publicly visible. |
 | Email and support material | You send it | Email address, message, attachments, and diagnostics or environment details that you choose to provide | [QQ Mail](https://mail.qq.com/), your sending provider, and the project maintainers use it to deliver and respond to the message, investigate problems, and retain necessary correspondence. |
@@ -96,7 +98,7 @@ As of this policy's effective date, the website and official APIs are hosted by 
 
 ## 5. Information stored locally by default
 
-The following information remains on your device by default rather than being uploaded automatically to Nonead Corporation:
+The following information remains on your device by default rather than being uploaded automatically to Anywhere Labs:
 
 | Local information | Purpose and retention |
 | --- | --- |
@@ -107,7 +109,7 @@ The following information remains on your device by default rather than being up
 | Desktop logs | Stored below the Electron user-data directory. A file rotates at 10 MiB; files older than seven days are removed at startup; and the log directory is held below 200 MiB. Logs can still contain paths, workspace IDs, session IDs, commands, or plugin messages. |
 | Local crash files | Electron Crashpad collects them locally and is configured not to upload to a crash server. They may contain fragments of process memory. |
 | Diagnostic ZIP archives | Created only when you export one. They may contain logs, system and version information, paths, workspace or session IDs, bounded lifecycle and plugin IDs, and crash files within a shared 50 MiB evidence budget. The application retains the three newest archives that it manages; copies you make elsewhere are outside that limit. |
-| System notifications | Turn and job notices use generic completion or failure copy without session names, user text, job contents, or error details; update notices include the available version. The operating system handles them locally without a Nonead DSH Desktop remote-push service. Notification history or cross-device synchronization depends on your system account settings. |
+| System notifications | Turn and job notices use generic completion or failure copy without session names, user text, job contents, or error details; update notices include the available version. The operating system handles them locally without a DSH Desktop remote-push service. Notification history or cross-device synchronization depends on your system account settings. |
 | Installation UUID | Stored as described in Section 3 and sent to the official update endpoint during a version check. |
 
 Credential masking reduces risk but cannot guarantee that a log or diagnostic archive contains no sensitive information. Review an archive and remove information you do not want a recipient to see before sharing it.
@@ -116,7 +118,7 @@ Uninstalling the application may leave Electron user data, the DSH home, profile
 
 ## 6. Third-party services you choose
 
-Nonead DSH Desktop is a composable plugin platform. The following transfers are triggered by services, sources, plugins, or actions you choose. Each recipient processes information under its own privacy terms.
+DSH Desktop is a composable plugin platform. The following transfers are triggered by services, sources, plugins, or actions you choose. Each recipient processes information under its own privacy terms.
 
 ### 6.1 Model and tool services
 
@@ -153,9 +155,9 @@ Upload a backup only to a WebDAV service or GitHub account you trust. The select
 
 ### 6.4 Optional upstream telemetry
 
-Upstream DSH session telemetry keeps the upstream default of `FEEDBACK_ONLY` in Desktop's default composition: ordinary use uploads no session content, and only after you explicitly submit feedback in a session is that session's raw log up to the feedback sent, with the upstream anonymous user ID (stored as `.anonymous-user-id` in the DSH data directory; delete it to reset), to `https://dsh-otel-collector.deepseeksvc.com/v1/logs` or the endpoint configured in `DSH_TELEMETRY_OTLP_URL`. If you or a deployment operator explicitly sets `DSH_TELEMETRY_MODE` to `FULL`, session telemetry is sent continuously during ordinary use; setting `DSH_TELEMETRY_DISABLED` to any non-empty value makes Desktop turn the component off. That processing is controlled by the upstream configuration and recipient policy and is not the Nonead Corporation official update service.
+Upstream DSH session telemetry keeps the upstream default of `FEEDBACK_ONLY` in Desktop's default composition: ordinary use uploads no session content, and only after you explicitly submit feedback in a session is that session's raw log up to the feedback sent, with the upstream anonymous user ID (stored as `.anonymous-user-id` in the DSH data directory; delete it to reset), to `https://dsh-otel-collector.deepseeksvc.com/v1/logs` or the endpoint configured in `DSH_TELEMETRY_OTLP_URL`. If you or a deployment operator explicitly sets `DSH_TELEMETRY_MODE` to `FULL`, session telemetry is sent continuously during ordinary use; setting `DSH_TELEMETRY_DISABLED` to any non-empty value makes Desktop turn the component off. That processing is controlled by the upstream configuration and recipient policy and is not the Anywhere Labs official update service.
 
-Upstream also provides Desktop product analytics (`product-analytics` and `desktop-product-telemetry`) for any Profile named `desktop`, which would send a device ID, a user ID when signed in to a DeepSeek account, OS and app versions, and interface interaction events to DeepSeek. Nonead DSH Desktop turns both off at startup, and the official distribution does not send these analytics.
+Upstream also provides Desktop product analytics (`product-analytics` and `desktop-product-telemetry`) for any Profile named `desktop`, which would send a device ID, a user ID when signed in to a DeepSeek account, OS and app versions, and interface interaction events to DeepSeek. DSH Desktop turns both off at startup, and the official distribution does not send these analytics.
 
 ### 6.5 External links
 
@@ -163,11 +165,11 @@ External HTTP, HTTPS, and email links in the application or documentation are ha
 
 ## 7. Browser and LAN access
 
-Allowing DSH to open in a browser does not itself upload a session to Nonead Corporation. It lets an ordinary browser access the local Host and is available only in compatibility mode. Loopback access is limited to `127.0.0.1` by default.
+Allowing DSH to open in a browser does not itself upload a session to Anywhere Labs. It lets an ordinary browser access the local Host and is available only in compatibility mode. Loopback access is limited to `127.0.0.1` by default.
 
 If you explicitly enable LAN access, the Host listens on LAN interfaces. The Host trust marker is not user authentication. Configuration surfaces such as settings, credentials, and local native dialogs remain restricted to loopback access, but a LAN client can create sessions and may operate your computer through the default command and filesystem tools. Browser security restrictions on LAN HTTP can also make some security modules unavailable. Enable it only temporarily on a fully trusted network, and turn it off when no longer needed.
 
-LAN traffic normally does not pass through Nonead Corporation, but a person who connects to your computer over the LAN becomes a recipient of the data exposed through that connection.
+LAN traffic normally does not pass through Anywhere Labs, but a person who connects to your computer over the LAN becomes a recipient of the data exposed through that connection.
 
 ## 8. Sharing, processors, and international transfers
 
@@ -213,7 +215,7 @@ We do not make decisions with legal or similarly significant effects about you s
 
 ## 12. Children
 
-Nonead DSH Desktop is a tool for developers and people able to manage a local computing environment and is not directed specifically to children. Minors should use it with a guardian's guidance. If you believe we processed a child's personal data without satisfying applicable requirements, contact us so that we can investigate and take appropriate action.
+DSH Desktop is a tool for developers and people able to manage a local computing environment and is not directed specifically to children. Minors should use it with a guardian's guidance. If you believe we processed a child's personal data without satisfying applicable requirements, contact us so that we can investigate and take appropriate action.
 
 ## 13. Changes to this policy
 

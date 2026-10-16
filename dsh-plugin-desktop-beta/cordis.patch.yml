@@ -18,11 +18,6 @@
       name: dsh-plugin-desktop-beta/profiles
     - id: desktop-updates
       name: dsh-plugin-desktop-beta/updates
-    # Shipped brand skin. It rides the launcher layer instead of a Profile
-    # bundle, so every Profile of every generation starts with it already
-    # active and no Profile manifest is ever rewritten to select it.
-    - id: nonead-client-skin
-      name: dsh-nonead-client-skin
 
 # A desktop launch has no terminal operator waiting for the Web readiness line.
 - id: web-runtime
@@ -31,3 +26,8 @@
     printUrl: false
     surfaceContext: true
     trustedHosts: []
+
+# The "…" command menu keeps the shipped session-log download. The feedback
+# command is not part of this product's menu.
+- id: command-feedback
+  disabled: true

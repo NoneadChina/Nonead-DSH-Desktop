@@ -20,7 +20,7 @@ function result(
     readonly key: string
   }[],
   configuration: ElectronArtifactBuildResult['configuration'] = {
-    productName: 'Nonead DSH Desktop Beta',
+    productName: 'DSH Desktop Beta',
   },
 ): ElectronArtifactBuildResult {
   return {
@@ -49,9 +49,9 @@ describe('final Electron fuse verification', () => {
   it('maps only requested platform and architecture keys to complete runtime contexts', () => {
     const expected = [
       join('/build', 'linux-unpacked', 'dsh-plugin-desktop-beta'),
-      join('/build', 'mac-universal', 'Nonead DSH Desktop Beta.app', 'Contents', 'MacOS', 'Nonead DSH Desktop Beta'),
-      join('/build', 'win-unpacked', 'Nonead DSH Desktop Beta.exe'),
-      join('/build', 'win-arm64-unpacked', 'Nonead DSH Desktop Beta.exe'),
+      join('/build', 'mac-universal', 'DSH Desktop Beta.app', 'Contents', 'MacOS', 'DSH Desktop Beta'),
+      join('/build', 'win-unpacked', 'DSH Desktop Beta.exe'),
+      join('/build', 'win-arm64-unpacked', 'DSH Desktop Beta.exe'),
     ].sort()
 
     expect(resolveFinalPackagedRuntimeContexts(
@@ -68,26 +68,26 @@ describe('final Electron fuse verification', () => {
         electronPlatformName: 'linux',
         packager: {
           executableName: 'dsh-plugin-desktop-beta',
-          appInfo: { productFilename: 'Nonead DSH Desktop Beta' },
+          appInfo: { productFilename: 'DSH Desktop Beta' },
         },
       },
       {
         appOutDir: join('/build', 'mac-universal'),
         arch: 4,
         electronPlatformName: 'darwin',
-        packager: { appInfo: { productFilename: 'Nonead DSH Desktop Beta' } },
+        packager: { appInfo: { productFilename: 'DSH Desktop Beta' } },
       },
       {
         appOutDir: join('/build', 'win-arm64-unpacked'),
         arch: 3,
         electronPlatformName: 'win32',
-        packager: { appInfo: { productFilename: 'Nonead DSH Desktop Beta' } },
+        packager: { appInfo: { productFilename: 'DSH Desktop Beta' } },
       },
       {
         appOutDir: join('/build', 'win-unpacked'),
         arch: 1,
         electronPlatformName: 'win32',
-        packager: { appInfo: { productFilename: 'Nonead DSH Desktop Beta' } },
+        packager: { appInfo: { productFilename: 'DSH Desktop Beta' } },
       },
     ])
   })
@@ -100,7 +100,7 @@ describe('final Electron fuse verification', () => {
 
   it('honors Linux executableName and recovers a configured suffixless architecture', () => {
     const configured = result([{ key: 'linux', archs: [Arch.arm64] }], {
-      productName: 'Nonead DSH Desktop Beta',
+      productName: 'DSH Desktop Beta',
       linux: { defaultArch: 'arm64', executableName: 'dsh-desktop' },
     })
     const executable = join('/build', 'linux-unpacked', 'dsh-desktop')
@@ -149,8 +149,8 @@ describe('final Electron fuse verification', () => {
   })
 
   it('ignores a stale sibling architecture from an earlier build', () => {
-    const expected = join('/build', 'win-unpacked', 'Nonead DSH Desktop Beta.exe')
-    const stale = join('/build', 'win-arm64-unpacked', 'Nonead DSH Desktop Beta.exe')
+    const expected = join('/build', 'win-unpacked', 'DSH Desktop Beta.exe')
+    const stale = join('/build', 'win-arm64-unpacked', 'DSH Desktop Beta.exe')
     const exists = vi.fn((filename: string) => filename === expected || filename === stale)
 
     expect(resolveFinalPackagedRuntimeContexts(
@@ -166,19 +166,19 @@ describe('final Electron fuse verification', () => {
   })
 
   it('fails when one requested architecture is missing even if a sibling exists', () => {
-    const x64Executable = join('/build', 'win-unpacked', 'Nonead DSH Desktop Beta.exe')
+    const x64Executable = join('/build', 'win-unpacked', 'DSH Desktop Beta.exe')
 
     expect(() => resolveFinalPackagedRuntimeContexts(
       result([{ key: 'win', archs: [Arch.x64, Arch.arm64] }]),
       filename => filename === x64Executable,
-    )).toThrow(`win/arm64 at ${join('/build', 'win-arm64-unpacked', 'Nonead DSH Desktop Beta.exe')}`)
+    )).toThrow(`win/arm64 at ${join('/build', 'win-arm64-unpacked', 'DSH Desktop Beta.exe')}`)
   })
 
   it('resolves a real target-name map through the target archs retained by NSIS', () => {
     const platform = { buildConfigurationKey: 'win' }
     const built = {
       outDir: '/build',
-      configuration: { productName: 'Nonead DSH Desktop Beta' },
+      configuration: { productName: 'DSH Desktop Beta' },
       platformToTargets: new Map([[platform, new Map([
         ['nsis', { archs: new Map([
           [Arch.x64, '/build/win-unpacked'],
@@ -201,7 +201,7 @@ describe('final Electron fuse verification', () => {
     const platform = { buildConfigurationKey: 'win' }
     const built = {
       outDir: '/build',
-      configuration: { productName: 'Nonead DSH Desktop Beta', win: { target: [{ target: 'nsis', arch: ['x64'] }] } },
+      configuration: { productName: 'DSH Desktop Beta', win: { target: [{ target: 'nsis', arch: ['x64'] }] } },
       platformToTargets: new Map([[platform, new Map()]]),
     } satisfies ElectronArtifactBuildResult
 
@@ -216,7 +216,7 @@ describe('final Electron fuse verification', () => {
     const platform = { buildConfigurationKey: 'win' }
     const built = {
       outDir: '/build',
-      configuration: { productName: 'Nonead DSH Desktop Beta', win: { target: [{ target: 'nsis', arch: ['x64'] }] } },
+      configuration: { productName: 'DSH Desktop Beta', win: { target: [{ target: 'nsis', arch: ['x64'] }] } },
       platformToTargets: new Map([[platform, new Map()]]),
     } satisfies ElectronArtifactBuildResult
     const archs = (...flags: string[]) => resolveFinalPackagedRuntimeContexts(
@@ -242,7 +242,7 @@ describe('final Electron fuse verification', () => {
     ])]])
     const built = {
       outDir: '/build',
-      configuration: { productName: 'Nonead DSH Desktop Beta' },
+      configuration: { productName: 'DSH Desktop Beta' },
       platformToTargets: new Map([[platform, new Map([
         ['dmg', { packager: { packagerOptions: { targets: requestedTargets } } }],
       ])]]),
@@ -250,10 +250,10 @@ describe('final Electron fuse verification', () => {
     const universalExecutable = join(
       '/build',
       'mac-universal',
-      'Nonead DSH Desktop Beta.app',
+      'DSH Desktop Beta.app',
       'Contents',
       'MacOS',
-      'Nonead DSH Desktop Beta',
+      'DSH Desktop Beta',
     )
     const exists = vi.fn((filename: string) => filename === universalExecutable)
 
@@ -266,8 +266,8 @@ describe('final Electron fuse verification', () => {
 
   it('checks every requested final executable after all artifact builds', async () => {
     const executables = [
-      join('/build', 'mac-arm64', 'Nonead DSH Desktop Beta.app', 'Contents', 'MacOS', 'Nonead DSH Desktop Beta'),
-      join('/build', 'mac', 'Nonead DSH Desktop Beta.app', 'Contents', 'MacOS', 'Nonead DSH Desktop Beta'),
+      join('/build', 'mac-arm64', 'DSH Desktop Beta.app', 'Contents', 'MacOS', 'DSH Desktop Beta'),
+      join('/build', 'mac', 'DSH Desktop Beta.app', 'Contents', 'MacOS', 'DSH Desktop Beta'),
     ]
     const events: string[] = []
     const read = vi.fn<ElectronFuseReader>(async (executable) => {
@@ -304,7 +304,7 @@ describe('final Electron fuse verification', () => {
   ])('fails loud when required fuse %s is not enabled', async (option, name) => {
     const read: ElectronFuseReader = async () => fuseWire({ [option]: FuseState.DISABLE })
 
-    await expect(verifyElectronExecutableFuses('/build/Nonead DSH Desktop Beta.exe', read))
+    await expect(verifyElectronExecutableFuses('/build/DSH Desktop Beta.exe', read))
       .rejects.toThrow(`${name}=DISABLE`)
   })
 
@@ -325,7 +325,7 @@ describe('final Electron fuse verification', () => {
   it('wraps an unreadable final executable with its resolved path', async () => {
     const read: ElectronFuseReader = async () => { throw new Error('missing sentinel') }
 
-    await expect(verifyElectronExecutableFuses('/build/Nonead DSH Desktop Beta.exe', read))
-      .rejects.toThrow('/build/Nonead DSH Desktop Beta.exe')
+    await expect(verifyElectronExecutableFuses('/build/DSH Desktop Beta.exe', read))
+      .rejects.toThrow('/build/DSH Desktop Beta.exe')
   })
 })

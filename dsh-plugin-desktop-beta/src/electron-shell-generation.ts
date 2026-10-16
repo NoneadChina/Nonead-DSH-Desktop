@@ -1,3 +1,4 @@
+import { observeDesktopRenderer, traceRendererBootStage } from './renderer-logging.ts'
 import {
   app,
   BrowserWindow,
@@ -15,8 +16,8 @@ import {
 import { isDesktopSetupWizardSelection } from './setup-wizard-contract.ts'
 import { SETUP_ONBOARDING_CHANNEL } from './setup-onboarding-bridge.ts'
 import { CompatibilityShell, type CompatibilityShellActions } from './compatibility-shell.ts'
+import { installEditingContextMenu, type EditingContextMenuLabels } from './context-menu.ts'
 import { formatDesktopExitCode } from './desktop-logger.ts'
-import { setDesktopApplicationIcon } from './desktop-application-icon.ts'
 import { showDesktopMessageBox } from './desktop-dialog-window.ts'
 import { applicationNeedsReveal, revealApplication } from './electron-reveal.ts'
 import type { ElectronPlatformStrategy } from './electron-platform.ts'
@@ -77,19 +78,19 @@ async function authenticateRendererSession(
   const headers = {
     [spec.rendererAccessHeader.name]: spec.rendererAccessHeader.value,
   }
-  const authenticated = await session.fetch(spec.authenticationUrl, {
+  const authenticated = await traceRendererBootStage('authentication-request', () => session.fetch(spec.authenticationUrl, {
     method: 'GET',
     credentials: 'include',
     redirect: 'follow',
     cache: 'no-store',
     headers,
-  })
+  }))
   if (authenticated.status !== 200) {
     throw new Error(
       `dsh-plugin-desktop: browser authentication failed with HTTP ${String(authenticated.status)}`,
     )
   }
-  await authenticated.body?.cancel()
+  await traceRendererBootStage('authentication-body-release', async () => { await authenticated.body?.cancel() })
 }
 
 function sameRendererCarrierOrigin(requestUrl: string, httpOrigin: string, webSocketOrigin: string): boolean {
@@ -180,32 +181,6 @@ function sameOriginFrame(frameUrl: string | undefined, origin: string): boolean 
   }
 }
 
-/**
- * Describe the frame behind one Desktop IPC so a rejected action can name its
- * sender. Reading a destroyed frame throws, and a rejection report must not.
- */
-function senderFrameDescription(event: Electron.IpcMainInvokeEvent): string {
-  try {
-    return event.senderFrame?.url ?? 'an absent frame'
-  } catch {
-    return 'a destroyed frame'
-  }
-}
-
-/** Whether one Desktop IPC sender holds the mounted renderer's main frame. */
-function isTrustedRendererSender(
-  event: Electron.IpcMainInvokeEvent,
-  renderer: Electron.WebContents,
-  origin: string,
-): boolean {
-  if (event.sender !== renderer || event.senderFrame === null) return false
-  try {
-    return event.senderFrame === renderer.mainFrame && sameOriginFrame(event.senderFrame.url, origin)
-  } catch {
-    return false
-  }
-}
-
 function clampedZoomLevel(level: number): number {
   return Math.min(MAX_ZOOM_LEVEL, Math.max(MIN_ZOOM_LEVEL, level))
 }
@@ -237,6 +212,8 @@ export interface ElectronShellGenerationOptions {
   readonly chromeActions: CompatibilityShellActions
   /** Localized caption of the built-in DeepSeek Platform sign-in window. */
   readonly platformLoginTitle: () => string
+  /** Windows labels of the native editing context menu in the current Desktop language. */
+  readonly editingContextMenuLabels: () => EditingContextMenuLabels
 }
 
 /** Own one BrowserWindow and Tray generation, including every native listener. */
@@ -324,10 +301,6 @@ export class ElectronShellGeneration {
     if (icon.isEmpty()) {
       throw new Error(`dsh-plugin-desktop: failed to load application icon ${spec.iconPath}`)
     }
-    // Share the validated icon with every later Desktop-owned window: the setup wizard,
-    // Profile creation/selection, recovery and parentless dialogs all go through the
-    // local window policy, which reuses this value instead of showing a blank button.
-    setDesktopApplicationIcon(icon)
     platform.configureApplication(icon, spec.productName, this.options.buildApplicationMenuItems())
     const origin = new URL(spec.url).origin
     if (platform.platform !== 'linux') nativeTheme.themeSource = spec.readThemeSource()
@@ -361,12 +334,6 @@ export class ElectronShellGeneration {
     window.accessibleTitle = spec.windowTitle
     platform.configureWindow(window)
     this.window = window
-    // Windows resolves a taskbar button's icon when the window is shown, and this frame is
-    // created hidden and revealed later. Re-apply the validated icon on every show so the
-    // button can never settle on a blank/default image.
-    if (platform.platform === 'win32') {
-      window.on('show', () => { if (!window.isDestroyed()) window.setIcon(icon) })
-    }
     try {
       if (isolated) {
         this.compatibilityShell = new CompatibilityShell(window, spec, platform.platform, this.options.preloadPath, this.options.chromeActions)
@@ -377,6 +344,9 @@ export class ElectronShellGeneration {
     }
     const renderer = this.compatibilityShell?.webContents ?? window.webContents
     const chrome = this.compatibilityShell?.chromeWebContents ?? window.webContents
+    observeDesktopRenderer(renderer, 'application')
+    if (chrome !== renderer) observeDesktopRenderer(chrome, 'chrome')
+    if (window.webContents !== renderer && window.webContents !== chrome) observeDesktopRenderer(window.webContents, 'shell')
     this.renderer = renderer
 
     // Desktop-owned actions stay on the Electron lifetime. The page reaches the
@@ -387,11 +357,9 @@ export class ElectronShellGeneration {
       message => { this.options.logError(message) },
     )
     renderer.ipc.handle(DESKTOP_RENDERER_ACTION_CHANNEL, async (event, action: unknown) => {
-      if (this.released || !isTrustedRendererSender(event, renderer, origin)) {
-        // A rejected action otherwise reaches the operator as an opaque alert.
-        this.options.logError(
-          `dsh-plugin-desktop: rejected a Desktop action from ${senderFrameDescription(event)} (expected origin ${origin})`,
-        )
+      if (this.released || event.sender !== renderer
+        || event.senderFrame === null || event.senderFrame !== renderer.mainFrame
+        || !sameOriginFrame(event.senderFrame.url, origin)) {
         throw new Error('dsh-plugin-desktop: untrusted Desktop action sender')
       }
       await dispatchRendererAction(action)
@@ -639,6 +607,11 @@ export class ElectronShellGeneration {
       chrome.on('did-fail-load', loadFailed)
       chrome.on('did-finish-load', chromeLoaded)
     }
+    // The official Desktop pops the same editing menu over editable content and
+    // selected text. The command bar gets it too, so copying its text behaves alike.
+    const contextMenuOptions = { platform: platform.platform, labels: this.options.editingContextMenuLabels, menu: () => Menu }
+    const removeRendererContextMenu = installEditingContextMenu(renderer, window, contextMenuOptions)
+    const removeChromeContextMenu = isolated ? installEditingContextMenu(chrome, window, contextMenuOptions) : undefined
     renderer.setWindowOpenHandler(({ url }) => {
       try {
         const target = new URL(url)
@@ -687,6 +660,8 @@ export class ElectronShellGeneration {
         chrome.off('did-fail-load', loadFailed)
         chrome.off('did-finish-load', chromeLoaded)
       }
+      removeRendererContextMenu()
+      removeChromeContextMenu?.()
       removeRendererAccessHeader?.()
       removeRendererAccessHeader = undefined
       tray?.off('click', show)
@@ -697,16 +672,18 @@ export class ElectronShellGeneration {
     }
 
     try {
-      await this.compatibilityShell?.load()
-      await authenticateRendererSession(renderer, spec)
+      await traceRendererBootStage('shell-load', async () => { await this.compatibilityShell?.load() })
+      await traceRendererBootStage('authenticate', () => authenticateRendererSession(renderer, spec))
       removeRendererAccessHeader = installRendererAccessHeader(
         renderer,
         origin,
         spec.rendererAccessHeader,
       )
       revealStartupSurface()
-      if (isolated) await renderer.loadURL(spec.url)
-      else await window.loadURL(spec.url)
+      await traceRendererBootStage('page-load', async () => {
+        if (isolated) await renderer.loadURL(spec.url)
+        else await window.loadURL(spec.url)
+      })
       if (isolated) renderer.focus()
       tray = new Tray(prepareTrayIcon(spec.trayIcons, platform.platform))
       this.tray = tray
@@ -906,14 +883,11 @@ export class ElectronShellGeneration {
       : await dialog.showOpenDialog(window, options)
   }
 
-  async showMessageBox(
-    options: Electron.MessageBoxOptions,
-    report?: (message: string) => void,
-  ): Promise<Electron.MessageBoxReturnValue> {
+  async showMessageBox(options: Electron.MessageBoxOptions): Promise<Electron.MessageBoxReturnValue> {
     const window = this.window
     return window === undefined || window.isDestroyed()
-      ? await showDesktopMessageBox(options, undefined, report)
-      : await showDesktopMessageBox(options, window, report)
+      ? await showDesktopMessageBox(options)
+      : await showDesktopMessageBox(options, window)
   }
 
   async showSaveDialog(options: Electron.SaveDialogOptions): Promise<Electron.SaveDialogReturnValue> {

@@ -11,7 +11,6 @@
  * request across the browser-access gate.
  */
 import type { BrowserWindow, BrowserWindowConstructorOptions, Session, WebContents } from 'electron'
-import { desktopApplicationIcon } from './desktop-application-icon.ts'
 
 /** Sign-in partition; no `persist:` prefix, so Platform cookies never reach disk. */
 export const PLATFORM_LOGIN_PARTITION = 'dsh-desktop-platform-login'
@@ -104,7 +103,7 @@ export function platformLoginUrl(authorizeUrl: string, dark: boolean): string {
 }
 
 /** Caption of the built-in sign-in window. */
-export const PLATFORM_LOGIN_TITLE = { zh: '登录 Nonead DSH Desktop', en: 'Sign in to Nonead DSH Desktop' } as const
+export const PLATFORM_LOGIN_TITLE = { zh: '登录 DeepSeek', en: 'Sign in to DeepSeek' } as const
 
 export interface PlatformLoginWindowOptions {
   /** Electron `BrowserWindow` constructor. */
@@ -141,9 +140,6 @@ export class PlatformLoginWindow {
     this.window = undefined
     this.clear(loginSession)
     const parent = this.options.parent()
-    // The sign-in window is Desktop-owned and can be the only visible window while the Host
-    // is not up, so it reuses the validated application icon like every other owned window.
-    const icon = desktopApplicationIcon()
     const window = new this.options.BrowserWindow({
       width: 520,
       height: 720,
@@ -154,7 +150,6 @@ export class PlatformLoginWindow {
       autoHideMenuBar: true,
       backgroundColor: this.options.dark() ? '#1f1f1f' : '#ffffff',
       ...(parent !== undefined && !parent.isDestroyed() ? { parent } : {}),
-      ...(icon === undefined ? {} : { icon }),
       webPreferences: popupPreferences(loginSession),
     })
     this.window = window

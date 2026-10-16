@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { disableAsarArchiveView, type AsarArchiveProcess } from '../src/asar-archive-policy.ts'
 
-const root = join(tmpdir(), 'Nonead DSH Desktop', 'resources')
+const root = join(tmpdir(), 'DSH Desktop', 'resources')
 const moduleIn = (...segments: string[]): string => pathToFileURL(join(root, ...segments)).href
 
 describe('Electron asar archive view', () => {

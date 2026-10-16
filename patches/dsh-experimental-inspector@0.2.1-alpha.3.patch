@@ -1,0 +1,14 @@
+diff --git a/lib/devtools/chunks/legacy-DN0JdmIr.js b/lib/devtools/chunks/legacy-DN0JdmIr.js
+--- a/lib/devtools/chunks/legacy-DN0JdmIr.js
++++ b/lib/devtools/chunks/legacy-DN0JdmIr.js
+@@ -867,7 +867,9 @@ var Wn = function(e, t, n, r, i) {
+ 	setWhitelistedShortcuts(e) {}
+ 	setEyeDropperActive(e) {}
+ 	showCertificateViewer(e) {}
+-	reattach(e) {}
++	// Standalone Inspector has no native DevTools embedder to reattach.
++	// Complete the public callback so Reload DevTools can reload its iframe.
++	reattach(e) { e(); }
+ 	readyForTest() {}
+ 	connectionReady() {}
+ 	setOpenNewWindowForPopups(e) {}

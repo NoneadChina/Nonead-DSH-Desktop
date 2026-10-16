@@ -20,7 +20,7 @@ We want to build an **open, composable, and sustainable** DSH plugin ecosystem:
 
 ## The desktop shell is the first example
 
-Nonead DSH Desktop is the first practitioner of this approach: the desktop shell itself is an ordinary DSH plugin on the same composition path as official and third-party plugins, with no special privileges. We did not fork upstream source into a fixed shell — we made "the desktop" an equal member of the plugin ecosystem.
+DSH Desktop is the first practitioner of this approach: the desktop shell itself is an ordinary DSH plugin on the same composition path as official and third-party plugins, with no special privileges. We did not fork upstream source into a fixed shell — we made "the desktop" an equal member of the plugin ecosystem.
 
 ## A living document, built with the community
 
@@ -28,7 +28,9 @@ This manifesto is not a unilateral rulebook. It is a **living document**: it fol
 
 ## The plugin marketplace: making conventions the beneficial choice
 
-Once the plugin marketplace ships, plugins that follow this manifesto will be easier to discover, install, and trust. We want convention-driven development to be the beneficial choice for every author, not an extra burden.
+The marketplace ([`dsh-community-market`](../dsh-community-market/README.md)) already ships with DSH Desktop as an ordinary DSH plugin: it declares its own `dsh.bundle.patch` and `dsh.client`, sits beside the other selectable bundles on the official Plugins page, and delegates its own install, enable, disable, and uninstall operations to the official plugin manager rather than maintaining a separate install receipt or rollback path.
+
+Plugins that follow this manifesto are therefore easier to discover, install, and judge for compatibility. We want convention-driven development to be the beneficial choice for every author, not an extra burden.
 
 ## From a manifesto to a testable contract
 
@@ -36,7 +38,7 @@ Once the plugin marketplace ships, plugins that follow this manifesto will be ea
 
 Fabric capabilities begin as compatibility, consent, and audit declarations. They do not present in-process JavaScript as a security sandbox. Only a Host with evidence of real isolation may claim technical permission enforcement.
 
-The market is still in its [product and safety design phase](../dsh-community-market/README.md), with no usable page or installer yet. Catalog inclusion means that a project matched catalog rules; it is not a security review or endorsement.
+Catalog inclusion means only that an entry matched the source's own catalog rules; it is not a security review, a compatibility guarantee, or an endorsement. What gets installed is third-party code running locally with the user's own permissions.
 
 ## How to participate
 
