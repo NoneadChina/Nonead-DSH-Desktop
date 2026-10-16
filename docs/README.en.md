@@ -45,7 +45,7 @@ The outer repository has two formal product READMEs plus one legacy compatibilit
 
 `README.i18n.yaml` records the bilingual blob hashes for those two formal entry points; it is not a user guide. `dsh-plugin-desktop-beta/README.md` and `dsh-plugin-desktop-beta/README.zh.md` ship with the npm package and are the more technical package reference. `nonead-dsh-desktop/README.md` and `nonead-dsh-desktop/README.zh.md` describe the Nonead DSH Desktop workspace. `dsh-plugin-desktop-beta/docs/` contains stable API contracts rather than marketing copy. `.agents/notes/implemented/` contains dated maintainer decision records and does not replace user documentation.
 
-`deepseek-harness/` is the pinned upstream submodule: its active channel is `beta`, its current pin is DSH `0.2.1-alpha.3`, and it ships the vendored runtime at `vendor/dsh-runtime/0.2.1-alpha.3/`; the root `upstream.json` records both channels. Its README and `docs/` belong to the upstream project, not to the Desktop product, and are excluded from the outer documentation inventory.
+`deepseek-harness/` is the pinned upstream submodule: its active channel is `beta`, its current pin is DSH `0.2.1-alpha.4`, and it ships the vendored runtime at `vendor/dsh-runtime/0.2.1-alpha.4/`; the root `upstream.json` records both channels. Its README and `docs/` belong to the upstream project, not to the Desktop product, and are excluded from the outer documentation inventory.
 
 ## Status convention
 

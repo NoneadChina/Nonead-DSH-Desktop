@@ -27,7 +27,7 @@ This repository owns the desktop product around an unmodified DeepSeek Harness c
 - `dsh-nonead-client-skin/` owns the brand skin distributed inside the installer. `nonead-dsh-desktop/` depends on it as a `file:` package and inserts it for every profile from its own `cordis.patch.yml`.
 - `dsh-community-fabric/` owns the community interoperability RFC. Until schemas and a reviewed reference adapter exist, it remains a private documentation scaffold and must not declare loadable DSH or package entry points.
 - `dsh-community-market/` owns the community-market shell. Until its runtime is implemented, it remains a private documentation scaffold and must not declare loadable DSH or package entry points.
-- `upstream.json` records both release channels and their vendored runtime packages under `vendor/dsh-runtime/`. The active channel is `beta` (DSH `0.2.1-alpha.3`), which both Desktop workspaces build against; the `stable` entry keeps the runtime and root resolutions of the deleted `dsh-plugin-desktop/` workspace.
+- `upstream.json` records both release channels and their vendored runtime packages under `vendor/dsh-runtime/`. The active channel is `beta` (DSH `0.2.1-alpha.4`), which both Desktop workspaces build against; the `stable` entry keeps the runtime and root resolutions of the deleted `dsh-plugin-desktop/` workspace.
 - The outer repository and all owned packages use the root Yarn release with `nodeLinker: node-modules`.
 - The upstream submodule keeps its own pnpm workspace. Run upstream commands through the root `upstream:*` scripts, whose Yarn portable-shell commands enter the submodule before invoking Corepack.
 - Compatibility mode must run the upstream default client without overrides. Advanced presentation belongs to desktop-owned client plugins and may replace documented slots or services through profile composition.
@@ -38,5 +38,5 @@ This repository owns the desktop product around an unmodified DeepSeek Harness c
 ## Known limitations
 
 - A Windows update installer is verified only against the ProductName and ProductVersion in its PE version resource. Cryptographic SHA-256 digests are enforced as soon as the version service publishes them, which it does not do yet.
-- The Agents Anywhere bridge has to be rebuilt on a credentialed machine with `corepack yarn aa:prepare-release` before it is compatible with the `0.2.1-alpha.3` profile.
+- The Agents Anywhere bridge has to be rebuilt on a credentialed machine with `corepack yarn aa:prepare-release` before it is compatible with the `0.2.1-alpha.4` profile.
 - `corepack yarn check` requires a `.git` directory: the bilingual-docs gate resolves tracked `*.i18n.yaml` records and document blob hashes through Git.
