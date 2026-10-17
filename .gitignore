@@ -38,7 +38,7 @@ dsh-market/
 dsh-nonead-universal-robots/
 
 # Superseded runtime snapshots. upstream.json and yarn.lock reference only
-# vendor/dsh-runtime/0.2.0-rc.2 (stable) and vendor/dsh-runtime/0.2.1-rc.1
+# vendor/dsh-runtime/0.2.0-rc.2 (stable) and vendor/dsh-runtime/0.2.1-rc.2
 # (beta).
 vendor/dsh-runtime/0.1.5-rc.2/
 vendor/dsh-runtime/0.1.7-alpha.2/
@@ -50,9 +50,10 @@ vendor/dsh-runtime/0.2.1-alpha.2/
 vendor/dsh-runtime/0.2.1-alpha.3/
 vendor/dsh-runtime/0.2.1-alpha.4/
 vendor/dsh-runtime/0.2.1-alpha.5/
+vendor/dsh-runtime/0.2.1-rc.1/
 
 # Patches authored for superseded runtime versions. The consumed sets are
-# 0.2.0-rc.2 and 0.2.1-rc.1.
+# 0.2.0-rc.2 and 0.2.1-rc.2.
 patches/*@0.1.5-rc.2.patch
 patches/*@0.1.7-alpha.2.patch
 patches/*@0.1.7-rc.1.patch
@@ -63,6 +64,7 @@ patches/*@0.2.1-alpha.2.patch
 patches/*@0.2.1-alpha.3.patch
 patches/*@0.2.1-alpha.4.patch
 patches/*@0.2.1-alpha.5.patch
+patches/*@0.2.1-rc.1.patch
 
 # Superseded dshmarket patches; the consumed one is dshmarket-desktop.patch.
 .yarn/patches/dshmarket-npm-*.patch
@@ -70,4 +72,4 @@ patches/*@0.2.1-alpha.5.patch
 # Agents Anywhere artifacts accumulate one file per release build; only the
 # bridge referenced by package.json and yarn.lock is consumed.
 vendor/agents-anywhere/*.tgz
-!vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c58d98da25a23.r7f334f77.tgz
+!vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c58d98da25a23.r2e406d2a.tgz
