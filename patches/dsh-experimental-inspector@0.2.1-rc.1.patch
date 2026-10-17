@@ -1,0 +1,15 @@
+diff --git a/lib/devtools/chunks/legacy-dM_vujv7.js b/lib/devtools/chunks/legacy-dM_vujv7.js
+index 11d3c18..942ed2b 100644
+--- a/lib/devtools/chunks/legacy-dM_vujv7.js
++++ b/lib/devtools/chunks/legacy-dM_vujv7.js
+@@ -867,7 +867,9 @@ var Wn = function(e, t, n, r, i) {
+ 	setWhitelistedShortcuts(e) {}
+ 	setEyeDropperActive(e) {}
+ 	showCertificateViewer(e) {}
+-	reattach(e) {}
++	// Standalone Inspector has no native DevTools embedder to reattach.
++	// Complete the public callback so Reload DevTools can reload its iframe.
++	reattach(e) { e(); }
+ 	readyForTest() {}
+ 	connectionReady() {}
+ 	setOpenNewWindowForPopups(e) {}
