@@ -26,13 +26,13 @@ Nonead DSH Desktop integrates the local Web UI, Host service, and plugin system 
 
 ## Download and install
 
-Current release installers support Windows x64 and macOS (Universal, covering Intel and Apple Silicon). No extra environment is needed — download, install, and start using it with one click. CI also builds Linux x64 AppImage and deb artifacts, but they have not shipped with any published release yet.
+Current release installers support Windows x64, macOS (Universal, covering Intel and Apple Silicon), and Linux x64 (AppImage). No extra environment is needed — download, install, and start using it with one click.
 
 | Platform | Download | Installation |
 | --- | --- | --- |
 | Windows x64 | [Download installer](https://www.nonead.com/software/ndsh-desktop/downloads/windows) | Run the NSIS installer and follow its prompts |
 | macOS Universal | [Download DMG](https://www.nonead.com/software/ndsh-desktop/downloads/mac) | Open the DMG and drag Nonead DSH Desktop into Applications |
-| Linux x64 | No published installer yet | CI-built AppImage and deb artifacts are not published; on Linux the in-app updater only checks for a version and never downloads an installer |
+| Linux x64 | [Download AppImage](https://www.nonead.com/software/ndsh-desktop/downloads/linux) | Make it executable and run it directly: `chmod +x Nonead-DSH-Desktop-*.AppImage && ./Nonead-DSH-Desktop-*.AppImage`. Some distributions need FUSE first, or run it with `--appimage-extract-and-run`. On Linux the in-app updater only checks for a version and never downloads an installer |
 
 See the [user guide](docs/user-guide.en.md) and [FAQ](docs/faq.en.md) for plugin commands, platform details, and troubleshooting.
 

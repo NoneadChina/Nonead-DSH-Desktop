@@ -26,13 +26,13 @@ Nonead DSH Desktop 将 [DeepSeek Harness](https://github.com/deepseek-ai/deepsee
 
 ## 下载与安装
 
-当前正式安装包支持 Windows x64 与 macOS（Universal，含 Intel 与 Apple Silicon）。无需额外环境，下载安装，一键使用。CI 会构建 Linux x64 的 AppImage 与 deb，但这些产物尚未随任何已发布版本一同发出。
+当前正式安装包支持 Windows x64、macOS（Universal，含 Intel 与 Apple Silicon）与 Linux x64（AppImage）。无需额外环境，下载安装，一键使用。
 
 | 平台 | 下载 | 安装方式 |
 | --- | --- | --- |
 | Windows x64 | [下载安装程序](https://www.nonead.com/software/ndsh-desktop/downloads/windows) | 运行 NSIS 安装程序并按提示完成安装 |
 | macOS Universal | [下载 DMG](https://www.nonead.com/software/ndsh-desktop/downloads/mac) | 打开 DMG，将 Nonead DSH Desktop 拖入 Applications |
-| Linux x64 | 暂无已发布安装包 | CI 构建的 AppImage 与 deb 尚未发布；Linux 上应用内更新只检查版本，不下载安装包 |
+| Linux x64 | [下载 AppImage](https://www.nonead.com/software/ndsh-desktop/downloads/linux) | 赋予执行权限后直接运行：`chmod +x Nonead-DSH-Desktop-*.AppImage && ./Nonead-DSH-Desktop-*.AppImage`。部分发行版需要先安装 FUSE，或改用 `--appimage-extract-and-run` 运行。Linux 上应用内更新只检查版本，不下载安装包 |
 
 详细步骤、插件命令和故障排查见[用户指南](docs/user-guide.md)与[常见问题](docs/faq.md)。
 
