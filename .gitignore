@@ -24,6 +24,7 @@ dsh-plugin-desktop-beta/.desktop-build/
 # Local scratch directories and runtime logs: not product source.
 .tmp-investigate/
 .tmp_*
+/.tmp-*/
 .pnpm-store/
 GitLab.lnk
 debug.log
