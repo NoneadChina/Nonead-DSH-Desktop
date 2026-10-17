@@ -23,3 +23,6 @@ dsh-plugin-desktop-beta/.desktop-build/
 
 # Local scratch directories (packaging TEMP, probes, patch rebase)
 /.tmp-*/
+
+# Local Agents-Anywhere source staging for aa:prepare-release (DSH_AA_SOURCE_DIR)
+/Agents-Anywhere/

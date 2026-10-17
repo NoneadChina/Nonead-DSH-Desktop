@@ -136,6 +136,19 @@ function resolveCommit() {
 
 function cloneSource(stagingRoot, commit) {
   const checkout = join(stagingRoot, 'source')
+  // This host cannot transfer GitHub packs (the fetch stalls right after the ref
+  // advertisement), so an operator may stage an already extracted tree of the same
+  // commit instead. The resolved ref still names the commit recorded in provenance.
+  const localSource = process.env.DSH_AA_SOURCE_DIR
+  if (localSource !== undefined) {
+    const source = resolve(localSource)
+    for (const required of ['dsh-bridge-next/package.json', 'connector']) {
+      if (!existsSync(join(source, required))) throw new Error(`DSH_AA_SOURCE_DIR is missing ${required}`)
+    }
+    copySourceTree(source, checkout)
+    console.warn(`Using the AA source tree from DSH_AA_SOURCE_DIR=${source} for ${commit}`)
+    return checkout
+  }
   mkdirSync(checkout)
   run('git', ['init', '--quiet'], checkout)
   run('git', ['remote', 'add', 'origin', sourceRepository], checkout)
