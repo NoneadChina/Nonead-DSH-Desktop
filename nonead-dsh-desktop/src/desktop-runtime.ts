@@ -12,6 +12,7 @@ import { DesktopDiagnostics } from './diagnostics.ts'
 import { NextRecovery } from './recovery.ts'
 import { maskSecrets } from './mask-secrets.ts'
 import { privateDirectory } from './private-files.ts'
+import { applyProfilePluginPatches } from './profile-plugin-patches.ts'
 import { authenticateWebHost } from './web-document.ts'
 import { DesktopLanHttpsRuntime } from './lan-https-runtime.ts'
 import type { DesktopLanHttpsCertificate } from './lan-https-certificate.ts'
@@ -111,7 +112,15 @@ export class NextDesktopRuntime {
         safe.setFeatures(DEFAULT_PROFILE, { remoteControl: false, market: false })
       }
       if (this.safeMode) this.preferences = { ...SAFE_MODE_PREFERENCES }
-      if (!this.safeMode) this.profiles.ensure(this.selected)
+      if (!this.safeMode) {
+        this.profiles.ensure(this.selected)
+        // Profile plugins can declare harness services this Host no longer provides, which leaves
+        // their fiber pending and their routes unregistered. Repair the known ones before the
+        // Loader mounts them; the patch is idempotent and never fails the boot.
+        const patched = applyProfilePluginPatches(this.profiles.directory(this.selected),
+          message => this.diagnostics.append(message, 'warn'))
+        for (const file of patched.patched) this.diagnostics.append(`profile plugin patched: ${file}`, 'warn')
+      }
     })
     // The backend publishes failures after owned process cleanup.
     void this.startup.catch(() => {})
