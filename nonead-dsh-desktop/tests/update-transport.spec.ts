@@ -49,7 +49,7 @@ vi.mock('electron', () => ({
 
 const { createArtifactRequest } = await import('../src/update-transport.ts')
 
-const endpoint = 'https://www.dshdesktop.cn/api/downloads/mac'
+const endpoint = 'https://www.nonead.com/software/ndsh-desktop/downloads/mac'
 const storage = 'https://www.dshdesktop.cn/downloads/dsh/2.0.17-next/mac/Nonead-DSH-Desktop-2.0.17-next-universal.dmg'
 
 beforeEach(() => { harness.requests.length = 0; harness.partitions.length = 0 })

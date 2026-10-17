@@ -48,7 +48,7 @@ function windowsArtifact(): Uint8Array {
 function chunkedResponse(
   chunks: readonly Uint8Array[],
   headers: HeadersInit = {},
-  finalUrl: string = 'https://www.dshdesktop.cn/api/downloads/mac',
+  finalUrl: string = 'https://www.nonead.com/software/ndsh-desktop/downloads/mac',
 ): UpdateArtifactResponse {
   let index = 0
   const response = new Response(new ReadableStream<Uint8Array>({
@@ -157,7 +157,7 @@ describe('desktop update installer download', () => {
       destinationPath: destinationPath(directory, 'win32', '2.2.0'),
       request: async (url) => {
         expect(url).toBe(DESKTOP_DOWNLOAD_URLS.win32)
-        return chunkedResponse([artifact], {}, 'https://www.dshdesktop.cn/api/downloads/windows')
+        return chunkedResponse([artifact], {}, 'https://www.nonead.com/software/ndsh-desktop/downloads/windows')
       },
     })
 
@@ -188,7 +188,7 @@ describe('desktop update installer download', () => {
   })
 
   it.each([
-    ['an https downgrade', 'http://www.dshdesktop.cn/api/downloads/mac'],
+    ['an https downgrade', 'http://www.nonead.com/software/ndsh-desktop/downloads/mac'],
     ['embedded credentials', 'https://user:password@cdn.example/installer.dmg'],
     ['a non-HTTPS port', 'https://cdn.example:8080/installer.dmg'],
     ['a missing final URL', ''],
@@ -236,7 +236,7 @@ describe('desktop update installer download', () => {
       destinationPath: destinationPath(directory, 'darwin', '2.4.1'),
       request: async () => ({
         response: new Response(body, { status: 503 }),
-        finalUrl: 'https://www.dshdesktop.cn/api/downloads/mac',
+        finalUrl: 'https://www.nonead.com/software/ndsh-desktop/downloads/mac',
       }),
     }), 'http-status')
     expect(cancelled).toBe(true)
@@ -350,11 +350,11 @@ describe('desktop update installer download', () => {
   it.each([
     ['an unsuccessful response', async (): Promise<UpdateArtifactResponse> => ({
       response: new Response(null, { status: 503 }),
-      finalUrl: 'https://www.dshdesktop.cn/api/downloads/mac',
+      finalUrl: 'https://www.nonead.com/software/ndsh-desktop/downloads/mac',
     }), 'http-status'],
     ['a missing response body', async (): Promise<UpdateArtifactResponse> => ({
       response: new Response(null, { status: 200 }),
-      finalUrl: 'https://www.dshdesktop.cn/api/downloads/mac',
+      finalUrl: 'https://www.nonead.com/software/ndsh-desktop/downloads/mac',
     }), 'empty-body'],
     ['a zero-byte response body', async () => chunkedResponse([]), 'empty-body'],
   ] as const)('rejects %s without leaving a partial file', async (_label, request, code) => {
@@ -394,7 +394,7 @@ describe('desktop update installer download', () => {
           controller.abort(new DOMException('stop', 'AbortError'))
         },
       }))
-      return { response, finalUrl: 'https://www.dshdesktop.cn/api/downloads/mac' }
+      return { response, finalUrl: 'https://www.nonead.com/software/ndsh-desktop/downloads/mac' }
     }
 
     await expectFailure(downloadDesktopUpdate({
