@@ -20,3 +20,6 @@ nonead-dsh-desktop/.nonead-dsh-desktop/
 nonead-dsh-desktop/.desktop-build/
 dsh-plugin-desktop/.desktop-build/
 dsh-plugin-desktop-beta/.desktop-build/
+
+# Local scratch directories (packaging TEMP, probes, patch rebase)
+/.tmp-*/

@@ -30,8 +30,8 @@ Nonead DSH Desktop 将 [DeepSeek Harness](https://github.com/deepseek-ai/deepsee
 
 | 平台 | 下载 | 安装方式 |
 | --- | --- | --- |
-| Windows x64 | [下载安装程序](https://www.dshdesktop.cn/api/downloads/windows) | 运行 NSIS 安装程序并按提示完成安装 |
-| macOS Universal | [下载 DMG](https://www.dshdesktop.cn/api/downloads/mac) | 打开 DMG，将 Nonead DSH Desktop 拖入 Applications |
+| Windows x64 | [下载安装程序](https://www.nonead.com/software/ndsh-desktop/downloads/windows) | 运行 NSIS 安装程序并按提示完成安装 |
+| macOS Universal | [下载 DMG](https://www.nonead.com/software/ndsh-desktop/downloads/mac) | 打开 DMG，将 Nonead DSH Desktop 拖入 Applications |
 | Linux x64 | 暂无已发布安装包 | CI 构建的 AppImage 与 deb 尚未发布；Linux 上应用内更新只检查版本，不下载安装包 |
 
 详细步骤、插件命令和故障排查见[用户指南](docs/user-guide.md)与[常见问题](docs/faq.md)。
@@ -101,7 +101,7 @@ Web 服务默认仅监听本机回环地址。开启“用浏览器打开”后�
 
 > **危险：** 向局域网开放不提供鉴权；所有与你处于同一局域网的人都能直接打开 DSH 并操作你的电脑。请只在完全信任的网络中谨慎开启。
 
-自动更新的固定版本检查会请求 `https://www.nonead.com/software/ndsh-desktop/version`：在 `X-DSH-Desktop-Version` header 中携带当前安装版本，在 `X-DSH-Desktop-Channel` 中携带 `stable` 或 `beta`，并在 `X-DSH-Desktop-Installation-Id` header 中携带一个由本机生成并持久保存的随机 UUID；它不是从硬件信息推导出的标识。安装包下载来自官方下载服务 `https://www.dshdesktop.cn/api/downloads/mac` 与 `https://www.dshdesktop.cn/api/downloads/windows`，会携带通道和 `X-DSH-Desktop-Target-Version`，但下载请求及其重定向不会携带安装标识或当前版本。服务端发布 SHA-256 摘要时下载路径会强制校验；在摘要发布前，Windows 更新安装包只校验 PE 版本资源中的 ProductName 与 ProductVersion。
+自动更新的固定版本检查会请求 `https://www.nonead.com/software/ndsh-desktop/version`：在 `X-DSH-Desktop-Version` header 中携带当前安装版本，在 `X-DSH-Desktop-Channel` 中携带 `stable` 或 `beta`，并在 `X-DSH-Desktop-Installation-Id` header 中携带一个由本机生成并持久保存的随机 UUID；它不是从硬件信息推导出的标识。安装包下载来自官方下载服务 `https://www.nonead.com/software/ndsh-desktop/downloads/mac` 与 `https://www.nonead.com/software/ndsh-desktop/downloads/windows`，会携带通道和 `X-DSH-Desktop-Target-Version`，但下载请求及其重定向不会携带安装标识或当前版本。服务端发布 SHA-256 摘要时下载路径会强制校验；在摘要发布前，Windows 更新安装包只校验 PE 版本资源中的 ProductName 与 ProductVersion。
 
 ## 插件生态
 

@@ -7,7 +7,7 @@
 
 DSH Desktop 是一个本地优先的开源桌面应用。本政策说明 DSH Desktop 官方版本及官方在线服务会处理哪些信息、为什么处理、信息会发送给谁，以及您可以如何作出选择。
 
-本政策中的“我们”指在 GitHub 组织 [`anywhere-labs`](https://github.com/anywhere-labs) 下维护和发布 DSH Desktop 官方版本、并运营 `dshdesktop.cn` 官方下载服务与 `nonead.com` 官方发布端点的 **Anywhere Labs 项目维护团队**。项目是独立的社区开源项目，与 DeepSeek 不存在隶属、合作、授权或背书关系。
+本政策中的“我们”指在 GitHub 组织 [`anywhere-labs`](https://github.com/anywhere-labs) 下维护和发布 DSH Desktop 官方版本、并运营 `dshdesktop.cn` 官方网站与 `nonead.com` 官方发布及下载端点的 **Anywhere Labs 项目维护团队**。项目是独立的社区开源项目，与 DeepSeek 不存在隶属、合作、授权或背书关系。
 
 隐私问题或权利请求请发送至 [t4wefan@qq.com](mailto:t4wefan@qq.com)。请不要在公开 GitHub Issue 中提交安装标识、日志、凭据或其他私密信息。
 
@@ -16,7 +16,7 @@ DSH Desktop 是一个本地优先的开源桌面应用。本政策说明 DSH Des
 本政策适用于：
 
 - 我们通过 [官方 GitHub 仓库](https://github.com/anywhere-labs/dsh-desktop)及官方发布渠道提供的 DSH Desktop；
-- `https://www.dshdesktop.cn/` 下的官方网页和下载跳转服务；
+- 官方网页 `https://www.dshdesktop.cn/` 与下载跳转服务 `https://www.nonead.com/software/ndsh-desktop/`；
 - `https://www.nonead.com/software/ndsh-desktop/version` 官方版本检查端点；
 - 您主动发送给项目维护团队的隐私请求、支持邮件或问题报告。
 
@@ -89,7 +89,7 @@ GET https://www.nonead.com/software/ndsh-desktop/version
 
 | 场景 | 触发方式 | 可能处理的信息 | 目的及接收方 |
 | --- | --- | --- | --- |
-| 安装包下载 | 您点击下载，或在发现新版本后确认下载 | IP 地址、时间、标准网络元数据，以及 `/mac` 或 `/windows` 路径所表示的平台 | `dshdesktop.cn`、其托管服务和最终下载承载方用于交付文件、安全防护和下载服务统计。下载请求不会由 Desktop 添加安装 UUID。 |
+| 安装包下载 | 您点击下载，或在发现新版本后确认下载 | IP 地址、时间、标准网络元数据，以及 `/mac` 或 `/windows` 路径所表示的平台 | `nonead.com`、其托管服务和最终下载承载方用于交付文件、安全防护和下载服务统计。下载请求不会由 Desktop 添加安装 UUID。 |
 | 访问官网 | 您在浏览器中打开官网 | IP 地址、时间、浏览器/设备网络元数据，以及您请求的页面 | 官网托管和网络基础设施用于提供页面、安全防护和故障排查。 |
 | GitHub Issue、讨论或贡献 | 您主动提交 | 您公开提交的账号信息、文字、附件、代码及元数据 | GitHub 和项目维护团队用于处理问题、贡献及社区沟通。公开提交会公开可见。 |
 | 邮件与支持资料 | 您主动发送 | 邮箱地址、邮件内容、附件，以及您选择提供的诊断或环境信息 | [QQ 邮箱](https://mail.qq.com/)、您的发件服务商和项目维护团队用于传递和回复邮件、排查问题及保存必要的沟通记录。 |

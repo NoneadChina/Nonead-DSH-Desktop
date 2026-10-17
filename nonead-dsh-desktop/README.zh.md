@@ -181,7 +181,7 @@ Host 挂载上游的 Office 组合：`load_workspace_dependencies` 工具首次�
 
 桌面设置和托盘均可检查更新。安装版启动后延迟检查，之后每 6 小时检查一次；只有用户点击下载才下载。托盘显示字节数或百分比，完成后点击“安装并重启”。安装前先隐藏窗口并停止 Host。macOS 校验 Next 身份、版本和签名团队，将已下载 DMG 中的应用封装为本地 ZIP，交给 Electron 的 Squirrel.Mac 原生更新器验证和替换；不会改写应用目录或降低签名要求。身份和版本校验读取挂载镜像中的 `Contents/Resources/app/package.json`，归档后的发布版正是为这一步保留了归档内清单的副本。Windows 校验 Next 安装器身份和版本，交接给 NSIS 静默更新并重新启动。开发运行只允许检查，不替换源码或 Electron 开发运行时。
 
-版本契约：`GET https://www.nonead.com/software/ndsh-desktop/version`，请求头 `X-DSH-Desktop-Channel: stable`，当前版本放在 `X-DSH-Desktop-Version`；安装标识只发给版本接口。下载仍使用 `https://www.dshdesktop.cn` 上的 `/api/downloads/mac` 或 `/api/downloads/windows`，固定 `X-DSH-Desktop-Target-Version`，跨存储重定向不携带这些请求头。本通道仅接受纯 SemVer 版本，服务提供 SHA-256 时强制校验；错误、空渠道和旧版服务均不会显示“已是最新版本”。服务端必须把本应用发布在 stable 通道并配置真实产物，且版本与包内版本一致（纯 `x.y.z`）。
+版本契约：`GET https://www.nonead.com/software/ndsh-desktop/version`，请求头 `X-DSH-Desktop-Channel: stable`，当前版本放在 `X-DSH-Desktop-Version`；安装标识只发给版本接口。下载仍使用 `https://www.nonead.com/software/ndsh-desktop/downloads/mac` 或 `/software/ndsh-desktop/downloads/windows`，固定 `X-DSH-Desktop-Target-Version`，跨存储重定向不携带这些请求头。本通道仅接受纯 SemVer 版本，服务提供 SHA-256 时强制校验；错误、空渠道和旧版服务均不会显示“已是最新版本”。服务端必须把本应用发布在 stable 通道并配置真实产物，且版本与包内版本一致（纯 `x.y.z`）。
 
 安装包字节改由 Chromium 的 `net.request` 传输，而不再使用 `net.fetch`：在 `redirect: 'manual'` 下 Electron 的 fetch 会拒绝重定向并抛出 `Redirect was cancelled`，而不是把 3xx 响应交回来，因此服务端指向存储路径的 `302` 永远无法被跟随。新传输层每一跳单独发起一个请求，每一跳都用同一条 HTTPS 与默认端口规则校验，首跳之后不再携带发布选择头，安装包流量走非持久化会话分区，因此不携带任何应用 Cookie。macOS 与 Windows 的下载端点都会重定向到存储路径；只能接受直接 `200` 的客户端无法完成更新。
 

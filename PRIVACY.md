@@ -7,7 +7,7 @@
 
 DSH Desktop is a local-first, open-source desktop application. This policy explains what information the official DSH Desktop distribution and official online services process, why they process it, who receives it, and what choices you have.
 
-In this policy, “we” means the **Anywhere Labs project maintainer team** that maintains and publishes the official DSH Desktop distribution under the [`anywhere-labs`](https://github.com/anywhere-labs) GitHub organization and operates the official `dshdesktop.cn` download service and the official `nonead.com` release endpoints. DSH Desktop is an independent community project and has no affiliation, partnership, authorization, or endorsement relationship with DeepSeek.
+In this policy, “we” means the **Anywhere Labs project maintainer team** that maintains and publishes the official DSH Desktop distribution under the [`anywhere-labs`](https://github.com/anywhere-labs) GitHub organization and operates the official `dshdesktop.cn` website and the official `nonead.com` release and download endpoints. DSH Desktop is an independent community project and has no affiliation, partnership, authorization, or endorsement relationship with DeepSeek.
 
 For privacy questions or rights requests, email [t4wefan@qq.com](mailto:t4wefan@qq.com). Do not put installation identifiers, logs, credentials, or other private information in a public GitHub Issue.
 
@@ -16,7 +16,7 @@ For privacy questions or rights requests, email [t4wefan@qq.com](mailto:t4wefan@
 This policy applies to:
 
 - DSH Desktop provided through the [official GitHub repository](https://github.com/anywhere-labs/dsh-desktop) and official release channels;
-- the official website and download redirects under `https://www.dshdesktop.cn/`;
+- the official website under `https://www.dshdesktop.cn/` and the download redirects under `https://www.nonead.com/software/ndsh-desktop/`;
 - the official version-check endpoint at `https://www.nonead.com/software/ndsh-desktop/version`; and
 - privacy requests, support email, or issue reports that you voluntarily send to the project maintainers.
 
@@ -89,7 +89,7 @@ We do not use the installation UUID for advertising profiles or cross-service tr
 
 | Scenario | Trigger | Information that may be processed | Purpose and recipients |
 | --- | --- | --- | --- |
-| Installer download | You click a download or confirm a download after an update is found | IP address, time, standard network metadata, and the platform shown by the `/mac` or `/windows` path | `dshdesktop.cn`, its hosting service, and the final download host use this information to deliver the file, protect the service, and measure download service usage. Desktop does not add the installation UUID to the download request. |
+| Installer download | You click a download or confirm a download after an update is found | IP address, time, standard network metadata, and the platform shown by the `/mac` or `/windows` path | `nonead.com`, its hosting service, and the final download host use this information to deliver the file, protect the service, and measure download service usage. Desktop does not add the installation UUID to the download request. |
 | Website visit | You open the website in a browser | IP address, time, browser and device network metadata, and the requested page | Website hosting and network infrastructure use it to deliver the page, protect the service, and diagnose failures. |
 | GitHub Issue, discussion, or contribution | You submit it | Account details, text, attachments, code, and metadata that you make public | GitHub and the project maintainers use it to process issues, contributions, and community communications. Public submissions are publicly visible. |
 | Email and support material | You send it | Email address, message, attachments, and diagnostics or environment details that you choose to provide | [QQ Mail](https://mail.qq.com/), your sending provider, and the project maintainers use it to deliver and respond to the message, investigate problems, and retain necessary correspondence. |

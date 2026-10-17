@@ -90,7 +90,7 @@ dsh plugin update
 - **DSH Desktop Beta**：应用会先打开原生的“保存更新安装包”对话框，默认建议保存到 Downloads；你可以改用其他目录和文件名，取消对话框则不会开始下载。保存后应用才会请求当前平台的固定下载地址，并记录安装包位置。macOS 会打开 DMG，由用户把应用替换到 Applications；Windows 会准备 NSIS 安装器，再询问是否退出并启动安装。升级完成并重新启动后，应用会询问是否删除安装包以释放磁盘空间，也可以选择保留。
 - **Nonead DSH Desktop**：应用不打开保存对话框，安装包直接下载到自己的 user-data 缓存目录，并在安装前校验它（macOS 校验磁盘映像里应用的身份、版本和签名团队；Windows 只校验 PE 版本资源里的 `ProductName` 与 `ProductVersion`）。随后 macOS 交给系统更新器安装并重启，Windows 直接运行下载到的 NSIS 安装器。
 
-两个产品使用的下载地址都是固定的：`https://www.dshdesktop.cn/api/downloads/mac` 与 `https://www.dshdesktop.cn/api/downloads/windows`。下载和安装失败不会破坏当前版本，托盘仍可重试。已知限制：服务端发布 SHA-256 摘要后，下载路径会强制校验摘要；在摘要发布之前，Windows 更新安装包只校验 PE 版本资源中的 `ProductName` 与 `ProductVersion`。
+两个产品使用的下载地址都是固定的：`https://www.nonead.com/software/ndsh-desktop/downloads/mac` 与 `https://www.nonead.com/software/ndsh-desktop/downloads/windows`。下载和安装失败不会破坏当前版本，托盘仍可重试。已知限制：服务端发布 SHA-256 摘要后，下载路径会强制校验摘要；在摘要发布之前，Windows 更新安装包只校验 PE 版本资源中的 `ProductName` 与 `ProductVersion`。
 
 ## 排查
 
