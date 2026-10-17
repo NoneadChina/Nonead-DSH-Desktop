@@ -282,9 +282,9 @@ corepack.cmd yarn dist:win-portable:beta
 - `dshmarket` 以固定版本、带补丁的 dependency 形式随本 workspace 发布，而不是可以任意漂移的用户自装 package；每个 generation 只组合一个 Market provider（`dsh-market`、`community-market` 或 `disabled`）。只有维护者执行 `corepack yarn market:prepare` 并同时提交刷新后的版本、Desktop 补丁与 lockfile，该 pin 才会移动；已安装应用不会在启动时热更新内置市场，因此 Desktop 侧的市场修复只能通过新构建到达用户。
 - 更新交接只验证下载容器，不验证 publisher 身份：Windows 安装包只按 PE 映像接受，macOS 镜像只按 UDIF 尾部接受，安装包的 ProductName/ProductVersion 资源只由 Windows 安装包 smoke 脚本读取，更新路径不读它。可选的 `sha256` 门禁只在版本服务为该平台发布摘要时才运行，而服务端目前尚未发布，因此当前不会对下载的安装包执行任何密码学摘要校验。macOS 仍要求用户从已打开的 DMG 替换应用；Windows 会运行已下载的 NSIS 安装器，但本地 `dist:win` 产物没有签名。签名产物、Authenticode/publisher 校验、SmartScreen 信誉与原生升级测试仍是发布 gate。
 - 共享 carrier 使用 HTTP 与 WebSocket，而不是 Electron IPC；默认只绑定 loopback，并支持经过明确确认的全接口局域网监听。替换 carrier 需要上游 DSH 提供 transport 扩展点，不属于该独立包的范围。
-- 内置的 Agents Anywhere bridge 必须先在持有凭证的机器上用 `corepack yarn aa:prepare-release` 重建，才与 `0.2.1-alpha.5` profile 兼容。根的 `dist:*:beta` 命令会在打包前执行该准备并校验发布产物。
+- 内置的 Agents Anywhere bridge 必须先在持有凭证的机器上用 `corepack yarn aa:prepare-release` 重建，才与 `0.2.1-rc.1` profile 兼容。根的 `dist:*:beta` 命令会在打包前执行该准备并校验发布产物。
 - `corepack yarn check` 需要 `.git` 目录：bilingual-docs 门禁通过 Git 解析受跟踪的 `*.i18n.yaml` 记录与文档 blob hash。
-- Beta 使用固定官方 release 源码构建的 DSH `0.2.1-alpha.5` 运行时（`upstream.json` 的 `beta` 通道）；桌面构建解析这些包接口，不直接链接源码 checkout。随包运行时当前的 Session 格式为 v4，上游迁移包会把历史的 v0–v3 会话向前迁移并保留原日志，桌面端不再生成预设别名。旧运行时无法读取 V4 会话。扩展和增强模式接入右侧 Sidebar 的文档预览、分栏和全屏，并通过 keyed `main` 槽位支持独立于会话选择的全局插件面板。
+- Beta 使用固定官方 release 源码构建的 DSH `0.2.1-rc.1` 运行时（`upstream.json` 的 `beta` 通道）；桌面构建解析这些包接口，不直接链接源码 checkout。随包运行时当前的 Session 格式为 v4，上游迁移包会把历史的 v0–v3 会话向前迁移并保留原日志，桌面端不再生成预设别名。旧运行时无法读取 V4 会话。扩展和增强模式接入右侧 Sidebar 的文档预览、分栏和全屏，并通过 keyed `main` 槽位支持独立于会话选择的全局插件面板。
 - `package:dir:beta` 是用于 smoke 的未封装产物。`dist:win` 会额外生成未签名的 NSIS 测试安装包，但不会建立 Authenticode 身份或 SmartScreen 信誉。安装与升级行为、原生通知与终端、Windows ACL sandbox，以及每台目标机器上的原生材质外观仍属于目标平台验证边界。
 
 ### 开发者日志

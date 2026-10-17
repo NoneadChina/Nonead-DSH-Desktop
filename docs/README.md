@@ -45,7 +45,7 @@
 
 `README.i18n.yaml` 只记录这两个正式入口的双语 hash，不是用户指南。`dsh-plugin-desktop-beta/README.md` 和 `dsh-plugin-desktop-beta/README.zh.md` 是 npm 包随包发布的包级参考；它们比根 README 更技术化。`nonead-dsh-desktop/README.md`（英文）与 `nonead-dsh-desktop/README.zh.md`（中文）介绍 Nonead DSH Desktop 工作区。`dsh-plugin-desktop-beta/docs/` 是稳定 API 合同，不是营销页。`.agents/notes/implemented/` 是日期化的维护者决策记录，适合追溯取舍，不替代用户文档。
 
-`deepseek-harness/` 是固定版本的官方上游子模块：活动通道为 `beta`，当前 pin 为 DSH `0.2.1-alpha.5`，随附 vendored 运行时 `vendor/dsh-runtime/0.2.1-alpha.5/`，两个通道的记录都在根 `upstream.json`。它自己的 README 和 `docs/` 属于上游项目，不能当作 Desktop 文档，也不在本仓库的产品文档统计中。
+`deepseek-harness/` 是固定版本的官方上游子模块：活动通道为 `beta`，当前 pin 为 DSH `0.2.1-rc.1`，随附 vendored 运行时 `vendor/dsh-runtime/0.2.1-rc.1/`，两个通道的记录都在根 `upstream.json`。它自己的 README 和 `docs/` 属于上游项目，不能当作 Desktop 文档，也不在本仓库的产品文档统计中。
 
 ## 状态约定
 

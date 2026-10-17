@@ -18,7 +18,7 @@ The release scripts cover Windows x64 and universal macOS (Intel and Apple Silic
 
 ## Do I need to install Node.js, pnpm, or DSH?
 
-No. The installer includes Electron, Node.js, pnpm, and pinned DSH dependencies (the current pin is upstream DSH `0.2.1-alpha.5`). Ordinary users can install and launch directly, and Desktop does not modify the global system PATH or user shell configuration.
+No. The installer includes Electron, Node.js, pnpm, and pinned DSH dependencies (the current pin is upstream DSH `0.2.1-rc.1`). Ordinary users can install and launch directly, and Desktop does not modify the global system PATH or user shell configuration.
 
 ## Does the first launch download a runtime?
 
@@ -26,7 +26,7 @@ No separate Node.js or Harness core download is required. The installer is large
 
 ## Does Nonead DSH Desktop modify official Harness?
 
-No. The repository pulls an unmodified official Harness checkout at a fixed upstream commit (the current pin is DSH `0.2.1-alpha.5`, recorded in the root `upstream.json`). Compatibility mode runs the upstream default Web client below an independent overlay frame. Extended and enhanced modes each install their own Desktop-owned root registration through the plugin/profile composition boundary while retaining the official slot occupants. None of these modes edits upstream source.
+No. The repository pulls an unmodified official Harness checkout at a fixed upstream commit (the current pin is DSH `0.2.1-rc.1`, recorded in the root `upstream.json`). Compatibility mode runs the upstream default Web client below an independent overlay frame. Extended and enhanced modes each install their own Desktop-owned root registration through the plugin/profile composition boundary while retaining the official slot occupants. None of these modes edits upstream source.
 
 ## Is data stored locally?
 
