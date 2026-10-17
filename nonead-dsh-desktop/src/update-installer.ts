@@ -21,6 +21,17 @@ export function assertNextWindowsInstaller(info: { ProductName?: unknown; Produc
   if (info.ProductName !== 'Nonead DSH Desktop' || info.ProductVersion !== version) throw new Error('The installer does not match this Next release')
 }
 
+/**
+ * Arguments for the downloaded NSIS installer.
+ *
+ * `/S` silences the whole run, which looked like "nothing started" and gave the user no way to see
+ * progress or a failure; the assisted installer is launched visibly instead. `--updated` keeps the
+ * upgrade in place without re-asking for the install options.
+ */
+export function nextInstallerArguments(platform: string): readonly string[] {
+  return platform === 'win32' ? ['--updated'] : []
+}
+
 export class NextUpdateInstaller {
   private prepared?: { path: string; version: string; archive?: string }
   private nativeReady = false
@@ -99,7 +110,7 @@ export class NextUpdateInstaller {
     if (this.options.platform === 'darwin' && this.nativeReady) { autoUpdater.quitAndInstall(); return }
     if (this.options.platform !== 'win32' || !this.prepared) throw new Error('No prepared update installer')
     await new Promise<void>((resolve, reject) => {
-      const child = spawn(this.prepared!.path, ['/S', '--updated', '--force-run'], { detached: true, stdio: 'ignore', shell: false, windowsHide: false })
+      const child = spawn(this.prepared!.path, [...nextInstallerArguments('win32')], { detached: true, stdio: 'ignore', shell: false, windowsHide: false })
       child.once('error', reject)
       child.once('spawn', () => { child.off('error', reject); child.on('error', this.options.log); child.unref(); resolve() })
     })

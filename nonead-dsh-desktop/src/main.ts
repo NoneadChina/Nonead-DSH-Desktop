@@ -1059,7 +1059,9 @@ app.on('before-quit', event => {
     }
     if (!finish()) return
     runtime.diagnostics.end(true)
-    if (relaunch) relaunchApp(app, relaunch)
+    // An armed installer owns the restart: relaunching here would start a second instance that
+    // competes with the installer for the application files it is replacing.
+    if (relaunch && !installingUpdate) relaunchApp(app, relaunch)
     app.quit()
   }).catch(error => { if (finish()) { runtime.diagnostics.record({ source: 'electron', event: 'shutdown.failed', level: 'error', error }); runtime.diagnostics.end(false); app.exit(1) } })
 })
