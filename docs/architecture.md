@@ -115,9 +115,9 @@ profile 的组合方式是补丁层叠加，顺序是：**每个 bundle 自己�
 | `upstream.json` 通道 | 上游版本 / commit | 消费方 | 产品标识 |
 | --- | --- | --- | --- |
 | `stable` | `0.2.0-rc.2` | `dsh-plugin-desktop-beta` | `dsh-plugin-desktop-beta`、`DSH Desktop Beta`、`ai.deepseek.dsh.desktop.beta` |
-| `beta` | `0.2.1-alpha.4` | `dsh-plugin-desktop-beta`；桌面壳内**冻结**一份同版本运行时 | `Nonead DSH Desktop`、`ai.deepseek.dsh.desktop` |
+| `beta` | `0.2.1-alpha.5` | `dsh-plugin-desktop-beta`；桌面壳内**冻结**一份同版本运行时 | `Nonead DSH Desktop`、`ai.deepseek.dsh.desktop` |
 
-> 两条容易混淆的边界。**① `upstream.json` 里的通道名是"vendored runtime 线"**，它决定哪个上游运行时被打进哪个安装包，而不是某个工作区查询哪个发布通道。桌面壳把自己的所有 `@deepseek-ai/dsh*` 依赖精确 pin 到 `0.2.1-alpha.4`（即 `beta` 线），并把该运行时随包**冻结**；因此壳的运行时版本不随后续更新查询变化。
+> 两条容易混淆的边界。**① `upstream.json` 里的通道名是"vendored runtime 线"**，它决定哪个上游运行时被打进哪个安装包，而不是某个工作区查询哪个发布通道。桌面壳把自己的所有 `@deepseek-ai/dsh*` 依赖精确 pin 到 `0.2.1-alpha.5`（即 `beta` 线），并把该运行时随包**冻结**；因此壳的运行时版本不随后续更新查询变化。
 > **② 工作区后缀不是通道。** `nonead-dsh-desktop` 的脚本后缀是 `:stable`，但那是工作区命名；它自己的更新查询固定声明 `channel: 'stable'`，与产物前缀 `Nonead-DSH-Desktop-*` 和纯 SemVer 版本号（当前 `2.1.3`）一致——稳定通道只接受正式 SemVer，所以这三者必须一起改。
 
 版本检查和安装包下载均携带 `X-DSH-Desktop-Channel`。检查请求还携带当前版本（`X-DSH-Desktop-Version`）；下载请求携带 `X-DSH-Desktop-Target-Version`，服务端必须返回与请求一致的通道与版本。没有通道 header 的旧客户端按稳定版处理；`beta` 客户端必须收到明确的 `channel: "beta"` 响应。稳定通道只接受正式 SemVer，Beta 通道只接受 `-beta.N`。通道隔离由响应里的 `channel` 字段把关，客户端不会静默跨通道下载。
