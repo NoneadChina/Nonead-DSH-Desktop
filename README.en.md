@@ -30,8 +30,8 @@ Current release installers support Windows x64 and macOS (Universal, covering In
 
 | Platform | Download | Installation |
 | --- | --- | --- |
-| Windows x64 | [Download installer](https://www.dshdesktop.cn/api/downloads/windows) | Run the NSIS installer and follow its prompts |
-| macOS Universal | [Download DMG](https://www.dshdesktop.cn/api/downloads/mac) | Open the DMG and drag Nonead DSH Desktop into Applications |
+| Windows x64 | [Download installer](https://www.nonead.com/software/ndsh-desktop/downloads/windows) | Run the NSIS installer and follow its prompts |
+| macOS Universal | [Download DMG](https://www.nonead.com/software/ndsh-desktop/downloads/mac) | Open the DMG and drag Nonead DSH Desktop into Applications |
 | Linux x64 | No published installer yet | CI-built AppImage and deb artifacts are not published; on Linux the in-app updater only checks for a version and never downloads an installer |
 
 See the [user guide](docs/user-guide.en.md) and [FAQ](docs/faq.en.md) for plugin commands, platform details, and troubleshooting.
@@ -101,7 +101,7 @@ Ordinary browser access is disabled by default. The shell mints one random crede
 
 > **Danger:** LAN exposure has no authentication. Anyone on the same local network can open DSH and directly operate your computer. Enable it only on a fully trusted network and with great care.
 
-The automatic updater's fixed version-check request goes to `https://www.nonead.com/software/ndsh-desktop/version`: it sends the installed version in the `X-DSH-Desktop-Version` header, `stable` or `beta` in `X-DSH-Desktop-Channel`, and a locally generated, persistently stored random UUID in the `X-DSH-Desktop-Installation-Id` header; the value is not derived from hardware information. Installers download from the official download service at `https://www.dshdesktop.cn/api/downloads/mac` and `https://www.dshdesktop.cn/api/downloads/windows` with the channel and a pinned `X-DSH-Desktop-Target-Version`; download requests and their redirects do not receive the installation identity or the installed version. Whenever the service publishes SHA-256 digests, the download path enforces them as a hard integrity gate; until those digests exist, a Windows update installer is only checked against the ProductName and ProductVersion in its PE version resource.
+The automatic updater's fixed version-check request goes to `https://www.nonead.com/software/ndsh-desktop/version`: it sends the installed version in the `X-DSH-Desktop-Version` header, `stable` or `beta` in `X-DSH-Desktop-Channel`, and a locally generated, persistently stored random UUID in the `X-DSH-Desktop-Installation-Id` header; the value is not derived from hardware information. Installers download from the official download service at `https://www.nonead.com/software/ndsh-desktop/downloads/mac` and `https://www.nonead.com/software/ndsh-desktop/downloads/windows` with the channel and a pinned `X-DSH-Desktop-Target-Version`; download requests and their redirects do not receive the installation identity or the installed version. Whenever the service publishes SHA-256 digests, the download path enforces them as a hard integrity gate; until those digests exist, a Windows update installer is only checked against the ProductName and ProductVersion in its PE version resource.
 
 ## Plugin Ecosystem
 

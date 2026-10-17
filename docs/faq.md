@@ -56,7 +56,7 @@ better-sidebar (dsh-better-sidebar): pending (waiting for service: webRuntime)
 
 打包后的应用会在后台检查稳定版本，但不会静默安装。发现新版本后先征得用户确认；下载前可以在原生保存对话框中选择安装包的目录和文件名，取消保存不会开始下载。macOS 下载并打开 DMG，Windows 下载并启动 NSIS 安装程序。升级完成并重新启动后，应用会询问是否删除或保留安装包。网络或下载失败不会破坏当前安装。
 
-版本检查请求固定端点 `https://www.nonead.com/software/ndsh-desktop/version`，并在请求头里携带当前安装版本、通道（`stable` 或 `beta`）和本机生成并持久保存的随机安装 UUID。安装包下载来自 `https://www.dshdesktop.cn/api/downloads/mac` 与 `https://www.dshdesktop.cn/api/downloads/windows`，下载请求及其重定向不携带安装标识或当前版本。服务端发布 SHA-256 摘要后，下载路径会强制校验摘要；在摘要发布之前，Windows 更新安装包只校验 PE 版本资源中的 ProductName 与 ProductVersion。
+版本检查请求固定端点 `https://www.nonead.com/software/ndsh-desktop/version`，并在请求头里携带当前安装版本、通道（`stable` 或 `beta`）和本机生成并持久保存的随机安装 UUID。安装包下载来自 `https://www.nonead.com/software/ndsh-desktop/downloads/mac` 与 `https://www.nonead.com/software/ndsh-desktop/downloads/windows`，下载请求及其重定向不携带安装标识或当前版本。服务端发布 SHA-256 摘要后，下载路径会强制校验摘要；在摘要发布之前，Windows 更新安装包只校验 PE 版本资源中的 ProductName 与 ProductVersion。
 
 ## 应用会走我的系统代理吗？
 
