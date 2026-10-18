@@ -1,7 +1,7 @@
 {
   "repository": "https://github.com/deepseek-ai/deepseek-harness",
-  "commit": "2fbf4359b82fb94c03dcce0b831660d87f12ea5c",
-  "version": "0.2.1-alpha.5",
+  "commit": "687f282e8625c6b8d11ff58211a90524be2e4317",
+  "version": "0.2.1-rc.2",
   "files": [
     {
       "upstream": "apps/desktop/src/host-process.ts",
@@ -146,7 +146,7 @@
     {
       "upstream": "apps/desktop-host/src/office.ts",
       "local": "src/host/office.ts",
-      "upstreamSha256": "33c85997b69dacd6a9e5410d3c101039dd0e9a4cc8f63f9bbdfee1242390a668"
+      "upstreamSha256": "476724125820e03f258aee5939ea9adbda9c3125b7b07bd41cb0e6ee48bf34e3"
     },
     {
       "upstream": "apps/desktop-host/tests/office.spec.ts",
