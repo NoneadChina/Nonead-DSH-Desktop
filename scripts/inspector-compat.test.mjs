@@ -21,7 +21,10 @@ for (const workspace of ['dsh-plugin-desktop-beta', 'nonead-dsh-desktop']) {
   test(`${workspace}: official Reload DevTools completes through the hosted embedder callback`, () => {
     const require = createRequire(resolve(workspace, 'package.json'))
     const manifest = require.resolve('@deepseek-ai/dsh-experimental-inspector/package.json')
-    assert.equal(JSON.parse(readFileSync(manifest, 'utf8')).version, '0.2.1-alpha.5')
+    // Compare against the pinned upstream runtime instead of a hard-coded release string so an
+    // upstream bump only touches upstream.json.
+    const pin = JSON.parse(readFileSync(resolve('upstream.json'), 'utf8')).channels.beta.runtimePackageVersion
+    assert.equal(JSON.parse(readFileSync(manifest, 'utf8')).version, pin)
     const directory = join(dirname(manifest), 'lib/devtools/chunks')
     const parse = (prefix, marker) => {
       const files = readdirSync(directory).filter(name => name.startsWith(prefix + '-') && name.endsWith('.js')
