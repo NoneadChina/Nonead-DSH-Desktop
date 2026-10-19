@@ -10,7 +10,7 @@ import type { DesktopBridge, DesktopState } from '../desktop-contract.ts'
 import type { SetupNavigation } from '../../../dsh-plugin-desktop-beta/src/client/onboarding.tsx'
 import { installPluginControlsStyles } from '../client/plugin-controls-styles.ts'
 import './onboarding.css'
-import whaleArtwork from '../../build/app-icon.icon/Assets/DeepSeek.svg'
+import brandLogo from '../../build/app-icon.png'
 // Reuse the portable device family artwork and composition from the AA landing page.
 import phoneArtwork from './assets/agents-anywhere-phone.webp'
 import tabletArtwork from './assets/agents-anywhere-tablet.webp'
@@ -122,7 +122,7 @@ export function Onboarding({ state, locale, bridge, renderNavigation, embedded =
         </section>
         <aside className="next-onboarding-panel next-onboarding-reveal" aria-label={steps[page]}>
           {page === 0 && <div className="next-onboarding-wordmark" aria-hidden="true">
-            <span className="next-onboarding-whale" style={{ maskImage: `url("${whaleArtwork}")` }} /><span>NEXT</span>
+            <img className="next-onboarding-whale" src={brandLogo} width="1024" height="1024" alt="" draggable={false} /><span>NEXT</span>
           </div>}
           {page === 1 && <RadioGroup aria-label={t('插件市场', 'Plugin market')} value={market} disabled={disabled} onValueChange={value => setMarket(value as Market)}>
             {markets.map(option => <label className="next-onboarding-choice" data-selected={market === option.value} key={option.value}>
