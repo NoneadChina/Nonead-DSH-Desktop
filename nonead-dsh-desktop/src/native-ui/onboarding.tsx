@@ -25,7 +25,8 @@ export function Onboarding({ state, locale, bridge, renderNavigation, embedded =
   const [transitioning, setTransitioning] = useState(false)
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState('')
-  const [market, setMarket] = useState<Market>(state.features.market ? 'community' : state.features.dshMarket ? 'dsh' : 'none')
+  // dsh-market is preselected so a fresh setup starts with a working plugin market.
+  const [market, setMarket] = useState<Market>('dsh')
   const [remote, setRemote] = useState(state.features.remoteControl)
   const [computerUse, setComputerUse] = useState(state.onboardingComputerUse ?? false)
   const slide = useRef<HTMLDivElement>(null)
