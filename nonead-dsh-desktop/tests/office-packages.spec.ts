@@ -1,12 +1,22 @@
-import { join, relative } from 'node:path'
+import { join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { expect, it } from 'vitest'
 import { officePackageDirectories, officeUnpackPatterns, selectOfficeEngine } from '../scripts/office-packages.ts'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
-const names = (platform: string, arch: string): string[] => officePackageDirectories(root, { platform, arch }).map(directory => relative(join(root, 'node_modules'), directory))
+// Spell package directories the way the unpack patterns and the assertions below do, with forward slashes: relative() returns native separators, so a Windows host would otherwise report `@deepseek-ai\libreoffice-kit` and fail on formatting alone.
+const names = (platform: string, arch: string): string[] => officePackageDirectories(root, { platform, arch }).map(directory => relative(join(root, 'node_modules'), directory).split(sep).join('/'))
+// The Darwin closure is installed only where the host resolves other platforms' optional dependencies (a Darwin host, or supportedArchitectures covering darwin). Asserting an absent closure would only report the host, so skip instead.
+const darwinClosureInstalled = ((): boolean => {
+  try {
+    return names('darwin', 'x64').length > 0
+  } catch {
+    // officePackageDirectories throws when the host has no Darwin engine installed; that is a missing closure, not a defect.
+    return false
+  }
+})()
 
-it('resolves the installed Office closure with the native engine of each Darwin CPU', () => {
+it.skipIf(!darwinClosureInstalled)('resolves the installed Office closure with the native engine of each Darwin CPU', () => {
   const arm64 = names('darwin', 'arm64')
   expect(arm64).toEqual(expect.arrayContaining(['@deepseek-ai/libreoffice-kit', '@deepseek-ai/libreoffice-kit-darwin-arm64', '@koromix/koffi-darwin-arm64', 'fflate', 'fontkit', 'koffi', 'saxes']))
   expect(arm64).not.toContain('@deepseek-ai/libreoffice-kit-darwin-x64')
