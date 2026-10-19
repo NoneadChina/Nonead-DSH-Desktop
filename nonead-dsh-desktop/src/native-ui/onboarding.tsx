@@ -28,7 +28,8 @@ export function Onboarding({ state, locale, bridge, renderNavigation, embedded =
   // dsh-market is preselected so a fresh setup starts with a working plugin market.
   const [market, setMarket] = useState<Market>('dsh')
   const [remote, setRemote] = useState(state.features.remoteControl)
-  const [computerUse, setComputerUse] = useState(state.onboardingComputerUse ?? false)
+  // Computer Use is on by default so a fresh setup starts ready for remote AI control.
+  const [computerUse, setComputerUse] = useState(state.onboardingComputerUse ?? true)
   const slide = useRef<HTMLDivElement>(null)
   const navigationLock = useRef(false)
   const saving = useRef(false)
@@ -123,7 +124,7 @@ export function Onboarding({ state, locale, bridge, renderNavigation, embedded =
         </section>
         <aside className="next-onboarding-panel next-onboarding-reveal" aria-label={steps[page]}>
           {page === 0 && <div className="next-onboarding-wordmark" aria-hidden="true">
-            <img className="next-onboarding-whale" src={brandLogo} width="1024" height="1024" alt="" draggable={false} /><span>NEXT</span>
+            <img className="next-onboarding-whale" src={brandLogo} width="1024" height="1024" alt="" draggable={false} /><span>NONEAD.COM</span>
           </div>}
           {page === 1 && <RadioGroup aria-label={t('插件市场', 'Plugin market')} value={market} disabled={disabled} onValueChange={value => setMarket(value as Market)}>
             {markets.map(option => <label className="next-onboarding-choice" data-selected={market === option.value} key={option.value}>
