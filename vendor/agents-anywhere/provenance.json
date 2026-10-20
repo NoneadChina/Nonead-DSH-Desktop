@@ -2,6 +2,8 @@
   "repository": "https://github.com/anywhere-labs/Agents-Anywhere.git",
   "branch": "main",
   "commit": "39b82d4fffb178a1217abd057e546374c57c030a",
+  "pinnedCommit": "39b82d4fffb178a1217abd057e546374c57c030a",
+  "pinReason": "AA Desktop 2.0.3 (the latest published release) discovers the DSH bridge only through the HTTP endpoint at ~/.agents-anywhere/dsh-bridge/endpoint.json. Upstream main moved the bridge to meshcall 0.3.0, which writes connector.json and no longer publishes endpoint.json, so a bridge built from main can never connect to a published AA Desktop. Clear this pin once AA ships a Desktop release that reads connector.json.",
   "packageDirectory": "dsh-bridge-next",
   "sourceVersion": "2.1.0",
   "desktopVersion": "2.1.0-desktop.c39b82d4fffb1.r2e406d2a",

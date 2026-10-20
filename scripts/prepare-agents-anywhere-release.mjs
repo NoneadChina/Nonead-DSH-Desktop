@@ -9,10 +9,15 @@ import { prepareInstalledAaRuntime } from './prepare-agents-anywhere-runtime.mjs
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const sourceRepository = process.env.DSH_AA_SOURCE_REPOSITORY ?? AA_REPOSITORY
-const sourceRef = process.env.DSH_AA_SOURCE_REF ?? 'main'
 const vendorRoot = resolve(root, 'vendor/agents-anywhere')
 const provenancePath = join(vendorRoot, 'provenance.json')
 const currentProvenance = existsSync(provenancePath) ? JSON.parse(readFileSync(provenancePath, 'utf8')) : {}
+// A pinned commit holds the release on the AA build whose bridge still publishes
+// the HTTP endpoint AA Desktop 2.0.3 reads. Upstream main moved the bridge to
+// meshcall's connector.json, which no published AA Desktop reads yet, so
+// tracking main would package a bridge that can never connect.
+const pinnedCommit = /^[0-9a-f]{40}$/iu.test(currentProvenance.pinnedCommit ?? '') ? currentProvenance.pinnedCommit.toLowerCase() : undefined
+const sourceRef = process.env.DSH_AA_SOURCE_REF ?? pinnedCommit ?? 'main'
 let desktopVersion
 let artifactName
 const peerPackages = ['@deepseek-ai/dsh-typert-protocol', '@deepseek-ai/dsh-llm', '@deepseek-ai/dsh-session']
@@ -160,11 +165,14 @@ function cloneSource(stagingRoot, commit) {
 
 function prepare() {
   if (sourceRef === 'pinned') {
-    throw new Error('DSH_AA_SOURCE_REF=pinned is no longer supported; releases must check the latest AA main commit')
+    throw new Error('DSH_AA_SOURCE_REF=pinned is no longer supported; pin a commit through provenance.pinnedCommit instead')
   }
   const verifyRelease = process.argv.includes('--verify-release')
-  if (verifyRelease && (sourceRepository !== AA_REPOSITORY || sourceRef !== 'main')) {
-    throw new Error('Release verification requires the official AA repository and main branch')
+  // A pinned commit is a deliberate, recorded channel choice: verification then
+  // confirms that every Desktop workspace consumes that exact build, instead of
+  // demanding the (currently incompatible) tip of AA main.
+  if (verifyRelease && (sourceRepository !== AA_REPOSITORY || (sourceRef !== 'main' && sourceRef !== pinnedCommit))) {
+    throw new Error('Release verification requires the official AA repository and main branch, or the commit pinned in provenance')
   }
   const commit = resolveCommit()
   console.log(`Selected AA ${sourceRef} at ${commit}`)
@@ -254,6 +262,10 @@ function prepare() {
       ],
       sourceChanges: [],
     }
+    // Keep an existing pin across a deliberate re-prepare of the pinned commit so
+    // the channel does not silently start tracking AA main again.
+    if (pinnedCommit !== undefined) provenance.pinnedCommit = pinnedCommit
+    if (typeof currentProvenance.pinReason === 'string') provenance.pinReason = currentProvenance.pinReason
     writeFileSync(provenancePath, `${JSON.stringify(provenance, null, 2)}\n`)
     for (const path of packagePaths) {
       const manifest = readJson(join(root, path))
