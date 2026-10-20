@@ -35,7 +35,7 @@ __metadata:
 
 "@agents-anywhere/dsh-bridge-next@patch:@agents-anywhere/dsh-bridge-next@file%3Avendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c39b82d4fffb1.r2e406d2a.tgz#./patches/agents-anywhere-connector-httpx.patch::locator=deepseek-harness-desktop%40workspace%3A.":
   version: 2.1.0-desktop.c39b82d4fffb1.r2e406d2a
-  resolution: "@agents-anywhere/dsh-bridge-next@patch:@agents-anywhere/dsh-bridge-next@file%3Avendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c39b82d4fffb1.r2e406d2a.tgz%23vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c39b82d4fffb1.r2e406d2a.tgz%3A%3Ahash=536ea8&locator=deepseek-harness-desktop%2540workspace%253A.#./patches/agents-anywhere-connector-httpx.patch::version=2.1.0-desktop.c39b82d4fffb1.r2e406d2a&hash=55f270&locator=deepseek-harness-desktop%40workspace%3A."
+  resolution: "@agents-anywhere/dsh-bridge-next@patch:@agents-anywhere/dsh-bridge-next@file%3Avendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c39b82d4fffb1.r2e406d2a.tgz%23vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c39b82d4fffb1.r2e406d2a.tgz%3A%3Ahash=536ea8&locator=deepseek-harness-desktop%2540workspace%253A.#./patches/agents-anywhere-connector-httpx.patch::version=2.1.0-desktop.c39b82d4fffb1.r2e406d2a&hash=5876ae&locator=deepseek-harness-desktop%40workspace%3A."
   dependencies:
     "@dataiku/uv": "npm:0.12.0"
     clsx: "npm:2.1.1"
@@ -48,7 +48,7 @@ __metadata:
     "@deepseek-ai/dsh-typert-protocol": 0.2.1-rc.2
     "@deepseek-ai/schemastery": 3.18.4
     react: ^18.3.1
-  checksum: 10c0/02d03ff689103a76b35042a9107d94ad83cc9fc32bb85cc6586a2ed1248ae8cf0be587e5b3e69c642777ad8fd4f3c579d899dc75de5f3940cffccea0d81d521e
+  checksum: 10c0/0c9bedc6d59cf8f7779feeb9aeab4cca7d9d8cc5a90615658945e4c4390526af0f421c8a3b4f3faa7b2a82f92391eafdaa565c04d1f1ad712c7ed4afcf2f482a
   languageName: node
   linkType: hard
 
@@ -5950,6 +5950,13 @@ __metadata:
   version: 0.2.1-rc.2
   resolution: "@deepseek-ai/dsh-web-frontend@file:vendor/dsh-runtime/0.2.1-rc.2/deepseek-ai-dsh-web-frontend-0.2.1-rc.2.tgz#vendor/dsh-runtime/0.2.1-rc.2/deepseek-ai-dsh-web-frontend-0.2.1-rc.2.tgz::hash=3aecb7&locator=deepseek-harness-desktop%40workspace%3A."
   checksum: 10c0/1400bed5b8f76f492c00c5558119d46f9b5713f3ab0f6fa4c18841f4b09c86acb332c14193c086c38e2a1519948a7b6420cc04e7c811cf775558d7250477240b
+  languageName: node
+  linkType: hard
+
+"@deepseek-ai/dsh-web-frontend@patch:@deepseek-ai/dsh-web-frontend@file%3Avendor/dsh-runtime/0.2.1-rc.2/deepseek-ai-dsh-web-frontend-0.2.1-rc.2.tgz#./.yarn/patches/dsh-web-frontend-nonead-wordmark.patch::locator=deepseek-harness-desktop%40workspace%3A.":
+  version: 0.2.1-rc.2
+  resolution: "@deepseek-ai/dsh-web-frontend@patch:@deepseek-ai/dsh-web-frontend@file%3Avendor/dsh-runtime/0.2.1-rc.2/deepseek-ai-dsh-web-frontend-0.2.1-rc.2.tgz%23vendor/dsh-runtime/0.2.1-rc.2/deepseek-ai-dsh-web-frontend-0.2.1-rc.2.tgz%3A%3Ahash=3aecb7&locator=deepseek-harness-desktop%2540workspace%253A.#./.yarn/patches/dsh-web-frontend-nonead-wordmark.patch::version=0.2.1-rc.2&hash=d8e3cb&locator=deepseek-harness-desktop%40workspace%3A."
+  checksum: 10c0/78b877ce2e63cb887630d4691dd9affe2f19c2e3e8d5237cce8720b6a1bc8755ccba2138eefd6b143dc1bea05e7a7169dcd1bac9b338c9f9691fe35488ed8080
   languageName: node
   linkType: hard
 
