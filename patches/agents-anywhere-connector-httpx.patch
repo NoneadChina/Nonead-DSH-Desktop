@@ -1,7 +1,10 @@
 diff --git a/lib/index.js b/lib/index.js
+index 0dd0c35596e78f0cf815d852bb119edb1eedb4e1..b155249107d602acb1bc0438f6f74290c0dc56c6 100644
 --- a/lib/index.js
 +++ b/lib/index.js
-@@ -1086,4 +1086,12 @@
+@@ -1238,6 +1238,14 @@ async function materializeConnectorProject(config) {
+ }
+ //#endregion
  //#region src/host/connector/process.ts
 +/** httpx requires bare IPv6 in NO_PROXY; keep undici's bracketed bypass in the parent. */
 +function connectorEnvironment(environment) {
@@ -14,7 +17,7 @@ diff --git a/lib/index.js b/lib/index.js
  const runFile = promisify(execFile);
  const MAX_FRAME = 1048576;
  /**
-@@ -1238,7 +1246,7 @@
+@@ -1393,7 +1401,7 @@ var SourceConnector = class {
  			windowsHide: true,
  			detached: process.platform !== "win32",
  			env: {
@@ -23,7 +26,7 @@ diff --git a/lib/index.js b/lib/index.js
  				AA_CONNECTOR_OWNER_KIND: "dsh-plugin",
  				...this.config.dshHome ? { DSH_HOME: this.config.dshHome } : {},
  				AGENT_CONNECTOR_DATA_DIR: dataDir,
-@@ -1382,6 +1390,12 @@
+@@ -1538,6 +1546,12 @@ var SourceConnector = class {
  			this.buffer = this.buffer.slice(newline + 1);
  			try {
  				const frame = JSON.parse(line);
@@ -36,7 +39,7 @@ diff --git a/lib/index.js b/lib/index.js
  				if (frame.method === "connector/state" && frame.id === void 0) {
  					this.updateState(frame.params);
  					continue;
-@@ -3206,7 +3220,8 @@
+@@ -3368,7 +3382,8 @@ function contentHash(item) {
  		type: item.type,
  		status: item.status,
  		role: item.role,
@@ -46,3 +49,55 @@ diff --git a/lib/index.js b/lib/index.js
  	}))}`;
  }
  //#endregion
+@@ -5838,6 +5853,7 @@ var SyncFeed = class {
+ 	bufferedBytes = 0;
+ 	receivedCheckpoint;
+ 	checkpointDirty = /* @__PURE__ */ new Set();
++	droppedEvents = 0;
+ 	constructor(native, namespace, notify, failed, ackTimeoutMs = 6e4, durableCheckpoints = false, uploadProgress = false) {
+ 		this.native = native;
+ 		this.namespace = namespace;
+@@ -5862,7 +5878,10 @@ var SyncFeed = class {
+ 				};
+ 			}
+ 			if (this.queue.length >= MAX_BUFFER || this.queuedBytes > 16777216) {
+-				this.fail(/* @__PURE__ */ new Error("DSH event buffer full; resubscribe for a fresh baseline"));
++				const pushed = this.shedChange(change);
++				if (!pushed) return;
++				this.wake?.();
++				this.wake = void 0;
+ 				return;
+ 			}
+ 			this.queue.push(change);
+@@ -5876,6 +5895,31 @@ var SyncFeed = class {
+ 			if (!this.closed) this.fail(error);
+ 		});
+ 	}
++	/** Overflow must not kill the stream: drop the event and let one refresh marker rebuild its session. */
++	shedChange(change) {
++		const sessionId = "id" in change ? change.id : void 0;
++		this.droppedEvents += 1;
++		if (this.droppedEvents === 1 || this.droppedEvents % 1000 === 0) this.native.diagnostics.log("warn", "sync.backpressure", {
++			streamId: this.id,
++			batchSeq: this.batchSeq,
++			queuedEvents: this.queue.length,
++			queuedBytes: this.queuedBytes,
++			droppedEvents: this.droppedEvents,
++			sessionId
++		});
++		if (sessionId === void 0) return false;
++		if (this.queue.some((entry) => entry.type === "refresh" && entry.id === sessionId)) return false;
++		if (this.queue.length >= MAX_BUFFER) {
++			const victim = this.queue.findIndex((entry) => entry.type !== "refresh");
++			if (victim < 0) return false;
++			this.queue.splice(victim, 1);
++		}
++		this.queue.push({
++			type: "refresh",
++			id: sessionId
++		});
++		return true;
++	}
+ 	fail(error) {
+ 		this.native.diagnostics.log("error", "sync.failed", {
+ 			streamId: this.id,
