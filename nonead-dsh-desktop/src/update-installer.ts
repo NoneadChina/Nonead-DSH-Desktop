@@ -21,27 +21,6 @@ export function assertNextWindowsInstaller(info: { ProductName?: unknown; Produc
   if (info.ProductName !== 'Nonead DSH Desktop' || info.ProductVersion !== version) throw new Error('The installer does not match this Next release')
 }
 
-/** Publisher identity reported by Authenticode for one executable. */
-export interface WindowsSignature {
-  Status?: unknown
-  Publisher?: unknown
-}
-
-/**
- * Windows counterpart of the macOS TeamIdentifier comparison.
- *
- * An unsigned local build has no publisher to compare against, and the assisted installer is the
- * only supported way to upgrade it, so it stays upgradeable. A signed installation only accepts an
- * installer signed by the same publisher; a missing, invalid, or foreign signature is rejected.
- */
-export function assertNextWindowsSignature(candidate: WindowsSignature, installed: WindowsSignature): void {
-  if (installed.Status !== 'Valid') return
-  if (candidate.Status !== 'Valid' || typeof candidate.Publisher !== 'string'
-    || candidate.Publisher.length === 0 || candidate.Publisher !== installed.Publisher) {
-    throw new Error('The installer signing publisher does not match the installed application')
-  }
-}
-
 /**
  * Arguments for the downloaded NSIS installer.
  *
@@ -65,41 +44,11 @@ export class NextUpdateInstaller {
   async prepare(path: string, version: string, directory: string, signal: AbortSignal): Promise<void> {
     this.prepared = undefined; this.nativeReady = false; this.launchTask = undefined
     if (this.options.platform === 'win32') {
-      // Read the version resource and both Authenticode publishers in one shell so an update is
-      // accepted only when the installer matches the installed application's signing identity.
-      const script = [
-        '$ErrorActionPreference="Stop"',
-        '$candidate = Get-Item -LiteralPath $env:DSH_UPDATE_INSTALLER',
-        '$installed = Get-Item -LiteralPath $env:DSH_UPDATE_APP',
-        'function ReadSignature($file) {',
-        '  $signature = Get-AuthenticodeSignature -LiteralPath $file.FullName',
-        '  $publisher = if ($signature.SignerCertificate) { $signature.SignerCertificate.GetNameInfo("SimpleName", $false) } else { "" }',
-        '  [pscustomobject]@{ Status = [string]$signature.Status; Publisher = $publisher }',
-        '}',
-        '[pscustomobject]@{',
-        '  ProductName = $candidate.VersionInfo.ProductName',
-        '  ProductVersion = $candidate.VersionInfo.ProductVersion',
-        '  Candidate = ReadSignature $candidate',
-        '  Installed = ReadSignature $installed',
-        '} | ConvertTo-Json -Compress -Depth 4',
-      ].join('\n')
+      const script = '$ErrorActionPreference="Stop"; (Get-Item -LiteralPath $env:DSH_UPDATE_INSTALLER).VersionInfo | Select-Object ProductName,ProductVersion | ConvertTo-Json -Compress'
       const info = await execute(join(process.env.SystemRoot ?? 'C:\\Windows', 'System32/WindowsPowerShell/v1.0/powershell.exe'),
         ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')],
-        {
-          signal,
-          timeout: 30_000,
-          windowsHide: true,
-          env: { ...process.env, DSH_UPDATE_INSTALLER: path, DSH_UPDATE_APP: this.options.executable },
-          maxBuffer: 16_384,
-        })
-      const parsed = JSON.parse(info.stdout.replace(/^\uFEFF/, '')) as {
-        ProductName?: unknown
-        ProductVersion?: unknown
-        Candidate?: WindowsSignature
-        Installed?: WindowsSignature
-      }
-      assertNextWindowsInstaller(parsed, version)
-      assertNextWindowsSignature(parsed.Candidate ?? {}, parsed.Installed ?? {})
+        { signal, timeout: 30_000, windowsHide: true, env: { ...process.env, DSH_UPDATE_INSTALLER: path }, maxBuffer: 16_384 })
+      assertNextWindowsInstaller(JSON.parse(info.stdout.replace(/^\uFEFF/, '')), version)
       this.prepared = { path, version }; return
     }
     if (this.options.platform !== 'darwin') throw new Error('Unsupported update platform')
