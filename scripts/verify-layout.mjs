@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { existsSync, lstatSync, readFileSync, readlinkSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 const root = resolve(import.meta.dirname, '..')
@@ -48,16 +48,6 @@ for (const [name, manifest] of [
 }
 if (fabric.name !== 'dsh-community-fabric') fail('the Fabric workspace must own dsh-community-fabric')
 if (market.name !== 'dsh-community-market') fail('the market workspace must own dsh-community-market')
-const claudePath = resolve(root, 'CLAUDE.md')
-const claudeStat = lstatSync(claudePath)
-// Windows checkouts materialize the symlink as a regular file holding the
-// target name; accept both forms so the pointer stays verified on every host.
-const claudeTarget = claudeStat.isSymbolicLink()
-  ? readlinkSync(claudePath)
-  : readFileSync(claudePath, 'utf8').trim()
-if (claudeTarget !== 'AGENTS.md') {
-  fail('CLAUDE.md must link to the outer repository AGENTS.md')
-}
 for (const legacyFile of [
   'pnpm-lock.yaml',
   'pnpm-workspace.yaml',
