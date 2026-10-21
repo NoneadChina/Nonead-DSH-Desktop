@@ -168,6 +168,27 @@ export function desktopTrayLabel(
   return labels[locale][key](value)
 }
 
+/** Separator between the available version and its note headline; the label stays one line. */
+const updateNotesSeparator: Record<DesktopLocale, string> = {
+  en: ' — ',
+  zh: '：',
+}
+
+/**
+ * Resolve the "update available" tray label, appending a release-note headline when one exists.
+ *
+ * A missing summary must leave the label byte-identical to the historical copy, so the separator
+ * is only added together with the summary rather than unconditionally.
+ */
+export function desktopTrayUpdateLabel(
+  locale: DesktopLocale,
+  version: string,
+  summary: string | undefined,
+): string {
+  const label = desktopTrayLabel(locale, 'updateAvailable', version)
+  return summary === undefined ? label : `${label}${updateNotesSeparator[locale]}${summary}`
+}
+
 /** Resolve the native privacy confirmation shown before diagnostics export. */
 export function desktopDiagnosticsPrivacyCopy(locale: DesktopLocale): DesktopDiagnosticsPrivacyCopy {
   return diagnosticsPrivacyCopy[locale]

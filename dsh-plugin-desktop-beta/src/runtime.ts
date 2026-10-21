@@ -1,7 +1,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { DesktopRendererAccessHeader } from './desktop-browser-access.ts'
 import type { RendererBootReport } from './renderer-boot-contract.ts'
-import type { DesktopReleaseChannel, UpdateCheckResult, UpdateRequest } from './update-checker.ts'
+import type { DesktopReleaseChannel, UpdateCheckResult, UpdateReleaseNotes, UpdateRequest } from './update-checker.ts'
 import type { DesktopInstallationId } from './desktop-installation-id.ts'
 import type { ProfileCreateWindowOptions } from './profile-create-window.ts'
 import type { DesktopPlatformLoginRequest } from './platform-login.ts'
@@ -116,8 +116,15 @@ export interface DesktopUpdateAdapter {
   readonly installationId?: DesktopInstallationId
   /** Request adapter backed by Electron's native network session. */
   readonly request: UpdateRequest
-  /** Ask whether one strictly newer version may be downloaded. */
-  confirmDownload(version: string, channel?: DesktopReleaseChannel): Promise<boolean>
+  /**
+   * Ask whether one strictly newer version may be downloaded. The optional notes belong to that
+   * exact version and are shown only when the service published them.
+   */
+  confirmDownload(
+    version: string,
+    channel?: DesktopReleaseChannel,
+    notes?: UpdateReleaseNotes,
+  ): Promise<boolean>
   /** Present the outcome of a user-triggered version check. */
   showManualCheckResult(result: UpdateCheckResult | null): Promise<void>
   /**

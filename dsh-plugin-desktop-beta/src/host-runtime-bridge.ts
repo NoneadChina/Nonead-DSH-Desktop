@@ -57,7 +57,7 @@ export function createHostRuntime(rpc: HostRpc, snapshot: RuntimeSnapshot): Desk
           [url, { ...options, headers: [...new Headers(init.headers).entries()] }], signal ?? undefined)
         return new Response([204, 205, 304].includes(response.status) ? null : response.body, { status: response.status, headers: response.headers })
       },
-      confirmDownload: (version, channel) => send('update:confirmDownload', [version, channel]),
+      confirmDownload: (version, channel, notes) => send('update:confirmDownload', [version, channel, notes]),
       showManualCheckResult: result => send('update:showManualCheckResult', [result]),
       downloadAndOpen: (version, signal, channel, installerSha256) => send('update:downloadAndOpen', [version, channel, installerSha256], signal),
       notify: notification => { void send('update:notify', [notification]) },
@@ -198,7 +198,10 @@ export function bindNativeRuntime(rpc: HostRpc, runtime: DesktopRuntime): () => 
     const response = await runtime.updates.request(url, { ...init, signal })
     return { body: await response.text(), status: response.status, headers: [...response.headers.entries()] }
   })
-  handle('update:confirmDownload', ([version, channel]) => runtime.updates.confirmDownload(version, channel))
+  // A missing channel crosses the process boundary as null on some transports; the adapter's
+  // default must still apply, so the slot is normalized back to undefined.
+  handle('update:confirmDownload', ([version, channel, notes]) =>
+    runtime.updates.confirmDownload(version, channel ?? undefined, notes))
   handle('update:showManualCheckResult', ([result]) => runtime.updates.showManualCheckResult(result))
   handle('update:downloadAndOpen', ([version, channel, installerSha256], signal) => runtime.updates.downloadAndOpen(version, signal, channel, installerSha256))
   handle('update:notify', ([value]) => runtime.updates.notify(value))

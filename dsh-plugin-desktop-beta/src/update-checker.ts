@@ -95,6 +95,9 @@ export type UpdateCheckResult = {
   readonly notesUrl?: string
 }
 
+/** Release-note fields of one version response, as any downstream consumer may read them. */
+export type UpdateReleaseNotes = Pick<UpdateCheckResult, 'notes' | 'notesUrl'>
+
 const SEMVER_PATTERN =
   /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/u
 
@@ -189,7 +192,7 @@ export async function checkForDesktopUpdate(
   if (latest === null) return null
   const comparison = compareParsedSemVer(latest, current)
   const digests = parseInstallerDigestResponse(responseValue)
-  const releaseNotes = parseReleaseNotesResponse(responseValue)
+  const releaseNotes = parseDesktopReleaseNotes(responseValue)
   return {
     status: comparison > 0 || (options.allowDowngrade === true && comparison !== 0)
       ? 'update-available'
@@ -329,8 +332,12 @@ function parseInstallerDigestResponse(value: unknown): UpdateCheckResult['instal
  * Extract the optional release-note fields from the parsed version response. Each field is judged
  * on its own: a malformed summary must not hide a valid link, and neither may turn a successful
  * version check into a failure when the service predates these fields.
+ *
+ * Exported because the value leaves the checking process: the Desktop shell re-validates it before
+ * it can reach a native dialog or the system browser, and that second pass must apply the exact
+ * same rules rather than a second, drifting copy of them.
  */
-function parseReleaseNotesResponse(value: unknown): Pick<UpdateCheckResult, 'notes' | 'notesUrl'> {
+export function parseDesktopReleaseNotes(value: unknown): UpdateReleaseNotes {
   if (!isRecord(value)) return {}
   const notes = parseReleaseNoteText(value.notes)
   const notesUrl = parseReleaseNoteUrl(value.notesUrl)

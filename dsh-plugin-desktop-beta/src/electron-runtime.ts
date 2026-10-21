@@ -63,7 +63,7 @@ import {
   type DesktopUpdateArtifact,
   type UpdateArtifactResponse,
 } from './update-download.ts'
-import type { UpdateCheckResult } from './update-checker.ts'
+import { parseDesktopReleaseNotes, type UpdateCheckResult, type UpdateReleaseNotes } from './update-checker.ts'
 import type { DesktopInstallationId } from './desktop-installation-id.ts'
 import { DESKTOP_RELEASE_CHANNEL } from './product-identity.ts'
 import type { DesktopReleaseChannel } from './update-checker.ts'
@@ -253,7 +253,7 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
       get statePath() { return join(app.getPath('userData'), 'updates', 'state.json') },
       ...(installationId === undefined ? {} : { installationId }),
       request: (url, init) => net.fetch(url, init),
-      confirmDownload: (version, channel) => this.confirmUpdateDownload(version, channel),
+      confirmDownload: (version, channel, notes) => this.confirmUpdateDownload(version, channel, notes),
       showManualCheckResult: result => this.showManualUpdateCheckResult(result),
       downloadAndOpen: (version, signal, channel, installerSha256) => this.downloadAndOpenUpdate(version, signal, channel, installerSha256),
       notify: notification => { this.showNotification(notification) },
@@ -805,6 +805,34 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
     return await this.showDesktopMessageBox(options)
   }
 
+  /**
+   * Show one update prompt, adding the complete-notes link as its last button when there is one.
+   *
+   * Opening the browser must not swallow the question, so the prompt is shown again afterwards and
+   * the user still decides whether to download. Without a link the box is shown exactly once with
+   * the historical button set, which keeps every "no notes" flow unchanged.
+   */
+  private async showUpdateMessageBoxWithReleaseNotes(
+    options: Electron.MessageBoxOptions,
+    notesUrl: string | undefined,
+  ): Promise<Electron.MessageBoxReturnValue> {
+    if (notesUrl === undefined) return await this.showUpdateMessageBox(options)
+    const buttons = [...options.buttons ?? [], desktopNativeCopy(this.currentLocale).viewReleaseNotes]
+    const notesButton = buttons.length - 1
+    for (;;) {
+      const result = await this.showUpdateMessageBox({ ...options, buttons })
+      if (result.response !== notesButton) return result
+      await this.openReleaseNotes(notesUrl)
+    }
+  }
+
+  /** Hand one validated notes page to the system browser; a failure must not break the prompt. */
+  private async openReleaseNotes(url: string): Promise<void> {
+    await shell.openExternal(url).catch((cause: unknown) => {
+      this.logError(`dsh-plugin-desktop: failed to open release notes: ${cause instanceof Error ? cause.message : String(cause)}`)
+    })
+  }
+
   private async showDesktopMessageBox(options: Electron.MessageBoxOptions): Promise<Electron.MessageBoxReturnValue> {
     return this.generation === undefined
       ? await showDesktopMessageBox(options)
@@ -821,20 +849,25 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
   private async confirmUpdateDownload(
     version: string,
     channel: DesktopReleaseChannel = 'stable',
+    notes?: UpdateReleaseNotes,
   ): Promise<boolean> {
     const copy = desktopNativeCopy(this.currentLocale)
-    const result = await this.showUpdateMessageBox({
+    const releaseNotes = parsePromptReleaseNotes(notes)
+    const question = channel === DESKTOP_RELEASE_CHANNEL
+      ? copy.downloadUpdate
+      : copy.installStableAlongsideBeta
+    const result = await this.showUpdateMessageBoxWithReleaseNotes({
       type: 'info',
       title: copy.updateAvailableTitle,
       message: copy.updateAvailableMessage(version),
-      detail: channel === DESKTOP_RELEASE_CHANNEL
-        ? copy.downloadUpdate
-        : copy.installStableAlongsideBeta,
+      // The notes answer "what changes?" after the question, so they extend the detail instead of
+      // replacing it; without them the detail is byte-identical to the historical prompt.
+      detail: releaseNotes?.notes === undefined ? question : `${question}\n\n${releaseNotes.notes}`,
       buttons: [copy.download, copy.later],
       defaultId: 1,
       cancelId: 1,
       noLink: true,
-    })
+    }, releaseNotes?.notesUrl)
     return result.response === 0
   }
 
@@ -867,15 +900,18 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
       return
     }
 
-    await this.showUpdateMessageBox({
+    const releaseNotes = parsePromptReleaseNotes(result)
+    await this.showUpdateMessageBoxWithReleaseNotes({
       type: 'info',
       title: copy.updateAvailableTitle,
       message: copy.updateAvailableMessage(result.latestVersion),
-      detail: copy.installerUnavailable,
+      detail: releaseNotes?.notes === undefined
+        ? copy.installerUnavailable
+        : `${copy.installerUnavailable}\n\n${releaseNotes.notes}`,
       buttons: [copy.ok],
       defaultId: 0,
       noLink: true,
-    })
+    }, releaseNotes?.notesUrl)
   }
 
   /** Download a confirmed installer and hand it to the native installation flow. */
@@ -1136,4 +1172,17 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
     }
     return items
   }
+}
+
+/**
+ * Re-validate release notes that crossed the Host/Electron process boundary.
+ *
+ * The checker already rejects malformed values, but this process is the one that hands the link to
+ * the system browser and the text to a native prompt, so the same rules are applied again here
+ * rather than trusting a payload this file cannot type-check. A value with neither field collapses
+ * to undefined, keeping every "no notes" path identical to the historical behaviour.
+ */
+function parsePromptReleaseNotes(value: unknown): UpdateReleaseNotes | undefined {
+  const notes = parseDesktopReleaseNotes(value)
+  return notes.notes === undefined && notes.notesUrl === undefined ? undefined : notes
 }

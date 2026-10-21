@@ -19,6 +19,8 @@ import {
   type UpdateCheckResult,
 } from '../src/update-checker.ts'
 import { apply, Config, inject, type Config as UpdateConfig } from '../src/updates.ts'
+import { releaseNoteSummary, MAX_RELEASE_NOTE_SUMMARY_CHARACTERS } from '../src/release-notes.ts'
+import { desktopTrayUpdateLabel } from '../src/tray-locale.ts'
 
 const testConfig: UpdateConfig = {
   enabled: true,
@@ -610,5 +612,111 @@ describe('desktop update Host plugin', () => {
     expect(harness.notifications).toEqual([])
     expect(harness.warnings).toEqual([])
     expect(harness.tray.label()).toBe('Check for Updates…')
+  })
+})
+
+describe('release-note summaries', () => {
+  it('uses only the first non-empty line and folds its whitespace', () => {
+    expect(releaseNoteSummary('\n\n  Fixes a   crash on launch.  \nRequires a newer driver.'))
+      .toBe('Fixes a crash on launch.')
+  })
+
+  it('truncates an over-long line at the character budget and marks the cut', () => {
+    expect(releaseNoteSummary('A'.repeat(MAX_RELEASE_NOTE_SUMMARY_CHARACTERS + 1)))
+      .toBe(`${'A'.repeat(MAX_RELEASE_NOTE_SUMMARY_CHARACTERS)}…`)
+  })
+
+  it('has no summary when the notes carry no visible line', () => {
+    expect(releaseNoteSummary(undefined)).toBeUndefined()
+    expect(releaseNoteSummary(' \r\n\t ')).toBeUndefined()
+  })
+
+  it('leaves the plain tray label byte-identical without a summary', () => {
+    expect(desktopTrayUpdateLabel('en', '2.1.0', undefined)).toBe('DSH Desktop 2.1.0 Available')
+    expect(desktopTrayUpdateLabel('zh', '2.1.0', undefined)).toBe('DSH Desktop 2.1.0 可用')
+  })
+
+  it('appends the summary with the locale separator', () => {
+    expect(desktopTrayUpdateLabel('en', '2.1.0', 'Fixes a crash.'))
+      .toBe('DSH Desktop 2.1.0 Available — Fixes a crash.')
+    expect(desktopTrayUpdateLabel('zh', '2.1.0', '修复崩溃'))
+      .toBe('DSH Desktop 2.1.0 可用：修复崩溃')
+  })
+})
+
+describe('release notes in the Host-owned update surfaces', () => {
+  const notes = 'Fixes a crash on launch.\nRequires a newer driver.'
+  const notesUrl = 'https://example.test/releases/2.1.0'
+
+  it('shows the first note line in the tray and in the background notification', async () => {
+    vi.useFakeTimers()
+    const request = vi.fn(async () => Response.json({ version: '2.1.0', notes, notesUrl }))
+    const harness = await createHarness({ request })
+
+    await vi.advanceTimersByTimeAsync(testConfig.initialDelayMs)
+    await vi.waitFor(() => { expect(harness.notifications).toHaveLength(1) })
+
+    expect(harness.notifications).toEqual([{
+      title: 'DSH Desktop Update Available',
+      body: 'Version 2.1.0 is ready to download. Open DSH Desktop to continue.\nFixes a crash on launch.',
+    }])
+    expect(harness.tray.label()).toBe('DSH Desktop 2.1.0 Available — Fixes a crash on launch.')
+    expect(harness.warnings).toEqual([])
+  })
+
+  it('truncates a long note line before it reaches the native surfaces', async () => {
+    vi.useFakeTimers()
+    const request = vi.fn(async () => Response.json({ version: '2.1.0', notes: 'A'.repeat(200) }))
+    const harness = await createHarness({ request })
+
+    await vi.advanceTimersByTimeAsync(testConfig.initialDelayMs)
+    await vi.waitFor(() => { expect(harness.notifications).toHaveLength(1) })
+
+    const summary = `${'A'.repeat(MAX_RELEASE_NOTE_SUMMARY_CHARACTERS)}…`
+    expect(harness.tray.label()).toBe(`DSH Desktop 2.1.0 Available — ${summary}`)
+    expect(harness.notifications[0]?.body)
+      .toBe(`Version 2.1.0 is ready to download. Open DSH Desktop to continue.\n${summary}`)
+  })
+
+  it('keeps the historical native copy when only a notes link is present', async () => {
+    vi.useFakeTimers()
+    const request = vi.fn(async () => Response.json({ version: '2.1.0', notesUrl }))
+    const harness = await createHarness({ request })
+
+    await vi.advanceTimersByTimeAsync(testConfig.initialDelayMs)
+    await vi.waitFor(() => { expect(harness.notifications).toHaveLength(1) })
+
+    expect(harness.notifications).toEqual([{
+      title: 'DSH Desktop Update Available',
+      body: 'Version 2.1.0 is ready to download. Open DSH Desktop to continue.',
+    }])
+    expect(harness.tray.label()).toBe('DSH Desktop 2.1.0 Available')
+  })
+
+  it('confirms a Beta update with the notes that describe the prompted version', async () => {
+    const request = vi.fn(async () => Response.json({
+      version: '2.0.7-beta.1',
+      channel: 'beta',
+      notes,
+      notesUrl,
+    }))
+    const harness = await createHarness({
+      releaseChannel: 'beta',
+      currentVersion: '2.0.6-beta.1',
+      request,
+    })
+
+    await harness.tray.invoke()
+
+    expect(harness.confirmDownload).toHaveBeenCalledWith('2.0.7-beta.1', 'beta', { notes, notesUrl })
+    expect(harness.downloadAndOpen).not.toHaveBeenCalled()
+  })
+
+  it('keeps the historical one-argument confirmation when a version has no notes', async () => {
+    const harness = await createHarness({ packaged: false, request: async () => versionResponse('2.1.0') })
+
+    await harness.tray.invoke()
+
+    expect(harness.confirmDownload).toHaveBeenCalledWith('2.1.0')
   })
 })

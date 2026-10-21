@@ -3017,4 +3017,106 @@ describe('Electron desktop runtime', () => {
     await expect(release()).rejects.toThrow('renderer unavailable')
     expect(electron.nativeTheme.themeSource).toBe('light')
   })
+
+  it('appends validated release notes and their link to the update prompt', async () => {
+    const { ElectronDesktopRuntime } = await import('../src/electron-runtime.ts')
+    const runtime = new ElectronDesktopRuntime(async () => {})
+    electron.dialog.showMessageBox
+      .mockResolvedValueOnce({ response: 2, checkboxChecked: false })
+      .mockResolvedValueOnce({ response: 0, checkboxChecked: false })
+
+    const notes = 'Fixes a crash on launch.\nRequires a newer driver.'
+    await expect(runtime.updates.confirmDownload('2.1.0', 'beta', {
+      notes,
+      notesUrl: 'https://example.test/releases/2.1.0',
+    })).resolves.toBe(true)
+
+    expect(electron.dialog.showMessageBox).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      title: 'DSH Desktop Update Available',
+      message: 'DSH Desktop 2.1.0 is available.',
+      detail: `Download this update now?\n\n${notes}`,
+      buttons: ['Download', 'Later', 'View Full Release Notes'],
+      defaultId: 1,
+      cancelId: 1,
+    }))
+    expect(electron.shell.openExternal).toHaveBeenCalledWith('https://example.test/releases/2.1.0')
+    // Opening the browser must not answer the question, so the prompt is shown again.
+    expect(electron.dialog.showMessageBox).toHaveBeenCalledTimes(2)
+  })
+
+  it('shows notes without a link in the unchanged two-button prompt', async () => {
+    const { ElectronDesktopRuntime } = await import('../src/electron-runtime.ts')
+    const runtime = new ElectronDesktopRuntime(async () => {})
+
+    await expect(runtime.updates.confirmDownload('2.1.0', 'beta', {
+      notes: 'Fixes a crash on launch.',
+    })).resolves.toBe(true)
+
+    expect(electron.dialog.showMessageBox).toHaveBeenCalledOnce()
+    expect(electron.dialog.showMessageBox).toHaveBeenCalledWith(expect.objectContaining({
+      detail: 'Download this update now?\n\nFixes a crash on launch.',
+      buttons: ['Download', 'Later'],
+    }))
+    expect(electron.shell.openExternal).not.toHaveBeenCalled()
+  })
+
+  it('keeps the historical prompts byte-identical without release notes', async () => {
+    const { ElectronDesktopRuntime } = await import('../src/electron-runtime.ts')
+    const runtime = new ElectronDesktopRuntime(async () => {})
+
+    await expect(runtime.updates.confirmDownload('2.1.0', 'beta')).resolves.toBe(true)
+    expect(electron.dialog.showMessageBox).toHaveBeenLastCalledWith(expect.objectContaining({
+      detail: 'Download this update now?',
+      buttons: ['Download', 'Later'],
+    }))
+
+    // The omitted-channel legacy prompt keeps its own wording and button set.
+    await expect(runtime.updates.confirmDownload('2.1.0')).resolves.toBe(true)
+    expect(electron.dialog.showMessageBox).toHaveBeenLastCalledWith(expect.objectContaining({
+      detail: 'Install the stable edition alongside DSH Desktop Beta? The Beta app will remain installed.',
+      buttons: ['Download', 'Later'],
+    }))
+    expect(electron.shell.openExternal).not.toHaveBeenCalled()
+  })
+
+  it('drops a non-https notes link that crossed the process boundary', async () => {
+    const { ElectronDesktopRuntime } = await import('../src/electron-runtime.ts')
+    const runtime = new ElectronDesktopRuntime(async () => {})
+
+    await expect(runtime.updates.confirmDownload('2.1.0', 'stable', {
+      notes: 'Fixes a crash on launch.',
+      notesUrl: 'http://example.test/releases/2.1.0',
+    })).resolves.toBe(true)
+
+    expect(electron.dialog.showMessageBox).toHaveBeenCalledOnce()
+    expect(electron.dialog.showMessageBox).toHaveBeenCalledWith(expect.objectContaining({
+      buttons: ['Download', 'Later'],
+    }))
+    expect(electron.shell.openExternal).not.toHaveBeenCalled()
+  })
+
+  it('adds release notes to the installer-unavailable report and opens their link', async () => {
+    const { ElectronDesktopRuntime } = await import('../src/electron-runtime.ts')
+    const runtime = new ElectronDesktopRuntime(async () => {})
+    electron.dialog.showMessageBox
+      .mockResolvedValueOnce({ response: 1, checkboxChecked: false })
+      .mockResolvedValueOnce({ response: 0, checkboxChecked: false })
+
+    await runtime.updates.showManualCheckResult({
+      status: 'update-available',
+      currentVersion: '2.0.0',
+      latestVersion: '2.1.0',
+      notes: 'Fixes a crash on launch.',
+      notesUrl: 'https://example.test/releases/2.1.0',
+    })
+
+    expect(electron.dialog.showMessageBox).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      title: 'DSH Desktop Update Available',
+      message: 'DSH Desktop 2.1.0 is available.',
+      detail: 'This version cannot download installers from within the app.\n\nFixes a crash on launch.',
+      buttons: ['OK', 'View Full Release Notes'],
+    }))
+    expect(electron.shell.openExternal).toHaveBeenCalledWith('https://example.test/releases/2.1.0')
+    expect(electron.dialog.showMessageBox).toHaveBeenCalledTimes(2)
+  })
 })

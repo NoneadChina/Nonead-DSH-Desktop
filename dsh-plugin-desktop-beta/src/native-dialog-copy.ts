@@ -30,6 +30,7 @@ export interface DesktopNativeCopy {
   readonly upToDateMessage: string
   readonly installedVersion: (version: string) => string
   readonly installerUnavailable: string
+  readonly viewReleaseNotes: string
   readonly updateDownloadedTitle: string
   readonly updateReady: (version: string) => string
   readonly macInstallInstructions: string
@@ -109,6 +110,7 @@ const COPY: Record<DesktopLocale, DesktopNativeCopy> = {
     upToDateMessage: 'You are using the latest version.',
     installedVersion: version => `Installed version: ${version}`,
     installerUnavailable: 'This version cannot download installers from within the app.',
+    viewReleaseNotes: 'View Full Release Notes',
     updateDownloadedTitle: 'DSH Desktop Update Downloaded',
     updateReady: version => `DSH Desktop ${version} is ready to install.`,
     macInstallInstructions: 'The disk image has opened. Replace DSH Desktop in Applications, then reopen it.',
@@ -186,6 +188,7 @@ const COPY: Record<DesktopLocale, DesktopNativeCopy> = {
     upToDateMessage: '当前已是最新版本。',
     installedVersion: version => `当前版本：${version}`,
     installerUnavailable: '当前版本不支持在应用内下载安装包。',
+    viewReleaseNotes: '查看完整说明',
     updateDownloadedTitle: 'DSH Desktop 更新已下载',
     updateReady: version => `DSH Desktop ${version} 已可安装。`,
     macInstallInstructions: '磁盘映像已打开。请替换“应用程序”中的 DSH Desktop，然后重新打开。',
