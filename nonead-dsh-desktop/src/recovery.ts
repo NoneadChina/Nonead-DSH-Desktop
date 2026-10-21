@@ -38,12 +38,24 @@ export interface RecoveryCheckpoint {
 }
 /** How many snapshots `list()` returns when the caller states no limit. */
 const LIST_LIMIT = 50
+/** One readable snapshot with the parsed manifest its health filter needs. */
+interface Scanned {
+  snapshot: Snapshot
+  checkpoint: RecoveryCheckpoint
+}
 /** A snapshot directory is named `<Date.now()>-<uuid>`; nothing else is a checkpoint id. */
 const CHECKPOINT_ID = /^\d{1,16}-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u
 const digest = (text: string): string => createHash('sha256').update(text).digest('hex')
 
 export class NextRecovery {
   readonly directory: string
+  /**
+   * The last listing of each Profile, keyed by the recovery directory's mtime.
+   * `state()` and the tray refresh call `list()` on every update, and describing one
+   * snapshot re-reads its three files; a snapshot added or removed changes the
+   * directory mtime, which is what makes this stale.
+   */
+  private readonly scanned = new Map<string, { mtimeMs: number; entries: Scanned[] }>()
   constructor(readonly profiles: NextProfiles) { this.directory = join(profiles.home, 'recovery') }
 
   backup(name: string, reason: string, healthy = false): string {
@@ -58,6 +70,9 @@ export class NextRecovery {
       return [file, text === undefined ? null : { sha256: digest(text) }]
     })) as Snapshot['files']
     atomicJson(join(target, 'snapshot.json'), { version: 1, profile: name, created: new Date().toISOString(), reason, healthy, files } satisfies Snapshot)
+    // A snapshot written inside the same mtime tick as the cached listing must not be
+    // hidden by it, so the writer drops the cache instead of trusting the clock.
+    this.scanned.clear()
     return target
   }
 
@@ -100,22 +115,41 @@ export class NextRecovery {
 
   private scan(name: string, accept: (snapshot: Snapshot) => boolean, limit: number): RecoveryCheckpoint[] {
     const result: RecoveryCheckpoint[] = []
-    profileName(name)
-    if (!lstatSync(this.directory, { throwIfNoEntry: false })) return result
-    privateDirectory(this.directory)
-    const entries = readdirSync(this.directory, { withFileTypes: true }).filter(entry => entry.isDirectory()).map(entry => entry.name).sort().reverse()
-    for (const entry of entries) {
+    for (const entry of this.entries(name)) {
+      // The listing is cached whole, so every caller applies its own limit to it.
       if (result.length >= limit) break
-      // Fixed-width timestamps sort chronologically, so the entry name is the
-      // newest-first order; anything that is not a checkpoint id is not one.
+      if (accept(entry.snapshot)) result.push(entry.checkpoint)
+    }
+    return result
+  }
+
+  /**
+   * The readable snapshots of one Profile, newest first, re-read only when the
+   * recovery directory changed. A missing directory is an empty listing, not an
+   * error: it is created by the first backup.
+   */
+  private entries(name: string): Scanned[] {
+    profileName(name)
+    const stat = lstatSync(this.directory, { throwIfNoEntry: false })
+    if (!stat) return []
+    privateDirectory(this.directory)
+    const cached = this.scanned.get(name)
+    if (cached?.mtimeMs === stat.mtimeMs) return cached.entries
+    // Fixed-width timestamps sort chronologically, so the entry name is the
+    // newest-first order; anything that is not a checkpoint id is not one.
+    const names = readdirSync(this.directory, { withFileTypes: true }).filter(entry => entry.isDirectory())
+      .map(entry => entry.name).sort().reverse()
+    const entries: Scanned[] = []
+    for (const entry of names) {
       if (!CHECKPOINT_ID.test(entry)) continue
       const directory = join(this.directory, entry)
       try {
         const snapshot = this.readSnapshot(directory, name)
-        if (accept(snapshot)) result.push(this.describe(directory, entry, snapshot))
+        entries.push({ snapshot, checkpoint: this.describe(directory, entry, snapshot) })
       } catch { /* A partial or corrupt backup cannot become a restore target. */ }
     }
-    return result
+    this.scanned.set(name, { mtimeMs: stat.mtimeMs, entries })
+    return entries
   }
 
   /** Describe one readable snapshot; the caller has already validated it. */

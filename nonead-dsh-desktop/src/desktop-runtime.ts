@@ -9,6 +9,7 @@ import { DesktopPreferenceStore, parsePreferences } from './desktop-preferences.
 import { DEFAULT_FEATURES, NextProfiles } from './profiles.ts'
 import { DEFAULT_PREFERENCES, DEFAULT_PROFILE, SAFE_MODE_PREFERENCES, type DesktopBrowserLinks, type DesktopPreferences, type DesktopState, type DesktopNotification } from './desktop-contract.ts'
 import { DesktopDiagnostics } from './diagnostics.ts'
+import { withEnvFiles, type EnvLayer } from './env-file.ts'
 import { NextRecovery } from './recovery.ts'
 import { maskSecrets } from './mask-secrets.ts'
 import { privateDirectory } from './private-files.ts'
@@ -30,6 +31,11 @@ interface RuntimeOptions {
   addresses(): string[]
   /** The system proxy main probed at startup; the Host decides whether it applies. */
   systemProxy?(): DesktopSystemProxyProbe
+  /**
+   * `.env` files that may supply variables the Host would otherwise miss, most
+   * specific first. They never replace a variable that is already set.
+   */
+  envFiles?: readonly EnvLayer[]
   certificate(addresses: readonly string[]): Promise<DesktopLanHttpsCertificate>
   onFailure(): void
   onChange(): void
@@ -285,8 +291,11 @@ export class NextDesktopRuntime {
       prepareCertificate: async () => ({ certificate: await options.certificate(addresses) }) })
     this.lan = lan
     let stopped = false
+    // The Host gets a copy of the environment: a `.env` file may only supply a
+    // variable the real environment leaves unset, and never mutates this process.
+    const environment = withEnvFiles(process.env, options.envFiles ?? [], message => this.diagnostics.append(message, 'warn'))
     const host = new DesktopHostProcess(options.executable, options.root, new NextProfiles(actualHome).directory(profile), undefined,
-      { ...process.env, DSH_HOME: actualHome, DSH_NONEAD_NATIVE_TOKEN: token,
+      { ...environment, DSH_HOME: actualHome, DSH_NONEAD_NATIVE_TOKEN: token,
         DSH_NONEAD_PREFERENCES: JSON.stringify(effective), DSH_NONEAD_TRUSTED_HOSTS: JSON.stringify(addresses),
         [SYSTEM_PROXY_ENV]: JSON.stringify(options.systemProxy?.() ?? {}),
         ...(this.safeMode ? { DSH_TELEMETRY_DISABLED: '1' } : {}) },

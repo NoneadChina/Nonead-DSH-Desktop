@@ -2,6 +2,7 @@
 import type { Features, OnboardingChoices } from './profiles.ts'
 import type { DesktopLanHttpsRuntimeSnapshot } from './lan-https-runtime.ts'
 import type { DesktopPermissions } from './permissions.ts'
+import type { DesktopDeepLink } from './deep-link.ts'
 
 export const NATIVE_ACCESS_HEADER = 'x-dsh-desktop-renderer'
 export const DEFAULT_PROFILE = 'desktop'
@@ -68,6 +69,8 @@ export interface DesktopState {
   platform: string
   version: string
   updates?: import('./update-state.ts').NextUpdateState
+  /** OS login-item state: the application starts when the user signs in. */
+  openAtLogin: boolean
   trayAvailable: boolean
   notificationsAvailable: boolean
   browserUrl: string | null
@@ -93,7 +96,7 @@ export interface DesktopBrowserLinks {
 }
 
 export type DesktopCommand =
-  | { type: 'check-updates' | 'download-update' | 'install-update' | 'retry-install-update' }
+  | { type: 'check-updates' | 'download-update' | 'install-update' | 'retry-install-update' | 'skip-update' | 'clear-skipped-update' }
   | { type: 'recovery-action'; action: string; id?: string }
   | ({ type: 'onboarding-complete'; profile: string } & OnboardingChoices)
   | { type: 'onboarding-skip'; profile: string }
@@ -103,6 +106,7 @@ export type DesktopCommand =
   | { type: 'preferences'; preferences: DesktopPreferences }
   | { type: 'controls'; page?: 'general' | 'profiles' | 'create-profile' | 'tools' | 'recovery' | 'permissions' }
   | { type: 'restart-app' | 'restart-recovery' | 'restart-onboarding' | 'close-controls' }
+  | { type: 'set-open-at-login'; enabled: boolean }
   | { type: 'restart' | 'recover' | 'safe-mode' | 'normal-mode' | 'rollback' | 'repair-global'
     | 'reload' | 'devtools' | 'terminal' | 'open-home' | 'open-profile' | 'open-logs' | 'open-backups'
     | 'diagnostics' | 'open-browser' | 'open-lan' | 'copy-browser' | 'copy-lan' | 'export-ca' | 'quit' }
@@ -111,6 +115,8 @@ export interface DesktopBridge {
   readonly permissions?: DesktopPermissions
   /** Native menu/Host requests, delivered only to the main app. */
   onOpenSettings?(listener: (page: DesktopSettingsPage) => void): () => void
+  /** `dsh-desktop://` links forwarded after the window was focused. */
+  onDeepLink?(listener: (link: DesktopDeepLink) => void): () => void
   state(): Promise<DesktopState>
   browserLinks(): Promise<DesktopBrowserLinks>
   command(command: DesktopCommand): Promise<void>

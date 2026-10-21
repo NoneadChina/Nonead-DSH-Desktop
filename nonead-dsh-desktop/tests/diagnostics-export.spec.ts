@@ -21,7 +21,7 @@ function exportJob() {
   const log = new DesktopDiagnostics(home); logs.push(log)
   log.record({ source: 'electron', event: 'export-test' })
   const state = { version: 'test', platform: 'test', selected: 'desktop', profiles: [], phase: 'ready', safeMode: false,
-    failure: '', preferences: { ...DEFAULT_PREFERENCES }, features: { market: false, remoteControl: false }, trayAvailable: true, browserUrl: null, lan: null, unavailableProfiles: [], busy: false, home, notificationsAvailable: true, checkpoint: null, logs: '' } satisfies DesktopState
+    failure: '', preferences: { ...DEFAULT_PREFERENCES }, features: { market: false, remoteControl: false }, trayAvailable: true, openAtLogin: false, browserUrl: null, lan: null, unavailableProfiles: [], busy: false, home, notificationsAvailable: true, checkpoint: null, logs: '' } satisfies DesktopState
   return { task: log.exportTo(join(home, 'report.json'), state), worker: fixture.workers.at(-1) }
 }
 

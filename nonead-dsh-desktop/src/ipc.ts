@@ -5,6 +5,7 @@ export const IPC = {
   boot: 'nonead-dsh-desktop:boot', failed: 'nonead-dsh-desktop:failed', directory: 'nonead-dsh-desktop:directory',
   state: 'nonead-dsh-desktop:state', command: 'nonead-dsh-desktop:command',
   settingsOpen: 'nonead-dsh-desktop:settings-open', settingsTake: 'nonead-dsh-desktop:settings-take',
+  deepLink: 'nonead-dsh-desktop:deep-link',
   browserLinks: 'nonead-dsh-desktop:browser-links',
   browserAcquire: 'nonead-dsh-desktop:browser-acquire', browserRelease: 'nonead-dsh-desktop:browser-release',
   browserOpenRequested: 'nonead-dsh-desktop:browser-open-requested',

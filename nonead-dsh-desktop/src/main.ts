@@ -5,16 +5,20 @@ import { readFileSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
-import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, net, Notification, protocol, safeStorage, session, shell, type IpcMainInvokeEvent, type MenuItemConstructorOptions } from 'electron'
+import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, net, Notification, protocol, safeStorage, screen, session, shell, type IpcMainInvokeEvent, type MenuItemConstructorOptions } from 'electron'
 import { appRequestHeaders, forwardWebRequest, serveWebDocument } from './web-document.ts'
 import { installAppDownloads } from './app-downloads.ts'
 import { claimDesktopSingleInstance } from './single-instance.ts'
+import { DesktopWindowStateStore, trackWindowState, visibleWindowBounds, type DesktopWorkArea } from './window-state.ts'
+import { readOpenAtLogin, writeOpenAtLogin } from './login-item.ts'
+import { deepLinkFromArgv, parseDeepLink, registerDeepLinkProtocol, type DesktopDeepLink } from './deep-link.ts'
 import { NEXT_PACKAGE, parseFeatures, profileName } from './profiles.ts'
 import { APP_URL, IPC, SHELL_URL } from './ipc.ts'
 import { WINDOWS_TITLEBAR_HEIGHT } from './windows-layout.ts'
 import { preferredDesktopLocale, resolveDesktopLocale } from './menu-locale.ts'
 import { NativeLocaleStore } from './native-locale.ts'
 import { NextDesktopRuntime } from './desktop-runtime.ts'
+import type { EnvLayer } from './env-file.ts'
 import { probeSystemProxy, type DesktopSystemProxyProbe } from './system-proxy.ts'
 import { resolveDesktopShellEnvironment } from './shell-environment.ts'
 import { ensureUtf8Locale } from './shell-locale.ts'
@@ -69,7 +73,7 @@ app.setName('Nonead DSH Desktop')
 // Keep one application owner across normal and safe launches, before switching
 // Chromium storage to the disposable environment.
 app.setPath('userData', normalElectronData)
-const ownsInstance = claimDesktopSingleInstance(app, openMain)
+const ownsInstance = claimDesktopSingleInstance(app, focusFromArguments)
 const safeModeRequested = process.argv.includes(SAFE_ARGUMENT)
 const safeElectronData = join(normalElectronData, 'safe-mode')
 if (ownsInstance) {
@@ -85,6 +89,12 @@ const electronData = ownsInstance && safeModeRequested ? safeElectronData : norm
 const nativeLocale = new NativeLocaleStore(safeModeRequested ? electronData : home)
 app.setPath('userData', electronData)
 app.setPath('sessionData', electronData)
+// macOS delivers protocol launches through `open-url`, which must be registered before `ready`.
+app.on('open-url', (event, url) => {
+  event.preventDefault()
+  const link = parseDeepLink(url)
+  if (link) handleDeepLink(link)
+})
 protocol.registerSchemesAsPrivileged([{ scheme: 'dsh-app', privileges: {
   standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true,
 } }])
@@ -106,6 +116,10 @@ let onboarding = false
 let onboardingSurfaceActive = false
 let onboardingComputerUse = false
 let relaunch: string[] | undefined
+/** Link waiting for the application or the page to become ready; one request at a time. */
+let pendingDeepLink: DesktopDeepLink | undefined
+// Geometry lives beside the normal userData, so a Safe Mode session never overwrites it.
+const windowState = new DesktopWindowStateStore(normalElectronData)
 let installingUpdate = false
 let systemProxy: DesktopSystemProxyProbe = {}
 let windowsLanguage = 'en'
@@ -118,8 +132,15 @@ try { dshVersion = readInstalledPackageVersion(root, '@deepseek-ai/dsh') } catch
 const t = (zh: string, en: string): string => windowsLanguage.toLowerCase().startsWith('zh') ? zh : en
 /** The bundled interpreter payload of this CPU: beside the archive when packaged, prepared by `prepare:runtime` in development. */
 const primaryRuntime = join(app.isPackaged ? join(process.resourcesPath, 'runtime') : join(root, '.desktop-build', 'runtime'), process.arch, 'primary-runtime')
+// Variables a user can edit without changing the system environment. They only fill
+// in what the real environment leaves unset; a packaged app has no repository to read.
+const hostEnvFiles: EnvLayer[] = [
+  { path: join(electronData, '.env'), label: 'user .env' },
+  ...(app.isPackaged ? [] : [{ path: join(dirname(root), '.env'), label: 'repository .env' }]),
+]
 const runtime = new NextDesktopRuntime({
   home, root, primaryRuntime, executable: process.execPath, addresses: () => [...desktopLanAddresses()], systemProxy: () => systemProxy,
+  envFiles: hostEnvFiles,
   ...(safeModeRequested ? { stateHome: electronData } : {}),
   certificate: async addresses => {
     try {
@@ -214,7 +235,7 @@ function state(): DesktopState {
       usingDefaultDirectory: home === defaultHome, error: String(error), diagnosticsFile, notice: recoveryNotice }
   }
   return { ...runtime.state(), recovery, onboarding, ...(onboarding ? { onboardingComputerUse } : {}), platform: process.platform, version, updates: updates.snapshot(),
-    trayAvailable: native.available, notificationsAvailable: Notification.isSupported() }
+    openAtLogin: readOpenAtLogin(app), trayAvailable: native.available, notificationsAvailable: Notification.isSupported() }
 }
 function run(value: DesktopCommand): void { void command(value, 'native').catch(error => runtime.report(error)) }
 
@@ -252,8 +273,19 @@ function show(window: BrowserWindow): void {
  */
 const WINDOWS_CAPTION_FILL = '#00000000'
 
+/** Work areas of the mounted displays, in the order Electron reports them. */
+function displayWorkAreas(): DesktopWorkArea[] {
+  // `screen` rejects calls before `ready`; the caller then keeps the creation defaults.
+  try { return screen.getAllDisplays().map(display => display.workArea) } catch { return [] }
+}
+
 function createWindow(preload: string, primary = false): BrowserWindow {
-  const window = new BrowserWindow({ width: 1280, height: 840, minWidth: 800, minHeight: 580,
+  // A saved geometry is reused only while it still overlaps a mounted display, so an
+  // unplugged monitor never restores the primary window outside every work area.
+  const restored = primary ? visibleWindowBounds(windowState.read(), displayWorkAreas()) : undefined
+  const window = new BrowserWindow({ width: restored?.bounds.width ?? 1280, height: restored?.bounds.height ?? 840,
+    ...(restored ? { x: restored.bounds.x, y: restored.bounds.y } : {}),
+    minWidth: 800, minHeight: 580,
     show: false, title: 'Nonead DSH Desktop',
     ...(process.platform !== 'darwin' ? { icon: unpackedPath(join(root, 'build', process.platform === 'win32' ? 'app-icon.ico' : 'app-icon.png')) } : {}),
     ...(!primary ? auxiliaryWindowChromeOptions() : {}),
@@ -293,7 +325,8 @@ function createWindow(preload: string, primary = false): BrowserWindow {
     runtime.diagnostics.record({ source: 'renderer', event: 'console', level: failure ? 'error' : level === 'warning' || level === 2 ? 'warn' : 'info',
       message: message.slice(0, 8192), developer: !failure, fields: { webContentsId: window.webContents.id } })
   })
-  window.once('ready-to-show', () => show(window))
+  // Maximize once the content is ready: doing it earlier flashes the restored normal size.
+  window.once('ready-to-show', () => { if (restored?.maximized) window.maximize(); show(window) })
   if (primary) {
     applyWindowMaterial(window, runtime.preferences)
     window.webContents.on('before-input-event', (event, input) => {
@@ -302,6 +335,15 @@ function createWindow(preload: string, primary = false): BrowserWindow {
     window.on('close', event => {
       if (!quitting && runtime.preferences.closeToTray && native.available) { event.preventDefault(); window.hide() }
       else if (!quitting) { event.preventDefault(); app.quit() }
+    })
+    // Bounds and the maximized flag are coalesced while dragging and written once more on close.
+    const stopTracking = trackWindowState(window, value => windowState.write(value))
+    window.on('closed', stopTracking)
+    // A link that arrived before the page could receive IPC is delivered once it has loaded.
+    window.webContents.on('did-finish-load', () => {
+      const link = pendingDeepLink
+      pendingDeepLink = undefined
+      if (link && mainWindow === window && !window.isDestroyed()) window.webContents.send(IPC.deepLink, link)
     })
   }
   const openExternal = (url: string): void => {
@@ -367,6 +409,36 @@ function openControls(page: 'general' | 'profiles' | 'create-profile' | 'tools' 
   shellWindow.on('closed', () => { shellWindow = undefined })
   void shellWindow.loadURL(url).catch(error => runtime.diagnostics.append(String(error), 'error'))
 }
+/** A later launch focuses the owner window and forwards any `dsh-desktop://` argument. */
+function focusFromArguments(argv: string[] = []): void {
+  openMain()
+  const link = deepLinkFromArgv(argv)
+  if (link) handleDeepLink(link)
+}
+
+/**
+ * Route one parsed `dsh-desktop://` link: focus the owner window, broadcast it to the renderer
+ * and open the shell page it names. A link that arrives before `ready` or before the page has
+ * loaded is queued and delivered once it can be received.
+ */
+function handleDeepLink(link: DesktopDeepLink): void {
+  if (!app.isReady() || quitting) { pendingDeepLink = link; return }
+  runtime.diagnostics.record({ source: 'electron', event: 'deep-link', fields: { action: link.action, path: link.segments.join('/') } })
+  // `settings` is the only action this shell owns; every other action stays a renderer request.
+  if (link.action === 'settings') {
+    const page = link.segments[0] ?? link.params.page
+    if (page === 'permissions') openSettings('permissions')
+    else if (page === 'general' || page === undefined) openSettings('general')
+    else if (page === 'profiles' || page === 'create-profile' || page === 'tools' || page === 'recovery') openControls(page)
+  }
+  openMain()
+  const owner = mainWindow
+  if (!owner || owner.isDestroyed() || owner.webContents.isLoading()) { pendingDeepLink = link; return }
+  pendingDeepLink = undefined
+  show(owner)
+  owner.webContents.send(IPC.deepLink, link)
+}
+
 function openMain(): void {
   if (quitting) return
   if (runtime.recoveryMode || runtime.state().phase === 'error') { openControls('recovery'); return }
@@ -469,9 +541,18 @@ async function performCommand(input: Record<string, unknown>, type: string, sour
     openControls(input.page as Parameters<typeof openControls>[0]); return
   }
   if (type === 'close-controls') { shellWindow?.close(); return }
+  if (type === 'set-open-at-login') {
+    if (typeof input.enabled !== 'boolean') throw new Error('Invalid open-at-login request')
+    if (runtime.safeMode) throw new Error(t('安全模式使用固定的桌面设置。', 'Safe Mode uses fixed desktop settings.'))
+    // The OS entry is the source of truth: the renderer re-reads state after this command.
+    writeOpenAtLogin(app, input.enabled)
+    return
+  }
   if (type === 'quit') { app.quit(); return }
-  if (['check-updates', 'download-update', 'install-update', 'retry-install-update'].includes(type)) {
+  if (['check-updates', 'download-update', 'install-update', 'retry-install-update', 'skip-update', 'clear-skipped-update'].includes(type)) {
     if (quitting || runtime.busy) return
+    if (type === 'skip-update') { updates.skip(); native.refresh(); return }
+    if (type === 'clear-skipped-update') { void updates.clearSkip().catch(error => runtime.diagnostics.append(String(error), 'warn')); return }
     if (type === 'check-updates') {
       void updates.check().then(async () => {
         if (source !== 'native' || quitting) return
@@ -783,6 +864,10 @@ async function recoveryAction(input: Record<string, unknown>): Promise<void> {
 async function main(): Promise<void> {
   await app.whenReady()
   if (quitting) return
+  // A packaged build claims the scheme itself; a source run registers this executable plus the
+  // application directory, which is the command a protocol launch then replays. Failure is
+  // non-fatal (the OS may reserve the scheme), so the shell keeps starting without it.
+  registerDeepLinkProtocol(app, app.isPackaged ? undefined : process.execPath, app.isPackaged ? undefined : [root])
   let inputRevision = 0
   let inputBlocked = false
   desktopShortcuts = installDesktopShortcuts(() => mainWindow, app.getPath('userData'),
@@ -1011,6 +1096,10 @@ async function main(): Promise<void> {
   if (runtime.recoveryMode) openControls('recovery')
   else { void runtime.start().catch(() => {}); openMain() }
   app.on('activate', openMain)
+  // Deliver a protocol launch (argv) or an `open-url` that arrived before a window existed.
+  const initialLink = pendingDeepLink ?? deepLinkFromArgv(process.argv)
+  pendingDeepLink = undefined
+  if (initialLink) handleDeepLink(initialLink)
   app.on('window-all-closed', () => { if (process.platform !== 'darwin' && !native.available && !replacingWindow) app.quit() })
 }
 

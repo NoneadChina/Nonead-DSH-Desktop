@@ -7,7 +7,7 @@ function fixture() {
     selected: 'desktop', profiles: ['desktop', 'work', 'broken'], unavailableProfiles: ['broken'],
     features: { market: true, remoteControl: false }, preferences: { ...DEFAULT_PREFERENCES },
     phase: 'ready', busy: false, failure: '', safeMode: false, home: '/fixture', platform: 'darwin', version: '0.1.0',
-    trayAvailable: true, notificationsAvailable: true, browserUrl: null, lan: null, checkpoint: null, logs: '',
+    trayAvailable: true, openAtLogin: false, notificationsAvailable: true, browserUrl: null, lan: null, checkpoint: null, logs: '',
   }
   const commands: DesktopCommand[] = []
   const links: DesktopBrowserLinks = { localUrl: null, lanUrls: [] }

@@ -77,6 +77,10 @@ function NextDesktopOptions({ adapter, state, language }: { adapter: NextSetting
   return <>
     {failure && <p role="alert" className="dshDesktopSettingsError">{failure}</p>}
     <NextUpdateSettings state={state} language={language} run={command => { void run(() => adapter.command(command)) }} />
+    <section className="dshDesktopSettingsGroup"><h3>{t('启动', 'Startup')}</h3>
+      <DesktopSettingsToggleRow label={t('登录系统时自动启动', 'Open at login')} checked={state.openAtLogin} disabled={busy || state.busy || state.safeMode} onChange={enabled => { void run(() => adapter.command({ type: 'set-open-at-login', enabled })) }} />
+      <p className="dshDesktopSettingsHint">{t('登录系统后自动启动应用，并保持窗口在后台。', 'Start the application after you sign in and keep it running in the background.')}</p>
+    </section>
     <section className="dshDesktopSettingsGroup"><h3>{t('后台运行', 'Background operation')}</h3>
       <DesktopSettingsToggleRow label={t('关闭窗口后保持后台运行', 'Keep running after closing the window')} checked={state.preferences.closeToTray} disabled={busy || state.busy || state.safeMode} onChange={closeToTray => { void run(() => adapter.savePreferences({ closeToTray })) }} />
       <p className="dshDesktopSettingsHint">{state.trayAvailable ? t('可从托盘重新打开窗口。', 'Reopen the window from the tray.') : t('系统托盘不可用，关闭主窗口将退出应用。', 'The tray is unavailable; closing the main window quits the application.')}</p>

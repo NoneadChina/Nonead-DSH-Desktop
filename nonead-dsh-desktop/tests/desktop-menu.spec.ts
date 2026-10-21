@@ -7,7 +7,7 @@ const state: DesktopState = {
   selected: 'desktop', profiles: ['desktop', 'work', 'broken'], unavailableProfiles: ['broken'],
   preferences: { ...DEFAULT_PREFERENCES }, features: { market: true, remoteControl: false },
   phase: 'ready', busy: false, failure: '', safeMode: false, home: '/fixture', platform: 'darwin',
-  version: '0.1.0-dev.0', trayAvailable: true, notificationsAvailable: true,
+  version: '0.1.0-dev.0', openAtLogin: false, trayAvailable: true, notificationsAvailable: true,
   browserUrl: null, lan: null, checkpoint: null, logs: '',
 }
 

@@ -56,7 +56,10 @@ export function apply(ctx: Context): void {
         dshMarket: snapshot.input.market === 'dsh-market',
         remoteControl: snapshot.input.aaEnabled ?? false,
       },
-      onboardingComputerUse: snapshot.computerUse ?? false,
+      // Pass the stored flag through unchanged: `undefined` means the Profile never
+      // recorded one, and the wizard's own documented default then keeps Computer Use
+      // on instead of this hand-off turning it off behind the user's back.
+      onboardingComputerUse: snapshot.computerUse,
     },
     bridge: {
       permissions: window.desktopNext?.permissions,

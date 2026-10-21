@@ -1,6 +1,6 @@
 /** Serializable update progress shared by settings, recovery and the tray. */
 export interface NextUpdateState {
-  phase: 'idle' | 'checking' | 'current' | 'available' | 'downloading' | 'preparing' | 'ready' | 'installing' | 'error'
+  phase: 'idle' | 'checking' | 'current' | 'available' | 'skipped' | 'downloading' | 'preparing' | 'ready' | 'installing' | 'error'
   version?: string
   received?: number
   total?: number
@@ -19,6 +19,8 @@ export function updateLabel(state: NextUpdateState, language: string): string {
     case 'checking': return t('正在检查更新…', 'Checking for updates…')
     case 'current': return t('已是最新版本', 'Up to date')
     case 'available': return t(`发现新版本 ${state.version}`, `Update available: ${state.version}`)
+    // The user dismissed this exact release; a newer one is offered again.
+    case 'skipped': return t(`已跳过版本 ${state.version}`, `Version ${state.version} skipped`)
     case 'downloading': {
       const progress = state.total ? `${Math.min(100, Math.floor((state.received ?? 0) / state.total * 100))}%` : `${Math.floor((state.received ?? 0) / 1048576)} MB`
       return t(`正在下载更新 ${progress}`, `Downloading update ${progress}`)
@@ -42,6 +44,7 @@ export function updateAction(state: NextUpdateState): 'check-updates' | 'downloa
   // Retry an install that kept its package in place instead of replacing it with a new download.
   if (state.phase === 'error' && state.error === 'install' && state.retryInstall) return 'retry-install-update'
   if (state.phase === 'available' || state.phase === 'error' && state.version && state.error !== 'service') return 'download-update'
-  if (['idle', 'current', 'error'].includes(state.phase)) return 'check-updates'
+  // A skipped release still offers a manual check, which re-reads the service for a newer one.
+  if (['idle', 'current', 'error', 'skipped'].includes(state.phase)) return 'check-updates'
   return undefined
 }

@@ -5,6 +5,7 @@ import { checkForDesktopUpdate, type UpdateCheckResult, type UpdateRequest } fro
 import { desktopUpdateFilename, downloadDesktopUpdate, type UpdateArtifactRequest } from '../../dsh-plugin-desktop-beta/src/update-download.ts'
 import { getOrCreateDesktopInstallationId } from '../../dsh-plugin-desktop-beta/src/desktop-installation-id.ts'
 import { privateDirectory } from './private-files.ts'
+import { clearSkippedVersion, readSkippedVersion, writeSkippedVersion } from './update-skip.ts'
 import type { NextUpdateState } from './update-state.ts'
 
 export interface NextUpdateOptions {
@@ -30,6 +31,8 @@ export class NextUpdates {
   private timer?: ReturnType<typeof setTimeout>
   private directory?: string
   private cacheReady?: Promise<void>
+  /** Release the user dismissed; it stays hidden until a newer version is published. */
+  private skipped?: string
   private disposed = false
   constructor(private readonly options: NextUpdateOptions) {
     this.state = { phase: 'idle', installable: options.packaged && ['darwin', 'win32'].includes(options.platform) }
@@ -39,6 +42,8 @@ export class NextUpdates {
     return this.cacheReady ??= (async () => {
       const cache = join(this.options.userData, 'next-updates')
       privateDirectory(cache)
+      // The skip decision is read once per process, before the first check can offer that release.
+      this.skipped = readSkippedVersion(this.options.userData, this.options.log)
       // One primary process owns this userData tree. Clean our previous process's
       // completed installers/partial files; never delete arbitrary files in userData.
       for (const entry of await readdir(cache, { withFileTypes: true })) {
@@ -60,8 +65,9 @@ export class NextUpdates {
     const poll = (): void => {
       if (this.disposed) return
       // A retryable install failure is waiting for the user; a background recheck would replace the
-      // kept retry state with a fresh download offer.
-      if (['idle', 'current', 'error'].includes(this.state.phase) && !this.state.retryInstall) void this.check()
+      // kept retry state with a fresh download offer. A skipped release keeps polling so a newer
+      // version still surfaces without user action.
+      if (['idle', 'current', 'error', 'skipped'].includes(this.state.phase) && !this.state.retryInstall) void this.check()
       this.timer = setTimeout(poll, 6 * 60 * 60_000); this.timer.unref()
     }
     this.timer = setTimeout(poll, 30_000); this.timer.unref()
@@ -88,6 +94,18 @@ export class NextUpdates {
     return checkForDesktopUpdate({ currentVersion: this.options.version, channel: 'stable', installationId,
       request: this.options.request, signal: AbortSignal.any([signal, AbortSignal.timeout(20_000)]) })
   }
+  /** Record what one successful service answer means for this user, honoring a skipped release. */
+  private offer(result: UpdateCheckResult): void {
+    if (result.status !== 'update-available') { this.set({ phase: 'current', version: result.latestVersion }); return }
+    // A newer release supersedes the skip, so the stale record is dropped instead of hiding it later.
+    if (this.skipped && this.skipped !== result.latestVersion) {
+      try { clearSkippedVersion(this.options.userData) } catch (error) { this.options.log(error) }
+      this.skipped = undefined
+    }
+    this.set(this.skipped === result.latestVersion
+      ? { phase: 'skipped', version: result.latestVersion }
+      : { phase: 'available', version: result.latestVersion })
+  }
   check(): Promise<void> {
     if (this.state.phase === 'ready' || this.state.phase === 'installing') return Promise.resolve()
     return this.run(async signal => {
@@ -95,7 +113,7 @@ export class NextUpdates {
       try {
         this.result = await this.query(signal) ?? undefined
         if (!this.result) { this.set({ phase: 'error', error: 'service', version: undefined }); return }
-        this.set({ phase: this.result.status === 'update-available' ? 'available' : 'current', version: this.result.latestVersion })
+        this.offer(this.result)
       } catch (error) { this.options.log(error); this.set({ phase: 'error', error: 'service' }) }
     })
   }
@@ -112,7 +130,8 @@ export class NextUpdates {
         const result = await this.query(signal)
         if (!result) { this.set({ phase: 'error', error: 'service' }); return }
         this.result = result
-        if (result.status !== 'update-available') { this.set({ phase: 'current', version: result.latestVersion }); return }
+        // A skipped release is never downloaded, even if an action was armed before the skip.
+        if (result.status !== 'update-available' || this.skipped === result.latestVersion) { this.offer(result); return }
         const platform = this.options.platform as 'darwin' | 'win32'
         const cache = join(this.options.userData, 'next-updates'); privateDirectory(cache)
         if (this.directory) await rm(this.directory, { recursive: true, force: true })
@@ -136,6 +155,21 @@ export class NextUpdates {
         this.set({ phase: 'error', error: preparing ? 'prepare' : 'download' })
       }
     })
+  }
+  /** Dismiss the offered release until a newer one is published; the decision survives restarts. */
+  skip(): void {
+    if (this.disposed || this.state.phase !== 'available' || !this.state.version) return
+    const version = this.state.version
+    try { writeSkippedVersion(this.options.userData, version) } catch (error) { this.options.log(error); return }
+    this.skipped = version
+    this.set({ phase: 'skipped', version })
+  }
+  /** Undo a skip, so the still-current release is offered again right away. */
+  async clearSkip(): Promise<void> {
+    if (this.disposed) return
+    try { clearSkippedVersion(this.options.userData) } catch (error) { this.options.log(error); return }
+    this.skipped = undefined
+    if (this.state.phase === 'skipped') await this.check()
   }
   async install(): Promise<void> {
     if (this.disposed || this.state.phase !== 'ready') return
