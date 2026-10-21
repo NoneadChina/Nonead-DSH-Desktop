@@ -154,6 +154,11 @@ export type MarketOperationPreviewRequest =
       /** A removable package name from the current Profile inventory; the Host rechecks it before each step. */
       readonly packageName: string
     }
+  | {
+      readonly action: 'install-spec'
+      /** A bare npm package name typed into the market's own add-plugin entry; the Host re-parses it. */
+      readonly spec: string
+    }
 
 /** Host-verified facts shown before the user confirms a package mutation. */
 export interface MarketOperationPreviewResponse {

@@ -38,6 +38,12 @@ import type {
   MarketStateResponse,
 } from '../api-types.js'
 import { marketMediaAssetUrl } from '../media/ref.js'
+import { parseMarketPluginSpec, type MarketPluginSpecRejection } from '../plugin-spec.js'
+import {
+  marketMediaPreviewsOf,
+  type MarketMediaKind,
+  type MarketMediaPreview,
+} from './media-preview.js'
 import {
   executeMarketOperation,
   mutateMarketSource,
@@ -139,14 +145,42 @@ function catalogFailureMessage(
   return `${t('catalogFailureSource')}: ${source.name}. ${reason}`
 }
 
+/** Locale label of a media slot the browser cannot render inline as an image. */
+function mediaKindLabel(kind: MarketMediaKind, t: MarketSettingsTabProps['t']): string {
+  switch (kind) {
+    case 'video': return t('mediaKindVideo')
+    case 'audio': return t('mediaKindAudio')
+    case 'pdf': return t('mediaKindPdf')
+    case 'archive': return t('mediaKindArchive')
+    case 'document': return t('mediaKindDocument')
+    case 'other': return t('mediaKindOther')
+    case 'image': return t('mediaKindImage')
+  }
+}
+
+/**
+ * Placeholder for a non-image media slot on the card list. The card itself is
+ * a button, so the badge is not interactive; the detail view exposes the link.
+ */
+function PluginMediaBadge({ preview }: { preview: MarketMediaPreview }) {
+  const extension = preview.extension?.toUpperCase()
+  return (
+    <span className="dshMarketMediaBadge" title={preview.name ?? extension}>
+      {extension ?? <IconDataOutlineRegular size={18} />}
+    </span>
+  )
+}
+
 function PluginIcon({ item, large = false }: { item: MarketItem; large?: boolean }) {
-  const icon = item.media?.icon
+  const [preview] = marketMediaPreviewsOf(item)
+  const usable = preview !== undefined && preview.kind === 'image'
   return (
     <div className={large ? 'dshMarketGlyph dshMarketGlyphLarge' : 'dshMarketGlyph'}>
       <IconCordisPluginOutlineRegular size={large ? 28 : 20} />
-      {icon !== undefined && (
+      {preview !== undefined && !usable && <PluginMediaBadge preview={preview} />}
+      {preview !== undefined && usable && (
         <img
-          src={marketMediaAssetUrl(icon.assetRef)}
+          src={marketMediaAssetUrl(preview.assetRef)}
           alt=""
           loading="lazy"
           decoding="async"
@@ -156,6 +190,45 @@ function PluginIcon({ item, large = false }: { item: MarketItem; large?: boolean
       )}
     </div>
   )
+}
+
+/**
+ * Media slots beyond the inline icon. The detail view links each of them to the
+ * Host asset route so the system handler opens it with the default program; the
+ * card list stays non-interactive and only shows the type badge.
+ */
+function ItemMediaStrip({ item, t }: { item: MarketItem; t: MarketSettingsTabProps['t'] }) {
+  const previews = marketMediaPreviewsOf(item).filter(preview => preview.kind !== 'image')
+  if (previews.length === 0) return null
+  return (
+    <div className="dshMarketMediaStrip">
+      <span className="dshMarketMediaStripLabel">{t('mediaAttachments')}</span>
+      {previews.map(preview => (
+        <a
+          key={preview.assetRef}
+          className="dshMarketMediaLink"
+          href={marketMediaAssetUrl(preview.assetRef)}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={preview.name ?? mediaKindLabel(preview.kind, t)}
+        >
+          <span className="dshMarketMediaKind">{mediaKindLabel(preview.kind, t)}</span>
+          {preview.name !== undefined && <span className="dshMarketMediaName">{preview.name}</span>}
+          {preview.size !== undefined && <span className="dshMarketMediaSize">{preview.size}</span>}
+        </a>
+      ))}
+    </div>
+  )
+}
+
+/** Locale message for a value the add-plugin entry rejected before any Host call. */
+function addPluginRejectionMessage(reason: MarketPluginSpecRejection, t: MarketSettingsTabProps['t']): string {
+  switch (reason) {
+    case 'empty': return t('addPluginRejectEmpty')
+    case 'too-long': return t('addPluginRejectTooLong')
+    case 'version-pinned': return t('addPluginRejectVersionPinned')
+    case 'invalid-name': return t('addPluginRejectInvalidName')
+  }
 }
 
 export type MarketSettingsTabProps = PropsRuntime<'settings.plugins.tab'>
@@ -260,6 +333,10 @@ export function MarketSurface({ initialView = 'installable', readLocale, t, show
   const [selected, setSelected] = useState<VisibleItem>()
   const [addOpen, setAddOpen] = useState(false)
   const [manifestUrl, setManifestUrl] = useState('')
+  const [addPluginOpen, setAddPluginOpen] = useState(false)
+  const [addPluginSpec, setAddPluginSpec] = useState('')
+  const [addPluginRejection, setAddPluginRejection] = useState<MarketPluginSpecRejection>()
+  const [addPluginPending, setAddPluginPending] = useState(false)
   const [mutationError, setMutationError] = useState<string>()
   const [mutationPending, setMutationPending] = useState(false)
   const [installations, setInstallations] = useState<readonly MarketInstallationView[]>([])
@@ -715,7 +792,7 @@ export function MarketSurface({ initialView = 'installable', readLocale, t, show
     }
   }
 
-  const beginOperationPreview = async (requestValue: MarketOperationPreviewRequest) => {
+  const beginOperationPreview = async (requestValue: MarketOperationPreviewRequest): Promise<MarketOperationPreviewResponse | undefined> => {
     if (operationRequest.current !== undefined) return
     const request = new AbortController()
     operationRequest.current = request
@@ -728,9 +805,12 @@ export function MarketSurface({ initialView = 'installable', readLocale, t, show
     try {
       const preview = await previewMarketOperation(requestValue, request.signal)
       if (request.signal.aborted || operationRequest.current !== request) return
-      if (preview.action !== requestValue.action) throw new Error('operation preview action mismatch')
+      // A package typed into the add-plugin entry previews as a normal install.
+      const expected = requestValue.action === 'uninstall' ? 'uninstall' : 'install'
+      if (preview.action !== expected) throw new Error('operation preview action mismatch')
       setInstallationsUnavailable(false)
       setOperationPreview(preview)
+      return preview
     } catch (cause) {
       if (request.signal.aborted || operationRequest.current !== request) return
       if (isDesktopUnavailable(cause)) {
@@ -738,9 +818,9 @@ export function MarketSurface({ initialView = 'installable', readLocale, t, show
         setInstallationsError(t('desktopUnavailable'))
         setOperationError(t('desktopUnavailable'))
       } else {
-        setOperationError(operationErrorMessage(cause, t(requestValue.action === 'install'
-          ? 'previewError'
-          : 'uninstallPreviewError')))
+        setOperationError(operationErrorMessage(cause, t(requestValue.action === 'uninstall'
+          ? 'uninstallPreviewError'
+          : 'previewError')))
       }
     } finally {
       if (operationRequest.current === request) {
@@ -749,6 +829,32 @@ export function MarketSurface({ initialView = 'installable', readLocale, t, show
         setOperationPending(false)
       }
     }
+    return undefined
+  }
+
+  /**
+   * Add-plugin entry: narrow the typed value to a bare npm package name, then
+   * reuse the shared install preview. The dialog only closes once the Host has
+   * answered, so a rejected verification stays visible next to the input.
+   */
+  const submitAddPlugin = () => {
+    if (addPluginPending) return
+    const parsed = parseMarketPluginSpec(addPluginSpec)
+    if (!parsed.ok) {
+      setAddPluginRejection(parsed.reason)
+      return
+    }
+    setAddPluginRejection(undefined)
+    setAddPluginPending(true)
+    setSelected(undefined)
+    selectedKeyRef.current = undefined
+    void beginOperationPreview({ action: 'install-spec', spec: parsed.packageName })
+      .then(preview => {
+        if (preview === undefined) return
+        setAddPluginSpec('')
+        setAddPluginOpen(false)
+      })
+      .finally(() => { setAddPluginPending(false) })
   }
 
   const openItem = (value: VisibleItem) => {
@@ -981,6 +1087,9 @@ export function MarketSurface({ initialView = 'installable', readLocale, t, show
                 </a>
               )}
         </Pill>
+        <Pill className="dshMarketAddPlugin" onClick={() => { setAddPluginOpen(true) }}>
+          <IconPlusOutlineRegular size={14} /><span>{t('addPlugin')}</span>
+        </Pill>
       </div>
       <main className="dshMarketMain">
         {view === 'discover' ? (
@@ -1163,6 +1272,50 @@ export function MarketSurface({ initialView = 'installable', readLocale, t, show
             onChange={event => setManifestUrl(event.currentTarget.value)}
           />
           {mutationError !== undefined && <div className="dshMarketError" role="alert">{mutationError}</div>}
+        </div>
+      </Modal>
+      <Modal
+        open={addPluginOpen}
+        className="dshMarketModal dshMarketSourceModal"
+        contentClassName="dshMarketModalContent"
+        onClose={() => { if (!addPluginPending) setAddPluginOpen(false) }}
+        title={t('addPlugin')}
+        closeLabel={t('cancel')}
+        description={t('addPluginDescription')}
+        footer={<div className="dshMarketModalActions">
+          <Button variant="ghost" disabled={addPluginPending} onClick={() => setAddPluginOpen(false)}>{t('cancel')}</Button>
+          <Button
+            variant="primary"
+            icon={<IconPlusOutlineRegular />}
+            disabled={addPluginPending || addPluginSpec.trim().length === 0}
+            onClick={submitAddPlugin}
+          >{t('addPluginSubmit')}</Button>
+        </div>}
+      >
+        <div className="dshMarketModalField">
+          <label htmlFor="dsh-market-package">{t('addPluginPackageLabel')}</label>
+          <Input
+            id="dsh-market-package"
+            value={addPluginSpec}
+            disabled={addPluginPending}
+            placeholder={t('addPluginPlaceholder')}
+            onChange={event => {
+              setAddPluginSpec(event.currentTarget.value)
+              setAddPluginRejection(undefined)
+            }}
+          />
+          <p className="dshMarketModalHint">{t('addPluginHint')}</p>
+          {addPluginRejection !== undefined && (
+            <div className="dshMarketError" role="alert">{addPluginRejectionMessage(addPluginRejection, t)}</div>
+          )}
+          {addPluginRejection === undefined && addPluginPending && (
+            <div className="dshMarketOperationProgress" role="status">
+              <StateDot state="ongoing" size={12} />{t('checkingInstallMethod')}
+            </div>
+          )}
+          {addPluginRejection === undefined && !addPluginPending && operationError !== undefined && (
+            <div className="dshMarketError" role="alert">{operationError}</div>
+          )}
         </div>
       </Modal>
     </section>
@@ -2036,6 +2189,7 @@ function ItemActionModal({
               <PluginIcon item={value.item} large />
               <p>{value.item.description ?? value.item.summary}</p>
             </div>
+            <ItemMediaStrip item={value.item} t={t} />
             {inventoryLoading && (
               <div className="dshMarketOperationProgress" role="status">
                 <StateDot state="ongoing" size={12} />{t('loadingInstallations')}

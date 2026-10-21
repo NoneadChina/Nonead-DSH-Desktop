@@ -375,6 +375,7 @@ function asMutation(value: unknown): MarketSourceMutation {
 type MarketOperationPreviewRequest =
   | { readonly action: 'install'; readonly sourceRecordId: string; readonly itemId: string }
   | { readonly action: 'uninstall'; readonly packageName: string }
+  | { readonly action: 'install-spec'; readonly spec: string }
 
 function exactKeys(value: Record<string, unknown>, keys: readonly string[]): boolean {
   const actual = Object.keys(value).sort()
@@ -401,6 +402,11 @@ function asOperationPreview(value: unknown): MarketOperationPreviewRequest {
     && exactKeys(request, ['action', 'packageName'])
     && boundedIdentifier(request.packageName)
   ) return { action: 'uninstall', packageName: request.packageName }
+  if (
+    request.action === 'install-spec'
+    && exactKeys(request, ['action', 'spec'])
+    && boundedIdentifier(request.spec)
+  ) return { action: 'install-spec', spec: request.spec }
   throw new MarketInstallError('invalid-request', 'Invalid package operation preview request.')
 }
 
@@ -1024,7 +1030,9 @@ export function registerMarketRoutes(
           }
           const preview = request.action === 'install'
             ? await install.previewInstall(request.sourceRecordId, request.itemId, signal)
-            : await install.previewUninstallPackage(request.packageName, signal)
+            : request.action === 'install-spec'
+              ? await install.previewSpecInstall(request.spec, signal)
+              : await install.previewUninstallPackage(request.packageName, signal)
           const { intent, ...summary } = preview
           if (!signal.aborted && !res.destroyed) sendJson(res, 200, { ...summary, previewId: intent })
         } catch (cause) {

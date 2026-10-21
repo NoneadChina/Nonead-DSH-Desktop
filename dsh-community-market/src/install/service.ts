@@ -20,6 +20,7 @@ import {
   githubPackageTarget,
   type GitHubPackageVerification,
 } from './github.js'
+import { parseMarketPluginSpec } from '../plugin-spec.js'
 import { manualInstallHints } from './manual.js'
 
 const NPM_REGISTRY_ORIGIN = 'https://registry.npmjs.org'
@@ -45,6 +46,12 @@ const DESKTOP_BUILT_IN_BUNDLES = new Set([
 ])
 /** DeepSeek's own packages are official plugins whatever the manager's catalog flags say. */
 const OFFICIAL_SCOPE = '@deepseek-ai/'
+/**
+ * Synthetic source identity for a package typed into the market's add-plugin
+ * entry. It never matches a catalog source record, so invalidating a source
+ * cannot drop a candidate the user submitted by hand.
+ */
+const SPEC_INSTALL_SOURCE_ID = 'market-spec-input'
 
 export interface MarketDesktopProfile {
   readonly name: string
@@ -520,6 +527,71 @@ export class MarketInstallService {
     this.assertOpen()
     if (this.candidates.get(key) !== candidate) {
       throw new MarketInstallError('not-available', 'The catalog source changed during verification. Refresh it and try again.')
+    }
+    const token = this.issueIntent({
+      kind: 'install',
+      candidate,
+      verification,
+      profile,
+      expiresAt: this.now() + this.intentTtlMs,
+    })
+    const packageName = verification.packageName ?? candidate.packageName
+    if (packageName === undefined || !safePackageName(packageName)) {
+      throw new MarketInstallError('verification-failed', 'The verified package name is invalid.')
+    }
+    await this.assertNotInstalled(packageName)
+    return {
+      intent: token,
+      action: 'install',
+      profileName: profile.name,
+      packageName,
+      version: verification.version,
+      displayName: candidate.displayName,
+      expiresAt: new Date(this.now() + this.intentTtlMs).toISOString(),
+    }
+  }
+
+  /**
+   * Preview installing a package the catalog does not list, for the market's
+   * add-plugin entry. The submitted value is narrowed to a bare npm package
+   * name, resolved to the registry's latest version through the same verifier a
+   * catalog item uses, and kept as a synthetic candidate so confirmation and
+   * execution stay on the shared preview/execute path.
+   */
+  async previewSpecInstall(spec: string, signal: AbortSignal): Promise<MarketInstallPreview> {
+    const operationSignal = this.operationSignal(signal)
+    operationSignal.throwIfAborted()
+    this.purge()
+    const parsed = parseMarketPluginSpec(spec)
+    if (!parsed.ok) {
+      throw new MarketInstallError('invalid-request', 'Enter a bare npm package name, without a version or a path.')
+    }
+    if (!marketManagedPackage(parsed.packageName)) {
+      throw new MarketInstallError('not-available', 'This package belongs to the product and cannot be installed from the market.')
+    }
+    const profile = this.profile()
+    await this.assertNotInstalled(parsed.packageName)
+    const candidate: InstallCandidate = {
+      key: candidateKey(SPEC_INSTALL_SOURCE_ID, parsed.packageName),
+      sourceRecordId: SPEC_INSTALL_SOURCE_ID,
+      providerId: SPEC_INSTALL_SOURCE_ID,
+      itemId: parsed.packageName,
+      displayName: parsed.packageName,
+      packageName: parsed.packageName,
+      savedAt: this.now(),
+    }
+    this.candidates.set(candidate.key, candidate)
+    this.trim(this.candidates, this.maxCandidates)
+    let verification: MarketPackageVerification
+    try { verification = await this.verifier.verify(candidate, operationSignal) }
+    catch (cause) {
+      operationSignal.throwIfAborted()
+      throw cause
+    }
+    operationSignal.throwIfAborted()
+    this.assertOpen()
+    if (this.candidates.get(candidate.key) !== candidate) {
+      throw new MarketInstallError('not-available', 'The package could not be kept for confirmation. Try again.')
     }
     const token = this.issueIntent({
       kind: 'install',
