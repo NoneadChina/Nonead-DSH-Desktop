@@ -184,6 +184,10 @@ const updates = new NextUpdates({ version, platform: process.platform, packaged:
     runtime.busy = true; native.refresh()
     try {
       await updateInstaller.stage()
+      // Start the native installer before asking the app to quit. Shutdown can overrun its grace
+      // while the Host is still tearing down, and a timed-out quit exits before the post-shutdown
+      // handoff, which left the window closed with no installer ever running.
+      await updateInstaller.launch()
       if (!quitting) { installingUpdate = true; app.quit() }
     } finally { runtime.busy = false; if (!quitting) native.refresh() }
   },

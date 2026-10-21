@@ -35,12 +35,13 @@ export function nextInstallerArguments(platform: string): readonly string[] {
 export class NextUpdateInstaller {
   private prepared?: { path: string; version: string; archive?: string }
   private nativeReady = false
+  private launched = false
   // Keep EventEmitter errors handled even if a timed-out native operation finishes later.
   constructor(private readonly options: { platform: string; executable: string; log(error: unknown): void }) {
     if (options.platform === 'darwin') autoUpdater.on('error', options.log)
   }
   async prepare(path: string, version: string, directory: string, signal: AbortSignal): Promise<void> {
-    this.prepared = undefined; this.nativeReady = false
+    this.prepared = undefined; this.nativeReady = false; this.launched = false
     if (this.options.platform === 'win32') {
       const script = '$ErrorActionPreference="Stop"; (Get-Item -LiteralPath $env:DSH_UPDATE_INSTALLER).VersionInfo | Select-Object ProductName,ProductVersion | ConvertTo-Json -Compress'
       const info = await execute(join(process.env.SystemRoot ?? 'C:\\Windows', 'System32/WindowsPowerShell/v1.0/powershell.exe'),
@@ -105,8 +106,15 @@ export class NextUpdateInstaller {
       })
     } finally { await feed.close() }
   }
-  /** Called after the Host and windows have finished shutting down. */
+  /**
+   * Called after the Host and windows have finished shutting down, and again from the Install action
+   * before it asks the app to quit. Launching early matters because the shutdown grace can expire
+   * while the Host is still tearing down, and a timed-out quit exits without ever reaching the
+   * post-shutdown handoff. Repeat calls are no-ops so the installer never starts twice.
+   */
   async launch(): Promise<void> {
+    if (this.launched) return
+    this.launched = true
     if (this.options.platform === 'darwin' && this.nativeReady) { autoUpdater.quitAndInstall(); return }
     if (this.options.platform !== 'win32' || !this.prepared) throw new Error('No prepared update installer')
     await new Promise<void>((resolve, reject) => {

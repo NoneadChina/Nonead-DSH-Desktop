@@ -329,8 +329,12 @@ it.each(['normal', '--next-safe-mode'])('stages an explicit update before hiding
     await fixture.handlers.get('nonead-dsh-desktop:command')!(sender, { type: 'install-update' })
     expect(stage).toHaveBeenCalledOnce(); expect(fixture.close).not.toHaveBeenCalled(); expect(window.visible).toBe(true)
     stageReady()
+    // The installer must start before the quit begins: a shutdown that overruns its grace used to
+    // exit before ever reaching the post-shutdown handoff, leaving the window closed with nothing
+    // running. Repeat calls stay no-ops, so the handoff below must not start it a second time.
+    await vi.waitFor(() => expect(launch).toHaveBeenCalledOnce())
     await vi.waitFor(() => expect(fixture.close).toHaveBeenCalledOnce())
-    expect(window.visible).toBe(false); expect(launch).not.toHaveBeenCalled()
+    expect(window.visible).toBe(false)
     closed()
     await vi.waitFor(() => expect(launch).toHaveBeenCalledOnce())
   } finally {
