@@ -1,6 +1,6 @@
 {
   "name": "nonead-dsh-desktop",
-  "version": "2.1.12",
+  "version": "2.1.13",
   "private": true,
   "description": "Experimental upstream-inspired DSH Desktop with Profiles, recovery, remote control and Community Market",
   "license": "MIT",
