@@ -18,8 +18,21 @@ export const DESKTOP_RELEASE_CHANNEL_HEADER = 'X-DSH-Desktop-Channel'
 /** Release streams supported by the Desktop service. */
 export type DesktopReleaseChannel = 'stable' | 'beta' | 'next'
 
-/** Maximum response body bytes accepted from the version service. */
-export const MAX_VERSION_RESPONSE_BYTES = 4 * 1024
+/**
+ * Maximum response body bytes accepted from the version service.
+ *
+ * The endpoint also carries an optional plain-text release summary (`notes`, capped at
+ * `MAX_UPDATE_NOTES_CHARACTERS`). Worst-case UTF-8 uses three bytes per character, JSON escaping
+ * adds a little more, and the remaining fields are tiny. 64 KiB therefore keeps a full-size answer
+ * far below the limit while still rejecting an unexpected page or a runaway upstream payload.
+ */
+export const MAX_VERSION_RESPONSE_BYTES = 64 * 1024
+
+/** Maximum characters accepted for the optional plain-text release summary. */
+export const MAX_UPDATE_NOTES_CHARACTERS = 4000
+
+/** Maximum characters accepted for the optional complete release-notes URL. */
+export const MAX_UPDATE_NOTES_URL_CHARACTERS = 2048
 
 /** Strictly parsed SemVer components. Numeric components remain strings to avoid overflow. */
 export interface ParsedSemVer {
@@ -73,6 +86,13 @@ export type UpdateCheckResult = {
    * the version endpoint does not publish digests yet.
    */
   readonly installerSha256?: Readonly<Partial<Record<'win32' | 'darwin', string>>>
+  /**
+   * Optional plain-text summary of `latestVersion`. Absent whenever the service publishes nothing
+   * usable, so a response that only carries `version` keeps working unchanged.
+   */
+  readonly notes?: string
+  /** Optional absolute `https` page with the complete release notes for `latestVersion`. */
+  readonly notesUrl?: string
 }
 
 const SEMVER_PATTERN =
@@ -159,16 +179,17 @@ export async function checkForDesktopUpdate(
     return null
   }
 
-  let digestInput: unknown
+  let responseValue: unknown
   try {
-    digestInput = JSON.parse(body)
+    responseValue = JSON.parse(body)
   } catch {
-    digestInput = undefined
+    responseValue = undefined
   }
   const latest = parseVersionResponse(body, options.channel)
   if (latest === null) return null
   const comparison = compareParsedSemVer(latest, current)
-  const digests = parseInstallerDigestResponse(digestInput)
+  const digests = parseInstallerDigestResponse(responseValue)
+  const releaseNotes = parseReleaseNotesResponse(responseValue)
   return {
     status: comparison > 0 || (options.allowDowngrade === true && comparison !== 0)
       ? 'update-available'
@@ -176,6 +197,8 @@ export async function checkForDesktopUpdate(
     currentVersion: current.version,
     latestVersion: latest.version,
     ...(digests === undefined ? {} : { installerSha256: digests }),
+    ...(releaseNotes.notes === undefined ? {} : { notes: releaseNotes.notes }),
+    ...(releaseNotes.notesUrl === undefined ? {} : { notesUrl: releaseNotes.notesUrl }),
   }
 }
 
@@ -300,6 +323,53 @@ function parseInstallerDigestResponse(value: unknown): UpdateCheckResult['instal
   if (windows !== undefined) digests.win32 = windows
   if (mac !== undefined) digests.darwin = mac
   return Object.keys(digests).length > 0 ? digests : undefined
+}
+
+/**
+ * Extract the optional release-note fields from the parsed version response. Each field is judged
+ * on its own: a malformed summary must not hide a valid link, and neither may turn a successful
+ * version check into a failure when the service predates these fields.
+ */
+function parseReleaseNotesResponse(value: unknown): Pick<UpdateCheckResult, 'notes' | 'notesUrl'> {
+  if (!isRecord(value)) return {}
+  const notes = parseReleaseNoteText(value.notes)
+  const notesUrl = parseReleaseNoteUrl(value.notesUrl)
+  return {
+    ...(notes === undefined ? {} : { notes }),
+    ...(notesUrl === undefined ? {} : { notesUrl }),
+  }
+}
+
+/**
+ * Validate the plain-text summary. An over-long, empty, or control-character-laden value is treated
+ * as "no notes" rather than truncated, so the card never renders half a release note.
+ */
+function parseReleaseNoteText(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const text = value.trim()
+  if (text.length === 0 || text.length > MAX_UPDATE_NOTES_CHARACTERS) return undefined
+  // The card renders the text verbatim: allow ordinary whitespace (tab, line feed, carriage
+  // return) but reject the remaining C0 controls and DEL.
+  if (/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u.test(text)) return undefined
+  return text
+}
+
+/**
+ * Validate the complete-notes link. Only an absolute `https` URL without embedded credentials may
+ * reach `window.open`; anything else (http, other schemes, relative paths) is dropped.
+ */
+function parseReleaseNoteUrl(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const text = value.trim()
+  if (text.length === 0 || text.length > MAX_UPDATE_NOTES_URL_CHARACTERS) return undefined
+  let url: URL
+  try {
+    url = new URL(text)
+  } catch {
+    return undefined
+  }
+  if (url.protocol !== 'https:' || url.username !== '' || url.password !== '') return undefined
+  return url.href
 }
 
 function parseCanonicalSupportedVersion(input: string): ParsedSemVer | null {

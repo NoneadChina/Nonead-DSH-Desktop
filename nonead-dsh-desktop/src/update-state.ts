@@ -10,6 +10,13 @@ export interface NextUpdateState {
    * downloading the update again. Only meaningful while `phase === 'error' && error === 'install'`.
    */
   retryInstall?: boolean
+  /**
+   * Plain-text release summary published with the offered release. Absent when the service has no
+   * usable summary; an older service that only returns `version` therefore renders no notes.
+   */
+  notes?: string
+  /** Absolute `https` page with the complete release notes for the offered release. */
+  notesUrl?: string
   installable: boolean
 }
 

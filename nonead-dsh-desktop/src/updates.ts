@@ -96,20 +96,25 @@ export class NextUpdates {
   }
   /** Record what one successful service answer means for this user, honoring a skipped release. */
   private offer(result: UpdateCheckResult): void {
-    if (result.status !== 'update-available') { this.set({ phase: 'current', version: result.latestVersion }); return }
+    // Release notes describe exactly the release being offered. A newer answer without them clears
+    // the previous summary instead of leaving it under a different version.
+    if (result.status !== 'update-available') {
+      this.set({ phase: 'current', version: result.latestVersion, notes: undefined, notesUrl: undefined }); return
+    }
     // A newer release supersedes the skip, so the stale record is dropped instead of hiding it later.
     if (this.skipped && this.skipped !== result.latestVersion) {
       try { clearSkippedVersion(this.options.userData) } catch (error) { this.options.log(error) }
       this.skipped = undefined
     }
     this.set(this.skipped === result.latestVersion
-      ? { phase: 'skipped', version: result.latestVersion }
-      : { phase: 'available', version: result.latestVersion })
+      ? { phase: 'skipped', version: result.latestVersion, notes: result.notes, notesUrl: result.notesUrl }
+      : { phase: 'available', version: result.latestVersion, notes: result.notes, notesUrl: result.notesUrl })
   }
   check(): Promise<void> {
     if (this.state.phase === 'ready' || this.state.phase === 'installing') return Promise.resolve()
     return this.run(async signal => {
-      this.set({ phase: 'checking' })
+      // A new answer is pending, so notes from the previous one must not stay on the card.
+      this.set({ phase: 'checking', notes: undefined, notesUrl: undefined })
       try {
         this.result = await this.query(signal) ?? undefined
         if (!this.result) { this.set({ phase: 'error', error: 'service', version: undefined }); return }
@@ -126,7 +131,7 @@ export class NextUpdates {
       let preparing = false
       try {
         // Recheck before a counted download; the service also pins targetVersion across races.
-        this.set({ phase: 'checking' })
+        this.set({ phase: 'checking', notes: undefined, notesUrl: undefined })
         const result = await this.query(signal)
         if (!result) { this.set({ phase: 'error', error: 'service' }); return }
         this.result = result
@@ -136,7 +141,8 @@ export class NextUpdates {
         const cache = join(this.options.userData, 'next-updates'); privateDirectory(cache)
         if (this.directory) await rm(this.directory, { recursive: true, force: true })
         const directory = this.directory = await mkdtemp(join(cache, 'download-'))
-        this.set({ phase: 'downloading', version: result.latestVersion, received: 0, total: undefined })
+        this.set({ phase: 'downloading', version: result.latestVersion, received: 0, total: undefined,
+          notes: result.notes, notesUrl: result.notesUrl })
         let lastProgress = 0
         const path = await downloadDesktopUpdate({ platform, version: result.latestVersion, channel: 'stable',
           destinationPath: join(directory, desktopUpdateFilename(platform, result.latestVersion, 'stable')),

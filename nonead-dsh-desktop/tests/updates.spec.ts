@@ -124,6 +124,28 @@ it('downloads a Next installer through the injected artifact transport', async (
   expect(artifactRequest).toHaveBeenCalledOnce()
   expect(options.prepare).toHaveBeenCalledOnce()
 })
+it('publishes release notes with the offered release and drops them with the next answer', async () => {
+  const notes = '本次更新修复了若干稳定性问题。'
+  const notesUrl = 'https://www.nonead.com/software/ndsh-desktop/releases/2.1.4'
+  const request = vi.fn<UpdateRequest>(async () => Response.json({ version: '2.1.4', channel: 'stable', notes, notesUrl }))
+  const { updates } = await fixture({ request })
+  await updates.check()
+  expect(updates.snapshot()).toMatchObject({ phase: 'available', version: '2.1.4', notes, notesUrl })
+  // A later answer without notes must not leave the previous summary under the same version.
+  request.mockImplementation(async () => Response.json({ version: '2.1.4', channel: 'stable' }))
+  await updates.check()
+  expect(updates.snapshot().notes).toBeUndefined()
+  expect(updates.snapshot().notesUrl).toBeUndefined()
+})
+it('keeps the offered release notes after the update downloads', async () => {
+  const notes = '本次更新修复了若干稳定性问题。'
+  const notesUrl = 'https://www.nonead.com/software/ndsh-desktop/releases/2.1.4'
+  const request = vi.fn<UpdateRequest>(async () => Response.json({ version: '2.1.4', channel: 'stable', notes, notesUrl }))
+  const { updates } = await fixture({ request })
+  await updates.check()
+  await updates.download()
+  expect(updates.snapshot()).toMatchObject({ phase: 'ready', version: '2.1.4', notes, notesUrl })
+})
 it('serves only the private archive to the native updater and closes its loopback listener', async () => {
   const root = await mkdtemp(join(tmpdir(), 'next-feed-test-')); roots.push(root)
   const path = join(root, 'update.zip'); await writeFile(path, 'test archive')

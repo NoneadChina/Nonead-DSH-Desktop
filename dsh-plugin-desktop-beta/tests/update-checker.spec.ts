@@ -3,6 +3,7 @@ import {
   DESKTOP_CURRENT_VERSION_HEADER,
   DESKTOP_RELEASE_CHANNEL_HEADER,
   DESKTOP_VERSION_ENDPOINT,
+  MAX_UPDATE_NOTES_CHARACTERS,
   MAX_VERSION_RESPONSE_BYTES,
   checkForStableUpdate,
   checkForDesktopUpdate,
@@ -289,3 +290,77 @@ describe('Next release isolation', () => {
     expect(await checkForDesktopUpdate({ currentVersion:'2.0.14-next', channel:'next', request:async()=>Response.json(body) })).toBeNull();
   });
 });
+
+describe('optional release notes', () => {
+  const NOTES = '本次更新修复了若干稳定性问题。\n- 改进更新流程\n- 修复已知缺陷'
+  const NOTES_URL = 'https://www.nonead.com/software/ndsh-desktop/releases/2.1.0'
+
+  it('publishes a summary and an https link alongside the version', async () => {
+    await expect(checkForStableUpdate({
+      currentVersion: '2.0.0',
+      request: async () => Response.json({ version: '2.1.0', notes: NOTES, notesUrl: NOTES_URL }),
+    })).resolves.toEqual({
+      status: 'update-available',
+      currentVersion: '2.0.0',
+      latestVersion: '2.1.0',
+      notes: NOTES,
+      notesUrl: NOTES_URL,
+    })
+  })
+
+  it('keeps an answer without notes backward compatible', async () => {
+    const result = await checkForStableUpdate({
+      currentVersion: '2.0.0',
+      request: async () => versionResponse('2.1.0'),
+    })
+    // The fields must be absent rather than set to undefined: the JSON shape stays unchanged.
+    expect(result).toEqual({ status: 'update-available', currentVersion: '2.0.0', latestVersion: '2.1.0' })
+  })
+
+  it('accepts a summary exactly at the limit and still fits the response budget', async () => {
+    const notes = 'x'.repeat(MAX_UPDATE_NOTES_CHARACTERS)
+    await expect(checkForStableUpdate({
+      currentVersion: '2.0.0',
+      request: async () => Response.json({ version: '2.1.0', notes }),
+    })).resolves.toMatchObject({ status: 'update-available', notes })
+    expect(JSON.stringify({ version: '2.1.0', notes }).length).toBeLessThan(MAX_VERSION_RESPONSE_BYTES)
+  })
+
+  it('ignores an over-long summary without failing the check', async () => {
+    const notes = 'x'.repeat(MAX_UPDATE_NOTES_CHARACTERS + 1)
+    const result = await checkForStableUpdate({
+      currentVersion: '2.0.0',
+      request: async () => Response.json({ version: '2.1.0', notes }),
+    })
+    expect(result).toMatchObject({ status: 'update-available', latestVersion: '2.1.0' })
+    expect(result).not.toHaveProperty('notes')
+  })
+
+  it('drops malformed summaries but keeps a valid link', async () => {
+    for (const notes of ['', '   ', 42, { text: 'nope' }, ['nope'], 'a\u0000b']) {
+      const result = await checkForStableUpdate({
+        currentVersion: '2.0.0',
+        request: async () => Response.json({ version: '2.1.0', notes, notesUrl: NOTES_URL }),
+      })
+      expect(result).toMatchObject({ status: 'update-available', notesUrl: NOTES_URL })
+      expect(result).not.toHaveProperty('notes')
+    }
+  })
+
+  it.each([
+    'http://www.nonead.com/releases/2.1.0',
+    'javascript:alert(1)',
+    'file:///etc/passwd',
+    'https://user:secret@www.nonead.com/releases/2.1.0',
+    '/software/ndsh-desktop/releases/2.1.0',
+    'not a url',
+    42,
+  ])('rejects the non-https notes URL %s while keeping the summary', async notesUrl => {
+    const result = await checkForStableUpdate({
+      currentVersion: '2.0.0',
+      request: async () => Response.json({ version: '2.1.0', notes: NOTES, notesUrl }),
+    })
+    expect(result).toMatchObject({ status: 'update-available', notes: NOTES })
+    expect(result).not.toHaveProperty('notesUrl')
+  })
+})
