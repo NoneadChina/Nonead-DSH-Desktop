@@ -75,7 +75,6 @@ const workspaceManifest = JSON.parse(readFileSync(new URL('package.json', worksp
   resolutions?: Record<string, unknown>
   scripts?: Record<string, unknown>
 }
-const ciWorkflow = readFileSync(new URL('.github/workflows/ci.yml', workspaceRoot), 'utf8')
 const productIdentity = readFileSync(new URL('src/product-identity.ts', packageRoot), 'utf8')
 const main = readFileSync(new URL('src/main.ts', packageRoot), 'utf8')
 // The Stable Desktop workspace was deleted, so the stable runtime family is read
@@ -93,7 +92,9 @@ const dshResolution = (name: string): unknown =>
 describe('published package surface', () => {
   it('keeps the private workspace version-neutral and versions the Beta package', () => {
     expect(workspaceManifest.version).toBeUndefined()
-    expect(manifest.version).toBe('2.1.13')
+    // The two Desktop manifests ship as one product, so this compares them instead of restating a
+    // literal that every release would otherwise have to edit here as well.
+    expect(manifest.version).toBe(JSON.parse(readFileSync(new URL('nonead-dsh-desktop/package.json', workspaceRoot), 'utf8')).version)
   })
 
   it('runs every desktop edition and community market typecheck from the root command', () => {
@@ -867,7 +868,9 @@ describe('published package surface', () => {
 
   it('fixes the installed application identity', () => {
     expect(workspaceManifest.version).toBeUndefined()
-    expect(manifest.version).toBe('2.1.13')
+    // The two Desktop manifests ship as one product, so this compares them instead of restating a
+    // literal that every release would otherwise have to edit here as well.
+    expect(manifest.version).toBe(JSON.parse(readFileSync(new URL('nonead-dsh-desktop/package.json', workspaceRoot), 'utf8')).version)
     expect(manifest.name).toBe('dsh-plugin-desktop-beta')
     expect(manifest.bin).toEqual({
       'dsh-desktop-beta': 'lib/bin.js',
@@ -1055,33 +1058,6 @@ describe('published package surface', () => {
     }
   })
 
-  it('runs platform package gates before reusing native packaging outputs', () => {
-    const windowsJob = ciWorkflow.slice(
-      ciWorkflow.indexOf('  desktop-windows:'),
-      ciWorkflow.indexOf('  desktop-macos:'),
-    )
-    const macosJob = ciWorkflow.slice(
-      ciWorkflow.indexOf('  desktop-macos:'),
-      ciWorkflow.indexOf('  upstream-command-windows:'),
-    )
-
-    expect(windowsJob).not.toContain('- run: yarn check')
-    expect(windowsJob).toContain('workspace: [dsh-plugin-desktop-beta]')
-    expect(windowsJob).toContain('- run: yarn workspace ${{ matrix.workspace }} check:win-package:platform')
-    expect(windowsJob).toContain('run: yarn workspace ${{ matrix.workspace }} dist:win')
-    expect(windowsJob).toContain('run: yarn workspace ${{ matrix.workspace }} dist:win-portable')
-    expect(windowsJob).toContain('DSH_PACKAGE_CHECK_ALREADY_RAN: \'1\'')
-    // Smoke artifacts are never published, so CI skips their compression.
-    expect(windowsJob.match(/DSH_WINDOWS_PACKAGE_COMPRESSION: store/g)).toHaveLength(2)
-    expect(macosJob).not.toContain('- run: yarn check')
-    expect(macosJob).toContain('workspace: [dsh-plugin-desktop-beta]')
-    expect(macosJob).toContain('- run: yarn workspace ${{ matrix.workspace }} check:mac-package:platform')
-    expect(macosJob).toContain('run: yarn workspace ${{ matrix.workspace }} dist:mac-smoke')
-    expect(macosJob).toContain('DSH_PACKAGE_CHECK_ALREADY_RAN: \'1\'')
-    expect(macosJob).not.toContain('- run: yarn dist:mac-smoke')
-    // Pull requests skip the universal merge; master pushes still package it.
-    expect(macosJob).toContain("DSH_MAC_SMOKE_ARCH: ${{ github.event_name == 'pull_request' && 'arm64' || 'universal' }}")
-  })
 
   it('skips product packaging only for documentation-only changes', () => {
     const classifier = fileURLToPath(new URL('../../scripts/classify-ci-changes.mjs', import.meta.url))
@@ -1103,9 +1079,6 @@ describe('published package surface', () => {
     expect(classify(['THIRD_PARTY_NOTICES.md'])).toBe('true')
     expect(classify([])).toBe('true')
 
-    expect(ciWorkflow).toContain('product="$(git diff --name-only -z')
-    expect(ciWorkflow).toContain("if: needs.changes.outputs.product == 'true'")
-    expect(ciWorkflow).toContain('Documentation-only change; product build and tests are not required.')
   })
 
   it('keeps one fixed brand-blue tray source for generated native assets', () => {

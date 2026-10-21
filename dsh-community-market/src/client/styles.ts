@@ -205,6 +205,21 @@ const css = `
   background: var(--dsw-alias-bg-layer-3);
 }
 
+/* Non-image media replaces the icon image with a typed badge. */
+.dshMarketMediaBadge {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: var(--dsw-alias-state-business-primary);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .dshMarketCardName {
   min-width: 0;
   flex: 1;
@@ -500,6 +515,60 @@ const css = `
 .dshMarketDetailsIntro > p {
   min-width: 0;
   flex: 1;
+}
+
+/* Attachment list for detail-view media that is not a plugin icon image. */
+.dshMarketMediaStrip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-3);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.dshMarketMediaStripLabel {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.dshMarketMediaLink {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  max-width: 100%;
+  color: var(--dsw-alias-state-business-primary);
+  text-decoration: none;
+}
+
+.dshMarketMediaLink:hover {
+  text-decoration: underline;
+}
+
+.dshMarketMediaKind {
+  font-weight: 600;
+}
+
+.dshMarketMediaName,
+.dshMarketMediaSize {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.dshMarketMediaSize {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* Secondary explanatory line inside market modal dialogs. */
+.dshMarketModalHint {
+  margin: 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
 }
 
 .dshMarketDetails p {

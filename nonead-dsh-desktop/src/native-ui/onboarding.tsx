@@ -9,6 +9,7 @@ import { DesktopFrame } from '../../../dsh-plugin-desktop-beta/src/native-ui/sha
 import type { DesktopBridge, DesktopState } from '../desktop-contract.ts'
 import type { SetupNavigation } from '../../../dsh-plugin-desktop-beta/src/client/onboarding.tsx'
 import { installPluginControlsStyles } from '../client/plugin-controls-styles.ts'
+import { initialOnboardingComputerUse } from '../onboarding-defaults.ts'
 import './onboarding.css'
 import brandLogo from '../../build/app-icon.png'
 // Reuse the portable device family artwork and composition from the AA landing page.
@@ -25,11 +26,16 @@ export function Onboarding({ state, locale, bridge, renderNavigation, embedded =
   const [transitioning, setTransitioning] = useState(false)
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState('')
-  // dsh-market is preselected so a fresh setup starts with a working plugin market.
-  const [market, setMarket] = useState<Market>('dsh')
+  // Reopening the wizard must show the market this profile already uses; only a fresh
+  // setup (no feature flags yet) falls back to dsh-market so it has a working market.
+  // "none" has to come back as "none": the two booleans alone cannot tell a skipped
+  // market apart from dsh-market, which is why the manifest stores marketChoice.
+  const [market, setMarket] = useState<Market>(() =>
+    state.features.marketChoice ?? (state.features.market ? 'community' : state.features.dshMarket ? 'dsh' : 'dsh'))
   const [remote, setRemote] = useState(state.features.remoteControl)
-  // Computer Use is on by default so a fresh setup starts ready for remote AI control.
-  const [computerUse, setComputerUse] = useState(state.onboardingComputerUse ?? true)
+  // Reopening the wizard shows what this Profile stored; a Profile that never recorded
+  // Computer Use falls back to the documented default instead of a hardcoded value.
+  const [computerUse, setComputerUse] = useState(initialOnboardingComputerUse(state.onboardingComputerUse))
   const slide = useRef<HTMLDivElement>(null)
   const navigationLock = useRef(false)
   const saving = useRef(false)
@@ -79,7 +85,7 @@ export function Onboarding({ state, locale, bridge, renderNavigation, embedded =
     try {
       await bridge.command(skip ? { type: 'onboarding-skip', profile: state.selected }
         : { type: 'onboarding-complete', profile: state.selected, computerUse, features: {
-          market: market === 'community', dshMarket: market === 'dsh', remoteControl: remote,
+          market: market === 'community', dshMarket: market === 'dsh', marketChoice: market, remoteControl: remote,
         } })
     } catch (error) {
       if (!mounted.current) return

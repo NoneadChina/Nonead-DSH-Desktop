@@ -8,6 +8,7 @@ import { syncWindowMaterial } from './preload-material.ts'
 import { syncNativeLocale } from './preload-locale.ts'
 import { permissionBridge } from './preload-permissions.ts'
 import { onOpenSettings } from './preload-settings.ts'
+import { onDeepLink } from './preload-deep-link.ts'
 import { createDesktopKeyboardBridge } from './preload-keyboard.ts'
 import { createDesktopBrowserBridge } from './preload-browser.ts'
 
@@ -28,6 +29,7 @@ if (location.protocol === 'dsh-app:' && location.hostname === 'app') {
   contextBridge.exposeInMainWorld('desktopNext', {
     permissions: permissionBridge(),
     onOpenSettings,
+    onDeepLink,
     state: () => ipcRenderer.invoke(IPC.state),
     browserLinks: () => ipcRenderer.invoke(IPC.browserLinks),
     command: (command: unknown) => ipcRenderer.invoke(IPC.command, command),

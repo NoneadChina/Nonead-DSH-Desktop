@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
   MarketCatalogResponse,
   MarketInstallableResponse,
+  MarketOperationPreviewResponse,
   MarketSourceView,
   MarketStateResponse,
 } from '../src/api-types.js'
@@ -1460,5 +1461,76 @@ describe('MarketSettingsTab', () => {
     expect(await screen.findByRole('heading', { name: en.emptyTitle })).toBeTruthy()
     fireEvent.click(screen.getAllByRole('button', { name: en.closeMarket })[1]!)
     await waitFor(() => { expect(screen.queryByRole('dialog', { name: en.title })).toBeNull() })
+  })
+
+  it('renders a non-image media slot as a typed badge and links it from the detail view', async () => {
+    const mediaItem = {
+      ...makeItem(firstSource, 'media-plugin', 'Media Plugin'),
+      media: {
+        icon: {
+          assetRef: 'mktimg_videofeedfacefeedfacefeedfacefa',
+          role: 'plugin-icon',
+          alt: 'Walkthrough video',
+          name: 'walkthrough.mp4',
+          bytes: 1_572_864,
+        },
+      },
+    } as unknown as CatalogSnapshot['items'][number]
+    vi.mocked(readMarketState).mockResolvedValue(enabledState)
+    vi.mocked(readMarketCatalog).mockResolvedValue(catalogForSource(firstSource, [mediaItem]))
+    render(<MarketSettingsTab {...props} />)
+
+    const card = await screen.findByRole('button', { name: /Media Plugin/u })
+    expect(card.querySelector('img')).toBeNull()
+    expect(card.querySelector('.dshMarketMediaBadge')?.textContent).toBe('MP4')
+
+    fireEvent.click(card)
+    const dialog = screen.getByRole('dialog')
+    expect(within(dialog).getByText(en.mediaAttachments)).toBeTruthy()
+    const link = within(dialog).getByRole('link', { name: /walkthrough\.mp4/u }) as HTMLAnchorElement
+    expect(link.getAttribute('href')).toBe('/api/community-market/assets?ref=mktimg_videofeedfacefeedfacefeedfacefa')
+    expect(link.target).toBe('_blank')
+    expect(link.rel).toContain('noopener')
+    expect(link.textContent).toContain(en.mediaKindVideo)
+    expect(link.textContent).toContain('1.5 MB')
+  })
+
+  it('adds a package the catalog does not list through the verified install preview', async () => {
+    const preview: MarketOperationPreviewResponse = {
+      action: 'install',
+      profileName: 'web',
+      packageName: 'dsh-plugin-typed',
+      version: '1.0.0',
+      displayName: 'dsh-plugin-typed',
+      expiresAt: '2026-08-18T04:00:00.000Z',
+      previewId: 'spec-preview-1',
+    }
+    vi.mocked(readMarketState).mockResolvedValue(enabledState)
+    vi.mocked(readMarketCatalog).mockResolvedValue(catalog)
+    vi.mocked(previewMarketOperation).mockResolvedValue(preview)
+    render(<MarketSettingsTab {...props} />)
+
+    fireEvent.click(await screen.findByRole('button', { name: en.addPlugin }))
+    const dialog = await screen.findByRole('dialog', { name: en.addPlugin })
+    const input = within(dialog).getByLabelText(en.addPluginPackageLabel)
+
+    fireEvent.change(input, { target: { value: 'dsh-plugin-typed@1.2.3' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: en.addPluginSubmit }))
+    expect(within(dialog).getByRole('alert').textContent).toBe(en.addPluginRejectVersionPinned)
+    expect(previewMarketOperation).not.toHaveBeenCalled()
+
+    fireEvent.change(input, { target: { value: '  dsh-plugin-typed  ' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: en.addPluginSubmit }))
+    await waitFor(() => {
+      expect(previewMarketOperation).toHaveBeenCalledWith(
+        { action: 'install-spec', spec: 'dsh-plugin-typed' },
+        expect.any(AbortSignal),
+      )
+    })
+    await waitFor(() => { expect(screen.queryByRole('dialog', { name: en.addPlugin })).toBeNull() })
+    const confirm = await screen.findByRole('dialog', { name: en.confirmInstallTitle })
+    expect(within(confirm).getAllByText('dsh-plugin-typed').length).toBeGreaterThan(0)
+    expect(within(confirm).getByText('1.0.0')).toBeTruthy()
+    expect(executeMarketOperation).not.toHaveBeenCalled()
   })
 })

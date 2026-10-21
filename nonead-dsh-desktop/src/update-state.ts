@@ -1,10 +1,22 @@
 /** Serializable update progress shared by settings, recovery and the tray. */
 export interface NextUpdateState {
-  phase: 'idle' | 'checking' | 'current' | 'available' | 'downloading' | 'preparing' | 'ready' | 'installing' | 'error'
+  phase: 'idle' | 'checking' | 'current' | 'available' | 'skipped' | 'downloading' | 'preparing' | 'ready' | 'installing' | 'error'
   version?: string
   received?: number
   total?: number
   error?: 'service' | 'download' | 'prepare' | 'install' | 'development' | 'unsupported'
+  /**
+   * A failed install kept its prepared package on disk, so the Install action can retry it without
+   * downloading the update again. Only meaningful while `phase === 'error' && error === 'install'`.
+   */
+  retryInstall?: boolean
+  /**
+   * Plain-text release summary published with the offered release. Absent when the service has no
+   * usable summary; an older service that only returns `version` therefore renders no notes.
+   */
+  notes?: string
+  /** Absolute `https` page with the complete release notes for the offered release. */
+  notesUrl?: string
   installable: boolean
 }
 
@@ -14,6 +26,8 @@ export function updateLabel(state: NextUpdateState, language: string): string {
     case 'checking': return t('正在检查更新…', 'Checking for updates…')
     case 'current': return t('已是最新版本', 'Up to date')
     case 'available': return t(`发现新版本 ${state.version}`, `Update available: ${state.version}`)
+    // The user dismissed this exact release; a newer one is offered again.
+    case 'skipped': return t(`已跳过版本 ${state.version}`, `Version ${state.version} skipped`)
     case 'downloading': {
       const progress = state.total ? `${Math.min(100, Math.floor((state.received ?? 0) / state.total * 100))}%` : `${Math.floor((state.received ?? 0) / 1048576)} MB`
       return t(`正在下载更新 ${progress}`, `Downloading update ${progress}`)
@@ -25,14 +39,19 @@ export function updateLabel(state: NextUpdateState, language: string): string {
       if (state.error === 'development') return t('开发环境可检查更新，请使用安装版进行更新。', 'Updates can be checked in development. Install a packaged build to update.')
       if (state.error === 'unsupported') return t('当前平台暂不支持应用内更新。', 'In-app updates are unavailable on this platform.')
       if (state.error === 'service') return t('暂时无法获取 Next 更新，请稍后重试。', 'Next updates are temporarily unavailable. Try again later.')
+      // The verified package survived the failure, so the next attempt must not download it again.
+      if (state.error === 'install' && state.retryInstall) return t('安装未完成，已保留安装包，可直接重试。', 'Installation failed. The installer is kept, so you can retry without downloading again.')
       return t('更新未完成，请重试。', 'The update could not be completed. Please retry.')
     default: return t('检查更新', 'Check for updates')
   }
 }
 
-export function updateAction(state: NextUpdateState): 'check-updates' | 'download-update' | 'install-update' | undefined {
+export function updateAction(state: NextUpdateState): 'check-updates' | 'download-update' | 'install-update' | 'retry-install-update' | undefined {
   if (state.phase === 'ready') return 'install-update'
+  // Retry an install that kept its package in place instead of replacing it with a new download.
+  if (state.phase === 'error' && state.error === 'install' && state.retryInstall) return 'retry-install-update'
   if (state.phase === 'available' || state.phase === 'error' && state.version && state.error !== 'service') return 'download-update'
-  if (['idle', 'current', 'error'].includes(state.phase)) return 'check-updates'
+  // A skipped release still offers a manual check, which re-reads the service for a newer one.
+  if (['idle', 'current', 'error', 'skipped'].includes(state.phase)) return 'check-updates'
   return undefined
 }

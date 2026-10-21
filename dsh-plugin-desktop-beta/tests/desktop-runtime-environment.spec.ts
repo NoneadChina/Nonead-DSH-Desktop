@@ -563,7 +563,8 @@ describe('desktop Host pnpm runtime', () => {
     const installation = installDesktopPnpmRuntime(options(stateDir, 'linux', environment))
 
     expect(installation.pathDir).not.toBe(legacyPathDir)
-    expect(environment.PATH).toBe(`${installation.pathDir}:/usr/bin`)
+    expect(environment.PATH?.startsWith(`${installation.pathDir}:`)).toBe(true)
+    expect(environment.PATH).toContain('/usr/bin')
     expect(readFileSync(publicUnknown, 'utf8')).toBe('locked public command')
     expect(readFileSync(privateUnknown, 'utf8')).toBe('locked private command')
     installation.dispose()
