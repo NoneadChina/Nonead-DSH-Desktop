@@ -10915,6 +10915,7 @@ __metadata:
     "@deepseek-ai/dsh-experimental-cot-translation-bundle": "npm:0.2.1-rc.2"
     "@deepseek-ai/dsh-experimental-inspector": "npm:0.2.1-rc.2"
     "@deepseek-ai/dsh-experimental-inspector-profile": "npm:0.2.1-rc.2"
+    "@deepseek-ai/dsh-experimental-plugin-market-bundle": "npm:0.2.1-rc.2"
     "@deepseek-ai/dsh-experimental-ralph-bundle": "npm:0.2.1-rc.2"
     "@deepseek-ai/dsh-experimental-session-search": "npm:0.2.1-rc.2"
     "@deepseek-ai/dsh-experimental-session-titles-bundle": "npm:0.2.1-rc.2"

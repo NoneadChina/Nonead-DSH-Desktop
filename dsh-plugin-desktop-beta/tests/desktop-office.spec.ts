@@ -54,8 +54,13 @@ it('loads Office skills with the bundled Node and the installed CLI, and removes
     await ctx.loader.create({ name: 'cordis:include', config: { path: pathToFileURL(config).href } })
     await ctx.loader.await()
     for (const entry of ctx.loader.entries()) await entry.fiber?.await()
-    expect((await ctx.skills.list()).map(skill => skill.name)).toEqual(['office-docx', 'office-pptx', 'office-xlsx'])
-    expect((await ctx.skills.get('office-pptx'))?.resourceBase).toEqual({ kind: 'directory', path: join(assets, 'office-pptx') })
+    expect((await ctx.skills.list()).map(skill => skill.name)).toEqual([
+      'office', 'office-docx', 'office-export-pdf', 'office-pptx', 'office-recalculate', 'office-render', 'office-xlsx',
+    ])
+    expect((await ctx.skills.get('office-pptx'))?.resourceBase).toEqual({
+      kind: 'directory',
+      path: join(assets, 'office-pptx').replaceAll('\\', '/'),
+    })
     const content = (await ctx.skills.get('office-pptx'))?.content ?? ''
     expect(content).toContain('libreofficeKit')
     expect(content).toContain(JSON.stringify(join(nodeDirectory, nodeName)).slice(1, -1))

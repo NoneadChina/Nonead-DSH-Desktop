@@ -294,7 +294,12 @@ describe('Profile package operations through the official manager', () => {
       target: `${packageName}@${version}`,
       error: {
         code: 'incompatible-version',
-        incompatible: [{ name: packageName, version, runtimeVersion: '0.2.1', peers: { '@deepseek-ai/dsh': '^0.3.0' } }],
+        incompatible: [{
+          name: packageName,
+          version,
+          runtimeVersion: '0.2.1',
+          requirements: { '@deepseek-ai/dsh': '^0.3.0' },
+        }],
       },
     })
     const service = new MarketInstallService(profile, official, { verify: vi.fn(async () => ({ version })) })
