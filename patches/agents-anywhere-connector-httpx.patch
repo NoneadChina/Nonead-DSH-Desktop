@@ -101,3 +101,90 @@ index 0dd0c35596e78f0cf815d852bb119edb1eedb4e1..b155249107d602acb1bc0438f6f74290
  	fail(error) {
  		this.native.diagnostics.log("error", "sync.failed", {
  			streamId: this.id,
+diff --git a/lib/bundled-connector/connector/runtimes/dsh/bridge/sync.py b/lib/bundled-connector/connector/runtimes/dsh/bridge/sync.py
+index d39e28f..656600b 100644
+--- a/lib/bundled-connector/connector/runtimes/dsh/bridge/sync.py
++++ b/lib/bundled-connector/connector/runtimes/dsh/bridge/sync.py
+@@ -143,7 +143,7 @@ class SyncRelay:
+             if phase is None:
+                 await self.host.runtime_health_update(status)
+             else:
+-                await self.host.runtime_health_update(status, phase=phase)
++                await self.host.runtime_health_update(status, error=phase)
+         except Exception as error:  # noqa: BLE001 - reporting never interrupts sync
+             logger.debug("DSH sync health report skipped ({})", type(error).__name__)
+ 
+@@ -356,10 +356,16 @@ class SyncRelay:
+     async def ingest_notifications(self, notifications: list[dict[str, Any]]) -> None:
+         if not notifications:
+             return
++        completed = any(
++            n["method"] == "session.inventory.complete" and n["params"].get("complete") is True
++            for n in notifications
++        )
++        if completed:
++            # Promote before publishing: the notice round trip talks to the cloud and
++            # must never keep the local runtime unusable.
++            await self._report_health("running")
+         kwargs = {"on_progress": self.on_progress} if self.on_progress is not None else {}
+         await self.host.publish_runtime_notifications("dsh", notifications, **kwargs)
+-        if any(n["method"] == "session.inventory.complete" and n["params"].get("complete") is True for n in notifications):
+-            await self._report_health("running")
+ 
+     async def store_items(self, items: list[dict[str, Any]]) -> None:
+         self.item_bytes += object_bytes(items)
+@@ -439,10 +445,12 @@ class SyncRelay:
+         elif method == "catalog.permission.update":
+             await self.host.permission_catalog_update(permission_catalog(params))
+         elif method in {"session.inventory.begin", "session.inventory.complete"}:
+-            kwargs = {"on_progress": self.on_progress} if self.on_progress is not None else {}
+-            await self.host.publish_runtime_notifications("dsh", [notice], **kwargs)
+             if method == "session.inventory.complete" and params.get("complete") is True:
++                # Promote before publishing: a failed notice round trip must never
++                # leave the local runtime unavailable.
+                 await self._report_health("running")
++            kwargs = {"on_progress": self.on_progress} if self.on_progress is not None else {}
++            await self.host.publish_runtime_notifications("dsh", [notice], **kwargs)
+         else:
+             raise ValueError(f"Unsupported runtime notification: {method}")
+ 
+@@ -460,9 +468,6 @@ class SyncRelay:
+                         "DSH event sync interrupted; resubscribing in {:.1f}s ({}: {})",
+                         delay, type(error).__name__, error,
+                     )
+-                    await self._report_health("starting", {
+-                        "code": "sync_interrupted", "message": "DSH 会话同步中断，正在重试…", "retryable": True,
+-                    })
+                     if not self.client.connected:
+                         return
+                     self.clear_snapshot()
+@@ -476,9 +481,9 @@ class SyncRelay:
+         # Subscription replaces only this feed. Concurrent RPC requests keep
+         # their connection and are never cancelled by an ingest/sync failure.
+         try:
+-            await self._report_health("starting", {
+-                "code": "syncing", "message": "正在同步 DSH 会话…", "retryable": True,
+-            })
++            # Subscribing never demotes the runtime: the process is ready even while
++            # history is still catching up, and a flapping feed must not make it
++            # unavailable to the phone.
+             subscription = await self.client.request("runtime.sync.subscribe", {"checkpointVersion": 1, "uploadProgressVersion": 1})
+             projection_version = subscription.get("projectionVersion")
+             if projection_version not in (2, 3):
+diff --git a/lib/bundled-connector/connector/runtimes/dsh/runtime.py b/lib/bundled-connector/connector/runtimes/dsh/runtime.py
+index c808046..72b6d0f 100644
+--- a/lib/bundled-connector/connector/runtimes/dsh/runtime.py
++++ b/lib/bundled-connector/connector/runtimes/dsh/runtime.py
+@@ -76,6 +76,12 @@ class DshRuntime(AgentRuntime):
+             if not self._stopping and self._client is not None and self.sync_mode == "events":
+                 self._sync = SyncRelay(self._client, self.host, on_exit=self._relay_exited)
+                 self._sync.start()
++                # The runtime process itself is ready: history synchronization keeps
++                # running in the background and must never keep it unavailable.
++                try:
++                    await self.host.runtime_health_update("running")
++                except Exception as error:  # noqa: BLE001 - health reporting is best effort
++                    logger.debug("DSH runtime health report skipped ({})", type(error).__name__)
+ 
+     @property
+     def identity(self) -> RuntimeIdentity:
