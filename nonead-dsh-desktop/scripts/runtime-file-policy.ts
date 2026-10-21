@@ -34,7 +34,9 @@ export function nextRuntimeFileExclusion(path: string, target: NextPackagingTarg
   const name = packageParts.slice(0, nameParts).join('/')
   const entry = packageParts.slice(nameParts).join('/')
   const targets = target.archs.map(arch => `${target.platform}-${arch}`)
-  if (name.startsWith('@deepseek-ai/libreoffice-kit-')) {
+  // The WASM kit is the engine `selectOfficeEngine` falls back to when the target has no native build
+  // (Linux x64 has none), so it is kept for every platform instead of being read as another platform's package.
+  if (name.startsWith('@deepseek-ai/libreoffice-kit-') && name !== '@deepseek-ai/libreoffice-kit-wasm') {
     if (!targets.some(suffix => name === `@deepseek-ai/libreoffice-kit-${suffix}`)) return 'LibreOffice other platform'
   }
   if (name === 'fs-ext' && /^build\/(?:Release|Debug)\/(?:obj(?:\/|$)|fs_ext\.(?:exp|lib|pdb|iobj|ipdb)$)/u.test(entry)) {

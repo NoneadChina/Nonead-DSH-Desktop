@@ -4,7 +4,7 @@ import { readFileSync, rmSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { packageDirectory } from '../../dsh-plugin-desktop-beta/scripts/package-dir.mjs'
+import { packageDirectory, unsignedDirectoryBuildEnvironment } from '../../dsh-plugin-desktop-beta/scripts/package-dir.mjs'
 import { releaseMac } from '../../dsh-plugin-desktop-beta/scripts/release-mac.ts'
 import { adaptMacReleaseEnvironment, assertMacReleaseReady, withoutMacReleaseSecrets } from '../../dsh-plugin-desktop-beta/scripts/release-preflight.ts'
 import { packageMacSmoke } from '../../dsh-plugin-desktop-beta/scripts/package-mac.ts'
@@ -116,4 +116,19 @@ if (mode === 'dir') {
   await prepareInterpreters()
   packageWindowsInstaller({ ...createWindowsPackageOptions(), desktopRoot, workspaceRoot, run, prepareRuntime,
     verifier: join(desktopRoot, 'scripts/verify-win-installer.ts') })
-} else throw new Error('Expected dir, mac, mac-smoke or win')
+} else if (mode === 'linux') {
+  // Linux ships no interpreter payload, so the prepared tree is verified (nothing to check) and only
+  // the archive payload is materialized. AppImage and deb are both unsigned: there is no credential
+  // boundary to cross, and the same overrides Beta's unsigned directory build uses apply here.
+  await prepareInterpreters()
+  prepareRuntime()
+  const electronDistPath = join(dirname(require.resolve('electron/package.json')), 'dist')
+  run(process.execPath, [
+    require.resolve('electron-builder/cli.js'),
+    '--linux', 'AppImage', 'deb', 'rpm',
+    '--x64',
+    '--publish', 'never',
+    '--config.forceCodeSigning=false',
+    '--config.electronDist=' + electronDistPath,
+  ], desktopRoot, unsignedDirectoryBuildEnvironment(process.env))
+} else throw new Error('Expected dir, mac, mac-smoke, win or linux')

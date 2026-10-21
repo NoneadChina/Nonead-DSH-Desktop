@@ -43,12 +43,25 @@ export function resolveOfficeConfig(runtimeDir: string, source: string | undefin
 }
 
 /**
+ * Whether the bundled payload Office skills read is on disk. Linux ships no interpreter payload, so its
+ * packaged Host passes the conventional path with nothing behind it.
+ * @param source - Bundled payload directory the shell selected.
+ * @returns True when that directory carries the payload manifest.
+ */
+export function officePayloadPresent(source: string | undefined): boolean {
+  return source !== undefined && existsSync(join(source, 'runtime.json'))
+}
+
+/**
  * Enable offline Office authoring and structural checks in the Next profile.
  * @param ctx - Profile scope; child plugins declare their own service requirements.
  * @param config - Bundled payload source and installation root.
  */
 export async function apply(ctx: Context, config: Config): Promise<void> {
   await ctx.plugin(workspaceDependencies, config)
+  // Office skills read `office-skills` beside the payload, so only a platform that ships the payload
+  // mounts them; Linux keeps the workspace dependency tool and reports `office.unavailable`.
+  if (!officePayloadPresent(config.source)) return
   // The CLI runs under the bundled standalone Node, which reads no archive; its package closure is unpacked beside the archive.
   const manifest = fileURLToPath(import.meta.resolve('@deepseek-ai/libreoffice-kit/package.json'))
   const packageRoot = dirname(insideArchive(manifest) ? unpackedPath(manifest) : manifest)
