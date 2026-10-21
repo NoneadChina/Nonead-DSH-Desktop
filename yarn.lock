@@ -5953,9 +5953,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@deepseek-ai/dsh-web-frontend@patch:@deepseek-ai/dsh-web-frontend@file%3Avendor/dsh-runtime/0.2.1-rc.2/deepseek-ai-dsh-web-frontend-0.2.1-rc.2.tgz#./.yarn/patches/dsh-web-frontend-nonead-wordmark.patch::locator=deepseek-harness-desktop%40workspace%3A.":
+"@deepseek-ai/dsh-web-frontend@patch:@deepseek-ai/dsh-web-frontend@file%3Avendor/dsh-runtime/0.2.1-rc.2/deepseek-ai-dsh-web-frontend-0.2.1-rc.2.tgz#./patches/dsh-web-frontend@0.2.1-rc.2.patch::locator=deepseek-harness-desktop%40workspace%3A.":
   version: 0.2.1-rc.2
-  resolution: "@deepseek-ai/dsh-web-frontend@patch:@deepseek-ai/dsh-web-frontend@file%3Avendor/dsh-runtime/0.2.1-rc.2/deepseek-ai-dsh-web-frontend-0.2.1-rc.2.tgz%23vendor/dsh-runtime/0.2.1-rc.2/deepseek-ai-dsh-web-frontend-0.2.1-rc.2.tgz%3A%3Ahash=3aecb7&locator=deepseek-harness-desktop%2540workspace%253A.#./.yarn/patches/dsh-web-frontend-nonead-wordmark.patch::version=0.2.1-rc.2&hash=d8e3cb&locator=deepseek-harness-desktop%40workspace%3A."
+  resolution: "@deepseek-ai/dsh-web-frontend@patch:@deepseek-ai/dsh-web-frontend@file%3Avendor/dsh-runtime/0.2.1-rc.2/deepseek-ai-dsh-web-frontend-0.2.1-rc.2.tgz%23vendor/dsh-runtime/0.2.1-rc.2/deepseek-ai-dsh-web-frontend-0.2.1-rc.2.tgz%3A%3Ahash=3aecb7&locator=deepseek-harness-desktop%2540workspace%253A.#./patches/dsh-web-frontend@0.2.1-rc.2.patch::version=0.2.1-rc.2&hash=d8e3cb&locator=deepseek-harness-desktop%40workspace%3A."
   checksum: 10c0/78b877ce2e63cb887630d4691dd9affe2f19c2e3e8d5237cce8720b6a1bc8755ccba2138eefd6b143dc1bea05e7a7169dcd1bac9b338c9f9691fe35488ed8080
   languageName: node
   linkType: hard
