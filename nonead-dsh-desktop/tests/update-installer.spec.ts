@@ -6,11 +6,19 @@ vi.mock('electron', () => ({ autoUpdater: { on: vi.fn() } }))
 // promisify(execFile) actually awaits, so a resolved mock alone would hang.
 vi.mock('node:child_process', () => ({
   execFile: vi.fn((_file: string, _args: readonly string[], _options: unknown, callback: (error: Error | null, result: { stdout: string; stderr: string }) => void) => {
-    callback(null, { stdout: JSON.stringify({ ProductName: 'Nonead DSH Desktop', ProductVersion: '2.0.18-next.1' }), stderr: '' })
+    callback(null, {
+      stdout: JSON.stringify({
+        ProductName: 'Nonead DSH Desktop',
+        ProductVersion: '2.0.18-next.1',
+        Candidate: { Status: 'NotSigned', Publisher: '' },
+        Installed: { Status: 'NotSigned', Publisher: '' },
+      }),
+      stderr: '',
+    })
   }),
   spawn: vi.fn(),
 }))
-import { NextUpdateInstaller, assertNextMacBundle, assertNextWindowsInstaller, nextInstallerArguments } from '../src/update-installer.ts'
+import { NextUpdateInstaller, assertNextMacBundle, assertNextWindowsInstaller, assertNextWindowsSignature, nextInstallerArguments } from '../src/update-installer.ts'
 
 beforeEach(() => { vi.clearAllMocks() })
 
@@ -29,6 +37,17 @@ it('rejects Stable/Beta installers and an unexpected release even when the archi
   expect(() => assertNextMacBundle('ai.deepseek.dsh.desktop', { name: 'nonead-dsh-desktop', version: '2.0.13-next' }, '2.0.14-next')).toThrow()
   expect(() => assertNextWindowsInstaller({ ProductName: 'Nonead DSH Desktop', ProductVersion: '2.0.14-next' }, '2.0.14-next')).not.toThrow()
   expect(() => assertNextWindowsInstaller({ ProductName: 'DSH Desktop Beta', ProductVersion: '2.0.14-next' }, '2.0.14-next')).toThrow()
+})
+
+it('accepts an unsigned local build while a signed installation only accepts its own publisher', () => {
+  // Unsigned local builds are the normal artifact here; the assisted installer is how they upgrade.
+  expect(() => assertNextWindowsSignature({ Status: 'NotSigned', Publisher: '' }, { Status: 'NotSigned', Publisher: '' })).not.toThrow()
+  const signed = { Status: 'Valid', Publisher: 'Nonead Technology' }
+  expect(() => assertNextWindowsSignature(signed, signed)).not.toThrow()
+  // A signed installation never accepts an unsigned, invalid, or foreign installer.
+  expect(() => assertNextWindowsSignature({ Status: 'NotSigned', Publisher: '' }, signed)).toThrow('publisher does not match')
+  expect(() => assertNextWindowsSignature({ Status: 'Valid', Publisher: 'Someone Else' }, signed)).toThrow('publisher does not match')
+  expect(() => assertNextWindowsSignature({ Status: 'HashMismatch', Publisher: 'Nonead Technology' }, signed)).toThrow('publisher does not match')
 })
 
 it('launches the Windows installer visibly in update mode', () => {

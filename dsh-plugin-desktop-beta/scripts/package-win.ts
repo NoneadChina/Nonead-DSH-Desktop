@@ -91,6 +91,21 @@ export function withoutWindowsSigningSecrets(
   return sanitized
 }
 
+/** Certificate sources electron-builder accepts for Windows Authenticode signing. */
+const WINDOWS_SIGNING_CERTIFICATES = ['CSC_LINK', 'WIN_CSC_LINK'] as const
+
+/**
+ * Whether this release build should sign its artifacts.
+ *
+ * Signing is opt-in through `DSH_WINDOWS_SIGN=1`, and the certificate still comes from the standard
+ * electron-builder variables, so a release host only has to add the switch. Without both, the build
+ * stays unsigned and the update check rejects any installer that claims a publisher.
+ */
+export function windowsSigningConfigured(environment: NodeJS.ProcessEnv): boolean {
+  if (environment.DSH_WINDOWS_SIGN !== '1') return false
+  return WINDOWS_SIGNING_CERTIFICATES.some((key) => (environment[key] ?? '').trim().length > 0)
+}
+
 function run(
   command: string,
   args: readonly string[],
@@ -150,7 +165,7 @@ function assertWindowsPackageHost(options: WindowsPackageOptions, artifact: stri
   }
 }
 
-/** Run the gates and package one unsigned x64 Windows artifact. */
+/** Run the gates and package one x64 Windows artifact; release signing is opt-in. */
 export function packageWindowsArtifact(
   options: WindowsPackageOptions,
   target: 'nsis' | 'zip',
@@ -159,8 +174,13 @@ export function packageWindowsArtifact(
   assertWindowsPackageHost(options, artifact)
   const compression = windowsCompressionOverride(options.env)
 
+  const signing = windowsSigningConfigured(options.env)
   const cleanEnvironment = withoutWindowsSigningSecrets(options.env)
-  options.log(`Building an unsigned Windows x64 ${artifact}; Authenticode is a separate release step.`)
+  options.log(
+    signing
+      ? `Signing the Windows x64 ${artifact} with the configured Authenticode certificate.`
+      : `Building an unsigned Windows x64 ${artifact}; set DSH_WINDOWS_SIGN=1 with CSC_LINK to sign.`,
+  )
   if (compression !== undefined) {
     options.log(`Packaging the ${artifact} with ${compression} compression.`)
   }
@@ -189,15 +209,15 @@ export function packageWindowsArtifact(
       '--x64',
       '--publish',
       'never',
-      '--config.win.signExecutable=false',
+      ...(signing ? [] : ['--config.win.signExecutable=false']),
       '--config.npmRebuild=false',
       '--config.electronFuses.onlyLoadAppFromAsar=false',
       ...(compression === undefined ? [] : [`--config.win.compression=${compression}`]),
     ],
     options.desktopRoot,
     electronBuilderEnvironment({
-      ...cleanEnvironment,
-      CSC_IDENTITY_AUTO_DISCOVERY: 'false',
+      ...(signing ? options.env : cleanEnvironment),
+      ...(signing ? {} : { CSC_IDENTITY_AUTO_DISCOVERY: 'false' }),
     }),
   )
   options.run(
@@ -208,7 +228,7 @@ export function packageWindowsArtifact(
   )
 }
 
-/** Run the headless release gates and package one unsigned x64 NSIS installer. */
+/** Run the headless release gates and package one x64 NSIS installer; release signing is opt-in. */
 export function packageWindowsInstaller(
   options: WindowsPackageOptions = createWindowsPackageOptions(),
 ): void {

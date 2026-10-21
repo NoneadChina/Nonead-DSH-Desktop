@@ -1578,3 +1578,19 @@ describe('recovery bundle selection stays out of profile composition', () => {
     expect(body).not.toContain('uninstallPlugin')
   })
 })
+
+describe('Windows release signing is opt-in', () => {
+  it('signs only when the switch and a certificate source are both present', async () => {
+    // The packaged update check rejects a foreign publisher, so a release that claims one must be
+    // signed; every other build stays unsigned.
+    const { windowsSigningConfigured } = await import('../scripts/package-win.ts')
+    expect(windowsSigningConfigured({})).toBe(false)
+    // A certificate without the switch must not start a release-signing run.
+    expect(windowsSigningConfigured({ CSC_LINK: 'C:/cert.pfx' })).toBe(false)
+    // The switch without a certificate has nothing to sign with.
+    expect(windowsSigningConfigured({ DSH_WINDOWS_SIGN: '1' })).toBe(false)
+    expect(windowsSigningConfigured({ DSH_WINDOWS_SIGN: '1', CSC_LINK: 'C:/cert.pfx' })).toBe(true)
+    expect(windowsSigningConfigured({ DSH_WINDOWS_SIGN: '1', WIN_CSC_LINK: 'C:/cert.pfx' })).toBe(true)
+    expect(windowsSigningConfigured({ DSH_WINDOWS_SIGN: '1', CSC_LINK: '   ' })).toBe(false)
+  })
+})
