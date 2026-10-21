@@ -21,7 +21,17 @@ export const AA_PACKAGE = '@agents-anywhere/dsh-bridge-next'
 export const COMMUNITY_MARKET_PACKAGE = 'dsh-community-market'
 export const DSH_MARKET_PACKAGE = 'dshmarket'
 /** Legacy shell shape, now projected from the standard Profile bundle selection. */
-export interface Features { remoteControl: boolean; market: boolean; dshMarket?: boolean }
+export interface Features {
+  remoteControl: boolean
+  market: boolean
+  dshMarket?: boolean
+  /**
+   * Which market the wizard chose, including "none": the two booleans above
+   * cannot tell "the user skipped the market" apart from "dsh-market", so
+   * reopening the wizard used to flip a skipped choice to dsh-market.
+   */
+  marketChoice?: 'none' | 'community' | 'dsh'
+}
 export interface OnboardingChoices { features: Features; computerUse: boolean }
 export const DEFAULT_FEATURES: Readonly<Features> = { remoteControl: false, market: false }
 
@@ -34,6 +44,8 @@ interface ProfileManifest {
      */
     desktopNextScheduleBundle?: number
     desktopNextOnboarding?: { version: number; outcome: 'completed' | 'skipped'; accountPending?: boolean }
+    /** Which market the wizard chose, including "none"; mirrors `Features.marketChoice`. */
+    desktopNextMarket?: 'none' | 'community' | 'dsh'
     /** Names recovery removed from `profile.bundles`; a UI ledger, never a policy. */
     desktopNextDeselectedBundles?: string[]
     profile: { bundles: string[] }
@@ -47,6 +59,10 @@ function applyFeatures(manifest: ProfileManifest, features: Features): void {
     ...(features.market ? [COMMUNITY_MARKET_PACKAGE] : []), ...(features.dshMarket ? [DSH_MARKET_PACKAGE] : []),
     ...(features.remoteControl ? [AA_PACKAGE] : [])]
   manifest.dsh.desktopNextPlugins = 1
+  // Only record a choice we can trust: 'both false' means no choice yet (a fresh
+  // setup must still default to dsh-market), and 'both true' cannot happen.
+  if (features.marketChoice !== undefined) manifest.dsh.desktopNextMarket = features.marketChoice
+  else if (Boolean(features.market) !== Boolean(features.dshMarket)) manifest.dsh.desktopNextMarket = features.market ? 'community' : 'dsh'
 }
 
 export function profileName(value: unknown): string {
@@ -62,8 +78,12 @@ export function parseFeatures(value: unknown): Features {
   const features = value as Record<string, unknown>
   if (typeof features.remoteControl !== 'boolean' || typeof features.market !== 'boolean'
     || (features.dshMarket !== undefined && typeof features.dshMarket !== 'boolean')
-    || Object.keys(features).some(key => !['remoteControl', 'market', 'dshMarket'].includes(key))) throw new Error('Invalid Next features')
-  return { remoteControl: features.remoteControl, market: features.market, ...(features.dshMarket ? { dshMarket: true } : {}) }
+    || Object.keys(features).some(key => !['remoteControl', 'market', 'dshMarket', 'marketChoice'].includes(key))) throw new Error('Invalid Next features')
+  const marketChoice = features.marketChoice
+  if (marketChoice !== undefined && marketChoice !== 'none' && marketChoice !== 'community' && marketChoice !== 'dsh') throw new Error('Invalid Next features')
+  return { remoteControl: features.remoteControl, market: features.market,
+    ...(features.dshMarket !== undefined ? { dshMarket: features.dshMarket } : {}),
+    ...(marketChoice === undefined ? {} : { marketChoice }) }
 }
 
 export class NextProfiles {
@@ -140,7 +160,8 @@ export class NextProfiles {
     if (manifest.dsh.desktopNextPlugins === 1 || !manifest.dsh.profile.bundles.includes('nonead-dsh-desktop')) {
       const bundles = manifest.dsh.profile.bundles
       return { remoteControl: bundles.includes(AA_PACKAGE), market: bundles.includes(COMMUNITY_MARKET_PACKAGE),
-        ...(bundles.includes(DSH_MARKET_PACKAGE) ? { dshMarket: true } : {}) }
+        ...(bundles.includes(DSH_MARKET_PACKAGE) ? { dshMarket: true } : {}),
+        ...(manifest.dsh.desktopNextMarket === undefined ? {} : { marketChoice: manifest.dsh.desktopNextMarket }) }
     }
     const text = readPrivateFileWithLegacy(this.directory(name), 'nonead-dsh-desktop.features.json', LEGACY.features)
     return text === undefined ? { ...DEFAULT_FEATURES } : parseFeatures(JSON.parse(text))
