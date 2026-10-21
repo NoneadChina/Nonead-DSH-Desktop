@@ -20,7 +20,9 @@ it('declares every official optional bundle as a discoverable, version-aligned i
 
 it('archives the application like upstream Desktop while keeping fuses and native inventory aligned with Beta', () => {
   const next = read('../package.json'); const beta = read('../../dsh-plugin-desktop-beta/package.json')
-  expect(next.version).toBe('2.1.15')
+  // Both Desktop workspaces ship as one product, so the two manifests must agree instead of each
+  // restating a literal that has to be edited twice on every release.
+  expect(next.version).toBe(beta.version)
   expect(next.build.appId).toBe('ai.deepseek.dsh.desktop')
   expect(next.build.asar).toBe(true)
   for (const platform of ['mac', 'win', 'linux']) expect(next.build[platform].asar, platform).toBeUndefined()

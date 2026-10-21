@@ -93,7 +93,9 @@ const dshResolution = (name: string): unknown =>
 describe('published package surface', () => {
   it('keeps the private workspace version-neutral and versions the Beta package', () => {
     expect(workspaceManifest.version).toBeUndefined()
-    expect(manifest.version).toBe('2.1.15')
+    // The two Desktop manifests ship as one product, so this compares them instead of restating a
+    // literal that every release would otherwise have to edit here as well.
+    expect(manifest.version).toBe(JSON.parse(readFileSync(new URL('nonead-dsh-desktop/package.json', workspaceRoot), 'utf8')).version)
   })
 
   it('runs every desktop edition and community market typecheck from the root command', () => {
@@ -867,7 +869,9 @@ describe('published package surface', () => {
 
   it('fixes the installed application identity', () => {
     expect(workspaceManifest.version).toBeUndefined()
-    expect(manifest.version).toBe('2.1.15')
+    // The two Desktop manifests ship as one product, so this compares them instead of restating a
+    // literal that every release would otherwise have to edit here as well.
+    expect(manifest.version).toBe(JSON.parse(readFileSync(new URL('nonead-dsh-desktop/package.json', workspaceRoot), 'utf8')).version)
     expect(manifest.name).toBe('dsh-plugin-desktop-beta')
     expect(manifest.bin).toEqual({
       'dsh-desktop-beta': 'lib/bin.js',
