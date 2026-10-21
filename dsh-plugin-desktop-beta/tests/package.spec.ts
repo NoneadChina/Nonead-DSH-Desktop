@@ -93,7 +93,7 @@ const dshResolution = (name: string): unknown =>
 describe('published package surface', () => {
   it('keeps the private workspace version-neutral and versions the Beta package', () => {
     expect(workspaceManifest.version).toBeUndefined()
-    expect(manifest.version).toBe('2.1.12')
+    expect(manifest.version).toBe('2.1.13')
   })
 
   it('runs every desktop edition and community market typecheck from the root command', () => {
@@ -867,7 +867,7 @@ describe('published package surface', () => {
 
   it('fixes the installed application identity', () => {
     expect(workspaceManifest.version).toBeUndefined()
-    expect(manifest.version).toBe('2.1.12')
+    expect(manifest.version).toBe('2.1.13')
     expect(manifest.name).toBe('dsh-plugin-desktop-beta')
     expect(manifest.bin).toEqual({
       'dsh-desktop-beta': 'lib/bin.js',
@@ -1371,7 +1371,9 @@ describe('published package surface', () => {
     // dsh 0.2.1-alpha.2 replaced `nodeExecutable` with `launch`; the local default is still this process.
     expect(index).toMatch(/const launch = config \?\? \{\s+kind: "pkg" in process \? "embedded" : "node-script",\s+executable: process\.execPath\s+\};/u)
     expect(index).toContain('confined = policy.mode === "danger-full-access" ? void 0 : await this.ctx.sandbox.confine(')
-    const block = /\t+const env = Object\.fromEntries\(Object\.keys\(process\.env\)[\s\S]*?\n\t+if \(packaged\) \{[\s\S]*?\n\t+\}\n(?=\t+handle = this\.ctx\.subprocess\.spawn\()/u.exec(index)?.[0]
+    // Upstream also builds an env map without the Electron selector, so anchor on the block that
+    // continues into `if (process.versions.electron …)` through comments only.
+    const block = /\t+const env = Object\.fromEntries\(Object\.keys\(process\.env\)[^\n]*\n(?:\s*\/\/[^\n]*\n)*\t+if \(process\.versions\.electron !== void 0\) env\.ELECTRON_RUN_AS_NODE = "1";\n\t+if \(packaged\) \{[\s\S]*?\n\t+\}\n(?=\t+handle = this\.ctx\.subprocess\.spawn\()/u.exec(index)?.[0]
     if (block === undefined) throw new Error('Cannot find the PTC worker environment')
     const evaluate = (electron: string | undefined, parent: Record<string, string>, packaged = true) => runInNewContext(
       `${block}\nenv`,
@@ -1396,7 +1398,10 @@ describe('published package surface', () => {
     const names = /const STARTUP_ENVIRONMENT_NAMES = new Set\(\[([\s\S]*?)\]\)/u.exec(bootstrap)?.[1]
     if (names === undefined) throw new Error('Cannot find the PTC bootstrap environment allowlist')
     expect(names).not.toMatch(/ELECTRON_RUN_AS_NODE/iu)
-    expect(bootstrap).toContain('if (!STARTUP_ENVIRONMENT_NAMES.has(key.toUpperCase())) Reflect.deleteProperty(processState.env, key);')
+    // Upstream renamed the cleared-env helper argument; assert the deletion itself, not its parameter name.
+    expect(bootstrap).toMatch(
+      /for \(const key of Object\.keys\(state\.env\)\) if \(!STARTUP_ENVIRONMENT_NAMES\.has\(key\.toUpperCase\(\)\)\) Reflect\.deleteProperty\(state\.env, key\);/u,
+    )
   })
 
   // A patch whose filename does not match the pinned version degrades silently to the

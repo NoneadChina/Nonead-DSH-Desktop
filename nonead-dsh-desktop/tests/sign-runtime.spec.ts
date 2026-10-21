@@ -12,19 +12,6 @@ function root(): string {
 }
 const identity: MacRuntimeSigningIdentity = { identity: 'Developer ID Application: Example (TEAMID1234)' }
 const machO = Buffer.from('cffaedfe0c00000100000000', 'hex')
-// Creating a symbolic link needs SeCreateSymbolicLinkPrivilege on Windows, which only Developer Mode or an elevated token grants. Probe the capability so the link assertion runs where it can and skips instead of failing on a host limitation.
-const linksSupported = ((): boolean => {
-  const path = mkdtempSync(join(tmpdir(), 'next-links-'))
-  try {
-    writeFileSync(join(path, 'real'), '')
-    symlinkSync(join(path, 'real'), join(path, 'alias'))
-    return true
-  } catch {
-    return false
-  } finally {
-    rmSync(path, { recursive: true, force: true })
-  }
-})()
 function tools() {
   return { sign: vi.fn<(file: string, identifier: string, identity: MacRuntimeSigningIdentity, entitlements: string | undefined) => Promise<void>>(async () => {}), verify: vi.fn() }
 }
@@ -120,7 +107,7 @@ it.each(['arm64', 'x64'] as const)('gives only the standalone Node %s entitlemen
   for (const file of [python, extension]) expect(t.sign).toHaveBeenCalledWith(file, expect.any(String), identity, undefined)
 })
 
-it.skipIf(!linksSupported)('rejects a payload containing links instead of signing through them', async () => {
+it('rejects a payload containing links instead of signing through them', async () => {
   const path = root()
   writeFileSync(join(path, 'real.node'), machO)
   symlinkSync(join(path, 'real.node'), join(path, 'alias.node'))

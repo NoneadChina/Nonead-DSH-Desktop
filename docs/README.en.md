@@ -2,7 +2,7 @@
 
 [中文文档](README.md)
 
-This directory is the product and developer documentation index for Nonead DSH Desktop. The root [`README.en.md`](../README.en.md) is the short product entry point; these pages explain why the project exists, how to use it, and how to build plugins for it. Want to contribute? See [Contributing](../CONTRIBUTING.en.md).
+This directory is the product and developer documentation index for Nonead DSH Desktop. The root [`README.en.md`](../README.en.md) is the short product entry point; these pages explain why the project exists, how to use it, and how to build plugins for it.
 
 ## Read by goal
 
@@ -14,7 +14,6 @@ Ordinary users can start with the [user guide](user-guide.en.md) and never need 
 | --- | --- |
 | [User guide](user-guide.en.md) | Installation, profiles, modes, terminal, plugins, and updates |
 | [FAQ](faq.en.md) | Direct answers about platforms, bundled runtime, project status, data, plugins, and updates |
-| [Privacy Policy](../PRIVACY.md) | Official updates, downloads, local data, third-party services, and user choices |
 | [Why Nonead DSH Desktop](why-desktop.en.md) | The boundary with upstream Harness and the case for plugins |
 
 ### Developer and maintainer documentation
