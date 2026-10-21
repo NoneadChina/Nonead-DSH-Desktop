@@ -10832,10 +10832,10 @@ __metadata:
 
 "dsh-nonead-client-skin@file:../dsh-nonead-client-skin::locator=nonead-dsh-desktop%40workspace%3Anonead-dsh-desktop":
   version: 0.1.1-rc.2
-  resolution: "dsh-nonead-client-skin@file:../dsh-nonead-client-skin#../dsh-nonead-client-skin::hash=e79eff&locator=nonead-dsh-desktop%40workspace%3Anonead-dsh-desktop"
+  resolution: "dsh-nonead-client-skin@file:../dsh-nonead-client-skin#../dsh-nonead-client-skin::hash=43d5b6&locator=nonead-dsh-desktop%40workspace%3Anonead-dsh-desktop"
   peerDependencies:
     "@deepseek-ai/cordis": "workspace:^"
-  checksum: 10c0/fac3824b9dc9747254e74361ebd4b210e5dc382629c1aae5e64d2e0fab149897a889dc696878ff8f7c2ea0cc8b424fcd233732cfebfb832d4732030f3c19b236
+  checksum: 10c0/a697b7f5c6572930ebe2b6cbbb34753e5434fe72ade7058cd30d19d1184a26dbeb03a8db1b10310fd6318d3985833176177c01a22a4c49dd593df24f23e36706
   languageName: node
   linkType: hard
 

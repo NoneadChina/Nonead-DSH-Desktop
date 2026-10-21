@@ -82,10 +82,19 @@ function buildCss(): string {
   ].join('\n')
 }
 
-/** 将 hero 区 headline "探索未至之境 / Into the Unknown" 替换为指定中文。 */
+/**
+ * 将 hero headline "探索未至之境 / Into the Unknown" 替换为指定中文。
+ *
+ * 只改空会话 hero 的标题：定位锚点是 hero 内 `conversation.hero.brand.mark`
+ * 这个 slot 出口的祖父元素（即 `.headline` 行），到那里为止不再向下扩展。
+ * 全局 characterData 监听会误伤用户输入、代码块与会话标题（连这两个词都打不出来），
+ * 所以这里既不扫 `document.body`，也不订阅 characterData —— 只在 hero 子树挂载时替换一次。
+ */
 const HEADLINE_FROM_ZH = '探索未至之境'
 const HEADLINE_FROM_EN = 'Into the Unknown'
 const HEADLINE_TO = '创新改变世界'
+/** hero 标题行的定位锚点（ui-renderer 的稳定 slot 出口）。 */
+const HERO_SLOT_SELECTOR = '[data-slot="conversation.hero.brand.mark"]'
 
 /** 已替换过的元素做标记，避免反复触发。 */
 const REPLACED_FLAG = 'data-dsh-skin-nonead-headline-replaced'
@@ -113,6 +122,24 @@ function replaceHeadlineIn(root: Node): void {
   }
 }
 
+/**
+ * 由 brand slot 出口向上取 hero 标题行（`.headline`）：slot → fishHitbox(span) → headline(div)。
+ * 结构不符（上游改版）时返回 null，宁可不替换也不扩大到页面其它文本。
+ */
+function headlineRootOf(slot: Element): Element | null {
+  const hitbox = slot.parentElement
+  const root = hitbox?.parentElement ?? null
+  return root !== null && root.nodeName === 'DIV' ? root : null
+}
+
+/** 在给定范围内找出 hero 标题行并替换其文案。 */
+function replaceHeroHeadlines(scope: ParentNode): void {
+  for (const slot of scope.querySelectorAll(HERO_SLOT_SELECTOR)) {
+    const root = headlineRootOf(slot)
+    if (root !== null) replaceHeadlineIn(root)
+  }
+}
+
 export function apply(ctx: ClientContext): void {
   if (typeof document === 'undefined') return
   // 幂等：重复执行（HMR 重放 / 插件重启）时不再叠加第二个标签。
@@ -124,23 +151,22 @@ export function apply(ctx: ClientContext): void {
   // 卸载时移除，保证皮肤完整还原。
   ctx.effect(() => () => { tag.remove() }, 'dsh-skin-nonead: teardown')
 
-  // ── hero slogan 文本替换（初始 + 后续 DOM 变化） ──
-  replaceHeadlineIn(document.body)
+  // ── hero headline 文本替换：只在 hero 子树挂载/重挂载时触发 ──
+  replaceHeroHeadlines(document)
   const headlineObserver = new MutationObserver((records) => {
     for (const r of records) {
-      if (r.type === 'characterData') {
-        const host = (r.target as Text).parentNode as Element | null
-        if (host && host.getAttribute(REPLACED_FLAG) === '1') continue
-        replaceHeadlineIn(r.target)
-      } else {
-        for (const n of r.addedNodes) replaceHeadlineIn(n)
+      for (const n of r.addedNodes) {
+        if (n.nodeType !== 1) continue
+        const el = n as Element
+        if (el.matches(HERO_SLOT_SELECTOR)) {
+          const root = headlineRootOf(el)
+          if (root !== null) replaceHeadlineIn(root)
+        }
+        replaceHeroHeadlines(el)
       }
     }
   })
-  headlineObserver.observe(document.body, {
-    childList: true,
-    subtree: true,
-    characterData: true,
-  })
+  // 只订阅 childList：characterData 会把用户输入、代码块与会话标题一起框进来。
+  headlineObserver.observe(document.body, { childList: true, subtree: true })
   ctx.effect(() => () => { headlineObserver.disconnect() }, 'dsh-skin-nonead: headline observer teardown')
 }
