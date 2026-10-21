@@ -74,7 +74,8 @@ export interface DesktopState {
   lan: DesktopLanHttpsRuntimeSnapshot | null
   recovery?: {
     bundles: { bundleId: string; packageName: string; status: 'active' | 'disabled'; owner: 'core' | 'profile'; action: 'uninstall' | null; toggle: 'disable' | 'enable' | null }[]
-    checkpoints: { id: string; created: string; fileCount: number; totalBytes: number }[]
+    /** `kind`/`healthy` describe automatic snapshots: successful-start, before-rollback, before-plugin-disable, before-profile-repair. */
+    checkpoints: { id: string; created: string; fileCount: number; totalBytes: number; kind?: string; healthy?: boolean }[]
     error?: string
     profileDirectory: string
     usingDefaultDirectory: boolean
@@ -92,7 +93,7 @@ export interface DesktopBrowserLinks {
 }
 
 export type DesktopCommand =
-  | { type: 'check-updates' | 'download-update' | 'install-update' }
+  | { type: 'check-updates' | 'download-update' | 'install-update' | 'retry-install-update' }
   | { type: 'recovery-action'; action: string; id?: string }
   | ({ type: 'onboarding-complete'; profile: string } & OnboardingChoices)
   | { type: 'onboarding-skip'; profile: string }

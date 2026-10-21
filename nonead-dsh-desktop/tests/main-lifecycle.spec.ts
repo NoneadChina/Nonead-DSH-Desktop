@@ -310,7 +310,11 @@ it.each(['normal', '--next-safe-mode'])('stages an explicit update before hiding
   let stageReady!: () => void
   const stagedPath = () => join(fixture.appPaths.get('userData')!, 'staged-update')
   const stage = vi.fn(() => new Promise<void>(resolve => { stageReady = () => { writeFileSync(stagedPath(), 'installer'); resolve() } }))
-  const launch = vi.fn(async () => { expect(readFileSync(stagedPath(), 'utf8')).toBe('installer') })
+  // Mirror NextUpdateInstaller.launch(): the Install action and the shutdown handoff may both call
+  // it, but the actual installer start stays single.
+  const startInstaller = vi.fn(async () => { expect(readFileSync(stagedPath(), 'utf8')).toBe('installer') })
+  let launching: Promise<void> | undefined
+  const launch = vi.fn(() => launching ??= startInstaller())
   vi.doMock('../src/update-installer.ts', () => ({ NextUpdateInstaller: class { stage = stage; launch = launch } }))
   vi.doMock('../src/updates.ts', () => ({ NextUpdates: class {
     constructor(private options: { install(): Promise<void> }) {}
@@ -331,15 +335,70 @@ it.each(['normal', '--next-safe-mode'])('stages an explicit update before hiding
     stageReady()
     // The installer must start before the quit begins: a shutdown that overruns its grace used to
     // exit before ever reaching the post-shutdown handoff, leaving the window closed with nothing
-    // running. Repeat calls stay no-ops, so the handoff below must not start it a second time.
-    await vi.waitFor(() => expect(launch).toHaveBeenCalledOnce())
+    // running. The handoff calls launch again, but it joins the same start, so only one installer
+    // process is ever spawned.
+    await vi.waitFor(() => expect(startInstaller).toHaveBeenCalledOnce())
     await vi.waitFor(() => expect(fixture.close).toHaveBeenCalledOnce())
     expect(window.visible).toBe(false)
     closed()
-    await vi.waitFor(() => expect(launch).toHaveBeenCalledOnce())
+    // The handoff re-enters launch, joins the resolved start, and spawns nothing new.
+    await vi.waitFor(() => expect(launch).toHaveBeenCalledTimes(2))
+    expect(startInstaller).toHaveBeenCalledOnce()
   } finally {
     vi.doUnmock('../src/update-installer.ts'); vi.doUnmock('../src/updates.ts')
     process.argv.splice(0, process.argv.length, ...argv)
+    vi.unstubAllEnvs(); rmSync(home, { recursive: true, force: true })
+  }
+})
+
+it('keeps a failing install retryable and owns an in-flight launch when a quit overtakes it', async () => {
+  const home = mkdtempSync(join(tmpdir(), 'next-install-update-retry-'))
+  vi.stubEnv('DSH_DESKTOP_NONEAD_HOME', home)
+  let phase: 'ready' | 'error' = 'error'
+  let finishLaunch!: () => void
+  const started = vi.fn()
+  let launching: Promise<void> | undefined
+  const launch = vi.fn(() => launching ??= new Promise<void>(resolve => { started(); finishLaunch = resolve }))
+  const stage = vi.fn(async () => {})
+  const dispose = vi.fn(async (_keepInstaller?: boolean) => {})
+  const retryInstall = vi.fn(async () => {})
+  vi.doMock('../src/update-installer.ts', () => ({ NextUpdateInstaller: class { stage = stage; launch = launch } }))
+  vi.doMock('../src/updates.ts', () => ({ NextUpdates: class {
+    constructor(private options: { install(): Promise<void> }) {}
+    snapshot() {
+      return phase === 'ready'
+        ? { phase: 'ready', version: '2.0.18-next.1', installable: true }
+        : { phase: 'error', error: 'install', retryInstall: true, version: '2.0.18-next.1', installable: true }
+    }
+    start() {}
+    dispose = dispose
+    install = () => this.options.install()
+    retryInstall = retryInstall
+  } }))
+  try {
+    await import('../src/main.ts')
+    await vi.waitFor(() => expect(fixture.windows).toHaveLength(1))
+    const window = fixture.windows[0]
+    const sender = { sender: window.webContents, senderFrame: window.webContents.mainFrame }
+    // A failed install that kept its package is surfaced as retryable and routed to the retry action.
+    expect(fixture.handlers.get('nonead-dsh-desktop:state')!(sender).updates).toMatchObject({ phase: 'error', error: 'install', retryInstall: true })
+    await fixture.handlers.get('nonead-dsh-desktop:command')!(sender, { type: 'retry-install-update' })
+    expect(retryInstall).toHaveBeenCalledOnce()
+    // Start an install whose launch stays pending, then let a user quit overtake it: before-quit must
+    // already see the installer as owned, keep its package, and join the same launch.
+    phase = 'ready'
+    await fixture.handlers.get('nonead-dsh-desktop:command')!(sender, { type: 'install-update' })
+    await vi.waitFor(() => expect(started).toHaveBeenCalledOnce())
+    const { app } = await import('electron')
+    app.quit()
+    await vi.waitFor(() => expect(dispose).toHaveBeenCalled())
+    expect(dispose.mock.calls[0]![0]).toBe(true)
+    finishLaunch()
+    await vi.waitFor(() => expect(launch).toHaveBeenCalledTimes(2))
+    expect(started).toHaveBeenCalledOnce()
+    expect(stage).toHaveBeenCalledOnce()
+  } finally {
+    vi.doUnmock('../src/update-installer.ts'); vi.doUnmock('../src/updates.ts')
     vi.unstubAllEnvs(); rmSync(home, { recursive: true, force: true })
   }
 })
@@ -690,7 +749,7 @@ it.each(['complete', 'skip'] as const)('continues first-run setup in the officia
     fixture.restart.mockImplementationOnce(async () => {
       expect(manager.onboardingRequired('desktop')).toBe(false)
       expect(manager.features('desktop')).toEqual(outcome === 'skip'
-        ? { market: false, remoteControl: false } : { market: false, dshMarket: true, remoteControl: true })
+        ? { market: false, remoteControl: false } : { market: false, dshMarket: true, marketChoice: 'dsh', remoteControl: true })
       expect(manager.computerUseEnabled('desktop')).toBe(outcome === 'complete')
     })
     await setup(sender, { action: 'finish', profile: 'desktop', ...(outcome === 'complete' ? {
@@ -731,7 +790,7 @@ it('reopens setup through a confirmed relaunch without resetting the Profile or 
     expect(fixture.close).toHaveBeenCalledOnce()
     expect(app.relaunch).not.toHaveBeenCalled()
     expect(manager.onboardingRequired('desktop')).toBe(false)
-    expect(manager.features('desktop')).toEqual({ market: false, dshMarket: true, remoteControl: true })
+    expect(manager.features('desktop')).toEqual({ market: false, dshMarket: true, marketChoice: 'dsh', remoteControl: true })
     expect(manager.computerUseEnabled('desktop')).toBe(true)
     finishClose()
     await vi.waitFor(() => expect(app.relaunch).toHaveBeenCalledWith({ args: expect.arrayContaining(['--next-onboarding']) }))
@@ -747,7 +806,7 @@ it.each(['complete', 'skip', 'close'] as const)('reopens a completed Profile wit
   try {
     const manager = new NextProfiles(home)
     manager.ensure('desktop')
-    const features = { market: false, dshMarket: true, remoteControl: true }
+    const features = { market: false, dshMarket: true, marketChoice: 'dsh' as const, remoteControl: true }
     manager.finishOnboarding('desktop', { features, computerUse: true })
     await import('../src/main.ts')
     await vi.waitFor(() => expect(fixture.windows).toHaveLength(1))
@@ -769,7 +828,8 @@ it.each(['complete', 'skip', 'close'] as const)('reopens a completed Profile wit
       expect(fixture.restart).toHaveBeenCalledOnce()
       expect(window.loadedUrls).toEqual(['dsh-app://app/', 'dsh-app://app/'])
     }
-    expect(manager.features('desktop')).toEqual(outcome === 'complete' ? { market: true, remoteControl: false } : features)
+    expect(manager.features('desktop')).toEqual(outcome === 'complete'
+      ? { market: true, marketChoice: 'community', remoteControl: false } : features)
     expect(manager.computerUseEnabled('desktop')).toBe(outcome !== 'complete')
     expect(manager.onboardingRequired('desktop')).toBe(false)
     if (outcome !== 'close') {

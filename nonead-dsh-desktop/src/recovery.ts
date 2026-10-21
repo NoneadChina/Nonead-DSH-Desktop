@@ -1,6 +1,6 @@
 /** Back up configuration without importing user packages or touching conversations. */
 import { createHash, randomUUID } from 'node:crypto'
-import { lstatSync, readdirSync, renameSync, unlinkSync } from 'node:fs'
+import { lstatSync, mkdirSync, readdirSync, renameSync, unlinkSync } from 'node:fs'
 import { join } from 'node:path'
 import { withFileLock } from '@deepseek-ai/dsh-atomic-write'
 import { atomicJson, atomicText, privateDirectory, readPrivateFile } from './private-files.ts'
@@ -22,6 +22,24 @@ interface Snapshot {
   healthy: boolean
   files: Record<ConfigFile, { sha256: string } | null>
 }
+/**
+ * One recoverable configuration snapshot. `kind` is the reason the snapshot was
+ * taken (display metadata, never a policy) and `healthy` records whether it
+ * captured a configuration that had started successfully.
+ */
+export interface RecoveryCheckpoint {
+  directory: string
+  id: string
+  created: string
+  kind: string
+  healthy: boolean
+  fileCount: number
+  totalBytes: number
+}
+/** How many snapshots `list()` returns when the caller states no limit. */
+const LIST_LIMIT = 50
+/** A snapshot directory is named `<Date.now()>-<uuid>`; nothing else is a checkpoint id. */
+const CHECKPOINT_ID = /^\d{1,16}-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u
 const digest = (text: string): string => createHash('sha256').update(text).digest('hex')
 
 export class NextRecovery {
@@ -43,26 +61,69 @@ export class NextRecovery {
     return target
   }
 
-  latest(name: string): { directory: string; created: string } | null { return this.checkpoints(name)[0] ?? null }
+  /**
+   * The newest successfully started configuration, which is the only implicit
+   * rollback target. A `before-*` snapshot is deliberately not a candidate: it
+   * is not known to start, so it must be named explicitly through {@link restore}.
+   */
+  latest(name: string): RecoveryCheckpoint | null { return this.checkpoints(name)[0] ?? null }
 
-  checkpoints(name: string): { directory: string; created: string; id: string; fileCount: number; totalBytes: number }[] {
-    const result: { directory: string; created: string; id: string; fileCount: number; totalBytes: number }[] = []
+  /** The healthy checkpoints the rollback chooser offers, newest first. */
+  checkpoints(name: string): RecoveryCheckpoint[] {
+    return this.scan(name, snapshot => snapshot.healthy, 3)
+  }
+
+  /**
+   * Every snapshot this Profile owns, newest first, whatever produced it: a
+   * successful start, or the `before-rollback` / `before-plugin-disable` /
+   * `before-profile-repair` snapshot a repair, a plugin change or an earlier
+   * rollback took. Listing them is what makes those states reachable again.
+   * @param name - Profile name.
+   * @param limit - maximum entries; the newest are kept.
+   */
+  list(name: string, limit = LIST_LIMIT): RecoveryCheckpoint[] {
+    return this.scan(name, () => true, limit)
+  }
+
+  /**
+   * One snapshot of this Profile by id, healthy or not.
+   * @param name - Profile name.
+   * @param id - snapshot directory name, as returned by {@link checkpoints} or {@link list}.
+   * @returns the checkpoint, or undefined for an unknown, malformed or corrupt id.
+   */
+  find(name: string, id: string): RecoveryCheckpoint | undefined {
+    profileName(name)
+    if (!CHECKPOINT_ID.test(id)) return undefined
+    const directory = join(this.directory, id)
+    try { return this.describe(directory, id, this.readSnapshot(directory, name)) } catch { return undefined }
+  }
+
+  private scan(name: string, accept: (snapshot: Snapshot) => boolean, limit: number): RecoveryCheckpoint[] {
+    const result: RecoveryCheckpoint[] = []
     profileName(name)
     if (!lstatSync(this.directory, { throwIfNoEntry: false })) return result
     privateDirectory(this.directory)
     const entries = readdirSync(this.directory, { withFileTypes: true }).filter(entry => entry.isDirectory()).map(entry => entry.name).sort().reverse()
     for (const entry of entries) {
+      if (result.length >= limit) break
+      // Fixed-width timestamps sort chronologically, so the entry name is the
+      // newest-first order; anything that is not a checkpoint id is not one.
+      if (!CHECKPOINT_ID.test(entry)) continue
       const directory = join(this.directory, entry)
       try {
         const snapshot = this.readSnapshot(directory, name)
-        if (snapshot.healthy) {
-          const contents = FILES.map(file => readPrivateFile(join(directory, file)))
-          result.push({ directory, id: entry, created: snapshot.created, fileCount: contents.filter(text => text !== undefined).length, totalBytes: contents.reduce((sum, text) => sum + Buffer.byteLength(text ?? ''), 0) })
-          if (result.length === 3) break
-        }
+        if (accept(snapshot)) result.push(this.describe(directory, entry, snapshot))
       } catch { /* A partial or corrupt backup cannot become a restore target. */ }
     }
     return result
+  }
+
+  /** Describe one readable snapshot; the caller has already validated it. */
+  private describe(directory: string, id: string, snapshot: Snapshot): RecoveryCheckpoint {
+    const contents = FILES.map(file => readPrivateFile(join(directory, file)))
+    return { directory, id, created: snapshot.created, kind: snapshot.reason, healthy: snapshot.healthy,
+      fileCount: contents.filter(text => text !== undefined).length,
+      totalBytes: contents.reduce((sum, text) => sum + Buffer.byteLength(text ?? ''), 0) }
   }
 
   checkpoint(name: string): void {
@@ -77,19 +138,36 @@ export class NextRecovery {
     this.backup(name, 'successful-start', true)
   }
 
+  /**
+   * Restore one snapshot, verifying every byte first.
+   *
+   * An omitted id restores the newest successfully started configuration. An
+   * explicit id may name any snapshot this Profile owns — including the
+   * `before-*` snapshots a repair, a plugin change or an earlier rollback took —
+   * because that is what makes those states reachable and a rollback itself
+   * reversible.
+   * @param name - Profile name.
+   * @param id - snapshot id; omitted selects the newest healthy checkpoint.
+   */
   async restore(name: string, id?: string): Promise<void> {
-    const latest = id === undefined ? this.latest(name) : this.checkpoints(name).find(item => item.id === id)
-    if (!latest) throw new Error('No successful-start configuration is available')
     const dir = this.profiles.directory(name)
+    // The lock file lives in the Profile directory, so a Profile removed by a
+    // reset is recreated (empty) before its configuration is restored into it.
+    mkdirSync(dir, { recursive: true, mode: 0o700 })
     await withFileLock(join(dir, 'lock'), async () => {
-      const snapshot = this.readSnapshot(latest.directory, name)
+      // Resolve under the lock: a checkpoint must not be replaced between the
+      // lookup that approved the target and the write that applies it.
+      const checkpoint = id === undefined ? this.latest(name) : this.find(name, id)
+      if (!checkpoint) throw new Error('No recovery checkpoint is available')
+      const snapshot = this.readSnapshot(checkpoint.directory, name)
       // Verify the complete snapshot before making any change.
       const contents = FILES.map(file => {
-        const text = readPrivateFile(join(latest.directory, file))
+        const text = readPrivateFile(join(checkpoint.directory, file))
         const saved = snapshot.files[file]
         if (saved === null ? text !== undefined : text === undefined || digest(text) !== saved.sha256) throw new Error('Recovery backup checksum mismatch')
         return [file, text] as const
       })
+      // Snapshot the state being replaced first, so this rollback is undoable too.
       this.backup(name, 'before-rollback')
       for (const [file, text] of contents) {
         const path = join(dir, file)
@@ -195,6 +273,6 @@ export class NextRecovery {
         && (typeof value.files[file]?.sha256 !== 'string' || !/^[a-f0-9]{64}$/u.test(value.files[file]!.sha256)))) {
       throw new Error('Invalid recovery backup')
     }
-    return value
+    return { ...value, reason: typeof value.reason === 'string' ? value.reason : 'unknown' }
   }
 }

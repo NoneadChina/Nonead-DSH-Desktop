@@ -50,7 +50,8 @@ export class NextUpdates {
   }
   private set(patch: Partial<NextUpdateState>): void {
     if (this.disposed) return
-    this.state = { ...this.state, error: undefined, ...patch }
+    // `retryInstall` describes one failed-install state; every later transition clears it.
+    this.state = { ...this.state, error: undefined, retryInstall: undefined, ...patch }
     this.options.changed()
   }
   start(): void {
@@ -58,7 +59,9 @@ export class NextUpdates {
     void this.initializeCache().catch(this.options.log)
     const poll = (): void => {
       if (this.disposed) return
-      if (['idle', 'current', 'error'].includes(this.state.phase)) void this.check()
+      // A retryable install failure is waiting for the user; a background recheck would replace the
+      // kept retry state with a fresh download offer.
+      if (['idle', 'current', 'error'].includes(this.state.phase) && !this.state.retryInstall) void this.check()
       this.timer = setTimeout(poll, 6 * 60 * 60_000); this.timer.unref()
     }
     this.timer = setTimeout(poll, 30_000); this.timer.unref()
@@ -136,15 +139,30 @@ export class NextUpdates {
   }
   async install(): Promise<void> {
     if (this.disposed || this.state.phase !== 'ready') return
+    await this.startInstall()
+  }
+  /** Retry a failed install from the package it kept instead of downloading the update again. */
+  async retryInstall(): Promise<void> {
+    if (this.disposed || this.state.phase !== 'error' || this.state.error !== 'install' || !this.state.retryInstall) return
+    await this.startInstall()
+  }
+  private async startInstall(): Promise<void> {
     this.set({ phase: 'installing' })
     try { await this.options.install() }
-    catch (error) { this.options.log(error); this.set({ phase: 'error', error: 'install' }) }
+    catch (error) {
+      this.options.log(error)
+      // Keep the prepared directory: the retry action reuses this verified package, and `dispose`
+      // preserves it until the next process start cleans the cache.
+      this.set({ phase: 'error', error: 'install', retryInstall: true })
+    }
   }
   async dispose(keepInstaller = false): Promise<void> {
     this.disposed = true
     clearTimeout(this.timer)
     this.controller?.abort()
     await this.operation
-    if (this.directory && !keepInstaller) await rm(this.directory, { recursive: true, force: true }).catch(this.options.log)
+    // A retryable install failure keeps its package for the in-process retry action; a new process
+    // removes the whole cache in `initializeCache`.
+    if (this.directory && !keepInstaller && !this.state.retryInstall) await rm(this.directory, { recursive: true, force: true }).catch(this.options.log)
   }
 }

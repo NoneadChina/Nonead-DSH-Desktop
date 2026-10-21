@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -57,6 +58,42 @@ it('rechecks the selected version before downloading, and preserves preparation 
   await updates.install(); expect(options.install).not.toHaveBeenCalled()
   expect(updateAction(updates.snapshot())).toBe('download-update')
 })
+it('keeps the verified package after a failed install and retries it without downloading again', async () => {
+  const install = vi.fn<() => Promise<void>>(async () => { throw new Error('the installer exited before handing off') })
+  const { updates, options, artifactRequest } = await fixture({ install })
+  await updates.download()
+  const path = vi.mocked(options.prepare).mock.calls[0]![0]
+  expect(existsSync(path)).toBe(true)
+  await updates.install()
+  expect(updates.snapshot()).toMatchObject({ phase: 'error', error: 'install', retryInstall: true })
+  expect(updateAction(updates.snapshot())).toBe('retry-install-update')
+  expect(updateLabel(updates.snapshot(), 'en')).toContain('kept')
+  // The failure must hand the same verified package to the retry action, not delete it.
+  expect(existsSync(path)).toBe(true)
+  expect(artifactRequest).toHaveBeenCalledOnce()
+  install.mockImplementationOnce(async () => {})
+  await updates.retryInstall()
+  expect(install).toHaveBeenCalledTimes(2)
+  expect(artifactRequest).toHaveBeenCalledOnce()
+  expect(updates.snapshot()).toMatchObject({ phase: 'installing' })
+  expect(updates.snapshot().retryInstall).toBeUndefined()
+})
+it('stays retryable across repeated install failures and keeps the package through shutdown', async () => {
+  const install = vi.fn<() => Promise<void>>(async () => { throw new Error('installer failed') })
+  const { updates, options } = await fixture({ install })
+  // Without a kept package there is nothing to retry.
+  await updates.retryInstall(); expect(install).not.toHaveBeenCalled()
+  await updates.download()
+  const path = vi.mocked(options.prepare).mock.calls[0]![0]
+  await updates.install()
+  // The ready-only Install action must not restart a failed install behind the retry action.
+  await updates.install(); expect(install).toHaveBeenCalledOnce()
+  await updates.retryInstall()
+  expect(install).toHaveBeenCalledTimes(2)
+  expect(updates.snapshot()).toMatchObject({ phase: 'error', error: 'install', retryInstall: true })
+  await updates.dispose()
+  expect(existsSync(path)).toBe(true)
+})
 it('stops polling and aborts an active request on shutdown', async () => {
   const request = vi.fn<UpdateRequest>(async (_url, init) => new Promise((_resolve, reject) => init.signal!.addEventListener('abort', () => reject(new Error('aborted')), { once: true })))
   const { updates } = await fixture({ request, packaged: false })
@@ -70,6 +107,11 @@ it('shows progress and an actionable downloaded state in both languages', () => 
   expect(updateLabel({ phase: 'downloading', installable: true, received: 2 * 1048576 }, 'en')).toContain('2 MB')
   expect(updateAction({ phase: 'preparing', installable: true })).toBeUndefined()
   expect(updateAction({ phase: 'ready', installable: true })).toBe('install-update')
+  expect(updateAction({ phase: 'error', error: 'install', retryInstall: true, installable: true })).toBe('retry-install-update')
+  // A failure without a kept package still needs the download it lost (the version was recorded
+  // before the install attempt, as it is on the live path).
+  expect(updateAction({ phase: 'error', error: 'install', version: '2.1.4', installable: true })).toBe('download-update')
+  expect(updateLabel({ phase: 'error', error: 'install', retryInstall: true, installable: true }, 'zh-CN')).toContain('重试')
 })
 it('downloads a Next installer through the injected artifact transport', async () => {
   const cdn = 'https://cdn-lfs-cn-1.modelscope.cn/prod/lfs-objects/next.dmg'

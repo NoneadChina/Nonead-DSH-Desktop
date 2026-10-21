@@ -13,6 +13,7 @@ import { computerUsePatch } from './profile-computer-use.ts'
 import { RETIRED_SCHEDULE_BUNDLE, retiredSchedulePatch } from './profile-schedule.ts'
 import { removeLinkProjectionsSafely } from '../../dsh-plugin-desktop-beta/src/link-projections.ts'
 import { insideArchive, unpackedPath } from './asar-archive-policy.ts'
+import { withProfileWriteLock } from './recovery-support.ts'
 
 export const NEXT_PACKAGE = fileURLToPath(new URL('../package.json', import.meta.url))
 export const WEB_BUNDLES = [...PROFILE_TEMPLATES.web!.bundles]
@@ -86,6 +87,17 @@ export function parseFeatures(value: unknown): Features {
     ...(marketChoice === undefined ? {} : { marketChoice }) }
 }
 
+/**
+ * Shell-owned Profile configuration.
+ *
+ * The Profile files are shared with the Host's profile manager, so every method
+ * that reads configuration and writes it back runs under `withProfileWriteLock`
+ * over `<profile>/lock.lock` — the same lock file the asynchronous recovery
+ * writers take through `withFileLock(join(dir, 'lock'))`. Reads stay lock-free:
+ * the atomic rename commit means a reader observes either the whole old or the
+ * whole new file. Methods documented as "unlocked" assume the caller already
+ * holds that lock, which is how a nested migration reuses one critical section.
+ */
 export class NextProfiles {
   constructor(readonly home: string) {
     if (!isAbsolute(home)) throw new Error('Next home must be absolute')
@@ -129,6 +141,13 @@ export class NextProfiles {
   }
   ensure(name: string): string {
     const dir = this.directory(name)
+    // Create the directory before locking, so a first-time Profile is already
+    // covered by the shared writer lock while `initProfile` renders it.
+    if (!existsSync(join(dir, 'package.json'))) mkdirSync(dir, { recursive: true, mode: 0o700 })
+    return withProfileWriteLock(dir, () => this.writeEnsure(name, dir))
+  }
+  /** Unlocked: the caller holds the Profile writer lock. */
+  private writeEnsure(name: string, dir: string): string {
     const existing = existsSync(join(dir, 'package.json'))
     if (!existing) initProfile(dir, WEB_BUNDLES)
     if (existing) {
@@ -137,23 +156,27 @@ export class NextProfiles {
         // Retire the former Next-specific selection from the shared manifest.
         // Other launchers must not inherit this application's capability.
         new NextRecovery(this).backup(name, 'before-next-bundle-removal')
-        this.migrateFeatures(name)
+        this.writeMigrateFeatures(name)
         const migrated = this.manifest(name)
         migrated.dsh.profile.bundles = migrated.dsh.profile.bundles.filter(bundle => bundle !== 'nonead-dsh-desktop')
         atomicJson(join(dir, 'package.json'), migrated)
       }
-    } else this.setFeatures(name, DEFAULT_FEATURES)
-    this.migrateSchedule(name)
+    } else this.writeFeatures(name, DEFAULT_FEATURES)
+    this.writeMigrateSchedule(name)
     return dir
   }
   create(name: string): string {
     const dir = this.directory(name)
     mkdirSync(dirname(dir), { recursive: true, mode: 0o700 })
     mkdirSync(dir, { mode: 0o700 })
-    initProfile(dir, WEB_BUNDLES)
-    this.setFeatures(name, DEFAULT_FEATURES)
-    this.migrateSchedule(name)
-    return dir
+    // The directory exists before the lock is taken, so a concurrent manager
+    // contends on this Profile instead of racing the initial manifest render.
+    return withProfileWriteLock(dir, () => {
+      initProfile(dir, WEB_BUNDLES)
+      this.writeFeatures(name, DEFAULT_FEATURES)
+      this.writeMigrateSchedule(name)
+      return dir
+    })
   }
   features(name: string): Features {
     const manifest = this.manifest(name)
@@ -167,6 +190,11 @@ export class NextProfiles {
     return text === undefined ? { ...DEFAULT_FEATURES } : parseFeatures(JSON.parse(text))
   }
   setFeatures(name: string, value: unknown): void {
+    const dir = this.directory(name)
+    withProfileWriteLock(dir, () => this.writeFeatures(name, value))
+  }
+  /** Unlocked: the caller holds the Profile writer lock. */
+  private writeFeatures(name: string, value: unknown): void {
     const features = parseFeatures(value)
     const manifest = this.manifest(name)
     applyFeatures(manifest, features)
@@ -180,10 +208,13 @@ export class NextProfiles {
     return !this.onboardingRequired(name) && this.manifest(name).dsh.desktopNextOnboarding?.accountPending === true
   }
   dismissAccountSetup(name: string): void {
-    const manifest = this.manifest(name)
-    if (manifest.dsh.desktopNextOnboarding?.accountPending !== true) return
-    delete manifest.dsh.desktopNextOnboarding.accountPending
-    atomicJson(join(this.directory(name), 'package.json'), manifest)
+    const dir = this.directory(name)
+    withProfileWriteLock(dir, () => {
+      const manifest = this.manifest(name)
+      if (manifest.dsh.desktopNextOnboarding?.accountPending !== true) return
+      delete manifest.dsh.desktopNextOnboarding.accountPending
+      atomicJson(join(dir, 'package.json'), manifest)
+    })
   }
   /** Read the saved native-provider choice without importing any user plugin. */
   computerUseEnabled(name: string): boolean {
@@ -191,8 +222,16 @@ export class NextProfiles {
   }
   /** Save choices before completion. Skip preserves both bundles and the user's patch verbatim. */
   finishOnboarding(name: string, value?: unknown): void {
+    const dir = this.directory(name)
+    withProfileWriteLock(dir, () => this.writeOnboarding(name, dir, value))
+  }
+  /**
+   * Unlocked: the caller holds the Profile writer lock, so the manifest read,
+   * the patch read and the two-file commit cannot interleave with another writer.
+   */
+  private writeOnboarding(name: string, dir: string, value?: unknown): void {
     const manifest = this.manifest(name)
-    const patchPath = join(this.directory(name), 'cordis.patch.yml')
+    const patchPath = join(dir, 'cordis.patch.yml')
     let originalPatch: string | undefined
     let nextPatch: string | undefined
     if (value !== undefined) {
@@ -212,7 +251,7 @@ export class NextProfiles {
     if (patchChanged && nextPatch !== undefined) atomicText(patchPath, nextPatch)
     try {
       // Completion is the final write: a failed/interrupted save must never start the Host.
-      atomicJson(join(this.directory(name), 'package.json'), manifest)
+      atomicJson(join(dir, 'package.json'), manifest)
     } catch (error) {
       if (patchChanged) {
         if (originalPatch === undefined) unlinkSync(patchPath)
@@ -223,17 +262,23 @@ export class NextProfiles {
   }
   /** Once per Profile, preserve the old choices without overriding future plugin-manager edits. */
   migrateFeatures(name: string): void {
+    const dir = this.directory(name)
+    withProfileWriteLock(dir, () => this.writeMigrateFeatures(name))
+  }
+  /** Unlocked: the caller holds the Profile writer lock. */
+  private writeMigrateFeatures(name: string): void {
     const manifest = this.manifest(name)
     if (manifest.dsh.desktopNextPlugins === 1) return
-    this.setFeatures(name, { ...this.features(name), dshMarket: manifest.dsh.profile.bundles.includes(DSH_MARKET_PACKAGE) })
+    this.writeFeatures(name, { ...this.features(name), dshMarket: manifest.dsh.profile.bundles.includes(DSH_MARKET_PACKAGE) })
   }
   /**
    * Once per Profile: upstream retired the Scheduled Tasks bundle and the Web
    * composition now mounts Schedule. Drop the bundle (app-boot would on load,
    * but Next reads the list first) and the `time-context` overrides that no
    * longer match a row; overrides on `schedule` and `ui-schedule` keep applying.
+   * Unlocked: `ensure` and `create` call it while holding the Profile writer lock.
    */
-  private migrateSchedule(name: string): void {
+  private writeMigrateSchedule(name: string): void {
     const manifest = this.manifest(name)
     if (manifest.dsh.desktopNextScheduleBundle === 2) return
     const patchPath = join(this.directory(name), 'cordis.patch.yml')
@@ -272,7 +317,8 @@ export class NextProfiles {
         ...(onboarding?.version === 1 && ['completed', 'skipped'].includes(onboarding.outcome) ? { desktopNextOnboarding: onboarding } : {}) }
       atomicJson(join(dir, 'package.json'), manifest)
       atomicText(join(dir, 'cordis.patch.yml'), '[]\n')
-      this.setFeatures(name, { remoteControl: false, market: false })
+      // Already inside the writer lock taken above, so write through the unlocked helper.
+      this.writeFeatures(name, { remoteControl: false, market: false })
       return readPrivateFile(join(backup, 'cordis.patch.yml')) === undefined ? undefined : join(backup, 'cordis.patch.yml')
     })
   }

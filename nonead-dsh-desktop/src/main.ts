@@ -187,8 +187,18 @@ const updates = new NextUpdates({ version, platform: process.platform, packaged:
       // Start the native installer before asking the app to quit. Shutdown can overrun its grace
       // while the Host is still tearing down, and a timed-out quit exits before the post-shutdown
       // handoff, which left the window closed with no installer ever running.
-      await updateInstaller.launch()
-      if (!quitting) { installingUpdate = true; app.quit() }
+      // Arm the handoff first: if a quit starts while this launch is still in flight, before-quit
+      // must treat the installer as owned and join this same idempotent launch instead of dropping it.
+      installingUpdate = true
+      try { await updateInstaller.launch() }
+      catch (error) {
+        // Before the quit starts, hand the failure back to the update state, which keeps the
+        // package and exposes the retry action. During a quit, stay armed: the handoff owns the
+        // documented relaunch-after-failure path.
+        if (!quitting) installingUpdate = false
+        throw error
+      }
+      if (!quitting) app.quit()
     } finally { runtime.busy = false; if (!quitting) native.refresh() }
   },
 })
@@ -196,7 +206,7 @@ const updates = new NextUpdates({ version, platform: process.platform, packaged:
 function state(): DesktopState {
   let recovery: DesktopState['recovery']
   try {
-    recovery = { bundles: [], checkpoints: runtime.recovery.checkpoints(runtime.selected),
+    recovery = { bundles: [], checkpoints: runtime.recovery.list(runtime.selected),
       profileDirectory: runtime.profiles.directory(runtime.selected), usingDefaultDirectory: home === defaultHome, diagnosticsFile, notice: recoveryNotice }
     try { recovery.bundles = runtime.recovery.bundles(runtime.selected) } catch (error) { recovery.error = String(error) }
   } catch (error) {
@@ -460,7 +470,7 @@ async function performCommand(input: Record<string, unknown>, type: string, sour
   }
   if (type === 'close-controls') { shellWindow?.close(); return }
   if (type === 'quit') { app.quit(); return }
-  if (['check-updates', 'download-update', 'install-update'].includes(type)) {
+  if (['check-updates', 'download-update', 'install-update', 'retry-install-update'].includes(type)) {
     if (quitting || runtime.busy) return
     if (type === 'check-updates') {
       void updates.check().then(async () => {
@@ -474,6 +484,7 @@ async function performCommand(input: Record<string, unknown>, type: string, sour
         } else await dialog.showMessageBox({ type: 'info', title: 'Nonead DSH Desktop', message: updateLabel(snapshot, windowsLanguage) })
       }).catch(error => runtime.diagnostics.append(String(error), 'warn'))
     } else if (type === 'download-update') void updates.download()
+    else if (type === 'retry-install-update') void updates.retryInstall()
     else {
       if (updates.snapshot().phase !== 'ready') return
       void updates.install()
@@ -698,7 +709,7 @@ async function recoveryAction(input: Record<string, unknown>): Promise<void> {
     shell.showItemInFolder(diagnosticsFile); return
   }
   if (action === 'open-checkpoint' || action === 'preview-checkpoint') {
-    const checkpoint = runtime.recovery.checkpoints(runtime.selected).find(item => item.id === input.id)
+    const checkpoint = runtime.recovery.find(runtime.selected, String(input.id))
     if (!checkpoint) throw new Error('Recovery checkpoint is no longer available')
     if (action === 'open-checkpoint') { await openPath(checkpoint.directory); return }
     if (!await confirmed(t('还原所选配置备份？', 'Restore the selected configuration backup?'),

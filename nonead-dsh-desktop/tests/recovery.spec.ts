@@ -1,6 +1,6 @@
 import { mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 import { afterEach, expect, it, vi } from 'vitest'
 import { NextProfiles } from '../src/profiles.ts'
 import { NextRecovery } from '../src/recovery.ts'
@@ -29,7 +29,7 @@ it('shows three healthy checkpoints and restores the selected older snapshot, pr
   await recovery.restore('desktop', checkpoints[2]!.id)
   expect(readFileSync(join(directory, 'cordis.patch.yml'), 'utf8')).toContain('version 2')
   expect(readdirSync(recovery.directory)).toHaveLength(5)
-  await expect(recovery.restore('desktop', '../outside')).rejects.toThrow('No successful-start')
+  await expect(recovery.restore('desktop', '../outside')).rejects.toThrow('No recovery checkpoint')
 })
 
 it('rejects a tampered backup before changing any live configuration', async () => {
@@ -144,4 +144,57 @@ it('forgets a ledger entry once the bundle is reselected or its dependency is go
   delete removed.dependencies['my-plugin']
   writeFileSync(path, JSON.stringify(removed))
   expect(recovery.bundles('desktop').some(item => item.packageName === 'my-plugin')).toBe(false)
+})
+
+it('lists and restores a snapshot no successful start produced, keeping that rollback reversible', async () => {
+  const { directory, recovery } = fixture()
+  const clock = vi.spyOn(Date, 'now')
+  let now = Date.now()
+  clock.mockImplementation(() => (now += 1))
+  recovery.checkpoint('desktop')
+  const patch = join(directory, 'cordis.patch.yml')
+  writeFileSync(patch, '# before repair\n[]\n')
+  const repair = basename(recovery.backup('desktop', 'before-profile-repair'))
+  writeFileSync(patch, '# repaired\n[]\n')
+
+  // The implicit rollback chooser still offers only configurations known to start.
+  expect(recovery.checkpoints('desktop')).toHaveLength(1)
+  expect(recovery.checkpoints('desktop')[0]).toMatchObject({ kind: 'successful-start', healthy: true })
+  // The data layer exposes every snapshot with the reason it exists.
+  expect(recovery.list('desktop').map(item => item.kind)).toEqual(['before-profile-repair', 'successful-start'])
+  expect(recovery.list('desktop', 1).map(item => item.id)).toEqual([repair])
+  expect(recovery.find('desktop', repair)).toMatchObject({
+    id: repair, kind: 'before-profile-repair', healthy: false, directory: join(recovery.directory, repair),
+    fileCount: expect.any(Number), totalBytes: expect.any(Number),
+  })
+
+  await recovery.restore('desktop', repair)
+  expect(readFileSync(patch, 'utf8')).toBe('# before repair\n[]\n')
+  // Restoring snapshotted the state it replaced, so this rollback can be undone.
+  const rollback = recovery.list('desktop').find(item => item.kind === 'before-rollback')
+  expect(rollback).toBeDefined()
+  expect(rollback).toMatchObject({ healthy: false, kind: 'before-rollback' })
+  await recovery.restore('desktop', rollback!.id)
+  expect(readFileSync(patch, 'utf8')).toBe('# repaired\n[]\n')
+})
+
+it('never rolls back to a snapshot that was not known to start unless it is named explicitly', async () => {
+  const { recovery } = fixture()
+  recovery.backup('desktop', 'before-plugin-disable')
+  expect(recovery.checkpoints('desktop')).toEqual([])
+  await expect(recovery.restore('desktop')).rejects.toThrow('No recovery checkpoint')
+  expect(recovery.list('desktop').map(item => ({ kind: item.kind, healthy: item.healthy })))
+    .toEqual([{ kind: 'before-plugin-disable', healthy: false }])
+})
+
+it('rejects an unknown or traversing checkpoint id without touching configuration', async () => {
+  const { directory, recovery } = fixture()
+  recovery.checkpoint('desktop')
+  const manifest = readFileSync(join(directory, 'package.json'), 'utf8')
+  for (const id of ['../outside', 'not-a-checkpoint', '1000-00000000-0000-0000-0000-000000000000']) {
+    expect(recovery.find('desktop', id)).toBeUndefined()
+    await expect(recovery.restore('desktop', id)).rejects.toThrow('No recovery checkpoint')
+  }
+  expect(readFileSync(join(directory, 'package.json'), 'utf8')).toBe(manifest)
+  expect(recovery.list('desktop')).toHaveLength(1)
 })
