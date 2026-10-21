@@ -1,5 +1,6 @@
 /** Boot the real Host from one packaged Next archive and stop it; no window, no user data. */
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { randomBytes } from 'node:crypto'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -8,7 +9,10 @@ const BADGE_BUNDLE = '@deepseek-ai/dsh-experimental-badge-skill-bundle'
 const root = process.argv[2]
 if (!root) throw new Error('packaged-host-smoke: expected the packaged application root')
 const { NextDesktopRuntime } = await import(pathToFileURL(join(root, 'lib', 'desktop-runtime.js')).href)
-const home = mkdtempSync(join(tmpdir(), 'nonead-dsh-desktop-packaged-smoke-'))
+// Electron's packaged Node runtime rejects mkdtempSync on Windows
+// (EPERM: operation not permitted), so allocate the scratch home explicitly.
+const home = join(tmpdir(), `nonead-dsh-desktop-packaged-smoke-${String(process.pid)}-${randomBytes(6).toString('hex')}`)
+mkdirSync(home)
 let failures = 0
 // The payload of this CPU sits beside the archive, where the packaged shell selects it.
 const runtime = new NextDesktopRuntime({ root, home, primaryRuntime: join(dirname(root), 'runtime', process.arch, 'primary-runtime'), executable: process.execPath, addresses: () => [],

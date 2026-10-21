@@ -31,8 +31,8 @@ export function cleanupDisposableTree(rootDir: string): boolean {
       removeDisposableEntry(rootDir)
       return true
     } catch (cause) {
-      if (attempt >= 3 || !CLEANUP_RETRY_CODES.has((cause as NodeJS.ErrnoException).code ?? '')) throw cause
-      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100 * (attempt + 1))
+      if (attempt >= 10 || !CLEANUP_RETRY_CODES.has((cause as NodeJS.ErrnoException).code ?? '')) throw cause
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, Math.min(100 * (attempt + 1), 1000))
     }
   }
 }

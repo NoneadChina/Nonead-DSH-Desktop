@@ -35,13 +35,14 @@ export function nextInstallerArguments(platform: string): readonly string[] {
 export class NextUpdateInstaller {
   private prepared?: { path: string; version: string; archive?: string }
   private nativeReady = false
-  private launched = false
+  /** Shared by the Install action and the shutdown handoff so the installer starts exactly once. */
+  private launchTask?: Promise<void>
   // Keep EventEmitter errors handled even if a timed-out native operation finishes later.
   constructor(private readonly options: { platform: string; executable: string; log(error: unknown): void }) {
     if (options.platform === 'darwin') autoUpdater.on('error', options.log)
   }
   async prepare(path: string, version: string, directory: string, signal: AbortSignal): Promise<void> {
-    this.prepared = undefined; this.nativeReady = false; this.launched = false
+    this.prepared = undefined; this.nativeReady = false; this.launchTask = undefined
     if (this.options.platform === 'win32') {
       const script = '$ErrorActionPreference="Stop"; (Get-Item -LiteralPath $env:DSH_UPDATE_INSTALLER).VersionInfo | Select-Object ProductName,ProductVersion | ConvertTo-Json -Compress'
       const info = await execute(join(process.env.SystemRoot ?? 'C:\\Windows', 'System32/WindowsPowerShell/v1.0/powershell.exe'),
@@ -110,15 +111,22 @@ export class NextUpdateInstaller {
    * Called after the Host and windows have finished shutting down, and again from the Install action
    * before it asks the app to quit. Launching early matters because the shutdown grace can expire
    * while the Host is still tearing down, and a timed-out quit exits without ever reaching the
-   * post-shutdown handoff. Repeat calls are no-ops so the installer never starts twice.
+   * post-shutdown handoff. The first call owns the single launch attempt: concurrent calls join it,
+   * and a failed attempt stays retryable so pressing Install again can recover.
    */
   async launch(): Promise<void> {
-    if (this.launched) return
-    this.launched = true
+    this.launchTask ??= this.startInstaller().catch((error: unknown) => {
+      this.launchTask = undefined
+      throw error
+    })
+    return this.launchTask
+  }
+  private async startInstaller(): Promise<void> {
     if (this.options.platform === 'darwin' && this.nativeReady) { autoUpdater.quitAndInstall(); return }
-    if (this.options.platform !== 'win32' || !this.prepared) throw new Error('No prepared update installer')
+    const prepared = this.prepared
+    if (this.options.platform !== 'win32' || !prepared) throw new Error('No prepared update installer')
     await new Promise<void>((resolve, reject) => {
-      const child = spawn(this.prepared!.path, [...nextInstallerArguments('win32')], { detached: true, stdio: 'ignore', shell: false, windowsHide: false })
+      const child = spawn(prepared.path, [...nextInstallerArguments('win32')], { detached: true, stdio: 'ignore', shell: false, windowsHide: false })
       child.once('error', reject)
       child.once('spawn', () => { child.off('error', reject); child.on('error', this.options.log); child.unref(); resolve() })
     })
