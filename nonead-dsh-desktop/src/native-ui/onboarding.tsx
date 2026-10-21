@@ -25,8 +25,9 @@ export function Onboarding({ state, locale, bridge, renderNavigation, embedded =
   const [transitioning, setTransitioning] = useState(false)
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState('')
-  // dsh-market is preselected so a fresh setup starts with a working plugin market.
-  const [market, setMarket] = useState<Market>('dsh')
+  // Reopening the wizard must show the market this profile already uses; only a fresh
+  // setup (no feature flags yet) falls back to dsh-market so it has a working market.
+  const [market, setMarket] = useState<Market>(() => state.features.market ? 'community' : 'dsh')
   const [remote, setRemote] = useState(state.features.remoteControl)
   // Computer Use is on by default so a fresh setup starts ready for remote AI control.
   const [computerUse, setComputerUse] = useState(state.onboardingComputerUse ?? true)
