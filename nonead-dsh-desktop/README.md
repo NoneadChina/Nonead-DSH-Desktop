@@ -160,7 +160,7 @@ Packaging entry points and the Next update client are implemented. Releases stil
 
 ## Packaging and updates
 
-The product version is `2.1.3`. Run from the repository root:
+The product version is the `version` field in this package's `package.json`; the latest entry in the root `CHANGELOG.md` describes the current release. Run from the repository root:
 
 ```sh
 corepack yarn package:dir:stable

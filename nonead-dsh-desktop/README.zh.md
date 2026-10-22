@@ -160,7 +160,7 @@ Next 在运行时提供一个应用自有的 Profile 层；它的重组钩子让
 
 ## 打包与更新
 
-产品版本为 `2.1.3`。在仓库根目录运行：
+产品版本取自本包 `package.json` 的 `version`，当前发布内容见根目录 `CHANGELOG.md` 的最新条目。在仓库根目录运行：
 
 ```sh
 corepack yarn package:dir:stable

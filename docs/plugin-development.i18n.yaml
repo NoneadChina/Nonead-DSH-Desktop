@@ -1,4 +1,4 @@
 # Bilingual-pair consistency record. Both languages carry equal authority.
 # Update both files and record their Git blob hashes after editing either side.
-plugin-development.md: d7468814f982e301e071ca35d4727be865e9639b
-plugin-development.en.md: 42913840a5221a58fd552e42fc11020cd42f7593
+plugin-development.md: 58325730c15c2a434b8955910947f3e4c2e25f33
+plugin-development.en.md: 332dbdd5a7f7bf7e1f298742f294f75829408a83
