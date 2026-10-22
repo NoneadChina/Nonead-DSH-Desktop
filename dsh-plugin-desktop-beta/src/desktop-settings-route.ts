@@ -85,14 +85,18 @@ function referrerOrigin(value: string | undefined): string | undefined {
  * A mutating request must carry the exact Origin. A read-only browser GET may
  * use the standard same-origin fetch metadata plus its same-origin referrer,
  * because browsers commonly omit Origin on same-origin GET requests.
+ *
+ * The socket address is what makes this independent of client-supplied headers:
+ * a request that merely claims the right `Origin` but arrives from a non-loopback
+ * peer (or from a proxy that rewrote the header) is refused.
  */
-function isSameOriginLoopbackRequest(
+export function isSameOriginLoopbackRequest(
   req: IncomingMessage,
   expectedOrigin: string,
   mutating: boolean,
 ): boolean {
   const expected = expectedLoopbackOrigin(expectedOrigin)
-  if (expected === undefined || !isLoopbackAddress(req.socket.remoteAddress)) return false
+  if (expected === undefined || !isLoopbackAddress(req.socket?.remoteAddress)) return false
   if (req.headers.host?.toLowerCase() !== expected.host.toLowerCase()) return false
   if (exactHeaderOrigin(req.headers.origin) === expected.origin) {
     return req.headers['sec-fetch-site'] === undefined || req.headers['sec-fetch-site'] === 'same-origin'

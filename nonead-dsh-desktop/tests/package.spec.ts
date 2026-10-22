@@ -44,12 +44,30 @@ it('archives the application like upstream Desktop while keeping fuses and nativ
   expect(next.build.npmRebuild).toBeUndefined()
   // beforePack only adds the Office closure of the prepared payload to the unpack patterns.
   expect(next.build.beforePack).toBe('./scripts/prepare-pack.ts')
-  // Unpack patterns are matched below the application directory, so payload-root patterns name the prepared directory.
-  expect(next.build.asarUnpack).toEqual(expect.arrayContaining(['.desktop-build/payload/scripts/node-bin/**/*', '.desktop-build/payload/assets/**/*', '.desktop-build/payload/build/**/*']))
-  expect(next.build.asarUnpack.every((pattern: string) => pattern.startsWith('**/') || pattern.startsWith('.desktop-build/payload/'))).toBe(true)
+  // electron-builder resolves `asarUnpack` with `defaultSrc: appDir` — this workspace directory,
+  // because `directories.app` is unset and neither `app/` nor `www/` exists — and matches *source*
+  // paths, not the archived layout: a payload file reaches the matcher as
+  // `.desktop-build/payload/<path>`. The patterns must therefore carry the file set's `from` prefix;
+  // stripping it would pack `assets/` and `build/` (read by path through `nativeImage`) and the
+  // extension-less POSIX `scripts/node-bin/node` binary the shims exec.
+  const payloadPrefix = `${next.build.files[0].from}/`
+  expect(next.build.asarUnpack).toEqual(expect.arrayContaining(
+    ['scripts/node-bin/**/*', 'assets/**/*', 'build/**/*'].map(pattern => `${payloadPrefix}${pattern}`)))
+  expect(next.build.asarUnpack.every((pattern: string) => pattern.startsWith('**/') || pattern.startsWith(payloadPrefix))).toBe(true)
   expect(next.build.afterPack).toBe('./scripts/verify-packaged.ts')
   expect(next.build.afterAllArtifactBuild).toBe('./scripts/verify-fuses.ts')
-  expect(next.build.electronFuses).toEqual(beta.build.electronFuses)
+  // Both shells close the NODE_OPTIONS / --inspect surface and keep RunAsNode (the Host, CLI and pnpm
+  // shims exec the Electron binary with ELECTRON_RUN_AS_NODE). The archive bit follows the layout:
+  // this shell ships app.asar, so it loads only from there; Beta ships a physical app/ directory.
+  const { onlyLoadAppFromAsar: nextArchiveOnly, ...nextHardenedFuses } = next.build.electronFuses
+  const { onlyLoadAppFromAsar: betaArchiveOnly, ...betaHardenedFuses } = beta.build.electronFuses
+  expect(nextHardenedFuses).toEqual(betaHardenedFuses)
+  expect(nextArchiveOnly).toBe(true)
+  expect(betaArchiveOnly).toBe(false)
+  expect(next.build.electronFuses.runAsNode).toBe(true)
+  expect(next.build.electronFuses.EnableNodeOptionsEnvironmentVariable).toBe(false)
+  expect(next.build.electronFuses.EnableNodeCliInspectArguments).toBe(false)
+  expect(next.build.electronFuses.enableEmbeddedAsarIntegrityValidation).toBe(false)
   // Beta's rule already keeps the interpreter payloads, identical across the two CPU builds. Next adds its own
   // per-CPU native packages, pnpm's reflink addons from its bundled dist/node_modules, and the wheels' .dylibs
   // directories, which @electron/universal misses because it matches without the dot option.

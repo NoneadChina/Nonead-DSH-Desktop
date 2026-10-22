@@ -219,6 +219,12 @@ export class DesktopHostProcess {
     private readonly onPlatformSession?: (session: PlatformSession | null) => void,
     private readonly onPlatformLogin?: (request: DesktopPlatformLoginRequest) => void,
     private readonly onDiagnostic?: (input: LogInput) => void,
+    /**
+     * Renderer credential handed to the child as one line on its private stdin pipe.
+     * It deliberately does not travel in `environment`: a same-user process can read a
+     * child's environment and then impersonate the renderer.
+     */
+    private readonly rendererCredential?: string,
   ) {}
 
   /**
@@ -239,9 +245,11 @@ export class DesktopHostProcess {
     ], {
       cwd: this.projectDir,
       env: desktopNodeEnvironment(this.node, undefined, this.environment),
-      stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
+      // stdin is the private credential pipe; it stays closed when there is nothing to hand over.
+      stdio: [this.rendererCredential === undefined ? 'ignore' : 'pipe', 'pipe', 'pipe', 'ipc'],
     })
     this.child = child
+    this.handOverCredential(child)
     this.diagnostic({ source: 'host.process', event: 'spawn', pid: child.pid })
     child.stderr?.setEncoding('utf8')
     child.stderr?.on('data', (chunk: string) => { this.stderr = (this.stderr + chunk).slice(-MAX_HOST_DIAGNOSTIC_CHARS); this.onLog?.(chunk, 'stderr', child.pid) })
@@ -320,6 +328,24 @@ export class DesktopHostProcess {
   }
 
   private diagnostic(input: LogInput): void { try { this.onDiagnostic?.(input) } catch { /* Observational only. */ } }
+
+  /**
+   * Write the renderer credential to the child's private stdin pipe and close it.
+   *
+   * The pipe is not readable by other processes and never appears in the child's
+   * environment, so the credential cannot be lifted from `/proc/<pid>/environ`, a crash
+   * dump or the Windows PEB. The 43-byte line fits the pipe buffer, so `end` never blocks
+   * on the child's boot progress; a child that already exited reports EPIPE, which is
+   * ignored because the exit path reports the real failure.
+   */
+  private handOverCredential(child: ChildProcess): void {
+    const credential = this.rendererCredential
+    if (credential === undefined) return
+    const stdin = child.stdin
+    if (stdin === null) { this.fail(new Error('Next Host credential pipe is unavailable')); return }
+    stdin.on('error', () => { /* A child that exited early is reported by the exit path. */ })
+    stdin.end(`${credential}\n`)
+  }
 
   private controlOperation(type: string, requestId: number): (error?: unknown) => void {
     const started = Date.now()

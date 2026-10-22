@@ -66,4 +66,38 @@ describe('maskSecrets', () => {
   it('leaves ordinary prose untouched', () => {
     expect(maskSecrets('hello world, profile "desktop"')).toBe('hello world, profile "desktop"')
   })
+
+  it('masks the renderer credential header, its environment form and a bare token', () => {
+    // 32 base64url bytes, exactly the renderer credential the shell hands the Host.
+    const token = Buffer.alloc(32, 7).toString('base64url')
+    expect(token).toHaveLength(43)
+
+    const header = maskSecrets(`x-dsh-desktop-renderer: ${token}`)
+    expect(header).toBe('x-dsh-desktop-renderer: ****')
+    expect(header).not.toContain(token)
+
+    const json = maskSecrets(JSON.stringify({ 'x-dsh-desktop-renderer': token }))
+    expect(json).toBe('{"x-dsh-desktop-renderer":"****"}')
+    expect(json).not.toContain(token)
+
+    const assignment = maskSecrets(`spawn env DSH_NONEAD_NATIVE_TOKEN=${token} kept=yes`)
+    expect(assignment).toBe('spawn env DSH_NONEAD_NATIVE_TOKEN=**** kept=yes')
+    expect(assignment).not.toContain(token)
+
+    const bare = maskSecrets(`forwarded a token ${token} on stdin`)
+    expect(bare).toBe(`forwarded a token ${token.slice(0, 3)}**** on stdin`)
+    expect(bare).not.toContain(token)
+  })
+
+  it('keeps long lowercase identifiers and prose readable', () => {
+    const prose = 'the desktop-shell-context-menu-integration-compatibility-matrix is long'
+    expect(maskSecrets(prose)).toBe(prose)
+    expect(maskSecrets('path /app/node_modules/deepseek-harness-loaded-modules-here')).toContain('deepseek-harness-loaded-modules-here')
+  })
+
+  it('keeps UUID correlation ids readable for log triage', () => {
+    const runId = 'a0b69169-e4a5-4b76-8705-05bb1e8e2f10'
+    expect(maskSecrets(JSON.stringify({ runId }))).toBe(`{"runId":"${runId}"}`)
+    expect(maskSecrets(`host.stop.failed runId=${runId}`)).toBe(`host.stop.failed runId=${runId}`)
+  })
 })

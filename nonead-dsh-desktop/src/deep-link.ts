@@ -1,6 +1,26 @@
 /** `dsh-desktop://` links are parsed without Electron so routing and registration stay testable. */
 export const DEEP_LINK_PROTOCOL = 'dsh-desktop'
 
+/**
+ * Actions a `dsh-desktop://` link may request. Any other action is dropped: every local
+ * process can open the scheme, so an open-ended action space would hand unvalidated input to
+ * the renderer. `settings` opens the Desktop settings document; `open` focuses the app on the
+ * path named by its `path` parameter.
+ */
+export const DEEP_LINK_ACTIONS = ['settings', 'open'] as const
+
+/** One supported deep-link action. */
+export type DesktopDeepLinkAction = (typeof DEEP_LINK_ACTIONS)[number]
+
+/**
+ * Whether `action` is a supported deep-link action.
+ * @param action - link action; `parseDeepLink` already lowercased it.
+ * @returns true for an allowlisted action, false for anything else.
+ */
+export function isSupportedDeepLinkAction(action: string): action is DesktopDeepLinkAction {
+  return (DEEP_LINK_ACTIONS as readonly string[]).includes(action)
+}
+
 export interface DesktopDeepLink {
   /** Normalized link as forwarded to the renderer. */
   url: string

@@ -18,7 +18,16 @@ const ACCESS_TOKEN_BYTES = 32
 const ACCESS_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/u
 const DESKTOP_MARKER_PREFIX = 'dsh-desktop-'
 
-/** Header value retained only in main-process and Host-generation memory. */
+/** Whether `value` is one generated renderer access token (32 base64url bytes). */
+export function isRendererAccessToken(value: unknown): value is string {
+  return typeof value === 'string' && ACCESS_TOKEN_PATTERN.test(value)
+}
+
+/**
+ * Header value retained in main-process memory and handed to the Host over its private
+ * stdin pipe. It is never written to the child environment, an argument list or a file:
+ * a same-user process can read those and then impersonate the renderer.
+ */
 export interface DesktopRendererAccessHeader {
   readonly name: typeof DESKTOP_RENDERER_ACCESS_HEADER
   readonly value: string

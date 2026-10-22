@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-desktop-beta",
-  "version": "2.1.15",
+  "version": "2.1.16",
   "description": "DSH Desktop Beta: an Electron shell composed as a DeepSeek Harness Cordis plugin",
   "desktopName": "dsh-desktop-beta.desktop",
   "license": "MIT",
@@ -129,6 +129,7 @@
     "prepare:electron-native": "node scripts/prepare-fs-ext.ts",
     "prepare:runtime": "node scripts/prepare-runtime.ts",
     "check": "yarn run build && yarn run typecheck && yarn run test && yarn run verify:closure && yarn run verify:cli && yarn run verify:loader && yarn run verify:profile && yarn run verify:aa && yarn run verify:licenses && yarn run verify:operations",
+    "check:ci": "yarn run build && yarn run typecheck && yarn run test && yarn run verify:closure && yarn run verify:cli && yarn run verify:loader && yarn run verify:profile && yarn run verify:licenses && yarn run verify:operations",
     "check:win-package": "yarn run check:win-package:platform && yarn run typecheck",
     "check:win-package:platform": "yarn workspace dsh-community-market build && yarn run build && vitest run tests/package.spec.ts tests/package-win.spec.ts tests/desktop-installer-quit.spec.ts tests/installer-nsh.spec.ts tests/update-checker.spec.ts tests/update-download.spec.ts tests/verify-win-installer.spec.ts tests/verify-win-portable.spec.ts tests/verify-packaged-runtime.spec.ts tests/windows-pwsh-sandbox.spec.ts tests/windows-console-host.spec.ts tests/windows-volume-diagnostics.spec.ts tests/window-options.spec.ts tests/safe-mode.spec.ts && yarn run verify:closure",
     "check:mac-package": "yarn run check:mac-package:platform && yarn run typecheck",
@@ -385,6 +386,8 @@
     "afterPack": "./scripts/verify-packaged-runtime.ts",
     "afterAllArtifactBuild": "./scripts/verify-electron-fuses.ts",
     "electronFuses": {
+      "EnableNodeCliInspectArguments": false,
+      "EnableNodeOptionsEnvironmentVariable": false,
       "enableEmbeddedAsarIntegrityValidation": false,
       "onlyLoadAppFromAsar": false,
       "resetAdHocDarwinSignature": true,

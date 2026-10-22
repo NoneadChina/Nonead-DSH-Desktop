@@ -578,7 +578,12 @@ describe('desktop Host plugin', () => {
     }))
     const req = {
       method: 'POST',
-      headers: { origin: 'http://127.0.0.1:43120' },
+      headers: {
+        origin: 'http://127.0.0.1:43120',
+        host: '127.0.0.1:43120',
+        'sec-fetch-site': 'same-origin',
+      },
+      socket: { remoteAddress: '127.0.0.1' },
     } as unknown as IncomingMessage
     let body = ''
     const res = {
@@ -603,8 +608,11 @@ describe('desktop Host plugin', () => {
       method: 'POST',
       headers: {
         origin: 'http://127.0.0.1:43120',
+        host: '127.0.0.1:43120',
         'content-type': 'application/json',
+        'sec-fetch-site': 'same-origin',
       },
+      socket: { remoteAddress: '127.0.0.1' },
       async * [Symbol.asyncIterator]() { yield Buffer.from(JSON.stringify({ path: 'E:\\repo' })) },
     } as unknown as IncomingMessage
     let body = ''

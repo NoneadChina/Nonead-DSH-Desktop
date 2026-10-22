@@ -11,7 +11,7 @@ import { installAppDownloads } from './app-downloads.ts'
 import { claimDesktopSingleInstance } from './single-instance.ts'
 import { DesktopWindowStateStore, trackWindowState, visibleWindowBounds, type DesktopWorkArea } from './window-state.ts'
 import { readOpenAtLogin, writeOpenAtLogin } from './login-item.ts'
-import { deepLinkFromArgv, parseDeepLink, registerDeepLinkProtocol, type DesktopDeepLink } from './deep-link.ts'
+import { deepLinkFromArgv, isSupportedDeepLinkAction, parseDeepLink, registerDeepLinkProtocol, type DesktopDeepLink } from './deep-link.ts'
 import { NEXT_PACKAGE, parseFeatures, profileName } from './profiles.ts'
 import { APP_URL, IPC, SHELL_URL } from './ipc.ts'
 import { WINDOWS_TITLEBAR_HEIGHT } from './windows-layout.ts'
@@ -418,13 +418,22 @@ function focusFromArguments(argv: string[] = []): void {
 
 /**
  * Route one parsed `dsh-desktop://` link: focus the owner window, broadcast it to the renderer
- * and open the shell page it names. A link that arrives before `ready` or before the page has
- * loaded is queued and delivered once it can be received.
+ * and open the shell page it names. An action outside `DEEP_LINK_ACTIONS` is dropped here, so
+ * neither the renderer nor the pending queue ever sees it. A link that arrives before `ready`
+ * or before the page has loaded is queued and delivered once it can be received.
  */
 function handleDeepLink(link: DesktopDeepLink): void {
+  // Any local process can open this scheme, so the action is allowlisted before the link is
+  // forwarded or queued for `did-finish-load`. One line names each dropped action, and the
+  // shell does not focus itself for a request it did not accept.
+  if (!isSupportedDeepLinkAction(link.action)) {
+    runtime.diagnostics.append(`Ignored unsupported deep link action: ${link.action}`, 'warn')
+    return
+  }
   if (!app.isReady() || quitting) { pendingDeepLink = link; return }
   runtime.diagnostics.record({ source: 'electron', event: 'deep-link', fields: { action: link.action, path: link.segments.join('/') } })
-  // `settings` is the only action this shell owns; every other action stays a renderer request.
+  // `settings` is the only action this shell owns; `open` is the only other allowlisted action
+  // and is forwarded to the renderer below.
   if (link.action === 'settings') {
     const page = link.segments[0] ?? link.params.page
     if (page === 'permissions') openSettings('permissions')

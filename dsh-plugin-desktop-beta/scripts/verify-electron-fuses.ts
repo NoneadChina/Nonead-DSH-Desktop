@@ -65,14 +65,44 @@ const DESKTOP_MANIFEST = JSON.parse(
   readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
 ) as { readonly name: string; readonly productName?: string }
 
-const REQUIRED_ELECTRON_FUSES = [
-  { option: FuseV1Options.RunAsNode, name: 'RunAsNode' },
+/**
+ * Fuse policy every shipped executable must carry.
+ *
+ * `RunAsNode` is deliberately required ENABLED: the packaged Host, CLI and pnpm shims exec the
+ * Electron executable itself with `ELECTRON_RUN_AS_NODE` (see `src/desktop-cli.ts`, and
+ * `src/desktop-runtime-environment.ts:340-399`, which keeps `process.execPath` on the Electron
+ * binary on Windows on purpose). Disabling the fuse would ship a Host that cannot boot. The
+ * environment and inspector injection vectors it would otherwise widen are closed by the two
+ * DISABLE entries below instead.
+ *
+ * `EnableEmbeddedAsarIntegrityValidation` is required DISABLE: it only protects anything once the
+ * build injects the integrity blob into the executable and signs the result. electron-builder
+ * 26.15.7 cannot do that for the unsigned Windows/Linux artifacts this repository ships, and the
+ * macOS archive is sealed by the signed bundle instead (see `verify-mac-release.ts`).
+ */
+const HARDENED_ELECTRON_FUSES = [
+  { option: FuseV1Options.RunAsNode, name: 'RunAsNode', expected: FuseState.ENABLE },
+  {
+    option: FuseV1Options.EnableNodeOptionsEnvironmentVariable,
+    name: 'EnableNodeOptionsEnvironmentVariable',
+    expected: FuseState.DISABLE,
+  },
+  {
+    option: FuseV1Options.EnableNodeCliInspectArguments,
+    name: 'EnableNodeCliInspectArguments',
+    expected: FuseState.DISABLE,
+  },
   {
     option: FuseV1Options.EnableEmbeddedAsarIntegrityValidation,
     name: 'EnableEmbeddedAsarIntegrityValidation',
+    expected: FuseState.DISABLE,
   },
 ] as const
 
+/**
+ * The archive fuse follows the packaged layout: a directory build has no `app.asar` to require,
+ * while an archive build must refuse to load the physical `app/` tree.
+ */
 const ASAR_ONLY_ELECTRON_FUSE = {
   option: FuseV1Options.OnlyLoadAppFromAsar,
   name: 'OnlyLoadAppFromAsar',
@@ -96,12 +126,18 @@ export async function verifyElectronExecutableFuses(
       cause,
     })
   }
-  const requiredFuses = [...REQUIRED_ELECTRON_FUSES, ASAR_ONLY_ELECTRON_FUSE]
-  const invalid = requiredFuses.flatMap(({ option, name }) => {
+  const requiredFuses = [
+    ...HARDENED_ELECTRON_FUSES,
+    {
+      ...ASAR_ONLY_ELECTRON_FUSE,
+      expected: requiresAsar ? FuseState.ENABLE : FuseState.DISABLE,
+    },
+  ] as const
+  const invalid = requiredFuses.flatMap(({ option, name, expected }) => {
     const state = wire[option]
-    const expected = option === FuseV1Options.RunAsNode || requiresAsar
-      ? FuseState.ENABLE : FuseState.DISABLE
-    return state === expected ? [] : [`${name}=${fuseStateName(state)}`]
+    return state === expected
+      ? []
+      : [`${name}=${fuseStateName(state)} (expected ${FuseState[expected] ?? String(expected)})`]
   })
   if (invalid.length > 0) {
     throw new Error(

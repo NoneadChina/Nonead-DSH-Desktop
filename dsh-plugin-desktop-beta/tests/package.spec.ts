@@ -888,6 +888,8 @@ describe('published package surface', () => {
       expect(manifest.build?.[platform]).not.toHaveProperty('asarUnpack')
     }
     expect(manifest.build?.electronFuses).toEqual({
+      EnableNodeCliInspectArguments: false,
+      EnableNodeOptionsEnvironmentVariable: false,
       enableEmbeddedAsarIntegrityValidation: false,
       onlyLoadAppFromAsar: false,
       resetAdHocDarwinSignature: true,
@@ -1099,9 +1101,15 @@ describe('published package surface', () => {
       'docs/architecture.md',
       '.agents/notes/implemented/architecture/decision.md',
       '.agents/notes/implemented/architecture/decision.i18n.yaml',
-      'dsh-community-market/docs/schema.json',
       '.github/ISSUE_TEMPLATE/feature_request.yml',
     ])).toBe('false')
+    /*
+     * A documentation DIRECTORY no longer short-circuits the gates. `docs/` also carries
+     * runtime assets (`docs/schemas/*.schema.json` is only the one we know about), so any
+     * non-document extension under it runs the product gates. Over-running the gates costs
+     * one build; silently skipping a runtime asset costs a broken release.
+     */
+    expect(classify(['dsh-community-market/docs/schema.json'])).toBe('true')
     expect(classify(['README.md', 'nonead-dsh-desktop/src/index.ts'])).toBe('true')
     expect(classify(['.github/workflows/ci.yml'])).toBe('true')
     expect(classify(['THIRD_PARTY_NOTICES.md'])).toBe('true')

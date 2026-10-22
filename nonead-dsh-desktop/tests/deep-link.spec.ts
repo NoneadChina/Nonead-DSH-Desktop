@@ -1,5 +1,12 @@
 import { expect, it, vi } from 'vitest'
-import { DEEP_LINK_PROTOCOL, deepLinkFromArgv, parseDeepLink, registerDeepLinkProtocol } from '../src/deep-link.ts'
+import {
+  DEEP_LINK_ACTIONS,
+  DEEP_LINK_PROTOCOL,
+  deepLinkFromArgv,
+  isSupportedDeepLinkAction,
+  parseDeepLink,
+  registerDeepLinkProtocol,
+} from '../src/deep-link.ts'
 
 it('parses the supported dsh-desktop link shapes', () => {
   expect(DEEP_LINK_PROTOCOL).toBe('dsh-desktop')
@@ -33,12 +40,27 @@ it('picks the first link from an argv list and skips installer arguments', () =>
   expect(deepLinkFromArgv(['dsh-desktop://broken url'])).toBeUndefined()
 })
 
-it('claims the scheme for a packaged build and for a source run', () => {
-  const application = { setAsDefaultProtocolClient: vi.fn(() => true) }
+it('claims the scheme for a packaged build and for a source run', () => {  const application = { setAsDefaultProtocolClient: vi.fn(() => true) }
   expect(registerDeepLinkProtocol(application)).toBe(true)
   expect(application.setAsDefaultProtocolClient).toHaveBeenCalledExactlyOnceWith('dsh-desktop')
   expect(registerDeepLinkProtocol(application, '/electron', ['/app'])).toBe(true)
   expect(application.setAsDefaultProtocolClient).toHaveBeenLastCalledWith('dsh-desktop', '/electron', ['/app'])
   expect(registerDeepLinkProtocol({ setAsDefaultProtocolClient: () => { throw new Error('denied') } })).toBe(false)
   expect(registerDeepLinkProtocol({ setAsDefaultProtocolClient: () => false })).toBe(false)
+})
+
+it('accepts only the documented actions', () => {
+  expect([...DEEP_LINK_ACTIONS]).toEqual(['settings', 'open'])
+  expect(isSupportedDeepLinkAction('settings')).toBe(true)
+  expect(isSupportedDeepLinkAction('open')).toBe(true)
+  // Any local process can launch `dsh-desktop://…`, so everything else must be dropped.
+  for (const action of ['unknown', 'shell', 'settings2', '', 'settings/x', 'open?path=/x']) {
+    expect(isSupportedDeepLinkAction(action)).toBe(false)
+  }
+
+  const unknown = parseDeepLink('dsh-desktop://unknown?command=calc')
+  expect(unknown?.action).toBe('unknown')
+  expect(unknown && isSupportedDeepLinkAction(unknown.action)).toBe(false)
+  const supported = parseDeepLink('dsh-desktop://settings/permissions')
+  expect(supported && isSupportedDeepLinkAction(supported.action)).toBe(true)
 })
