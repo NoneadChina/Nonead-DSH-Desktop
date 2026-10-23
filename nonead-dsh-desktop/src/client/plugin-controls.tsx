@@ -97,7 +97,7 @@ function PluginControls({ context, t: translate, onOpenBundle, onOpenItem }: Pro
    * Runtime market update. The store verifies a release before activating it, so the shell reports
    * the result and the change lands on the next start rather than in this session.
    */
-  const runMarket = async (type: 'check-market-update' | 'rollback-market'): Promise<void> => {
+  const runMarket = async (type: 'check-market-update' | 'upgrade-market' | 'rollback-market'): Promise<void> => {
     if (pending.current) return
     pending.current = true
     setBusy(true)
@@ -138,11 +138,14 @@ function PluginControls({ context, t: translate, onOpenBundle, onOpenItem }: Pro
         <Button variant="outline" size="sm" disabled={busy} onClick={() => { void runMarket('check-market-update') }}>
           {t('检查市场更新', 'Check market updates')}
         </Button>
+        <Button variant="outline" size="sm" disabled={busy} onClick={() => { void runMarket('upgrade-market') }}>
+          {t('升级市场', 'Upgrade market')}
+        </Button>
         <Button variant="outline" size="sm" disabled={busy} onClick={() => { void runMarket('rollback-market') }}>
           {t('回滚市场版本', 'Roll back market')}
         </Button>
       </div>
-      <p className="dshDesktopSettingsHint">{t('更新与回滚只影响下次启动加载的市场版本。', 'Updates and rollbacks change the market loaded by the next start.')}</p>
+      <p className="dshDesktopSettingsHint">{t('「检查」到 GitHub 上读取市场的最新版本；「升级」从 npm 安装并校验后生效，只影响下次启动加载的市场版本。', 'Check reads the market\'s newest version from GitHub; Upgrade installs the verified release from npm and applies it on the next start.')}</p>
     </section>
     <div className="dshNextPluginSections">
       <PluginCard title={t('远程控制', 'Remote Control')} description={remoteDescription(t)}

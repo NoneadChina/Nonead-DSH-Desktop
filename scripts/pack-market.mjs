@@ -1,10 +1,12 @@
 /**
- * Pack the bundled markets into the release archives and catalogue that the Desktop market store
- * consumes at runtime.
+ * Pack the bundled markets into npm-style archives for an offline mirror.
  *
- * Output layout (all pins are sha256 of the archive bytes):
+ * The Desktop no longer reads a self-hosted catalogue: a newer release is discovered on the
+ * market's GitHub releases and its bytes come from the npm registry (see market-store.ts). These
+ * archives stay useful for air-gapped installs, and they reproduce a release byte for byte.
+ *
+ * Output layout:
  *   <out>/<package>/<package>-<version>.tgz
- *   <out>/catalog.json  { schemaVersion: 1, packages: { <package>: { <version>: { url, sha256, bytes } } } }
  *
  * The archives are npm-style: every entry lives under a `package/` prefix, which is what
  * `market-store.ts` expects. Nothing is compressed beyond gzip, and entries are sorted so two runs
@@ -18,10 +20,9 @@ import { fileURLToPath } from 'node:url'
 import { gzipSync } from 'node:zlib'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const DEFAULT_BASE_URL = 'https://www.nonead.com/software/ndsh-desktop/market'
 const SKIP_DIRECTORIES = new Set(['node_modules', '.git', '.yarn', 'tests', 'coverage'])
 
-/** Packages the catalogue may publish, with how each package directory is located. */
+/** Packages these archives may carry, with how each package directory is located. */
 export const MARKET_PACKAGES = ['dsh-community-market', 'dshmarket']
 
 function packageDirectory(name) {
@@ -106,14 +107,14 @@ export function packPackage(directory, files, manifest) {
 function digest(bytes) { return createHash('sha256').update(bytes).digest('hex') }
 
 /**
- * Pack every selected package and return the catalogue object.
- * @param options - `{ outDir, baseUrl, packages }`.
+ * Pack every selected package into `<out>/<package>/<package>-<version>.tgz`.
+ * @param options - `{ outDir, packages }`.
+ * @returns One entry per packed archive.
  */
-export function publishMarket({ outDir, baseUrl = DEFAULT_BASE_URL, packages = MARKET_PACKAGES }) {
-  const catalog = { schemaVersion: 1, packages: {} }
+export function publishMarket({ outDir, packages = MARKET_PACKAGES }) {
+  const packed = []
   for (const name of packages) {
     const directory = packageDirectory(name)
-    if (directory === undefined || !existsSync(directory)) throw new Error(`Cannot locate ${name}`)
     const manifest = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8'))
     if (manifest.name !== name) throw new Error(`${name}/package.json says ${String(manifest.name)}`)
     if (typeof manifest.version !== 'string' || !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u.test(manifest.version)) {
@@ -124,22 +125,16 @@ export function publishMarket({ outDir, baseUrl = DEFAULT_BASE_URL, packages = M
     mkdirSync(target, { recursive: true })
     const archive = join(target, `${name}-${manifest.version}.tgz`)
     writeFileSync(archive, bytes)
-    catalog.packages[name] = {
-      [manifest.version]: { url: `${baseUrl}/${name}/${name}-${manifest.version}.tgz`, sha256: digest(bytes), bytes: bytes.length },
-    }
+    packed.push({ name, version: manifest.version, archive, bytes: bytes.length, sha256: digest(bytes) })
     process.stdout.write(`${name}@${manifest.version} -> ${archive} (${bytes.length} bytes, sha256 ${digest(bytes)})\n`)
   }
-  mkdirSync(outDir, { recursive: true })
-  writeFileSync(join(outDir, 'catalog.json'), `${JSON.stringify(catalog, null, 2)}\n`)
-  process.stdout.write(`catalog -> ${join(outDir, 'catalog.json')}\n`)
-  return catalog
+  return packed
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const args = process.argv.slice(2)
   const option = (flag) => { const index = args.indexOf(flag); return index === -1 ? undefined : args[index + 1] }
   const outDir = resolve(option('--out') ?? join(root, 'market-release'))
-  const baseUrl = option('--base-url') ?? DEFAULT_BASE_URL
   const only = args.filter(arg => MARKET_PACKAGES.includes(arg))
-  publishMarket({ outDir, baseUrl, packages: only.length > 0 ? only : MARKET_PACKAGES })
+  publishMarket({ outDir, packages: only.length > 0 ? only : MARKET_PACKAGES })
 }

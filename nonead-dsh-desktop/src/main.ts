@@ -34,7 +34,7 @@ import { auxiliaryWindowChromeOptions, auxiliaryWindowHasCustomFrame } from '../
 import { cleanupDisposableTree } from '../../dsh-plugin-desktop-beta/src/disposable-tree.ts'
 import { installEditingContextMenu } from '../../dsh-plugin-desktop-beta/src/context-menu.ts'
 import { atomicJson, privateDirectory } from './private-files.ts'
-import { MARKET_STORE_PACKAGES, installMarketUpdates, projectMarketRelease, rollbackMarketRelease } from './market-store.ts'
+import { MARKET_STORE_PACKAGES, checkMarketUpdate, installMarketUpdates, projectMarketRelease, rollbackMarketRelease, type MarketUpdateCheck } from './market-store.ts'
 import { windowMaterial } from './window-material.ts'
 import { ONBOARDING_ARGUMENT, RECOVERY_ARGUMENT, SAFE_ARGUMENT, relaunchApp, relaunchArguments } from './relaunch.ts'
 import { DESKTOP_RUNTIME_FILE, readInstalledPackageVersion, verifyPackagedRuntimeIdentity } from './runtime-tree.ts'
@@ -530,12 +530,14 @@ async function showShellMessage(message: string): Promise<void> {
 }
 
 /**
- * Runtime update for the two bundled markets.
+ * Runtime update for the bundled markets.
  *
- * The store stages and verifies a release before its pointer moves, so this only changes what the
- * next Host start loads; the running session keeps its current bundles.
+ * The market cannot replace itself from inside its own request: the host drops the bundle from the
+ * running composition before the reinstall runs, so the desktop performs the two steps from outside,
+ * which is the entry point dshmarket documents as missing. The store stages and verifies a release
+ * before its pointer moves, so this only changes what the next Host start loads.
  */
-async function marketCommand(type: 'check-market-update' | 'rollback-market'): Promise<void> {
+async function marketCommand(type: 'check-market-update' | 'upgrade-market' | 'rollback-market'): Promise<void> {
   if (type === 'rollback-market') {
     const reverted: string[] = []
     for (const name of MARKET_STORE_PACKAGES) {
@@ -547,6 +549,20 @@ async function marketCommand(type: 'check-market-update' | 'rollback-market'): P
     await showShellMessage(reverted.length === 0
       ? t('没有可回滚的市场版本。', 'No earlier market release is available to roll back to.')
       : t(`已回滚：${reverted.join('、')}。重启后生效。`, `Rolled back: ${reverted.join(', ')}. Takes effect after a restart.`))
+    return
+  }
+  if (type === 'check-market-update') {
+    const checks = await Promise.all(MARKET_STORE_PACKAGES.map(name => checkMarketUpdate(home, name)))
+    const found = checks.filter((check): check is MarketUpdateCheck => check !== undefined)
+    if (found.length === 0) {
+      await showShellMessage(t('插件市场没有可用的更新源。', 'The plugin market has no release source.'))
+      return
+    }
+    const available = found.filter(check => check.available)
+    const lines = found.map(check => `${check.name}：${check.current ?? t('内置', 'built in')} → ${check.latest}${check.available ? '' : t('（已是最新）', ' (up to date)')}`)
+    await showShellMessage(`${available.length === 0
+      ? t('插件市场已是最新版本。', 'The plugin market is already up to date.')
+      : t('有新的市场版本可以升级，点「升级市场」完成安装。', 'A newer market release is available. Use "Upgrade market" to install it.')}\n\n${lines.join('\n')}`)
     return
   }
   const result = await installMarketUpdates(home)
@@ -595,7 +611,7 @@ async function performCommand(input: Record<string, unknown>, type: string, sour
     return
   }
   if (type === 'quit') { app.quit(); return }
-  if (type === 'check-market-update' || type === 'rollback-market') {
+  if (type === 'check-market-update' || type === 'upgrade-market' || type === 'rollback-market') {
     if (runtime.busy || quitting) throw new Error(t('另一项操作正在进行，请稍候。', 'Another operation is in progress.'))
     await marketCommand(type)
     return
