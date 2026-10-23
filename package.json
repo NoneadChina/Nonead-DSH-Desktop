@@ -1420,7 +1420,6 @@
     "dist:win:stable": "yarn market:check && yarn aa:prepare-release && yarn aa:prepare-release --verify-release && yarn workspace dsh-community-market build && yarn workspace nonead-dsh-desktop dist:win",
     "market:prepare": "node scripts/prepare-dsh-market.mjs",
     "market:check": "node scripts/prepare-dsh-market.mjs --check",
-    "market:pack": "node scripts/pack-market.mjs",
     "test:market-release": "node --test scripts/prepare-dsh-market.test.mjs",
     "test:inspector-compat": "node --test scripts/inspector-compat.test.mjs"
   }

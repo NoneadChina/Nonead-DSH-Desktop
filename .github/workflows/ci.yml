@@ -67,7 +67,9 @@ jobs:
             product=true
           else
             git diff --check "$BASE_SHA" "$HEAD_SHA"
-            product="$(git diff --name-only -z "$BASE_SHA" "$HEAD_SHA" | node scripts/classify-ci-changes.mjs)"
+            # 关闭改名检测：detected rename 只列目的地，把源码文件挪进文档路径（src/x.ts ->
+            # docs/x.md）会被当成纯文档改动而跳过产品门禁；--no-renames 会同时列出删除与新增。
+            product="$(git diff --name-only --no-renames -z "$BASE_SHA" "$HEAD_SHA" | node scripts/classify-ci-changes.mjs)"
           fi
           echo "product=$product" >> "$GITHUB_OUTPUT"
 
@@ -200,10 +202,6 @@ jobs:
       - name: Build the Stable unpacked application
         run: yarn package:dir:stable
 
-  # macOS-only universal packaging smoke on a real macOS runner: the signed
-  # release is built manually on a credentialed machine, so an unsigned DMG
-  # here catches Intel and Apple Silicon packaging regressions before a manual
-  # release. No signing secrets ever reach this job.
   # Linux x64 distribution artifacts: unsigned AppImage and Debian package
   # built on a stock ubuntu runner, mirroring the Windows packaging job.
   desktop-linux:
@@ -239,6 +237,10 @@ jobs:
           DSH_PACKAGE_CHECK_ALREADY_RAN: '1'
         run: yarn workspace ${{ matrix.workspace }} dist:linux
 
+  # macOS-only universal packaging smoke on a real macOS runner: the signed
+  # release is built manually on a credentialed machine, so an unsigned DMG
+  # here catches Intel and Apple Silicon packaging regressions before a manual
+  # release. No signing secrets ever reach this job.
   desktop-macos:
     needs: changes
     if: needs.changes.outputs.product == 'true'
@@ -292,5 +294,9 @@ jobs:
         with:
           node-version: 22.23.2
       - run: corepack enable
+      # `check:layout` 里的 inspector 兼容门禁会从工作区解析 typescript 与已安装的
+      # @deepseek-ai/dsh-experimental-inspector，未安装依赖的 runner 上必然 MODULE_NOT_FOUND。
+      - name: Install dependencies for the layout gates
+        run: yarn install --immutable
       - run: yarn check:layout
       - run: yarn upstream:version

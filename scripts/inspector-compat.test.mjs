@@ -5,7 +5,9 @@ import { createRequire } from 'node:module'
 import { dirname, join, resolve } from 'node:path'
 import { test } from 'node:test'
 import { runInNewContext } from 'node:vm'
-const ts = createRequire(resolve('dsh-plugin-desktop-beta/package.json'))('typescript')
+// 仓库根锚定在脚本自身位置，而不是 process.cwd()：本文件从任意工作目录运行都必须检查同一棵树。
+const root = resolve(import.meta.dirname, '..')
+const ts = createRequire(join(root, 'dsh-plugin-desktop-beta/package.json'))('typescript')
 
 function nodes(file, predicate) {
   const matches = []
@@ -19,11 +21,11 @@ function nodes(file, predicate) {
 
 for (const workspace of ['dsh-plugin-desktop-beta', 'nonead-dsh-desktop']) {
   test(`${workspace}: official Reload DevTools completes through the hosted embedder callback`, () => {
-    const require = createRequire(resolve(workspace, 'package.json'))
+    const require = createRequire(join(root, workspace, 'package.json'))
     const manifest = require.resolve('@deepseek-ai/dsh-experimental-inspector/package.json')
     // Compare against the pinned upstream runtime instead of a hard-coded release string so an
     // upstream bump only touches upstream.json.
-    const pin = JSON.parse(readFileSync(resolve('upstream.json'), 'utf8')).channels.beta.runtimePackageVersion
+    const pin = JSON.parse(readFileSync(join(root, 'upstream.json'), 'utf8')).channels.beta.runtimePackageVersion
     assert.equal(JSON.parse(readFileSync(manifest, 'utf8')).version, pin)
     const directory = join(dirname(manifest), 'lib/devtools/chunks')
     const parse = (prefix, marker) => {
