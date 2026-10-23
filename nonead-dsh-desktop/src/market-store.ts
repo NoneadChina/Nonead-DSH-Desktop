@@ -17,9 +17,8 @@
  * strand a user without a market.
  */
 import { createHash, randomUUID } from 'node:crypto'
-import { execFileSync } from 'node:child_process'
 import { createRequire } from 'node:module'
-import { cpSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { dirname, isAbsolute, join, normalize, resolve, sep } from 'node:path'
 import { gunzipSync } from 'node:zlib'
 import { linkedPathTarget, removeLinkedPath, sameResolvedPath } from '../../dsh-plugin-desktop-beta/src/fs-links.ts'
@@ -284,33 +283,6 @@ function hasUsableRelease(directory: string, name: MarketStorePackage, version: 
   } catch { return false }
 }
 
-/**
- * Install the release's own runtime dependencies next to it.
- *
- * The npm archive ships code only, so a staged market would otherwise import packages the Profile
- * happens to have at whatever version it installed — `dshmarket` 1.69.0 wants `js-yaml@^4` and
- * `undici@^7` while a Profile built for 1.66.45 can easily hold `js-yaml@5`. Peer dependencies are
- * left to the Host, which already provides `cordis`, `dsh-settings` and `schemastery`.
- *
- * The market is a plain package, not a workspace member, so a dependency-local install is enough.
- */
-function installReleaseDependencies(directory: string): void {
-  // On Windows pnpm is a `.cmd` shim, and `execFileSync` does not append extensions.
-  const pnpm = process.env.DSH_PNPM_PATH ?? (process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm')
-  try {
-    execFileSync(pnpm, ['install', '--prod', '--ignore-scripts', '--reporter=silent'], {
-      cwd: directory,
-      stdio: 'ignore',
-      timeout: 180_000,
-      windowsHide: true,
-      // A `.cmd` shim only runs through the command processor.
-      shell: process.platform === 'win32',
-    })
-  } catch (error) {
-    throw new Error(`Market release dependencies could not be installed: ${error instanceof Error ? error.message : String(error)}`)
-  }
-}
-
 export async function stageMarketRelease(
   home: string,
   name: MarketStorePackage,
@@ -364,7 +336,6 @@ export async function stageMarketRelease(
       throw error
     }
     if (retired !== undefined) rmSync(retired, { recursive: true, force: true })
-    installReleaseDependencies(finalDirectory)
     return finalDirectory
   } finally {
     rmSync(staging, { recursive: true, force: true })
@@ -432,27 +403,22 @@ function profileDirectories(home: string): string[] {
 }
 
 /**
- * Put a copy of the staged release at `<modulesDir>/<name>`.
+ * Make `<modulesDir>/<name>` resolve to `target`, replacing a stale link or a real directory.
  *
- * A copy, not a junction: Node resolves a junction to its real path, so the package would look for
- * its dependencies under `<home>/market-store/...` — where the archive's dependencies do not exist —
- * and never reach the ones the Profile installed next to it. Copying keeps the package inside the
- * Profile's `node_modules`, so its imports resolve exactly like any other installed bundle.
- *
- * A real directory that is already there is renamed rather than deleted: it is whatever the Profile
- * package manager installed, and an aborted upgrade must not destroy it.
+ * A real directory is renamed rather than deleted: it is whatever the Profile package manager
+ * installed, and an aborted upgrade must not be able to destroy it.
  */
 function projectInto(modulesDir: string, name: MarketStorePackage, target: string): string {
   mkdirSync(modulesDir, { recursive: true, mode: 0o700 })
-  const destination = join(modulesDir, name)
-  const existing = linkedPathTarget(destination)
-  if (existing !== undefined && sameResolvedPath(existing, target)) return destination
-  if (lstatSync(destination, { throwIfNoEntry: false }) !== undefined) {
-    if (existing === undefined) renameSync(destination, `${destination}.pre-market-${randomUUID()}`)
-    else removeLinkedPath(destination)
+  const link = join(modulesDir, name)
+  const existing = linkedPathTarget(link)
+  if (existing !== undefined && sameResolvedPath(existing, target)) return link
+  if (lstatSync(link, { throwIfNoEntry: false }) !== undefined) {
+    if (existing === undefined) renameSync(link, `${link}.pre-market-${randomUUID()}`)
+    else removeLinkedPath(link)
   }
-  cpSync(target, destination, { recursive: true })
-  return destination
+  symlinkSync(target, link, 'junction')
+  return link
 }
 
 /**
@@ -500,17 +466,9 @@ export function projectMarketRelease(home: string, name: MarketStorePackage): st
 
 /** Drop the projection so the next generation loads the built-in bundle again. */
 export function retireMarketRelease(home: string, name: MarketStorePackage): void {
-  const directories = [
-    join(home, 'profiles', 'node_modules'),
-    ...profileDirectories(home).map(profile => join(home, 'profiles', profile, 'node_modules')),
-  ]
-  for (const modulesDir of directories) {
-    const destination = join(modulesDir, name)
-    if (linkedPathTarget(destination) !== undefined) { removeLinkedPath(destination); continue }
-    // A projected release is a real directory now (a copy, so its imports resolve inside the
-    // Profile), so it has to be removed like one.
-    if (lstatSync(destination, { throwIfNoEntry: false }) !== undefined) rmSync(destination, { recursive: true, force: true })
-  }
+  const link = marketProjectionPath(home, name)
+  if (linkedPathTarget(link) === undefined) return
+  removeLinkedPath(link)
 }
 
 /** Compare two `x.y.z[-prerelease]` versions; a prerelease orders before its own release. */
