@@ -22,12 +22,7 @@ export function registerPluginControls(ctx: Context): void {
       const dispose = inner.slots.register({ name: 'plugins.overview', id: 'nonead-dsh-desktop', order: 0,
         locale: 'nonead-dsh-desktop', inject: () => ({ context: inner }),
       }, PluginControls)
-      // The market row stays visible: it is the row that names the market and its version, so it is
-      // exactly where the upgrade action belongs.
-      const hidden = [COMMUNITY, REMOTE].map(key => inner.slots.register({ name: 'plugins.bundle.hidden', key }, () => null))
-      const marketActions = inner.slots.register({ name: 'plugins.bundle.actions', key: MARKET,
-        locale: 'nonead-dsh-desktop', inject: () => ({ context: inner }),
-      }, MarketBundleAction)
+      const hidden = [COMMUNITY, MARKET, REMOTE].map(key => inner.slots.register({ name: 'plugins.bundle.hidden', key }, () => null))
       const item = inner.slots.register({ name: 'plugins.item', id: COMPUTER_ITEM, label: 'Computer Use',
         locale: 'nonead-dsh-desktop', inject: () => ({ context: inner }),
       }, ComputerUseItem)
@@ -35,47 +30,9 @@ export function registerPluginControls(ctx: Context): void {
       const actions = inner.slots.register({ name: 'plugins.detail.actions', id: COMPUTER_ITEM,
         locale: 'nonead-dsh-desktop', inject: () => ({ context: inner }),
       }, ComputerUseActions)
-      return () => { actions(); hiddenItem(); item(); marketActions(); for (const off of hidden) off(); dispose() }
+      return () => { actions(); hiddenItem(); item(); for (const off of hidden) off(); dispose() }
     })
   })
-}
-
-/**
- * Offer the market upgrade on the row that names the market and its version.
- *
- * The overview section is the primary entry point, but that row is where people look for a version,
- * so it carries the same action. It appears only when dshmarket published a newer release; a failed
- * check leaves the row without a button rather than advertising an upgrade that cannot run.
- */
-function MarketBundleAction({ t: translate }: PropsLocale<'nonead-dsh-desktop'> & { context: Context }) {
-  const zh = translate('language') === 'zh'
-  const t = (cn: string, en: string): string => zh ? cn : en
-  const [state, setState] = useState<{ available: boolean, busy: boolean }>({ available: false, busy: false })
-  useEffect(() => {
-    let disposed = false
-    void window.desktopNext?.command({ type: 'market-update-status' })
-      .then(result => {
-        if (disposed) return
-        const status = result as { available?: unknown, latest?: unknown } | undefined
-        if (typeof status?.latest === 'string' && status.available === true) setState(current => ({ ...current, available: true }))
-      })
-      .catch(() => { /* unreachable network: the row simply keeps no button */ })
-    return () => { disposed = true }
-  }, [])
-  if (!state.available) return null
-  const upgrade = async (): Promise<void> => {
-    if (state.busy) return
-    setState({ available: true, busy: true })
-    try {
-      await window.desktopNext?.command({ type: 'upgrade-market' })
-      setState({ available: false, busy: false })
-    } catch {
-      setState({ available: true, busy: false })
-    }
-  }
-  return <Button variant="outline" size="sm" disabled={state.busy} onClick={() => { void upgrade() }}>
-    {t('升级市场', 'Upgrade market')}
-  </Button>
 }
 
 function PluginControls({ context, t: translate, onOpenBundle, onOpenItem }: PropsLocale<'nonead-dsh-desktop'> & PropsRuntime<'plugins.overview'> & { context: Context }) {
