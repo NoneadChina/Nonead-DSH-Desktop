@@ -1,5 +1,6 @@
 /** Desktop-owned inventory and persistent disable state for direct profile bundles. */
 
+import { isLinkedPath } from './fs-links.ts'
 import { randomBytes } from 'node:crypto'
 import {
   closeSync,
@@ -227,11 +228,11 @@ function assertStateBootstrap(bootstrap: DesktopPluginStateBootstrap): void {
 function readProfileManifestBytes(path: string): Buffer {
   const directory = dirname(path)
   const directoryInfo = lstatSync(directory)
-  if (!directoryInfo.isDirectory() || directoryInfo.isSymbolicLink()) {
+  if (!directoryInfo.isDirectory() || isLinkedPath(directory)) {
     throw new Error(`${BIN_NAME}: active profile directory must be a real directory`)
   }
   const pathInfo = lstatSync(path)
-  if (!pathInfo.isFile() || pathInfo.isSymbolicLink()) {
+  if (!pathInfo.isFile() || isLinkedPath(path)) {
     throw new Error(`${BIN_NAME}: active profile manifest must be a regular file`)
   }
   if (pathInfo.size > MAX_PROFILE_MANIFEST_BYTES) {
@@ -398,7 +399,7 @@ function readState(statePath: string): DesktopPluginStateV1 {
   const directory = dirname(statePath)
   try {
     const directoryStat = lstatSync(directory)
-    if (!directoryStat.isDirectory() || directoryStat.isSymbolicLink()) {
+    if (!directoryStat.isDirectory() || isLinkedPath(directory)) {
       throw new Error(`${BIN_NAME}: plugin-management state directory is not private`)
     }
   } catch (cause) {
@@ -412,7 +413,7 @@ function readState(statePath: string): DesktopPluginStateV1 {
     if ((cause as NodeJS.ErrnoException).code === 'ENOENT') return emptyState()
     throw cause
   }
-  if (!stat.isFile() || stat.isSymbolicLink()) {
+  if (!stat.isFile() || isLinkedPath(directory)) {
     throw new Error(`${BIN_NAME}: plugin-management state must be a regular file`)
   }
   if (stat.size > MAX_STATE_BYTES) {
@@ -668,7 +669,7 @@ async function ensurePrivateStateDirectory(statePath: string): Promise<void> {
   const directory = dirname(statePath)
   await mkdir(directory, { recursive: true, mode: STATE_DIRECTORY_MODE })
   const stat = await lstat(directory)
-  if (!stat.isDirectory() || stat.isSymbolicLink()) {
+  if (!stat.isDirectory() || isLinkedPath(directory)) {
     throw new Error(`${BIN_NAME}: plugin-management state directory is not private`)
   }
   await chmod(directory, STATE_DIRECTORY_MODE)

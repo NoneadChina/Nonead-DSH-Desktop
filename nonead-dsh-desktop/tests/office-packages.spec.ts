@@ -6,7 +6,9 @@ import { officePackageDirectories, officeUnpackPatterns, selectOfficeEngine } fr
 const root = fileURLToPath(new URL('..', import.meta.url))
 const names = (platform: string, arch: string): string[] => officePackageDirectories(root, { platform, arch }).map(directory => relative(join(root, 'node_modules'), directory))
 
-it('resolves the installed Office closure with the native engine of each Darwin CPU', () => {
+// The Darwin Office closure only exists where yarn installed that OS' packages,
+  // which `.yarnrc.yml` restricts to the current platform.
+  it.skipIf(process.platform !== 'darwin')('resolves the installed Office closure with the native engine of each Darwin CPU', () => {
   const arm64 = names('darwin', 'arm64')
   expect(arm64).toEqual(expect.arrayContaining(['@deepseek-ai/libreoffice-kit', '@deepseek-ai/libreoffice-kit-darwin-arm64', '@koromix/koffi-darwin-arm64', 'fflate', 'fontkit', 'koffi', 'saxes']))
   expect(arm64).not.toContain('@deepseek-ai/libreoffice-kit-darwin-x64')
@@ -17,7 +19,9 @@ it('resolves the installed Office closure with the native engine of each Darwin 
   expect(x64).not.toContain('@deepseek-ai/libreoffice-kit-darwin-arm64')
 })
 
-it('unpacks the union of both CPUs once as application-relative globs', () => {
+// The Darwin Office closure only exists where yarn installed that OS' packages,
+  // which `.yarnrc.yml` restricts to the current platform.
+  it.skipIf(process.platform !== 'darwin')('unpacks the union of both CPUs once as application-relative globs', () => {
   const patterns = officeUnpackPatterns(root, 'darwin', ['arm64', 'x64'])
   for (const name of ['@deepseek-ai/libreoffice-kit', '@deepseek-ai/libreoffice-kit-darwin-arm64', '@deepseek-ai/libreoffice-kit-darwin-x64', 'fflate', 'fontkit', 'koffi', 'saxes']) {
     expect(patterns).toContain(`**/node_modules/${name}/**/*`)

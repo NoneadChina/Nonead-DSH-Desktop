@@ -144,7 +144,7 @@ dsh plugin update
 
 显式 `--profile <name>` 始终具有更高优先级，可用于在切换前准备其他 profile。
 
-`dshmarket` 是本 workspace 固定版本、带补丁的 dependency，不是由用户自行安装的第三方 package。已提交的 manifest 固定 `dshmarket@1.66.22`，根 manifest 带有与之匹配的 `dshmarket@npm:1.66.22` resolution 以应用 `.yarn/patches/dshmarket-desktop.patch`；`corepack yarn market:prepare` 会把该包刷新到 npm `latest` 并安装依赖树，`corepack yarn market:check` 则在不写入的前提下校验新鲜度，过期时直接失败，而不会静默保留旧版本。Launcher 每个 generation 只组合一个 Market provider —— `dsh-market`、`community-market` 或 `disabled` —— 取自 Electron user-data 目录下自身的机器级状态，并会拒绝泄漏了其它 provider 的 Loader 图。已安装应用不会在启动时热更新内置市场。用户主动安装第三方 package 与 Desktop 将某个包嵌入 application archive 或 installer 是两个独立边界。
+`dshmarket` 是本 workspace 固定版本、带补丁的 dependency，不是由用户自行安装的第三方 package。已提交的 manifest 固定 `dshmarket@1.66.47`，根 manifest 带有与之匹配的 `dshmarket@npm:1.66.47` resolution 以应用 `.yarn/patches/dshmarket-desktop.patch`；`corepack yarn market:prepare` 会把该包刷新到 npm `latest` 并安装依赖树，`corepack yarn market:check` 则是构建时跑的离线一致性校验 —— 不联网、不写入，只确认已提交的版本、lockfile 与补丁彼此相符。Launcher 每个 generation 只组合一个 Market provider —— `dsh-market`、`community-market` 或 `disabled` —— 取自 Electron user-data 目录下自身的机器级状态，并会拒绝泄漏了其它 provider 的 Loader 图。已安装应用不会在启动时热更新内置市场。用户主动安装第三方 package 与 Desktop 将某个包嵌入 application archive 或 installer 是两个独立边界。
 
 Required injection、可选 Desktop 适配、TypeScript 示例、cancellation 与 fallback 指南详见[面向插件作者的 service 文档](docs/plugin-services.zh.md)。
 

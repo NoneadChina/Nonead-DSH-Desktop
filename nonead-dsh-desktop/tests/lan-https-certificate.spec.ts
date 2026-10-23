@@ -1,8 +1,9 @@
 import { X509Certificate, createHash, createPrivateKey } from 'node:crypto'
-import { chmod, lstat, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises'
+import { chmod, lstat, mkdtemp, readFile, readdir, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { cleanupDisposableTree } from '../../dsh-plugin-desktop-beta/src/disposable-tree.ts'
 import {
   DesktopLanHttpsCertificateError,
   createLanHttpsCertificate,
@@ -34,7 +35,7 @@ function reversibleProtector(): DesktopLanHttpsPrivateKeyProtector & {
 
 afterEach(async () => {
   await Promise.all(temporaryDirectories.splice(0).map(
-    directory => rm(directory, { recursive: true, force: true }),
+    directory => cleanupDisposableTree(directory),
   ))
 })
 

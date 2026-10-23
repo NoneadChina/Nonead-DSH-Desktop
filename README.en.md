@@ -210,8 +210,8 @@ git submodule update --init --recursive
 
 | Command | Purpose |
 | --- | --- |
-| `corepack yarn dev:beta` / `dev:stable` | Start the development flow for that workspace (refreshes `dshmarket`, prepares AA artifacts and builds the market first) |
-| `corepack yarn build` | Build the market, the Beta workspace and the stable-channel workspace |
+| `corepack yarn dev:beta` / `dev:stable` | Start the development flow for that workspace (verifies the pinned `dshmarket`, prepares AA artifacts and builds the market first) |
+| `corepack yarn build` | Build the market, the Beta workspace and the stable-channel workspace (also verifies the pinned `dshmarket` first) |
 | `corepack yarn typecheck` | Type-check all three workspaces |
 | `corepack yarn test` | Unit tests for all three workspaces |
 | `corepack yarn check` | Full headless gate: layout, architecture direction, vendored runtime, bilingual docs, AA connector, per-workspace checks |
@@ -219,14 +219,14 @@ git submodule update --init --recursive
 | `corepack yarn check:layout` | Workspace topology, exact pins, submodule, vendored runtime, icons and layout gates |
 | `corepack yarn check:bilingual-docs` | Verify that the Git blob hashes recorded in `*.i18n.yaml` match the documents |
 | `corepack yarn check:vendored-runtime` | Verify `vendor/dsh-runtime/` against `upstream.json` |
-| `corepack yarn market:prepare` / `market:check` | Sync `dshmarket` to npm `latest` (only the two desktop workspaces' `resolutions`/dependencies and `yarn.lock`); the latter is check-only |
+| `corepack yarn market:prepare` / `market:check` | `market:prepare` moves `dshmarket` to npm `latest` (only the two desktop workspaces' `resolutions`/dependencies and `yarn.lock`); `market:check` is the offline consistency check every build runs, and only `--latest` reaches the network |
 | `corepack yarn aa:prepare-release` / `aa:check` | Build or verify Agents Anywhere release artifacts |
 | `corepack yarn package:dir:beta` | Produce an unpacked application directory |
 | `corepack yarn dist:win:beta` / `dist:mac:beta` / `dist:win-portable:beta` | Produce platform release artifacts |
 
 Conventions:
 
-- Root `build`, `dev:*` and `dist:*` run `corepack yarn market:prepare` first, so the `dshmarket` version, lockfile and compatibility patches must be committed together.
+- Root `build`, `dev:*` and `dist:*` run `corepack yarn market:check` first: it verifies offline that the committed `dshmarket` version, lockfile and compatibility patch agree, without reaching the network or rewriting manifests. Moving the pin requires a human to run `corepack yarn market:prepare` and commit the version, lockfile and patch together.
 - `nonead-dsh-desktop` and `dsh-plugin-desktop-beta` are **separate workspaces**: shared changes must land in both while preserving their declared differences; run `corepack yarn check` and each workspace check before release.
 - After editing bilingual files such as `README.md`, `README.en.md` or `CHANGELOG.md`, refresh the Git blob hashes in the matching `*.i18n.yaml` (take them with `git hash-object`), otherwise `check:bilingual-docs` fails.
 - `corepack yarn check:layout` needs an initialised submodule; in a purely headless environment, validate business code with `typecheck` / `test` / per-workspace `check` instead.
@@ -241,7 +241,7 @@ Conventions:
 - **Channel protocol**: the version check requests `https://www.nonead.com/software/ndsh-desktop/version`, reporting the current version in `X-DSH-Desktop-Version`, `stable` / `beta` in `X-DSH-Desktop-Channel`, and a locally generated, persisted random UUID in `X-DSH-Desktop-Installation-Id`. Installer downloads carry `channel` and `X-DSH-Desktop-Target-Version` but never the installation id or the current version.
 - **Channel enforcement**: the server response must echo the channel; the stable channel accepts only plain SemVer while the Beta channel accepts only `-beta.N`, and the client never silently downloads across channels.
 - **Version consistency**: the uploaded artifact, the bare download URL's version-to-file mapping and the version reported by the endpoint must all match — a mismatch surfaces as a 404 rather than a wrong install.
-- **Release prerequisites**: run `corepack yarn aa:prepare-release` and `corepack yarn market:prepare` first; the Windows distribution commands additionally verify AA artifacts with `--verify-release`.
+- **Release prerequisites**: run `corepack yarn aa:prepare-release` first; if this release ships a new `dshmarket`, a human must also run `corepack yarn market:prepare` and commit it. The Windows distribution commands additionally verify AA artifacts with `--verify-release`.
 
 <a id="plugins"></a>
 

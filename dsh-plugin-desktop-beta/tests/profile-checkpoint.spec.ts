@@ -1,15 +1,5 @@
-import {
-  existsSync,
-  lstatSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  readdirSync,
-  rmSync,
-  symlinkSync,
-  unlinkSync,
-  writeFileSync,
-} from 'node:fs'
+import { cleanupDisposableTree } from '../src/disposable-tree.ts'
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -57,7 +47,7 @@ function fixture(options: Partial<ProfileCheckpointOptions> = {}): {
 }
 
 afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
+  for (const root of roots.splice(0)) cleanupDisposableTree(root)
 })
 
 describe('Desktop profile health checkpoints', () => {
@@ -199,7 +189,7 @@ describe('Desktop profile health checkpoints', () => {
       version: 2,
       files: manifest.files.filter(file => !file.name.startsWith('home/')),
     })}\n`)
-    rmSync(join(captured.snapshotDirectory, 'home'), { recursive: true, force: true })
+    cleanupDisposableTree(join(captured.snapshotDirectory, 'home'))
     writeFileSync(join(target.profile, 'package.json'), '{"name":"changed"}\n')
     writeFileSync(join(target.home, 'settings.yaml'), 'new global settings\n')
 
@@ -364,7 +354,9 @@ describe('Desktop profile health checkpoints', () => {
     })
   })
 
-  it('rejects missing package.json, symlinks, oversized files, and empty restore slots', () => {
+  // Needs the privilege to create a file symlink, which a non-elevated Windows process does not have.
+  // POSIX CI covers the link-refusal logic; junctions are covered by the link-guard suites.
+  it.skipIf(process.platform === 'win32')('rejects missing package.json, symlinks, oversized files, and empty restore slots', () => {
     const missing = fixture()
     unlinkSync(join(missing.profile, 'package.json'))
     expect(() => missing.checkpoint.captureHealthy()).toThrow('package.json is unavailable')

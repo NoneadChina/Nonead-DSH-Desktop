@@ -1,5 +1,6 @@
 /** Private installation identity used only by DSH Desktop update checks. */
 
+import { isLinkedPath } from './fs-links.ts'
 import { randomUUID } from 'node:crypto'
 import { chmod, lstat, mkdir, open } from 'node:fs/promises'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
@@ -98,7 +99,7 @@ async function prepareIdentityDirectory(directory: string): Promise<void> {
   try {
     await mkdir(directory, { recursive: true, mode: PRIVATE_DIRECTORY_MODE })
     const stat = await lstat(directory)
-    if (!stat.isDirectory() || stat.isSymbolicLink()) {
+    if (!stat.isDirectory() || isLinkedPath(directory)) {
       throw new DesktopInstallationIdError('Desktop identity state directory must be an ordinary directory.')
     }
     await chmod(directory, PRIVATE_DIRECTORY_MODE)
@@ -116,7 +117,7 @@ async function readPersistedInstallationId(statePath: string): Promise<DesktopIn
     if ((cause as NodeJS.ErrnoException).code === 'ENOENT') return undefined
     throw new DesktopInstallationIdError('Desktop installation identity state could not be inspected.', { cause })
   }
-  if (!stat.isFile() || stat.isSymbolicLink()) {
+  if (!stat.isFile() || isLinkedPath(statePath)) {
     throw new DesktopInstallationIdError('Desktop installation identity state must be an ordinary file.')
   }
   if (stat.size > MAX_DESKTOP_INSTALLATION_ID_BYTES) return undefined

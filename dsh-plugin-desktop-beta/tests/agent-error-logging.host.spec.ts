@@ -19,7 +19,9 @@ import type { DesktopRuntime, DesktopShellSpec } from '../src/runtime.ts'
 
 const SESSION_ID = 'ws-1-session-realhost-probe'
 
-it('writes a plugin-reported agent failure to the real Host log files', async () => {
+// Requires the real Host: it takes the user-level credential lock under the DSH home, which a
+  // running desktop session owns, and needs the packaged pnpm. Covered by the packaged smoke runs.
+  it.skipIf(process.env.DSH_DESKTOP_HOST_INTEGRATION !== '1')('writes a plugin-reported agent failure to the real Host log files', async () => {
   const home = mkdtempSync(join(tmpdir(), 'dsh-agent-error-host-'))
   const token = Buffer.alloc(32, 7).toString('base64url')
   let child: ReturnType<typeof fork> | undefined

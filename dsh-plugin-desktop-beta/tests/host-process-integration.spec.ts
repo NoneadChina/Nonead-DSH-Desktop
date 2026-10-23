@@ -1,6 +1,7 @@
+import { cleanupDisposableTree } from '../src/disposable-tree.ts'
 import { fork, type Serializable } from 'node:child_process'
 import { once } from 'node:events'
-import { mkdtempSync, writeFileSync, mkdirSync, rmSync, readFileSync } from 'node:fs'
+import { mkdtempSync, writeFileSync, mkdirSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -12,7 +13,9 @@ import { HostRpc } from '../src/host-rpc.ts'
 import { bindNativeRuntime, runtimeSnapshot } from '../src/host-runtime-bridge.ts'
 import type { DesktopRuntime, DesktopShellSpec } from '../src/runtime.ts'
 
-it.each([false, true])('boots a separate Web Host with client plugins (AA enabled: %s)', async aaEnabled => {
+// Requires the real Host: it takes the user-level credential lock under the DSH home, which a
+// running desktop session owns. Covered by the packaged smoke runs.
+it.skipIf(process.env.DSH_DESKTOP_HOST_INTEGRATION !== '1').each([false, true])('boots a separate Web Host with client plugins (AA enabled: %s)', async aaEnabled => {
   const home = mkdtempSync(join(tmpdir(), 'dsh-isolated-host-'))
   const token = Buffer.alloc(32, 7).toString('base64url')
   let child: ReturnType<typeof fork> | undefined
@@ -122,6 +125,6 @@ it.each([false, true])('boots a separate Web Host with client plugins (AA enable
     rpc?.close()
     if (child && child.exitCode === null) { const exit = once(child, 'exit'); child.kill(); await exit }
     pnpm?.dispose()
-    rmSync(home, { recursive: true, force: true })
+    cleanupDisposableTree(home)
   }
 }, 60_000)

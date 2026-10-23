@@ -1,4 +1,5 @@
-import { chmod, lstat, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
+import { cleanupDisposableTree } from '../src/disposable-tree.ts'
+import { chmod, lstat, mkdir, mkdtemp, readFile, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -22,7 +23,7 @@ async function userData(): Promise<string> {
 }
 
 afterEach(async () => {
-  await Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true })))
+  for (const root of roots.splice(0)) cleanupDisposableTree(root)
 })
 
 describe('Desktop installation identity', () => {

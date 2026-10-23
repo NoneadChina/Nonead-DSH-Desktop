@@ -1,5 +1,6 @@
 /** Disposable, launcher-owned DSH environment used by Desktop Safe Mode. */
 
+import { isLinkedPath } from './fs-links.ts'
 import {
   chmodSync,
   lstatSync,
@@ -88,7 +89,7 @@ function markerPath(paths: DesktopSafeModePaths): string {
 function isRealDirectory(path: string): boolean {
   try {
     const stat = lstatSync(path)
-    return stat.isDirectory() && !stat.isSymbolicLink()
+    return stat.isDirectory() && !isLinkedPath(path)
   } catch {
     return false
   }
@@ -98,7 +99,7 @@ function validMarker(paths: DesktopSafeModePaths): boolean {
   try {
     const path = markerPath(paths)
     const stat = lstatSync(path)
-    if (!stat.isFile() || stat.isSymbolicLink() || stat.size > MAX_MARKER_BYTES) return false
+    if (!stat.isFile() || isLinkedPath(path) || stat.size > MAX_MARKER_BYTES) return false
     const value: unknown = JSON.parse(readFileSync(path, 'utf8'))
     if (value === null || typeof value !== 'object') return false
     const marker = value as Partial<DesktopSafeModeMarkerV1>

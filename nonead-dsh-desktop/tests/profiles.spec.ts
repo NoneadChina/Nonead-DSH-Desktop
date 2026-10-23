@@ -561,7 +561,7 @@ it('leaves no Profile link into an archived installation and points the AA bridg
   } }])
   // A physical installation keeps the managed link and the bridge's own defaults.
   loadNextProfile(dir, manager.home)
-  expect(lstatSync(link).isSymbolicLink()).toBe(true)
+  expect(privateFiles.isLinkedPath(link)).toBe(true)
   expect(JSON.parse(readFileSync(join(dir, 'nonead-dsh-desktop.cordis.patch.json'), 'utf8'))).toEqual([{ id: 'agents-anywhere-bridge-next', config: { dshHome: manager.home } }])
 })
 

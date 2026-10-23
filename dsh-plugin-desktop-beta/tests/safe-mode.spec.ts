@@ -1,7 +1,8 @@
+import { cleanupDisposableTree } from '../src/disposable-tree.ts'
 import { spawnSync } from 'node:child_process'
 import * as fileSystem from 'node:fs'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -24,7 +25,7 @@ describe('Desktop Safe Mode environment', () => {
 
   afterEach(async () => {
     vi.restoreAllMocks()
-    await Promise.all(roots.splice(0).map(async root => { await rm(root, { recursive: true, force: true }) }))
+    await Promise.all(roots.splice(0).map(async root => { cleanupDisposableTree(root) }))
   })
 
   async function userData(): Promise<string> {
@@ -229,10 +230,11 @@ describe('Desktop Safe Mode environment', () => {
   it('reports a locked junction after bounded retries without falling back to recursive removal', async () => {
     const fixture = await linkedEnvironment()
     const failure = Object.assign(new Error('EBUSY: junction is locked'), { code: 'EBUSY' })
-    const unlink = fileSystem.unlinkSync
-    const removeLink = vi.spyOn(fileSystem, 'unlinkSync').mockImplementation(path => {
+    const rmdir = fileSystem.rmdirSync
+    // A junction is a directory entry, so the cleanup removes the link through rmdirSync.
+    const removeLink = vi.spyOn(fileSystem, 'rmdirSync').mockImplementation(path => {
       if (path === fixture.links[0]) throw failure
-      unlink(path)
+      rmdir(path)
     })
     const wait = vi.spyOn(Atomics, 'wait').mockReturnValue('timed-out')
     const recursiveRemove = vi.spyOn(fileSystem, 'rmSync')

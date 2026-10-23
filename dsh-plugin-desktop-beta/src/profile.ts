@@ -1,10 +1,10 @@
 /** Compatibility profile composition over the official Web bundle and user plugins. */
 
+import { isLinkedPath } from './fs-links.ts'
 import { randomUUID } from 'node:crypto'
 import { createRequire } from 'node:module'
 import {
   existsSync,
-  lstatSync,
   readdirSync,
   readFileSync,
   renameSync,
@@ -528,7 +528,7 @@ function importPendingDesktopShellSection(
   section: Record<string, unknown>,
 ): boolean {
   try {
-    if ([patchPath, spec.filename].some(path => lstatSync(path, { throwIfNoEntry: false })?.isSymbolicLink())) {
+    if ([patchPath, spec.filename].some(path => isLinkedPath(path))) {
       return false
     }
     let before: string

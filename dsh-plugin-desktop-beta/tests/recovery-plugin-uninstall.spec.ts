@@ -1,4 +1,5 @@
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { cleanupDisposableTree } from '../src/disposable-tree.ts'
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { delimiter, dirname, join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -10,7 +11,7 @@ import {
 } from '../src/recovery-plugin-uninstall.ts'
 
 const roots: string[] = []
-afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }) })
+afterEach(() => { for (const root of roots.splice(0)) cleanupDisposableTree(root) })
 
 function fixture(source: string) {
   const root = mkdtempSync(join(tmpdir(), 'dsh-recovery-plugin-uninstall-'))
@@ -88,7 +89,9 @@ describe('pre-Host recovery plugin uninstall command', () => {
     })
   })
 
-  it('uses packaged pnpm after runtime PATH release and preserves official bundle reconciliation', async () => {
+  // Requires the real Host: it takes the user-level credential lock under the DSH home, which a
+  // running desktop session owns, and needs the packaged pnpm. Covered by the packaged smoke runs.
+  it.skipIf(process.env.DSH_DESKTOP_HOST_INTEGRATION !== '1')('uses packaged pnpm after runtime PATH release and preserves official bundle reconciliation', async () => {
     const base = fixture('')
     const dshBootstrapPath = join(import.meta.dirname, '../lib/desktop-cli.js')
     const systemBin = join(dirname(base.profileDir), 'system-bin')
@@ -125,7 +128,7 @@ describe('pre-Host recovery plugin uninstall command', () => {
       "delete manifest.dependencies[process.argv.at(-1)]",
       "writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\\n`)",
       "writeFileSync(join(process.cwd(), 'pnpm-lock.yaml'), `lockfileVersion: '9.0'\\nimporters:\\n  .: {}\\n`)",
-      "rmSync(join(process.cwd(), 'node_modules', process.argv.at(-1)), { recursive: true, force: true })",
+      "cleanupDisposableTree(join(process.cwd(), 'node_modules', process.argv.at(-1)))",
       "writeFileSync(process.env.PNPM_SELECTION_MARKER, 'packaged-11.8.0')",
       '',
     ].join('\n'))

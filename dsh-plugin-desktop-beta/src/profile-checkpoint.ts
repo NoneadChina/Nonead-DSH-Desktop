@@ -8,6 +8,7 @@
  * checkpoint.
  */
 
+import { isLinkedPath } from './fs-links.ts'
 import { createHash, randomUUID } from 'node:crypto'
 import {
   closeSync,
@@ -274,7 +275,7 @@ function realDirectory(label: string, path: string): string {
   try { item = lstatSync(absolute) } catch (cause) {
     fail(`${label} is unavailable: ${cause instanceof Error ? cause.message : String(cause)}`)
   }
-  if (!item.isDirectory() || item.isSymbolicLink()) fail(`${label} must be a real directory`)
+  if (!item.isDirectory() || isLinkedPath(absolute)) fail(`${label} must be a real directory`)
   realpathSync(absolute)
   return absolute
 }
@@ -282,7 +283,7 @@ function realDirectory(label: string, path: string): string {
 function ensureDirectory(path: string): void {
   mkdirSync(path, { recursive: true, mode: DIRECTORY_MODE })
   const item = lstatSync(path)
-  if (!item.isDirectory() || item.isSymbolicLink()) fail(`checkpoint directory is not a real directory: ${path}`)
+  if (!item.isDirectory() || isLinkedPath(path)) fail(`checkpoint directory is not a real directory: ${path}`)
   if (CHECK_POSIX_MODE && (item.mode & 0o777) !== DIRECTORY_MODE) chmodSync(path, DIRECTORY_MODE)
 }
 
@@ -309,7 +310,7 @@ function writeDurable(path: string, bytes: Uint8Array, mode = FILE_MODE): void {
 
 function readJson(path: string): unknown {
   const item = lstatSync(path)
-  if (!item.isFile() || item.isSymbolicLink() || (CHECK_POSIX_MODE && (item.mode & 0o777) !== FILE_MODE)) {
+  if (!item.isFile() || isLinkedPath(path) || (CHECK_POSIX_MODE && (item.mode & 0o777) !== FILE_MODE)) {
     fail(`checkpoint file has unsafe type or mode: ${path}`)
   }
   if (item.size > MANIFEST_MAX_BYTES) fail(`checkpoint file is too large: ${path}`)
@@ -378,14 +379,14 @@ export function inspectLatestDesktopProfileCheckpointUsage(
   const profileRoot = join(snapshotRoot, hash(profileIdentity))
   try {
     const userData = lstatSync(userDataDir)
-    if (!userData.isDirectory() || userData.isSymbolicLink()) fail('userDataDir must be a real directory')
+    if (!userData.isDirectory() || isLinkedPath(userDataDir)) fail('userDataDir must be a real directory')
     const snapshots = lstatSync(snapshotRoot)
-    if (!snapshots.isDirectory() || snapshots.isSymbolicLink()
+    if (!snapshots.isDirectory() || isLinkedPath(snapshotRoot)
       || (CHECK_POSIX_MODE && (snapshots.mode & 0o777) !== DIRECTORY_MODE)) {
       fail('checkpoint root has unsafe type or mode')
     }
     const root = lstatSync(profileRoot)
-    if (!root.isDirectory() || root.isSymbolicLink()
+    if (!root.isDirectory() || isLinkedPath(profileRoot)
       || (CHECK_POSIX_MODE && (root.mode & 0o777) !== DIRECTORY_MODE)) {
       fail('checkpoint directory has unsafe type or mode')
     }
@@ -403,7 +404,7 @@ export function inspectLatestDesktopProfileCheckpointUsage(
         if (isENOENT(cause)) continue
         throw cause
       }
-      if (!directoryItem.isDirectory() || directoryItem.isSymbolicLink()
+      if (!directoryItem.isDirectory() || isLinkedPath(directory)
         || (CHECK_POSIX_MODE && (directoryItem.mode & 0o777) !== DIRECTORY_MODE)) {
         fail('checkpoint directory has unsafe type or mode')
       }
@@ -486,7 +487,7 @@ function assertTargetParent(
   const parent = dirname(targetPath(profileDir, homeDir, name))
   try {
     const item = lstatSync(parent)
-    if (item.isSymbolicLink() || !item.isDirectory()) fail(`checkpoint target parent must be a real directory: ${name}`)
+    if (isLinkedPath(parent) || !item.isDirectory()) fail(`checkpoint target parent must be a real directory: ${name}`)
     realpathSync(parent)
   } catch (cause) {
     if (!isENOENT(cause)) throw cause
@@ -678,7 +679,7 @@ export class DesktopProfileCheckpoint {
       } else {
         try {
           const item = lstatSync(target)
-          if (item.isSymbolicLink() || !item.isFile()) fail(`cannot remove unsafe profile entry: ${name}`)
+          if (isLinkedPath(target) || !item.isFile()) fail(`cannot remove unsafe profile entry: ${name}`)
           unlinkSync(target)
         } catch (cause) {
           if (!isENOENT(cause)) throw cause
@@ -727,7 +728,7 @@ export class DesktopProfileCheckpoint {
         }
         throw cause
       }
-      if (item.isSymbolicLink() || !item.isFile()) fail(`checkpoint entry must be a regular file: ${name}`)
+      if (isLinkedPath(path) || !item.isFile()) fail(`checkpoint entry must be a regular file: ${name}`)
       if (item.size > this.limits[name]) fail(`profile checkpoint file is too large: ${name}`)
       const bytes = readFileSync(path)
       return { present: true, sha256: hash(bytes), size: bytes.byteLength, mode: item.mode & 0o777 }
@@ -766,7 +767,7 @@ export class DesktopProfileCheckpoint {
       const candidate = join(this.profileRoot, name)
       try {
         const item = lstatSync(candidate)
-        if (!item.isDirectory() || item.isSymbolicLink()
+        if (!item.isDirectory() || isLinkedPath(candidate)
           || (CHECK_POSIX_MODE && (item.mode & 0o777) !== DIRECTORY_MODE)) continue
         renameSync(candidate, target)
         return
@@ -806,7 +807,7 @@ export class DesktopProfileCheckpoint {
     try {
       const expectedSlotId = assertSlotId(basename(directory))
       const directoryItem = lstatSync(directory)
-      if (!directoryItem.isDirectory() || directoryItem.isSymbolicLink()
+      if (!directoryItem.isDirectory() || isLinkedPath(directory)
         || (CHECK_POSIX_MODE && (directoryItem.mode & 0o777) !== DIRECTORY_MODE)) {
         fail('checkpoint directory has unsafe type or mode')
       }
@@ -848,7 +849,7 @@ export class DesktopProfileCheckpoint {
         const backup = filePath(directory, expected)
         if (item.present) {
           const backupItem = lstatSync(backup)
-          if (!backupItem.isFile() || backupItem.isSymbolicLink()
+          if (!backupItem.isFile() || isLinkedPath(backup)
             || (CHECK_POSIX_MODE && (backupItem.mode & 0o777) !== FILE_MODE)) fail(`checkpoint backup is unsafe: ${expected}`)
           const bytes = readFileSync(backup)
           if (bytes.byteLength !== item.size || hash(bytes) !== item.sha256) fail(`checkpoint backup is incomplete: ${expected}`)
@@ -888,7 +889,7 @@ export function clearDesktopProfileCheckpoint(userDataDir: string, profileDir: s
     if (isENOENT(cause)) return
     throw cause
   }
-  if (item.isSymbolicLink() || !item.isDirectory()) fail('profile checkpoint directory has unsafe type')
+  if (isLinkedPath(profileRoot) || !item.isDirectory()) fail('profile checkpoint directory has unsafe type')
   rmSync(profileRoot, { recursive: true, force: false })
 }
 

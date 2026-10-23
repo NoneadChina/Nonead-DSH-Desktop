@@ -1,3 +1,4 @@
+import { cleanupDisposableTree } from '../src/disposable-tree.ts'
 import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import {
@@ -75,7 +76,7 @@ function expectCodePagePinnedAheadOfEveryPath(shim: string): void {
 afterEach(() => {
   vi.restoreAllMocks()
   for (const directory of temporaryDirectories.splice(0)) {
-    rmSync(directory, { recursive: true, force: true })
+    cleanupDisposableTree(directory)
   }
 })
 
@@ -508,7 +509,9 @@ describe('desktop Host pnpm runtime', () => {
     expect(environment.PATH).toBe(`${first.pathDir}${pathDelimiter}${originalPath}`)
   })
 
-  it('rejects symlinked state directories before changing PATH', () => {
+  // Needs the privilege to create a file symlink, which a non-elevated Windows process does not have.
+  // POSIX CI covers the link-refusal logic; junctions are covered by the link-guard suites.
+  it.skipIf(process.platform === 'win32')('rejects symlinked state directories before changing PATH', () => {
     const root = temporaryDirectory()
     const target = join(root, 'target')
     const stateDir = join(root, 'runtime')
@@ -521,7 +524,9 @@ describe('desktop Host pnpm runtime', () => {
     expect(environment).toEqual({ PATH: '/usr/bin' })
   })
 
-  it('publishes a clean sibling instead of trusting a contaminated generation', () => {
+  // Needs the privilege to create a file symlink, which a non-elevated Windows process does not have.
+  // POSIX CI covers the link-refusal logic; junctions are covered by the link-guard suites.
+  it.skipIf(process.platform === 'win32')('publishes a clean sibling instead of trusting a contaminated generation', () => {
     const root = temporaryDirectory()
     const stateDir = join(root, 'runtime')
     const environment: NodeJS.ProcessEnv = { PATH: '/usr/bin' }

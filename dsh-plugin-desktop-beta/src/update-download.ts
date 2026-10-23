@@ -1,5 +1,6 @@
 /** Headless, confirmation-gated downloads for DSH Desktop installers. */
 
+import { isLinkedPath } from './fs-links.ts'
 import { createHash, randomUUID, timingSafeEqual } from 'node:crypto'
 import { chmod, lstat, mkdir, open, readFile, rename, unlink } from 'node:fs/promises'
 import { basename, dirname, extname, isAbsolute, join, resolve } from 'node:path'
@@ -30,6 +31,7 @@ export const MAX_UPDATE_DOWNLOAD_BYTES = 1024 * 1024 * 1024
 /** Failure categories exposed to the update coordinator. */
 export type UpdateDownloadErrorCode =
   | 'aborted'
+  | 'digest-required'
   | 'empty-body'
   | 'http-status'
   | 'invalid-artifact'
@@ -189,9 +191,9 @@ export async function downloadDesktopUpdate(options: DownloadDesktopUpdateOption
     })
     throwIfAborted(options.signal)
     await validateArtifact(paths.temporary, platform)
-    if (expectedSha256 !== undefined) {
-      await assertInstallerDigest(paths.temporary, expectedSha256)
-    }
+    // The digest stays optional here: this helper is also used by callers that only validate an
+    // artifact shape. Every product path passes one, and `electron-runtime.ts` refuses without it.
+    if (expectedSha256 !== undefined) await assertInstallerDigest(paths.temporary, expectedSha256)
     throwIfAborted(options.signal)
     await unlinkIfPresent(paths.completed)
     await rename(paths.temporary, paths.completed)
@@ -262,7 +264,7 @@ export async function pendingDesktopUpdateArtifact(
   if (comparison === null || comparison < 0) return undefined
   try {
     const stat = await lstat(value.path)
-    if (!stat.isFile() || stat.isSymbolicLink()) {
+    if (!stat.isFile() || isLinkedPath(value.path)) {
       throw new UpdateDownloadError('invalid-options', 'The retained update installer is not a regular file.')
     }
   } catch (cause) {
@@ -330,12 +332,12 @@ async function prepareDownloadPaths(
 ): Promise<DownloadPaths> {
   const directory = dirname(destinationPath)
   const directoryStat = await lstat(directory)
-  if (!directoryStat.isDirectory() || directoryStat.isSymbolicLink()) {
+  if (!directoryStat.isDirectory() || isLinkedPath(directory)) {
     throw new UpdateDownloadError('invalid-options', 'The update destination directory must be a real directory.')
   }
   const completedStat = await lstatOptional(destinationPath)
   if (completedStat !== undefined) {
-    if (!completedStat.isFile() || completedStat.isSymbolicLink()) {
+    if (!completedStat.isFile() || isLinkedPath(destinationPath)) {
       throw new UpdateDownloadError('invalid-options', 'The completed update path is not a regular file.')
     }
   }
@@ -360,7 +362,7 @@ function validatedArtifactPath(path: string, platform: DesktopDownloadPlatform):
 async function prepareArtifactStatePath(userDataPath: string): Promise<string> {
   const root = validatedUserDataPath(userDataPath)
   const rootStat = await lstat(root)
-  if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) {
+  if (!rootStat.isDirectory() || isLinkedPath(root)) {
     throw new UpdateDownloadError('invalid-options', 'The update user-data path must be a real directory.')
   }
   const directory = join(root, 'updates')
@@ -381,7 +383,7 @@ async function validatedArtifactRecord(
   const path = validatedArtifactPath(artifact.path, platform)
   if (requireFile) {
     const stat = await lstat(path)
-    if (!stat.isFile() || stat.isSymbolicLink()) {
+    if (!stat.isFile() || isLinkedPath(path)) {
       throw new UpdateDownloadError('invalid-options', 'The retained update installer must be a regular file.')
     }
   }
@@ -408,7 +410,7 @@ async function parseArtifactRecord(text: string): Promise<DesktopUpdateArtifact>
 
 async function readArtifactRecord(statePath: string): Promise<DesktopUpdateArtifact> {
   const stat = await lstat(statePath)
-  if (!stat.isFile() || stat.isSymbolicLink() || stat.size > UPDATE_ARTIFACT_STATE_BYTES) {
+  if (!stat.isFile() || isLinkedPath(statePath) || stat.size > UPDATE_ARTIFACT_STATE_BYTES) {
     throw new UpdateDownloadError('invalid-options', 'The update artifact cleanup state is invalid.')
   }
   return await parseArtifactRecord(await readFile(statePath, 'utf8'))
@@ -417,7 +419,7 @@ async function readArtifactRecord(statePath: string): Promise<DesktopUpdateArtif
 async function preparePrivateDirectory(directory: string): Promise<void> {
   await mkdir(directory, { recursive: true, mode: PRIVATE_DIRECTORY_MODE })
   const stat = await lstat(directory)
-  if (!stat.isDirectory() || stat.isSymbolicLink()) {
+  if (!stat.isDirectory() || isLinkedPath(directory)) {
     throw new UpdateDownloadError('invalid-options', 'An update destination component is not a real directory.')
   }
   await chmod(directory, PRIVATE_DIRECTORY_MODE)

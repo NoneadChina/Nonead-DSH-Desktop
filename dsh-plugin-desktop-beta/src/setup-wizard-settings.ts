@@ -1,5 +1,6 @@
 /** Pre-Host reader and atomic writer for Desktop Setup Wizard preferences. */
 
+import { isLinkedPath } from './fs-links.ts'
 import {
   desktopBrowserAccessAvailable,
   desktopBrowserAccessEnabled,
@@ -120,7 +121,7 @@ function readDocumentText(path: string): string | undefined {
     if ((cause as NodeJS.ErrnoException).code === 'ENOENT') return undefined
     throw cause
   }
-  if (!pathInfo.isFile() || pathInfo.isSymbolicLink()) throw invalid('document must be a regular file')
+  if (!pathInfo.isFile() || isLinkedPath(path)) throw invalid('document must be a regular file')
   if (pathInfo.size > MAX_DOCUMENT_BYTES) {
     throw invalid(`document exceeds ${String(MAX_DOCUMENT_BYTES)} bytes`)
   }
@@ -376,7 +377,7 @@ function ensureDocumentDirectory(path: string): void {
   const directory = dirname(path)
   mkdirSync(directory, { recursive: true, mode: DOCUMENT_DIRECTORY_MODE })
   const info = lstatSync(directory)
-  if (!info.isDirectory() || info.isSymbolicLink()) {
+  if (!info.isDirectory() || isLinkedPath(directory)) {
     throw invalid('document parent must be a real directory')
   }
 }

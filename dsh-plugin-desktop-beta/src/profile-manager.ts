@@ -1,5 +1,6 @@
 /** Desktop-owned profile discovery and restart-safe selection state. */
 
+import { isLinkedPath } from './fs-links.ts'
 import { randomUUID } from 'node:crypto'
 import {
   chmodSync,
@@ -212,7 +213,7 @@ function materializeDefaultDesktopProfile(home: string): DesktopProfileSummary {
   let incomplete: string | undefined
   try {
     const item = lstatSync(target)
-    if (!item.isDirectory() || item.isSymbolicLink()) {
+    if (!item.isDirectory() || isLinkedPath(target)) {
       throw new Error(`${BIN_NAME}: default profile path is not a real directory`)
     }
     incomplete = join(dirname(target), `.${basename(target)}.incomplete-${process.pid}-${randomUUID()}`)
@@ -256,7 +257,7 @@ export function listDesktopProfiles(home: string): DesktopProfileSummary[] {
   try {
     for (const entry of readdirSync(profilesDir, { withFileTypes: true })) {
       if (INTERNAL_PROFILE_STAGING_PATTERN.test(entry.name)) continue
-      if (entry.name === 'node_modules' || (!entry.isDirectory() && !entry.isSymbolicLink())) continue
+      if (entry.name === 'node_modules' || (!entry.isDirectory() && !isLinkedPath(join(profilesDir, entry.name)))) continue
       try {
         assertDesktopProfileName(entry.name)
       } catch {
@@ -308,7 +309,7 @@ function deletionTarget(options: DesktopProfileDeletionOptions, name: string): s
     }
     throw cause
   }
-  if (!item.isDirectory() || item.isSymbolicLink()) {
+  if (!item.isDirectory() || isLinkedPath(target)) {
     throw new Error(`${BIN_NAME}: profile ${JSON.stringify(name)} is not a real directory`)
   }
   let manifest
@@ -320,7 +321,7 @@ function deletionTarget(options: DesktopProfileDeletionOptions, name: string): s
     }
     throw cause
   }
-  if (!manifest.isFile() || manifest.isSymbolicLink()) {
+  if (!manifest.isFile() || isLinkedPath(join(target, PROFILE_MANIFEST_FILENAME))) {
     throw new Error(`${BIN_NAME}: profile ${JSON.stringify(name)} has an unsafe manifest`)
   }
   return target
@@ -351,7 +352,7 @@ export async function deleteDesktopProfile(
   }
   const parent = dirname(target)
   const parentInfo = lstatSync(parent)
-  if (!parentInfo.isDirectory() || parentInfo.isSymbolicLink()) {
+  if (!parentInfo.isDirectory() || isLinkedPath(parent)) {
     throw new Error(`${BIN_NAME}: profile directory parent is not a real directory`)
   }
   const staging = join(parent, `.${basename(target)}.deleting-${process.pid}-${randomUUID()}`)
@@ -360,7 +361,7 @@ export async function deleteDesktopProfile(
     await options.clearDisabledState?.()
     await options.clearCheckpoint?.()
     const stagedInfo = lstatSync(staging)
-    if (!stagedInfo.isDirectory() || stagedInfo.isSymbolicLink()) {
+    if (!stagedInfo.isDirectory() || isLinkedPath(staging)) {
       throw new Error(`${BIN_NAME}: profile deletion staging entry is unsafe`)
     }
     rmSync(staging, { recursive: true, force: false })
@@ -402,7 +403,7 @@ function readStateText(statePath: string): string {
 function loadState(statePath: string): LoadedDesktopProfileState {
   let text: string
   try {
-    if (lstatSync(statePath).isSymbolicLink()) {
+    if (isLinkedPath(statePath)) {
       return { state: defaultState(), recovered: true }
     }
     text = readStateText(statePath)
@@ -436,7 +437,7 @@ function writeState(statePath: string, state: DesktopProfileStateV2): void {
   const stateDir = dirname(statePath)
   mkdirSync(stateDir, { recursive: true, mode: STATE_DIRECTORY_MODE })
   const directoryStat = lstatSync(stateDir)
-  if (!directoryStat.isDirectory() || directoryStat.isSymbolicLink()) {
+  if (!directoryStat.isDirectory() || isLinkedPath(stateDir)) {
     throw new Error(`${BIN_NAME}: profile selection state directory is not private: ${stateDir}`)
   }
   chmodSync(stateDir, STATE_DIRECTORY_MODE)

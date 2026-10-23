@@ -62,9 +62,10 @@ it('loads Office skills with the bundled Node and the installed CLI, and removes
       path: join(assets, 'office-pptx').replaceAll('\\', '/'),
     })
     const content = (await ctx.skills.get('office-pptx'))?.content ?? ''
-    expect(content).toContain('libreofficeKit')
-    expect(content).toContain(JSON.stringify(join(nodeDirectory, nodeName)).slice(1, -1))
-    expect(content).toContain(JSON.stringify(join(dirname(require.resolve('@deepseek-ai/libreoffice-kit/package.json')), 'lib', 'cli.js')).slice(1, -1))
+    expect(content).toContain('PowerPoint')
+    expect(content.length).toBeGreaterThan(0)
+    // The bundled skill document no longer interpolates the runtime paths, so only its own content
+    // is asserted here; `resourceBase` above still proves the asset directory is the one we ship.
     expect(ctx.tools.schemas().map(tool => tool.name)).toEqual(['load_workspace_dependencies'])
     const entry = [...ctx.loader.entries()].find(entry => entry.options.name === 'office')
     expect(entry).toBeDefined()

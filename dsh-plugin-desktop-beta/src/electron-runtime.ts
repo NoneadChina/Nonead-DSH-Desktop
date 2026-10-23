@@ -929,6 +929,12 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
     const destinationPath = await this.chooseUpdateDestination(version, channel)
     if (destinationPath === undefined) return
     signal.throwIfAborted()
+    // Fail closed: without a published digest there is nothing to verify, and this installer is
+    // executed as-is, so refuse the download instead of opening an unverified file.
+    const expectedSha256 = installerSha256?.[platform]
+    if (expectedSha256 === undefined) {
+      throw new Error(`dsh-plugin-desktop: the ${channel} release publishes no installer digest for ${platform}; refusing to download it`)
+    }
     const artifactPath = await downloadDesktopUpdate({
       platform,
       version,
@@ -936,7 +942,7 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
       destinationPath,
       request: requestDesktopArtifact,
       signal,
-      ...(installerSha256?.[platform] === undefined ? {} : { expectedSha256: installerSha256[platform] }),
+      expectedSha256,
     })
     signal.throwIfAborted()
     const artifact: DesktopUpdateArtifact = { platform, version, path: artifactPath }

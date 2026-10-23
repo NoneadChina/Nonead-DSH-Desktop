@@ -1,3 +1,4 @@
+import { isLinkedPath } from './fs-links.ts'
 import {
   appendFileSync, existsSync, lstatSync, mkdirSync, readdirSync, unlinkSync,
 } from 'node:fs'
@@ -78,7 +79,7 @@ export class LogFileSink {
     }
     if (!existsSync(directory)) mkdirSync(directory, { recursive: true })
     const directoryStats = lstatSync(directory)
-    if (directoryStats.isSymbolicLink()) {
+    if (isLinkedPath(directory)) {
       throw new Error('dsh-plugin-desktop: refusing linked log directory')
     }
     if (!directoryStats.isDirectory()) {
@@ -214,7 +215,7 @@ export class LogFileSink {
     let path = join(this.directory, logFileName(this.currentDate!, !isAll, segment))
     while (existsSync(path)) {
       const stats = lstatSync(path)
-      if (stats.isFile() && !stats.isSymbolicLink()) break
+      if (stats.isFile() && !isLinkedPath(path)) break
       segment += 1
       bytes = 0
       path = join(this.directory, logFileName(this.currentDate!, !isAll, segment))

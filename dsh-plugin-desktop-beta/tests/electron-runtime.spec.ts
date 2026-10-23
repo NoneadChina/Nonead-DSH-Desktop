@@ -1,9 +1,13 @@
+import { tmpdir } from 'node:os'
 import { readFileSync, unlinkSync } from 'node:fs'
 import { basename, dirname, join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DesktopShellSpec } from '../src/runtime.ts'
 import { desktopTrayLabel } from '../src/tray-locale.ts'
 import { DESKTOP_FRAME_HEIGHT } from '../src/window-chrome.ts'
+
+/** The update handoff refuses to download without a published digest, so specs always pass one. */
+const TEST_INSTALLER_DIGESTS = { win32: 'a'.repeat(64), darwin: 'b'.repeat(64) } as const
 
 const terminal = vi.hoisted(() => ({ open: vi.fn() }))
 const diagnostics = vi.hoisted(() => ({ export: vi.fn() }))
@@ -40,7 +44,9 @@ const childProcess = vi.hoisted(() => {
   }
 })
 
-const MAIN_WINDOW_STATE_PATH = '/tmp/dsh-desktop-user-data/main-window-state.json'
+/** The shell fixture writes here; `/tmp` is not writable on Windows, so use the OS temp root. */
+const USER_DATA_ROOT = join(tmpdir(), 'dsh-desktop-user-data')
+const MAIN_WINDOW_STATE_PATH = join(USER_DATA_ROOT, 'main-window-state.json')
 const PRODUCT_VERSION = (JSON.parse(
   readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
 ) as { readonly version: string }).version
@@ -232,9 +238,9 @@ const electron = vi.hoisted(() => {
       getLocale: vi.fn(() => 'en-US'),
       getPreferredSystemLanguages: vi.fn(() => ['en-US']),
       getPath: vi.fn((name: string) => {
-        if (name === 'crashDumps') return '/tmp/dsh-desktop-user-data/Crashpad'
+        if (name === 'crashDumps') return join(USER_DATA_ROOT, 'Crashpad')
         if (name === 'downloads') return '/tmp/Downloads'
-        return '/tmp/dsh-desktop-user-data'
+        return USER_DATA_ROOT
       }),
       getVersion: vi.fn(() => '43.4.0'),
       isPackaged: false,
@@ -754,7 +760,7 @@ describe('Electron desktop runtime', () => {
     vi.useFakeTimers()
     vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
     const { FileMainWindowStateStore } = await import('../src/main-window-state.ts')
-    const store = new FileMainWindowStateStore('/tmp/dsh-desktop-user-data')
+    const store = new FileMainWindowStateStore(USER_DATA_ROOT)
     store.write({ x: 260, y: 140, width: 1440, height: 900 })
     const { ElectronDesktopRuntime } = await import('../src/electron-runtime.ts')
     const runtime = new ElectronDesktopRuntime(async () => {})
@@ -792,7 +798,7 @@ describe('Electron desktop runtime', () => {
   it('fits stale saved bounds into the current display work area', async () => {
     vi.spyOn(process, 'platform', 'get').mockReturnValue('darwin')
     const { FileMainWindowStateStore } = await import('../src/main-window-state.ts')
-    const store = new FileMainWindowStateStore('/tmp/dsh-desktop-user-data')
+    const store = new FileMainWindowStateStore(USER_DATA_ROOT)
     const stale = { x: 5_000, y: -2_000, width: 2_000, height: 1_400 }
     store.write(stale)
     electron.screen.getDisplayMatching.mockReturnValueOnce({
@@ -2629,7 +2635,7 @@ describe('Electron desktop runtime', () => {
       isPackaged: false,
       canDownload: false,
       currentVersion: PRODUCT_VERSION,
-      statePath: join('/tmp/dsh-desktop-user-data', 'updates', 'state.json'),
+      statePath: join(USER_DATA_ROOT, 'updates', 'state.json'),
     })
     electron.app.isPackaged = true
     expect(runtime.updates).toMatchObject({ isPackaged: true, canDownload: true })
@@ -2668,7 +2674,7 @@ describe('Electron desktop runtime', () => {
       canceled: false,
       filePath: '/tmp/Downloads/DSH-Desktop-2.1.0-mac.dmg',
     })
-    await runtime.updates.downloadAndOpen('2.1.0', controller.signal)
+    await runtime.updates.downloadAndOpen('2.1.0', controller.signal, 'stable', TEST_INSTALLER_DIGESTS)
     expect(electron.dialog.showSaveDialog).toHaveBeenCalledWith(
       activeWindow,
       expect.objectContaining({
@@ -2682,9 +2688,10 @@ describe('Electron desktop runtime', () => {
       destinationPath: '/tmp/Downloads/DSH-Desktop-2.1.0-mac.dmg',
       request: expect.any(Function),
       signal: controller.signal,
+      expectedSha256: TEST_INSTALLER_DIGESTS.darwin,
     })
     expect(electron.shell.openPath).toHaveBeenCalledWith('/tmp/DSH-Desktop-2.1.0-mac.dmg')
-    expect(updater.record).toHaveBeenCalledWith('/tmp/dsh-desktop-user-data', {
+    expect(updater.record).toHaveBeenCalledWith(USER_DATA_ROOT, {
       platform: 'darwin',
       version: '2.1.0',
       path: '/tmp/DSH-Desktop-2.1.0-mac.dmg',
@@ -2728,7 +2735,7 @@ describe('Electron desktop runtime', () => {
       filePath: 'C:\\Updates\\DSH-Desktop-2.1.0-windows.exe',
     })
 
-    const pending = runtime.updates.downloadAndOpen('2.1.0', new AbortController().signal)
+    const pending = runtime.updates.downloadAndOpen('2.1.0', new AbortController().signal, 'stable', TEST_INSTALLER_DIGESTS)
     await vi.waitFor(() => { expect(childProcess.spawn).toHaveBeenCalledOnce() })
     expect(childProcess.spawn).toHaveBeenCalledWith(
       'C:\\Updates\\DSH-Desktop-2.1.0-windows.exe',
@@ -2745,7 +2752,7 @@ describe('Electron desktop runtime', () => {
     await pending
 
     expect(childProcess.child.unref).toHaveBeenCalledOnce()
-    expect(updater.record).toHaveBeenCalledWith('/tmp/dsh-desktop-user-data', {
+    expect(updater.record).toHaveBeenCalledWith(USER_DATA_ROOT, {
       platform: 'win32',
       version: '2.1.0',
       path: 'C:\\Updates\\DSH-Desktop-2.1.0-windows.exe',
@@ -2765,12 +2772,12 @@ describe('Electron desktop runtime', () => {
       filePath: 'C:\\Updates\\DSH-Desktop-2.1.0-windows.exe',
     })
 
-    const pending = runtime.updates.downloadAndOpen('2.1.0', new AbortController().signal)
+    const pending = runtime.updates.downloadAndOpen('2.1.0', new AbortController().signal, 'stable', TEST_INSTALLER_DIGESTS)
     await vi.waitFor(() => { expect(childProcess.spawn).toHaveBeenCalledOnce() })
     childProcess.emit('error', new Error('blocked'))
 
     await expect(pending).rejects.toThrow('blocked')
-    expect(updater.record).toHaveBeenCalledWith('/tmp/dsh-desktop-user-data', {
+    expect(updater.record).toHaveBeenCalledWith(USER_DATA_ROOT, {
       platform: 'win32',
       version: '2.1.0',
       path: 'C:\\Updates\\DSH-Desktop-2.1.0-windows.exe',
@@ -2791,7 +2798,7 @@ describe('Electron desktop runtime', () => {
       filePath: 'C:\\Updates\\DSH-Desktop-2.1.0-windows.exe',
     })
 
-    await runtime.updates.downloadAndOpen('2.1.0', new AbortController().signal)
+    await runtime.updates.downloadAndOpen('2.1.0', new AbortController().signal, 'stable', TEST_INSTALLER_DIGESTS)
 
     expect(childProcess.spawn).not.toHaveBeenCalled()
     expect(updater.record).toHaveBeenCalledOnce()
@@ -2810,7 +2817,7 @@ describe('Electron desktop runtime', () => {
     const { ElectronDesktopRuntime } = await import('../src/electron-runtime.ts')
     const runtime = new ElectronDesktopRuntime(async () => {}, undefined, logger)
 
-    await expect(runtime.updates.downloadAndOpen('2.1.0', new AbortController().signal))
+    await expect(runtime.updates.downloadAndOpen('2.1.0', new AbortController().signal, 'stable', TEST_INSTALLER_DIGESTS))
       .resolves.toBeUndefined()
 
     expect(logger.error).toHaveBeenCalledWith(
@@ -2824,7 +2831,7 @@ describe('Electron desktop runtime', () => {
     const { ElectronDesktopRuntime } = await import('../src/electron-runtime.ts')
     const runtime = new ElectronDesktopRuntime(async () => {})
 
-    await runtime.updates.downloadAndOpen('2.1.0', new AbortController().signal)
+    await runtime.updates.downloadAndOpen('2.1.0', new AbortController().signal, 'stable', TEST_INSTALLER_DIGESTS)
 
     expect(electron.dialog.showSaveDialog).toHaveBeenCalledOnce()
     expect(updater.download).not.toHaveBeenCalled()
@@ -2857,7 +2864,7 @@ describe('Electron desktop runtime', () => {
         buttons: ['Delete Installer', 'Keep Installer'],
       }),
     )
-    expect(updater.resolve).toHaveBeenCalledWith('/tmp/dsh-desktop-user-data', artifact, remove)
+    expect(updater.resolve).toHaveBeenCalledWith(USER_DATA_ROOT, artifact, remove)
   })
 
   it('rejects a macOS handoff when the operating system cannot open the DMG', async () => {
@@ -2871,7 +2878,7 @@ describe('Electron desktop runtime', () => {
       filePath: '/tmp/DSH-Desktop-2.1.0-mac.dmg',
     })
 
-    await expect(runtime.updates.downloadAndOpen('2.1.0', new AbortController().signal))
+    await expect(runtime.updates.downloadAndOpen('2.1.0', new AbortController().signal, 'stable', TEST_INSTALLER_DIGESTS))
       .rejects.toThrow('Launch Services rejected the image')
     expect(electron.dialog.showMessageBox).not.toHaveBeenCalled()
   })
@@ -2891,7 +2898,7 @@ describe('Electron desktop runtime', () => {
       filePath: '/tmp/DSH-Desktop-2.1.0-mac.dmg',
     })
 
-    const pending = runtime.updates.downloadAndOpen('2.1.0', controller.signal)
+    const pending = runtime.updates.downloadAndOpen('2.1.0', controller.signal, 'stable', TEST_INSTALLER_DIGESTS)
     await vi.waitFor(() => { expect(electron.shell.openPath).toHaveBeenCalledOnce() })
     controller.abort()
     finishOpen('')

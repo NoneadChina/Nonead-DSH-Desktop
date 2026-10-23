@@ -335,7 +335,9 @@ describe('desktop lifecycle events', () => {
     }
   }, 10_000)
 
-  it('treats linked or unsafe evidence targets as best-effort logger-only failures', () => {
+  // Needs the privilege to create a file symlink, which a non-elevated Windows process does not have.
+  // POSIX CI covers the link-refusal logic; junctions are covered by the link-guard suites.
+  it.skipIf(process.platform === 'win32')('treats linked or unsafe evidence targets as best-effort logger-only failures', () => {
     const linkedParentDir = tempUserData('dsh-lifecycle-parent-link-')
     const linkedParentTarget = join(linkedParentDir, 'target')
     mkdirSync(linkedParentTarget)

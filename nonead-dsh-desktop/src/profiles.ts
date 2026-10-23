@@ -1,11 +1,11 @@
 /** Next-owned profile state. Recovery works without importing any user plugin. */
-import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, readlinkSync, realpathSync, symlinkSync, unlinkSync } from 'node:fs'
+import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, symlinkSync, unlinkSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { initProfile, loadOverlayPatches, loadProfileDirectory, PROFILE_TEMPLATES, readProfilePatches, type Profile, type ProfileContext } from '@deepseek-ai/dsh-app-boot'
 import { withFileLock } from '@deepseek-ai/dsh-atomic-write'
-import { atomicJson, atomicText, readPrivateFile } from './private-files.ts'
+import { atomicJson, atomicText, isLinkedPath, linkedPathTarget, readPrivateFile, removeLinkedPath, sameResolvedPath } from './private-files.ts'
 import { existingPath, LEGACY, readPrivateFileWithLegacy } from './legacy-names.ts'
 import { NextRecovery } from './recovery.ts'
 import { DEFAULT_PROFILE } from './desktop-contract.ts'
@@ -14,6 +14,7 @@ import { RETIRED_SCHEDULE_BUNDLE, retiredSchedulePatch } from './profile-schedul
 import { removeLinkProjectionsSafely } from '../../dsh-plugin-desktop-beta/src/link-projections.ts'
 import { insideArchive, unpackedPath } from './asar-archive-policy.ts'
 import { withProfileWriteLock } from './recovery-support.ts'
+import { MARKET_STORE_PACKAGES, projectMarketRelease } from './market-store.ts'
 
 export const NEXT_PACKAGE = fileURLToPath(new URL('../package.json', import.meta.url))
 export const WEB_BUNDLES = [...PROFILE_TEMPLATES.web!.bundles]
@@ -106,7 +107,7 @@ export class NextProfiles {
     const root = join(this.home, 'profiles')
     const dir = join(root, profileName(name))
     for (const path of [this.home, root, dir]) {
-      if (existsSync(path) && (!lstatSync(path).isDirectory() || lstatSync(path).isSymbolicLink())) {
+      if (existsSync(path) && (!lstatSync(path).isDirectory() || isLinkedPath(path))) {
         throw new Error(`Next profile path must be a real directory: ${path}`)
       }
     }
@@ -340,6 +341,22 @@ function retireLinkProjections(projectDir: string): void {
   }
 }
 
+/**
+ * Point each market bundle at the release the runtime store installed, if any.
+ *
+ * A problem here only degrades that package back to its built-in copy, so it must never block the
+ * Profile from loading — the same fail-open policy the projection sweep above uses.
+ */
+function projectMarketBundles(home: string): void {
+  for (const name of MARKET_STORE_PACKAGES) {
+    try {
+      projectMarketRelease(home, name)
+    } catch (cause) {
+      process.stderr.write(`nonead-dsh-desktop: could not project ${name} from the market store: ${String(cause)}\n`)
+    }
+  }
+}
+
 /** Add product capabilities without replacing the upstream Web presentation. */
 export function loadNextProfile(projectDir: string, home: string, installAnchor = NEXT_PACKAGE): Profile {
   const manager = new NextProfiles(home)
@@ -357,11 +374,17 @@ export function loadNextProfile(projectDir: string, home: string, installAnchor 
   mkdirSync(modules, { recursive: true, mode: 0o700 })
   const link = join(modules, 'nonead-dsh-desktop')
   const target = realpathSync(dirname(installAnchor))
-  const linkTarget = insideArchive(installAnchor) ? undefined : target
+  // Compare through `realpathSync.native`: a junction is invisible to `lstat` and `readlink`
+  // throws EINVAL on it, so both would treat a planted junction as an unmanaged directory.
+  const linkTarget = insideArchive(installAnchor) ? undefined : realpathSync.native(dirname(installAnchor))
   const existingLink = lstatSync(link, { throwIfNoEntry: false })
-  if (existingLink && !existingLink.isSymbolicLink()) throw new Error('Next bundle fallback is occupied by an unmanaged package')
-  if (existingLink && (linkTarget === undefined || resolve(modules, readlinkSync(link)) !== linkTarget)) unlinkSync(link)
+  const existingTarget = existingLink ? linkedPathTarget(link) : undefined
+  if (existingLink && existingTarget === undefined) throw new Error('Next bundle fallback is occupied by an unmanaged package')
+  if (existingLink && (linkTarget === undefined || existingTarget === undefined || !sameResolvedPath(existingTarget, linkTarget))) removeLinkedPath(link)
   if (linkTarget !== undefined && !lstatSync(link, { throwIfNoEntry: false })) symlinkSync(linkTarget, link, 'junction')
+  // Both markets stay built-in until the runtime store installs a release; this only redirects the
+  // bundle resolution that the next line performs.
+  projectMarketBundles(home)
   const profile = loadProfileDirectory('nonead-dsh-desktop', projectDir, installAnchor)
   profile.layers.push({ packageName: 'nonead-dsh-desktop', packageDir: target,
     patchPaths: [NEXT_BUNDLE_PATCH], patches: loadOverlayPatches('nonead-dsh-desktop', NEXT_BUNDLE_PATCH) })

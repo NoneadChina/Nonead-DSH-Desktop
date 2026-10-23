@@ -1,3 +1,4 @@
+import { isLinkedPath } from './fs-links.ts'
 import { randomUUID } from 'node:crypto'
 import {
   chmodSync,
@@ -478,13 +479,13 @@ export class DesktopLifecycleRecorder {
       const directory = dirname(this.evidencePath)
       mkdirSync(directory, { recursive: true, mode: PRIVATE_DIRECTORY_MODE })
       const directoryStats = lstatSync(directory)
-      if (directoryStats.isSymbolicLink() || !directoryStats.isDirectory()) {
+      if (isLinkedPath(directory) || !directoryStats.isDirectory()) {
         throw new Error('lifecycle evidence directory is invalid')
       }
       try { chmodSync(directory, PRIVATE_DIRECTORY_MODE) } catch {}
       if (existsSync(this.evidencePath)) {
         const stats = lstatSync(this.evidencePath)
-        if (stats.isSymbolicLink() || !stats.isFile() || stats.nlink > 1) {
+        if (isLinkedPath(this.evidencePath) || !stats.isFile() || stats.nlink > 1) {
           throw new Error('lifecycle evidence file is invalid')
         }
         unlinkSync(this.evidencePath)

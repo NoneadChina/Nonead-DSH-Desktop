@@ -1,5 +1,6 @@
 /** Machine-level Desktop Market provider selection and fail-safe state. */
 
+import { isLinkedPath } from './fs-links.ts'
 import {
   chmodSync,
   closeSync,
@@ -133,7 +134,7 @@ export function parseDesktopMarketState(value: unknown): DesktopMarketStateV1 {
 
 function readRawState(statePath: string): unknown {
   const pathInfo = lstatSync(statePath)
-  if (!pathInfo.isFile() || pathInfo.isSymbolicLink()) {
+  if (!pathInfo.isFile() || isLinkedPath(statePath)) {
     throw invalidState('state must be a regular file')
   }
   const descriptor = openSync(statePath, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0))
@@ -167,7 +168,7 @@ function assertRealStateDirectory(statePath: string): void {
   const directory = dirname(statePath)
   try {
     const info = lstatSync(directory)
-    if (!info.isDirectory() || info.isSymbolicLink()) {
+    if (!info.isDirectory() || isLinkedPath(directory)) {
       throw new Error(`${BIN_NAME}: Desktop Market state directory must be a real directory`)
     }
     chmodSync(directory, STATE_DIRECTORY_MODE)
@@ -175,7 +176,7 @@ function assertRealStateDirectory(statePath: string): void {
     if ((cause as NodeJS.ErrnoException).code === 'ENOENT') {
       mkdirSync(directory, { recursive: true, mode: STATE_DIRECTORY_MODE })
       const info = lstatSync(directory)
-      if (!info.isDirectory() || info.isSymbolicLink()) {
+      if (!info.isDirectory() || isLinkedPath(directory)) {
         throw new Error(`${BIN_NAME}: Desktop Market state directory must be a real directory`)
       }
       chmodSync(directory, STATE_DIRECTORY_MODE)

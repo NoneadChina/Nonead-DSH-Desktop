@@ -210,8 +210,8 @@ git submodule update --init --recursive
 
 | 命令 | 作用 |
 | --- | --- |
-| `corepack yarn dev:beta` / `dev:stable` | 启动对应工作区的开发流程（会先刷新 `dshmarket`、准备 AA 产物并构建市场） |
-| `corepack yarn build` | 构建市场、Beta 与稳定通道工作区（同样会先刷新 `dshmarket`） |
+| `corepack yarn dev:beta` / `dev:stable` | 启动对应工作区的开发流程（会先校验 `dshmarket` 的固定版本、准备 AA 产物并构建市场） |
+| `corepack yarn build` | 构建市场、Beta 与稳定通道工作区（同样会先校验 `dshmarket` 的固定版本） |
 | `corepack yarn typecheck` | 三个工作区的类型检查 |
 | `corepack yarn test` | 三个工作区的单元测试 |
 | `corepack yarn check` | 完整 headless 门禁：layout、架构方向、vendored runtime、双语文档、AA connector、各工作区 check |
@@ -219,14 +219,14 @@ git submodule update --init --recursive
 | `corepack yarn check:layout` | 工作区拓扑、精确 pin、子模块、vendored runtime 与图标/布局门禁 |
 | `corepack yarn check:bilingual-docs` | 校验 `*.i18n.yaml` 记录的 Git blob 哈希与对应文档一致 |
 | `corepack yarn check:vendored-runtime` | 校验 `vendor/dsh-runtime/` 与 `upstream.json` 一致 |
-| `corepack yarn market:prepare` / `market:check` | 把 `dshmarket` 同步到 npm `latest`（只改两个桌面 workspace 的 `resolutions`/依赖与 `yarn.lock`），后者只校验不写入 |
+| `corepack yarn market:prepare` / `market:check` | `market:prepare` 才把 `dshmarket` 升级到 npm `latest`（只改两个桌面 workspace 的 `resolutions`/依赖与 `yarn.lock`）；`market:check` 是构建用的离线一致性校验，加 `--latest` 才联网比对 |
 | `corepack yarn aa:prepare-release` / `aa:check` | 构建或校验 Agents Anywhere 发布产物 |
 | `corepack yarn package:dir:beta` | 生成未打包的应用目录 |
 | `corepack yarn dist:win:beta` / `dist:mac:beta` / `dist:win-portable:beta` | 生成对应平台的发布产物 |
 
 约定：
 
-- 根 `build`、`dev:*`、`dist:*` 会先运行 `corepack yarn market:prepare`，因此 `dshmarket` 版本、lockfile 与兼容性补丁要一起提交。
+- 根 `build`、`dev:*`、`dist:*` 会先运行 `corepack yarn market:check`：它离线校验已提交的 `dshmarket` 版本、lockfile 与兼容性补丁是否一致，既不联网也不改写 manifest。移动该 pin 必须由人工执行 `corepack yarn market:prepare`，并一起提交版本、lockfile 与补丁。
 - `nonead-dsh-desktop` 与 `dsh-plugin-desktop-beta` 是**两个独立工作区**：共享改动需要在两边分别落地，并保持各自声明的差异；发布前跑 `corepack yarn check` 与两边各自的 check。
 - 修改 `README.md`、`README.en.md` 或 `CHANGELOG.md` 等双语文件后，必须同步 `*.i18n.yaml` 里的 Git blob 哈希（用 `git hash-object` 取），否则 `check:bilingual-docs` 会失败。
 - `corepack yarn check:layout` 需要已初始化的子模块；纯 headless 环境里若只验证业务代码，可单独跑 `typecheck` / `test` / 工作区 `check`。
@@ -241,7 +241,7 @@ git submodule update --init --recursive
 - **通道协议**：版本检查请求 `https://www.nonead.com/software/ndsh-desktop/version`，在 `X-DSH-Desktop-Version` 上报当前版本、`X-DSH-Desktop-Channel` 上报 `stable` / `beta`、`X-DSH-Desktop-Installation-Id` 上报本机生成并持久化的随机 UUID。安装包下载携带 `channel` 与 `X-DSH-Desktop-Target-Version`，但不携带安装标识或当前版本。
 - **通道校验**：服务端响应必须回显通道；稳定通道只接受正式 SemVer，Beta 通道只接受 `-beta.N`，客户端不会静默跨通道下载。
 - **版本一致性**：上传的产物、裸下载地址的"版本 → 文件"映射、版本端点上报的版本号三处必须同版本，否则表现为 404 而不是装错版本。
-- **发布前置**：`corepack yarn aa:prepare-release` 与 `corepack yarn market:prepare` 需要先跑；Windows 分发命令还会用 `--verify-release` 校验 AA 产物。
+- **发布前置**：`corepack yarn aa:prepare-release` 需要先跑；若本次发布要带上新的 `dshmarket`，还需人工执行 `corepack yarn market:prepare` 并提交。Windows 分发命令还会用 `--verify-release` 校验 AA 产物。
 
 <a id="plugins"></a>
 

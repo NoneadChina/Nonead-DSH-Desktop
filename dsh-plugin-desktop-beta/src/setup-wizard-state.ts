@@ -1,5 +1,6 @@
 /** Per-Profile completion state for the launcher-owned Desktop Setup Wizard. */
 
+import { isLinkedPath } from './fs-links.ts'
 import { createHash } from 'node:crypto'
 import {
   chmodSync,
@@ -119,7 +120,7 @@ export function desktopSetupWizardStatePath(userDataDir: string, profileDir: str
 
 function assertPrivateDirectory(path: string): void {
   const info = lstatSync(path)
-  if (!info.isDirectory() || info.isSymbolicLink()) {
+  if (!info.isDirectory() || isLinkedPath(path)) {
     throw invalid(`state directory must be a real directory: ${path}`)
   }
   if (CHECK_POSIX_MODE && (info.mode & 0o777) !== STATE_DIRECTORY_MODE) {
@@ -130,7 +131,7 @@ function assertPrivateDirectory(path: string): void {
 function ensurePrivateDirectory(path: string): void {
   mkdirSync(path, { recursive: true, mode: STATE_DIRECTORY_MODE })
   const info = lstatSync(path)
-  if (!info.isDirectory() || info.isSymbolicLink()) {
+  if (!info.isDirectory() || isLinkedPath(path)) {
     throw invalid(`state directory must be a real directory: ${path}`)
   }
   if (CHECK_POSIX_MODE && (info.mode & 0o777) !== STATE_DIRECTORY_MODE) {
@@ -150,7 +151,7 @@ function existingPathInfo(path: string): Stats | undefined {
 function assertSafeStateTarget(path: string): void {
   const info = existingPathInfo(path)
   if (info === undefined) return
-  if (!info.isFile() || info.isSymbolicLink()) throw invalid('marker must be a regular file')
+  if (!info.isFile() || isLinkedPath(path)) throw invalid('marker must be a regular file')
   if (info.size > MAX_STATE_BYTES) {
     throw invalid(`marker exceeds ${String(MAX_STATE_BYTES)} bytes`)
   }
@@ -162,7 +163,7 @@ function assertSafeStateTarget(path: string): void {
 function readStateBytes(path: string): string | undefined {
   const pathInfo = existingPathInfo(path)
   if (pathInfo === undefined) return undefined
-  if (!pathInfo.isFile() || pathInfo.isSymbolicLink()) throw invalid('marker must be a regular file')
+  if (!pathInfo.isFile() || isLinkedPath(path)) throw invalid('marker must be a regular file')
   if (pathInfo.size > MAX_STATE_BYTES) {
     throw invalid(`marker exceeds ${String(MAX_STATE_BYTES)} bytes`)
   }

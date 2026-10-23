@@ -1,5 +1,6 @@
 /** Cross-process exclusion for DSH data mutations owned by Desktop. */
 
+import { isLinkedPath } from './fs-links.ts'
 import { randomUUID } from 'node:crypto'
 import {
   chmodSync,
@@ -50,7 +51,7 @@ function processExists(pid: number): boolean {
 
 function readRecord(path: string): LockRecord {
   const info = lstatSync(path)
-  if (!info.isFile() || info.isSymbolicLink() || info.size > MAX_LOCK_BYTES) {
+  if (!info.isFile() || isLinkedPath(path) || info.size > MAX_LOCK_BYTES) {
     throw new DesktopDataDirectoryError('busy', 'Desktop data operation lock is unsafe')
   }
   let value: unknown
@@ -80,7 +81,7 @@ function readRecord(path: string): LockRecord {
 function prepareDirectory(path: string): void {
   mkdirSync(path, { recursive: true, mode: DIRECTORY_MODE })
   const info = lstatSync(path)
-  if (!info.isDirectory() || info.isSymbolicLink()) {
+  if (!info.isDirectory() || isLinkedPath(path)) {
     throw new DesktopDataDirectoryError('busy', 'Desktop data operation lock directory is unsafe')
   }
   if (process.platform !== 'win32') chmodSync(path, DIRECTORY_MODE)

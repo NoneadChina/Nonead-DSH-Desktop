@@ -1,3 +1,4 @@
+import { cleanupDisposableTree } from '../../dsh-plugin-desktop-beta/src/disposable-tree.ts'
 import { chmodSync, cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -15,7 +16,8 @@ function fixture(): string {
 const verify = (app: string, version = '2.0.0-next', target = FIXTURE_TARGET, options = {}) =>
   verifyPayload(physicalPayload(app), join(app, DESKTOP_RUNTIME_FILE), version, target, options)
 const unix = process.platform !== 'win32'
-afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }) })
+// The link fixtures cannot be removed by a recursive `rm` on Windows.
+afterEach(() => { for (const root of roots.splice(0)) cleanupDisposableTree(root) })
 
 it('verifies a payload after relocation without depending on build paths', () => {
   const app = fixture()

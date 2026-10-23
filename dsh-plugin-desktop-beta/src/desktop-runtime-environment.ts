@@ -1,5 +1,6 @@
 /** App-local command environments available to desktop Host plugins. */
 
+import { isLinkedPath } from './fs-links.ts'
 import { createHash, randomUUID } from 'node:crypto'
 import {
   chmodSync,
@@ -114,7 +115,7 @@ function escapeBatchSetValue(value: string): string {
 function preparePrivateDirectory(directory: string): void {
   mkdirSync(directory, { recursive: true, mode: DIRECTORY_MODE })
   const stat = lstatSync(directory)
-  if (!stat.isDirectory() || stat.isSymbolicLink()) {
+  if (!stat.isDirectory() || isLinkedPath(directory)) {
     throw new Error(`dsh-plugin-desktop: command runtime path is not a private directory: ${directory}`)
   }
   chmodSync(directory, DIRECTORY_MODE)
@@ -213,14 +214,14 @@ function generationPath(root: string, relativePath: string): string {
 function generationTree(root: string): { directories: string[]; files: string[] } | undefined {
   try {
     const rootStat = lstatSync(root)
-    if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) return undefined
+    if (!rootStat.isDirectory() || isLinkedPath(root)) return undefined
     const directories: string[] = []
     const files: string[] = []
     const visit = (directory: string, prefix: string): boolean => {
       for (const entry of readdirSync(directory)) {
         const relativePath = prefix.length === 0 ? entry : `${prefix}/${entry}`
         const stat = lstatSync(join(directory, entry))
-        if (stat.isSymbolicLink()) return false
+        if (isLinkedPath(join(directory, entry))) return false
         if (stat.isDirectory()) {
           directories.push(relativePath)
           if (!visit(join(directory, entry), relativePath)) return false
@@ -252,7 +253,7 @@ function reusableGeneration(root: string, plan: RuntimeGenerationPlan): boolean 
     for (const artifact of plan.artifacts) {
       const filename = generationPath(root, artifact.relativePath)
       const stat = lstatSync(filename)
-      if (!stat.isFile() || stat.isSymbolicLink()) return false
+      if (!stat.isFile() || isLinkedPath(filename)) return false
       if (process.platform !== 'win32' && (stat.mode & 0o777) !== artifact.mode) return false
       if (readFileSync(filename, 'utf8') !== artifact.contents) return false
     }

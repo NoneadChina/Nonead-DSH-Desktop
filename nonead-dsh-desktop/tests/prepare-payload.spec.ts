@@ -1,3 +1,4 @@
+import { cleanupDisposableTree } from '../../dsh-plugin-desktop-beta/src/disposable-tree.ts'
 import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -9,7 +10,8 @@ import { DESKTOP_RUNTIME_FILE, physicalPayload, readDesktopRuntime, verifyPayloa
 import { completeApplication, FIXTURE_RELEASE, writeApplication, writePackage } from './runtime-fixture.ts'
 
 const roots: string[] = []
-afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }) })
+// The fixture links a workspace package with a junction, which a recursive `rm` cannot remove.
+afterEach(() => { for (const root of roots.splice(0)) cleanupDisposableTree(root) })
 const unix = process.platform !== 'win32'
 const target = nextPackagingTarget(process.platform, process.arch)
 
