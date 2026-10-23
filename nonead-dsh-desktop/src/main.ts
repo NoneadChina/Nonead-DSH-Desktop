@@ -203,16 +203,19 @@ const updates = new NextUpdates({ version, platform: process.platform, packaged:
   prepare: (path, nextVersion, directory, signal) => updateInstaller.prepare(path, nextVersion, directory, signal),
   install: async () => {
     runtime.busy = true; native.refresh()
+    // Arm the handoff before the native stage, not only before the launch: on macOS `stage()` serves
+    // the prepared archive to Squirrel, and a quit that overtakes it must make `updates.dispose` keep
+    // that directory instead of deleting the package while the feed is still reading it. A failure
+    // before the quit starts still resets the flag, exactly like a failed launch.
+    installingUpdate = true
     try {
-      await updateInstaller.stage()
-      // Start the native installer before asking the app to quit. Shutdown can overrun its grace
-      // while the Host is still tearing down, and a timed-out quit exits before the post-shutdown
-      // handoff, which left the window closed with no installer ever running.
-      // Arm the handoff first: if a quit starts while this launch is still in flight, before-quit
-      // must treat the installer as owned and join this same idempotent launch instead of dropping it.
-      installingUpdate = true
-      try { await updateInstaller.launch() }
-      catch (error) {
+      try {
+        await updateInstaller.stage()
+        // Start the native installer before asking the app to quit. Shutdown can overrun its grace
+        // while the Host is still tearing down, and a timed-out quit exits before the post-shutdown
+        // handoff, which left the window closed with no installer ever running.
+        await updateInstaller.launch()
+      } catch (error) {
         // Before the quit starts, hand the failure back to the update state, which keeps the
         // package and exposes the retry action. During a quit, stay armed: the handoff owns the
         // documented relaunch-after-failure path.
@@ -575,11 +578,16 @@ async function performCommand(input: Record<string, unknown>, type: string, sour
         if (source !== 'native' || quitting) return
         const snapshot = updates.snapshot()
         if (snapshot.phase === 'available' && snapshot.installable) {
-          const choice = await dialog.showMessageBox({ type: 'info', title: 'Nonead DSH Desktop',
+          // The prompt must belong to a window (see raiseDialogOwner): an unowned message box can be
+          // buried behind the application on Windows, which would swallow the answer to a tray-initiated
+          // check as well as the download request that follows it.
+          const owner = raiseDialogOwner()
+          const options = { type: 'info' as const, title: 'Nonead DSH Desktop',
             message: updateLabel(snapshot, windowsLanguage), buttons: [t('下载更新', 'Download update'), t('稍后', 'Later')], defaultId: 0, cancelId: 1,
-            detail: t('下载完成后可一键安装并重启。', 'When the download finishes, choose Install and restart.') })
+            detail: t('下载完成后可一键安装并重启。', 'When the download finishes, choose Install and restart.') }
+          const choice = await (owner === undefined ? dialog.showMessageBox(options) : dialog.showMessageBox(owner, options))
           if (choice.response === 0 && !quitting) void updates.download()
-        } else await dialog.showMessageBox({ type: 'info', title: 'Nonead DSH Desktop', message: updateLabel(snapshot, windowsLanguage) })
+        } else await showShellMessage(updateLabel(snapshot, windowsLanguage))
       }).catch(error => runtime.diagnostics.append(String(error), 'warn'))
     } else if (type === 'download-update') void updates.download()
     else if (type === 'retry-install-update') void updates.retryInstall()

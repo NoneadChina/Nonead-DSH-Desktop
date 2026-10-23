@@ -7,6 +7,7 @@ import { DEFAULT_PREFERENCES, SAFE_MODE_PREFERENCES } from '../src/desktop-contr
 import type { NextDesktopRuntime } from '../src/desktop-runtime.ts'
 import { NextProfiles } from '../src/profiles.ts'
 import { NextRecovery } from '../src/recovery.ts'
+import { updateLabel, type NextUpdateState } from '../src/update-state.ts'
 
 const originalMonitors = new Set(process.listeners('uncaughtExceptionMonitor'))
 afterEach(() => { for (const listener of process.listeners('uncaughtExceptionMonitor')) if (!originalMonitors.has(listener)) process.off('uncaughtExceptionMonitor', listener) })
@@ -1179,4 +1180,113 @@ it('disables and re-enables a Profile bundle from recovery without running the p
     expect(JSON.parse(readFileSync(path, 'utf8')).dsh.profile.bundles).toContain('my-plugin')
     expect(fixture.plugin).not.toHaveBeenCalled()
   } finally { process.argv.splice(0, process.argv.length, ...argv); vi.unstubAllEnvs(); rmSync(home, { recursive: true, force: true }) }
+})
+
+it('owns the informational update result dialog a tray check opens', async () => {
+  const home = mkdtempSync(join(tmpdir(), 'next-update-info-dialog-'))
+  vi.stubEnv('DSH_DESKTOP_NONEAD_HOME', home)
+  const snapshot: NextUpdateState = { phase: 'error', error: 'service', installable: true }
+  const check = vi.fn(async () => {})
+  vi.doMock('../src/updates.ts', () => ({ NextUpdates: class {
+    snapshot() { return { ...snapshot } }
+    start(): void {}
+    check = check
+    download = async (): Promise<void> => {}
+    skip(): void {}
+    clearSkip = async (): Promise<void> => {}
+    install = async (): Promise<void> => {}
+    retryInstall = async (): Promise<void> => {}
+    dispose = async (): Promise<void> => {}
+  } }))
+  try {
+    await import('../src/main.ts')
+    await vi.waitFor(() => expect(fixture.trays).toHaveLength(1))
+    const window = fixture.windows[0]
+    const { dialog } = await import('electron')
+    vi.mocked(dialog.showMessageBox).mockClear()
+    const label = updateLabel(snapshot, 'zh')
+    const item = fixture.trays[0].menu.find((entry: any) => entry.label === label)
+    expect(item).toBeDefined()
+    item.click()
+    await vi.waitFor(() => expect(check).toHaveBeenCalledOnce())
+    await vi.waitFor(() => expect(dialog.showMessageBox).toHaveBeenCalledOnce())
+    // An unowned message box can be buried behind the application on Windows, so the result of a
+    // tray-initiated check has to belong to a window like every other prompt in this shell.
+    expect(dialog.showMessageBox).toHaveBeenCalledWith(window, { type: 'info', title: 'Nonead DSH Desktop', message: label })
+  } finally { vi.doUnmock('../src/updates.ts'); vi.unstubAllEnvs(); rmSync(home, { recursive: true, force: true }) }
+})
+
+it('owns the update choice dialog and downloads only after the user accepts', async () => {
+  const home = mkdtempSync(join(tmpdir(), 'next-update-choice-dialog-'))
+  vi.stubEnv('DSH_DESKTOP_NONEAD_HOME', home)
+  let available = false
+  const check = vi.fn(async () => { available = true })
+  const download = vi.fn(async () => {})
+  const snapshot = (): NextUpdateState => available
+    ? { phase: 'available', version: '2.1.17', installable: true }
+    : { phase: 'idle', installable: true }
+  vi.doMock('../src/updates.ts', () => ({ NextUpdates: class {
+    snapshot(): NextUpdateState { return snapshot() }
+    start(): void {}
+    check = check
+    download = download
+    skip(): void {}
+    clearSkip = async (): Promise<void> => {}
+    install = async (): Promise<void> => {}
+    retryInstall = async (): Promise<void> => {}
+    dispose = async (): Promise<void> => {}
+  } }))
+  try {
+    await import('../src/main.ts')
+    await vi.waitFor(() => expect(fixture.trays).toHaveLength(1))
+    const window = fixture.windows[0]
+    const { dialog } = await import('electron')
+    vi.mocked(dialog.showMessageBox).mockClear()
+    const item = fixture.trays[0].menu.find((entry: any) => entry.label === updateLabel({ phase: 'idle', installable: true }, 'zh'))
+    expect(item).toBeDefined()
+    item.click()
+    await vi.waitFor(() => expect(check).toHaveBeenCalledOnce())
+    await vi.waitFor(() => expect(download).toHaveBeenCalledOnce())
+    expect(dialog.showMessageBox).toHaveBeenCalledWith(window, expect.objectContaining({
+      type: 'info', title: 'Nonead DSH Desktop', buttons: ['下载更新', '稍后'], defaultId: 0, cancelId: 1,
+    }))
+  } finally { vi.doUnmock('../src/updates.ts'); vi.unstubAllEnvs(); rmSync(home, { recursive: true, force: true }) }
+})
+
+it('keeps the prepared installer when a quit overtakes the native stage', async () => {
+  const home = mkdtempSync(join(tmpdir(), 'next-install-stage-quit-'))
+  vi.stubEnv('DSH_DESKTOP_NONEAD_HOME', home)
+  let finishStage!: () => void
+  const stage = vi.fn(() => new Promise<void>(resolve => { finishStage = resolve }))
+  const launch = vi.fn(async () => {})
+  const dispose = vi.fn(async (_keepInstaller?: boolean) => {})
+  vi.doMock('../src/update-installer.ts', () => ({ NextUpdateInstaller: class { stage = stage; launch = launch } }))
+  vi.doMock('../src/updates.ts', () => ({ NextUpdates: class {
+    constructor(private options: { install(): Promise<void> }) {}
+    snapshot() { return { phase: 'ready', version: '2.1.17', installable: true } }
+    start() {}
+    dispose = dispose
+    install = () => this.options.install()
+    retryInstall = async () => {}
+  } }))
+  try {
+    await import('../src/main.ts')
+    await vi.waitFor(() => expect(fixture.windows).toHaveLength(1))
+    const window = fixture.windows[0]
+    const sender = { sender: window.webContents, senderFrame: window.webContents.mainFrame }
+    const install = fixture.handlers.get('nonead-dsh-desktop:command')!(sender, { type: 'install-update' })
+    await vi.waitFor(() => expect(stage).toHaveBeenCalledOnce())
+    const { app } = await import('electron')
+    // The native stage is still serving the archive on macOS; shutting down must keep that directory
+    // (`updates.dispose(true)`), otherwise the package vanishes under the updater's feed.
+    app.quit()
+    await vi.waitFor(() => expect(dispose).toHaveBeenCalledOnce())
+    expect(dispose.mock.calls[0]![0]).toBe(true)
+    finishStage()
+    await install
+    expect(launch).toHaveBeenCalledOnce()
+  } finally {
+    vi.doUnmock('../src/update-installer.ts'); vi.doUnmock('../src/updates.ts')
+    vi.unstubAllEnvs(); rmSync(home, { recursive: true, force: true })
+  }
 })

@@ -23,6 +23,25 @@ export interface NextUpdateOptions {
   install(): Promise<void>
 }
 
+/**
+ * Whether a shutdown must keep the prepared installer directory.
+ *
+ * The caller's flag (`main.ts` arms it before the native stage and during the launch handoff) is the
+ * primary reason, but it is not the only one: a running install keeps the directory for Squirrel's
+ * feed, and a retryable install failure keeps it for the in-process retry.
+ * @param phase - update phase when the process is shutting down.
+ * @param retryInstall - the kept-package retry state exposed by the update card.
+ * @param keepInstaller - the caller's explicit request to survive this process.
+ * @returns true when the prepared directory must not be removed.
+ */
+export function keepsPreparedInstaller(
+  phase: NextUpdateState['phase'],
+  retryInstall: boolean | undefined,
+  keepInstaller: boolean,
+): boolean {
+  return keepInstaller || retryInstall === true || phase === 'installing'
+}
+
 export class NextUpdates {
   private state: NextUpdateState
   private result?: UpdateCheckResult
@@ -201,8 +220,11 @@ export class NextUpdates {
     clearTimeout(this.timer)
     this.controller?.abort()
     await this.operation
-    // A retryable install failure keeps its package for the in-process retry action; a new process
-    // removes the whole cache in `initializeCache`.
-    if (this.directory && !keepInstaller && !this.state.retryInstall) await rm(this.directory, { recursive: true, force: true }).catch(this.options.log)
+    // A running install keeps its package for the native updater's feed, a retryable install failure
+    // keeps it for the in-process retry action, and a new process removes the whole cache in
+    // `initializeCache`. `keepsPreparedInstaller` states those reasons independently of the caller.
+    if (this.directory && !keepsPreparedInstaller(this.state.phase, this.state.retryInstall, keepInstaller)) {
+      await rm(this.directory, { recursive: true, force: true }).catch(this.options.log)
+    }
   }
 }

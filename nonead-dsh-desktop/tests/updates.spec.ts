@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, expect, it, vi } from 'vitest'
-import { NextUpdates, type NextUpdateOptions } from '../src/updates.ts'
+import { NextUpdates, keepsPreparedInstaller, type NextUpdateOptions } from '../src/updates.ts'
 import { serveMacUpdate } from '../src/mac-update-feed.ts'
 import { updateAction, updateLabel } from '../src/update-state.ts'
 import type { UpdateRequest } from '../../dsh-plugin-desktop-beta/src/update-checker.ts'
@@ -24,6 +24,15 @@ async function fixture(overrides: Partial<NextUpdateOptions> = {}) {
   const updates = new NextUpdates(options); owners.push(updates)
   return { updates, options, request, artifactRequest }
 }
+
+it('keeps the prepared installer while an install runs, after a retryable failure, or on request', () => {
+  // A running install still serves Squirrel's feed; a retryable failure owns the in-process retry.
+  expect(keepsPreparedInstaller('installing', undefined, false)).toBe(true)
+  expect(keepsPreparedInstaller('error', true, false)).toBe(true)
+  expect(keepsPreparedInstaller('ready', undefined, true)).toBe(true)
+  // Nothing is using the package once a ready release is not being installed.
+  expect(keepsPreparedInstaller('ready', undefined, false)).toBe(false)
+})
 
 it('checks without downloading; download completion waits for an explicit installation', async () => {
   const { updates, options, request } = await fixture()

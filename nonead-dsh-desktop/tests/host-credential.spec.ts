@@ -37,9 +37,21 @@ const server = createServer((request, response) => {
     home: process.env.DSH_HOME ?? null,
   }))
 })
-server.listen(0, '127.0.0.1', () => {
-  process.send({ type: 'ready', url: 'http://127.0.0.1:' + server.address().port + '/?token=fixture', injections: [] })
-})
+// \`fetch\` refuses the WHATWG "bad port" list, and this machine's ephemeral range is
+// 1024-15000, so \`listen(0)\` can hand out one of them. Rebinding keeps the fixture
+// deterministic instead of failing with "fetch failed: bad port".
+const FETCH_BLOCKED_PORTS = new Set([1719, 1720, 1723, 2049, 3659, 4045, 4190, 5060, 5061, 6000])
+function listenOnFetchablePort(remaining) {
+  server.listen(0, '127.0.0.1', () => {
+    const port = server.address().port
+    if (FETCH_BLOCKED_PORTS.has(port) && remaining > 0) {
+      server.close(() => listenOnFetchablePort(remaining - 1))
+      return
+    }
+    process.send({ type: 'ready', url: 'http://127.0.0.1:' + port + '/?token=fixture', injections: [] })
+  })
+}
+listenOnFetchablePort(20)
 process.on('message', message => {
   if (message.type !== 'shutdown') return
   server.close(() => { process.send({ type: 'shutdown-complete' }, () => process.disconnect()) })

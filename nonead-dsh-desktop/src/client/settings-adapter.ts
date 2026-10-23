@@ -12,7 +12,9 @@ const notificationFields = { enabled: 'notifications', notifyOnTurnCompletion: '
 
 export function projectSettings(state: DesktopState, links: DesktopBrowserLinks = { localUrl: null, lanUrls: [] }): DesktopSettingsView {
   const enabled = !state.safeMode && state.phase === 'ready'
-  const market = state.features.market ? 'community-market' : 'disabled'
+  // Same three-way reading as the Host report in main.ts: a Profile whose market is off must not be
+  // reported as the community market, and the dsh market must not be reported as off.
+  const market = state.features.market ? 'community-market' : state.features.dshMarket ? 'dsh-market' : 'disabled'
   const lan = state.lan
   const lanUrls = links.lanUrls
   return {

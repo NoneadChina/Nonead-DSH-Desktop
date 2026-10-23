@@ -12,6 +12,28 @@ interface GuestLease {
   releaseInput?: () => void
 }
 
+/**
+ * How long a closing guest may take before its renderer is crashed instead. A renderer that never
+ * emits `destroyed` used to leave `browserRelease` (and the lease) pending forever.
+ */
+const GUEST_CLOSE_TIMEOUT_MS = 1_500
+/** Bound on the forced renderer crash; the lease is released either way. */
+const GUEST_CRASH_TIMEOUT_MS = 500
+
+/** Await one settlement promise, reporting whether it settled before the deadline. */
+async function settlesWithin(wait: Promise<void>, milliseconds: number): Promise<boolean> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<false>((resolve) => {
+    timer = setTimeout(() => { resolve(false) }, milliseconds)
+    timer.unref()
+  })
+  try {
+    return await Promise.race([wait.then(() => true), timeout])
+  } finally {
+    if (timer !== undefined) clearTimeout(timer)
+  }
+}
+
 /** Owns workspace storage partitions independently from individual tab guests. */
 export class DesktopBrowserGuests {
   private readonly partitions = new Map<string, string>()
@@ -43,6 +65,10 @@ export class DesktopBrowserGuests {
 
   /**
    * Release only a lease issued to this application window; workspace storage survives.
+   *
+   * The lease is released before anything is awaited, so a guest that refuses to close can never
+   * keep the reservation (or the IPC caller) alive; the bounded close below only decides how hard
+   * the main process tries to retire the guest.
    * @param owner - authenticated IPC sender.
    * @param id - lease received over IPC.
    */
@@ -52,13 +78,20 @@ export class DesktopBrowserGuests {
     const lease = this.leases.get(key)
     if (lease === undefined) return
     if (lease.owner !== owner) throw new Error('desktop browser: guest belongs to another window')
-    lease.releaseInput?.()
     this.leases.delete(key)
+    lease.releaseInput?.()
     const guest = lease.guest
-    if (guest !== undefined && !guest.isDestroyed()) {
-      const destroyed = new Promise<void>((resolve) => { guest.once('destroyed', resolve) })
-      guest.close({ waitForBeforeUnload: false })
-      await destroyed
+    if (guest === undefined || guest.isDestroyed()) return
+    const destroyed = new Promise<void>((resolve) => { guest.once('destroyed', resolve) })
+    guest.close({ waitForBeforeUnload: false })
+    if (await settlesWithin(destroyed, GUEST_CLOSE_TIMEOUT_MS)) return
+    // A guest that ignores close() would otherwise hold the lease forever. Electron's only force for
+    // a renderer that will not go away is `forcefullyCrashRenderer()` (the same call Beta's shell
+    // generation uses); the deadline stays, and the escalation is reported through this file's log.
+    console.error(new Error(`desktop browser: guest did not close within ${String(GUEST_CLOSE_TIMEOUT_MS)} ms; crashing its renderer`))
+    try { if (!guest.isDestroyed()) guest.forcefullyCrashRenderer() } catch (error) { console.error(error) }
+    if (!await settlesWithin(destroyed, GUEST_CRASH_TIMEOUT_MS)) {
+      console.error(new Error(`desktop browser: guest did not report destruction within ${String(GUEST_CLOSE_TIMEOUT_MS + GUEST_CRASH_TIMEOUT_MS)} ms; the lease was released anyway`))
     }
   }
 

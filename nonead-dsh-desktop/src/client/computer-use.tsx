@@ -41,7 +41,9 @@ export function ComputerUseSettings({ context, zh, mode = 'overview' }: { contex
       const result = await context.remote.pluginManager.setPluginEnabled(row.entryId, enabled)
       if (!result.ok) throw new Error(result.error.message)
       const change = result.value
-      if (change.application === 'failed') throw new Error(change.error?.diagnostic ?? t('无法更改插件状态。', 'Could not change the plugin state.'))
+      // A cancelled change is a refused one, exactly like `failed`; the switch must not snap back
+      // without telling the user why (the sibling market and remote-control controls do the same).
+      if (change.application === 'failed' || change.application === 'cancelled') throw new Error(change.error?.diagnostic ?? t('无法更改插件状态。', 'Could not change the plugin state.'))
       if (change.application === 'restart-required') setNotice(t('已保存，请重启后台服务以应用。', 'Saved. Restart the background service to apply.'))
       if (change.application === 'overridden') setNotice(t('已保存，但当前配置覆盖了此开关。', 'Saved, but another configuration overrides this switch.'))
     } catch (failure) { setError(failure instanceof Error ? failure.message : String(failure)) }

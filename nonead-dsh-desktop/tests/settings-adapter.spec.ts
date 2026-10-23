@@ -74,6 +74,16 @@ it('maps only supported features and available Profiles to the shared settings A
   expect(switched.profiles.find(item => item.name === 'desktop')?.deletable).toBe(false)
 })
 
+it('projects the same three market choices the Host reports', () => {
+  const { state } = fixture()
+  state.features = { market: false, remoteControl: false }
+  expect(projectSettings(state).market).toMatchObject({ requested: 'disabled', effective: 'disabled' })
+  state.features = { market: false, dshMarket: true, remoteControl: false }
+  expect(projectSettings(state).market).toMatchObject({ requested: 'dsh-market', effective: 'dsh-market' })
+  state.features = { market: true, remoteControl: false }
+  expect(projectSettings(state).market).toMatchObject({ requested: 'community-market', effective: 'community-market' })
+})
+
 it('renders full login links and opens or copies the exact selected address', async () => {
   const { state, links, adapter, commands } = fixture()
   state.browserUrl = 'http://127.0.0.1:1234/'
