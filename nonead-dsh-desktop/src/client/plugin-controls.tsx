@@ -94,18 +94,34 @@ function PluginControls({ context, t: translate, onOpenBundle, onOpenItem }: Pro
   const locked = (row?: BundleInfo): boolean => loading || busy || !row || row.readOnlyReason !== undefined || row.error !== undefined
   const activeMarkets = [community, market].flatMap(row => row?.enabled === true ? [row] : [])
   /**
-   * Runtime market update. The store verifies a release before activating it, so the shell reports
-   * the result and the change lands on the next start rather than in this session.
+   * Ask the shell whether dshmarket has published a newer release.
+   *
+   * The query runs when the section mounts, so the row can advertise an upgrade without the user
+   * pressing anything first. A failed check stays silent: the row simply keeps no button.
    */
-  const runMarket = async (type: 'check-market-update' | 'upgrade-market' | 'rollback-market'): Promise<void> => {
+  const [marketUpgrade, setMarketUpgrade] = useState<{ latest: string } | undefined>(undefined)
+  useEffect(() => {
+    let disposed = false
+    void window.desktopNext?.command({ type: 'market-update-status' })
+      .then(result => {
+        if (disposed) return
+        const status = result as { available?: unknown, latest?: unknown } | undefined
+        if (status?.available === true && typeof status.latest === 'string') setMarketUpgrade({ latest: status.latest })
+      })
+      .catch(() => { /* unreachable network or rate limit: no button either way */ })
+    return () => { disposed = true }
+  }, [])
+  /** Install the verified market release; the shell reports the result and it lands on next start. */
+  const upgradeMarket = async (): Promise<void> => {
     if (pending.current) return
     pending.current = true
     setBusy(true)
     setError('')
     setNotice('')
     try {
-      await window.desktopNext?.command({ type } satisfies DesktopCommand)
-      setNotice(t('已提交。重启后生效。', 'Requested. Takes effect after a restart.'))
+      await window.desktopNext?.command({ type: 'upgrade-market' })
+      setMarketUpgrade(undefined)
+      setNotice(t('插件市场已升级，重启后生效。', 'The plugin market was upgraded and takes effect after a restart.'))
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : String(failure))
     } finally {
@@ -130,22 +146,16 @@ function PluginControls({ context, t: translate, onOpenBundle, onOpenItem }: Pro
           const row = isCommunity ? community : market
           return <Choice key={option.id} title={marketTitle(option, desktopText)} body={marketBody(option, desktopText)}
             badge={isCommunity ? desktopText('beta') : undefined} selected={row?.enabled === true && !bothMarkets}
-            disabled={locked(row)} action={() => { void change([isCommunity ? COMMUNITY : MARKET], true) }} />
+            disabled={locked(row)} action={() => { void change([isCommunity ? COMMUNITY : MARKET], true) }}
+            aside={!isCommunity && marketUpgrade !== undefined
+              ? <Button variant="outline" size="sm" disabled={busy}
+                onClick={event => { event.stopPropagation(); void upgradeMarket() }}>
+                {t('升级', 'Upgrade')}
+              </Button>
+              : undefined} />
         })}
       </div>
       {bothMarkets && <p role="status" className="dshDesktopSettingsHint">{t('当前两个市场均已开启，请选择保留其中一个。', 'Both markets are currently enabled. Choose which one to keep.')}</p>}
-      <div className="dshNextMarketChoices" role="group" aria-label={t('市场版本', 'Market version')}>
-        <Button variant="outline" size="sm" disabled={busy} onClick={() => { void runMarket('check-market-update') }}>
-          {t('检查市场更新', 'Check market updates')}
-        </Button>
-        <Button variant="outline" size="sm" disabled={busy} onClick={() => { void runMarket('upgrade-market') }}>
-          {t('升级市场', 'Upgrade market')}
-        </Button>
-        <Button variant="outline" size="sm" disabled={busy} onClick={() => { void runMarket('rollback-market') }}>
-          {t('回滚市场版本', 'Roll back market')}
-        </Button>
-      </div>
-      <p className="dshDesktopSettingsHint">{t('「检查」到 GitHub 上读取市场的最新版本；「升级」从 npm 安装并校验后生效，只影响下次启动加载的市场版本。', 'Check reads the market\'s newest version from GitHub; Upgrade installs the verified release from npm and applies it on the next start.')}</p>
     </section>
     <div className="dshNextPluginSections">
       <PluginCard title={t('远程控制', 'Remote Control')} description={remoteDescription(t)}
