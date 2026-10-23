@@ -1310,6 +1310,59 @@ describe('MarketSettingsTab', () => {
     expect(screen.getByRole('button', { name: en.loadMore })).toBeTruthy()
   })
 
+  it('returns the load-more control when a filter reload supersedes an unfinished page', async () => {
+    // 分页请求在途时切换分类会用一次非分页请求打断它；被打断请求的 finally 不再执行，
+    // 若不同步收回 loadingMore，按钮会永久停在「加载中」且不可点。
+    const firstInstallablePage: MarketInstallableResponse = {
+      ...installableResponse([
+        makeInstallableItem(firstSource, 'available-plugin', 'Available Plugin', 'dsh-plugin-available', '1.4.0', ['tools']),
+      ]),
+      categories: ['interface', 'tools', 'utility'],
+      nextCursor: 'page-2',
+    }
+    const filteredInstallablePage: MarketInstallableResponse = {
+      ...installableResponse([
+        makeInstallableItem(firstSource, 'second-installable', 'Second Installable', 'dsh-plugin-second', '3.0.0', ['interface']),
+      ]),
+      categories: ['interface', 'tools', 'utility'],
+      nextCursor: 'page-3',
+    }
+    let resolvePage: ((value: MarketInstallableResponse) => void) | undefined
+    const pendingPage = new Promise<MarketInstallableResponse>(resolve => { resolvePage = resolve })
+    vi.mocked(readMarketState).mockResolvedValue(enabledState)
+    vi.mocked(readMarketInstallable).mockImplementation((_locale, options = {}) => {
+      if (options.cursor === 'page-2') return pendingPage
+      if (options.categories?.includes('interface') === true) return Promise.resolve(filteredInstallablePage)
+      return Promise.resolve(firstInstallablePage)
+    })
+    render(<MarketSettingsTab {...({
+      t,
+      readLocale: () => 'en',
+      initialView: 'installable',
+    } as MarketSettingsTabProps)} />)
+
+    expect(await screen.findByRole('button', { name: `${en.install}: Available Plugin` })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: en.loadMore }))
+    await waitFor(() => {
+      expect(readMarketInstallable).toHaveBeenLastCalledWith('en', {
+        sourceRecordId: firstSource.sourceRecordId,
+        cursor: 'page-2',
+        refresh: false,
+      }, expect.any(AbortSignal))
+    })
+    expect(screen.getByRole('button', { name: en.loadingMore })).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'interface' }))
+    expect(await screen.findByRole('button', { name: `${en.install}: Second Installable` })).toBeTruthy()
+    const loadMore = screen.getByRole('button', { name: en.loadMore }) as HTMLButtonElement
+    expect(loadMore.disabled).toBe(false)
+
+    await act(async () => {
+      resolvePage?.(firstInstallablePage)
+      await pendingPage
+    })
+  })
+
   it('uses multi-select category filters with OR query semantics and resets the current page', async () => {
     const initial = catalogForSource(firstSource, [makeItem(firstSource, 'fixture-plugin', 'Fixture Plugin', ['interface', 'tools'])], 'unfiltered-next')
     const interfaceOnly = {

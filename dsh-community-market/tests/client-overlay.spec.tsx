@@ -459,4 +459,24 @@ describe('community market overlay', () => {
     expect(screen.queryByRole('region', { name: 'title' })).toBeNull()
     expect(view.instance.getSnapshot().open).toBe(false)
   })
+
+  it('returns focus to the control that opened the overlay', async () => {
+    // 浮层声明 aria-modal="true"，关闭后焦点必须回到入口，不能落到 <body>。
+    const request = vi.fn<typeof fetch>(async (input) => (
+      String(input).includes('/state') ? response(stateWithSource) : response(catalogWithItem)
+    ))
+    vi.stubGlobal('fetch', request)
+    const trigger = document.createElement('button')
+    trigger.textContent = 'open market'
+    document.body.append(trigger)
+    trigger.focus()
+
+    const view = renderOpenOverlay()
+    await screen.findByText('Better Sidebar')
+    expect(document.activeElement).not.toBe(trigger)
+
+    act(() => { view.instance.actions.close() })
+    expect(document.activeElement).toBe(trigger)
+    trigger.remove()
+  })
 })

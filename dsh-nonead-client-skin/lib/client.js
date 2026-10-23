@@ -116,6 +116,7 @@ window.__ModuleLoader__.load({
 			if (typeof document === "undefined") return;
 			if (document.querySelector(`style[data-plugin-css="${STYLE_ID}"]`) !== null) return;
 			const tag = document.createElement("style");
+			tag.dataset.plugin = name;
 			tag.dataset.pluginCss = STYLE_ID;
 			tag.textContent = buildCss();
 			document.head.appendChild(tag);

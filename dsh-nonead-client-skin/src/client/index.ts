@@ -145,6 +145,12 @@ export function apply(ctx: ClientContext): void {
   // 幂等：重复执行（HMR 重放 / 插件重启）时不再叠加第二个标签。
   if (document.querySelector(`style[data-plugin-css="${STYLE_ID}"]`) !== null) return
   const tag = document.createElement('style')
+  // 必须自己声明 data-plugin：客户端 loader 在 materialize 每个插件模块后会把
+  // 期间出现的 `style:not([data-plugin])` 认领给该模块（见 dsh-client-modules 的
+  // claimStyles），并在那个插件卸载/热替换时按 data-plugin 删除。apply() 发生在
+  // 本插件模块 materialize 之后，未标记的样式会被下一个 materialize 的插件认领，
+  // 于是品牌 logo 样式会在那个插件卸载时一起消失。
+  tag.dataset.plugin = name
   tag.dataset.pluginCss = STYLE_ID
   tag.textContent = buildCss()
   document.head.appendChild(tag)

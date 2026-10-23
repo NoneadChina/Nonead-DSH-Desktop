@@ -17,6 +17,16 @@ export function MarketOverlay({ useStore, actions, readLocale, t, initialView }:
   const open = useStore(state => state.open)
   const panel = useRef<HTMLElement>(null)
 
+  // 浮层是 aria-modal 的对话框：关闭后必须把焦点还给打开它的入口（侧边栏启动器），
+  // 否则键盘用户会落在 <body> 上，只能从页面顶部重新 Tab 回来。
+  useEffect(() => {
+    if (!open) return
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : undefined
+    return () => {
+      if (previous?.isConnected === true) previous.focus()
+    }
+  }, [open])
+
   useEffect(() => {
     if (!open) return
     panel.current?.querySelector<HTMLButtonElement>('button')?.focus()

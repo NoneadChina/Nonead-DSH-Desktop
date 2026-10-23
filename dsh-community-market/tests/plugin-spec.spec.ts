@@ -28,6 +28,11 @@ describe('parseMarketPluginSpec', () => {
       'https://example.com/plugin.tgz',
       'git+ssh://git@github.com/nonead/plugin.git',
       'dsh plugin add demo',
+      // `~` and a leading `-` are not npm names, and the Host's own grammar
+      // refuses them; accepting them here would defer the failure to a
+      // generic "verification failed" message.
+      'dsh-plugin~demo',
+      '-dsh-plugin-demo',
     ]) {
       expect(parseMarketPluginSpec(value)).toEqual({ ok: false, reason: 'invalid-name' })
     }

@@ -543,6 +543,10 @@ export function MarketSurface({ initialView = 'installable', readLocale, t, show
     if (append) {
       setInstallableLoadingMore(true)
     } else {
+      // 这一请求可能打断一次仍在途的分页请求。被打断的那个请求的 finally 不再执行
+      // （installableRequest.current 已经换成新请求），所以必须在发起新请求时就把
+      // 「加载更多」的忙碌状态收回来，否则它会永久停在 loading 且按钮不可点。
+      setInstallableLoadingMore(false)
       setInstallableIndex(undefined)
       setInstallableLoaded(false)
       setInstallableLoading(true)

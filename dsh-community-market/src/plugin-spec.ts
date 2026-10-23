@@ -14,8 +14,14 @@ const MAX_PACKAGE_NAME_LENGTH = 214
 /**
  * A bare npm package name, optionally scoped. Uppercase letters and URL,
  * filesystem, or version syntaxes are all rejected.
+ *
+ * This is deliberately the same grammar the Host re-applies before it touches
+ * the registry (`install/service.ts`): a name must start with a lowercase
+ * letter or digit and may contain only `-`, `.` and `_` after that. Accepting
+ * more here would let the Renderer pass an identity the Host then refuses,
+ * which the user would only see as a generic "verification failed".
  */
-const PACKAGE_NAME_PATTERN = /^(?:@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*$/
+const PACKAGE_NAME_PATTERN = /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/
 
 /** `name@1.2.3` and `@scope/name@next`: a pin the market cannot honor. */
 const VERSION_PIN_PATTERN = /^(?:@[^/@]+\/)?[^@/]+@.+$/
