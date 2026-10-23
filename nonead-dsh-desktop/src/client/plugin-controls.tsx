@@ -99,14 +99,19 @@ function PluginControls({ context, t: translate, onOpenBundle, onOpenItem }: Pro
    * The query runs when the section mounts, so the row can advertise an upgrade without the user
    * pressing anything first. A failed check stays silent: the row simply keeps no button.
    */
-  const [marketUpgrade, setMarketUpgrade] = useState<{ latest: string } | undefined>(undefined)
+  const [marketUpgrade, setMarketUpgrade] = useState<{ current?: string, latest: string, available: boolean } | undefined>(undefined)
   useEffect(() => {
     let disposed = false
     void window.desktopNext?.command({ type: 'market-update-status' })
       .then(result => {
         if (disposed) return
-        const status = result as { available?: unknown, latest?: unknown } | undefined
-        if (status?.available === true && typeof status.latest === 'string') setMarketUpgrade({ latest: status.latest })
+        const status = result as { available?: unknown, latest?: unknown, current?: unknown } | undefined
+        if (typeof status?.latest !== 'string') return
+        setMarketUpgrade({
+          latest: status.latest,
+          available: status.available === true,
+          ...(typeof status.current === 'string' ? { current: status.current } : {}),
+        })
       })
       .catch(() => { /* unreachable network or rate limit: no button either way */ })
     return () => { disposed = true }
@@ -133,7 +138,15 @@ function PluginControls({ context, t: translate, onOpenBundle, onOpenItem }: Pro
   return <div className="dshNextPluginControls" data-next-plugin-controls>
     <section className="dshDesktopSettingsGroup" data-next-markets aria-labelledby="next-market-title">
       <div className="dshNextMarketHeader">
-        <div><h3 id="next-market-title">{desktopText('marketTitle')}</h3>
+        <div><h3 id="next-market-title">{desktopText('marketTitle')}
+          {marketUpgrade?.current !== undefined &&
+            <span className="dshNextMarketVersion">{`dsh-market v${marketUpgrade.current}`}</span>}
+          {marketUpgrade?.available === true &&
+            <Button variant="outline" size="sm" disabled={busy}
+              onClick={() => { void upgradeMarket() }}>
+              {t('升级', 'Upgrade')}
+            </Button>}
+        </h3>
           <p className="dshDesktopSettingsGroupIntro">{desktopText('marketIntro')}</p></div>
         <Switch label={t('启用插件市场', 'Enable plugin market')} checked={activeMarkets.length > 0}
           disabled={marketToggleLocked} onChange={enabled => {
@@ -146,13 +159,7 @@ function PluginControls({ context, t: translate, onOpenBundle, onOpenItem }: Pro
           const row = isCommunity ? community : market
           return <Choice key={option.id} title={marketTitle(option, desktopText)} body={marketBody(option, desktopText)}
             badge={isCommunity ? desktopText('beta') : undefined} selected={row?.enabled === true && !bothMarkets}
-            disabled={locked(row)} action={() => { void change([isCommunity ? COMMUNITY : MARKET], true) }}
-            aside={!isCommunity && marketUpgrade !== undefined
-              ? <Button variant="outline" size="sm" disabled={busy}
-                onClick={event => { event.stopPropagation(); void upgradeMarket() }}>
-                {t('升级', 'Upgrade')}
-              </Button>
-              : undefined} />
+            disabled={locked(row)} action={() => { void change([isCommunity ? COMMUNITY : MARKET], true) }} />
         })}
       </div>
       {bothMarkets && <p role="status" className="dshDesktopSettingsHint">{t('当前两个市场均已开启，请选择保留其中一个。', 'Both markets are currently enabled. Choose which one to keep.')}</p>}
