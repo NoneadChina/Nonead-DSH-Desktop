@@ -25,14 +25,9 @@ export function registerPluginControls(ctx: Context): void {
       // The market row stays visible: it is the row that names the market and its version, so it is
       // exactly where the upgrade action belongs.
       const hidden = [COMMUNITY, REMOTE].map(key => inner.slots.register({ name: 'plugins.bundle.hidden', key }, () => null))
-      // A row action must never be able to take the whole overview down with it: if upstream rejects
-      // this registration the settings page has to keep working without the extra button.
-      let marketActions: (() => void) | undefined
-      try {
-        marketActions = inner.slots.register({ name: 'plugins.bundle.actions', key: MARKET,
-          locale: 'nonead-dsh-desktop', inject: () => ({ context: inner }),
-        }, MarketBundleAction)
-      } catch { marketActions = undefined }
+      const marketActions = inner.slots.register({ name: 'plugins.bundle.actions', key: MARKET,
+        locale: 'nonead-dsh-desktop', inject: () => ({ context: inner }),
+      }, MarketBundleAction)
       const item = inner.slots.register({ name: 'plugins.item', id: COMPUTER_ITEM, label: 'Computer Use',
         locale: 'nonead-dsh-desktop', inject: () => ({ context: inner }),
       }, ComputerUseItem)
@@ -40,7 +35,7 @@ export function registerPluginControls(ctx: Context): void {
       const actions = inner.slots.register({ name: 'plugins.detail.actions', id: COMPUTER_ITEM,
         locale: 'nonead-dsh-desktop', inject: () => ({ context: inner }),
       }, ComputerUseActions)
-      return () => { actions(); hiddenItem(); item(); marketActions?.(); for (const off of hidden) off(); dispose() }
+      return () => { actions(); hiddenItem(); item(); marketActions(); for (const off of hidden) off(); dispose() }
     })
   })
 }
@@ -52,10 +47,8 @@ export function registerPluginControls(ctx: Context): void {
  * so it carries the same action. It appears only when dshmarket published a newer release; a failed
  * check leaves the row without a button rather than advertising an upgrade that cannot run.
  */
-function MarketBundleAction(_props: { context?: Context }) {
-  // Upstream may render this row action without locale props, so derive the language from the
-  // document instead of depending on a translator that might not be there.
-  const zh = typeof document === 'undefined' || !document.documentElement.lang.startsWith('en')
+function MarketBundleAction({ t: translate }: PropsLocale<'nonead-dsh-desktop'> & { context: Context }) {
+  const zh = translate('language') === 'zh'
   const t = (cn: string, en: string): string => zh ? cn : en
   const [state, setState] = useState<{ available: boolean, busy: boolean }>({ available: false, busy: false })
   useEffect(() => {
