@@ -264,6 +264,25 @@ export async function checkMarketUpdate(
  * Nothing is written outside `<home>/market-store/<package>/.staging` until the digest and the
  * package identity both match, and the staged tree is renamed into place atomically.
  */
+/**
+ * Is `directory` really a complete copy of `name@version`?
+ *
+ * A staged release is only usable if its manifest names the expected package and version and its
+ * entry point actually exists. An interrupted switch can leave the version directory behind with
+ * nothing in it; treating that as "already staged" hands the Host an empty package, which then fails
+ * to resolve `<dir>/index.js` and the market never activates.
+ */
+function hasUsableRelease(directory: string, name: MarketStorePackage, version: string): boolean {
+  try {
+    const manifest = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8')) as { name?: unknown, version?: unknown, main?: unknown }
+    if (manifest.name !== name || manifest.version !== version) return false
+    // The Host honors `main` when present and falls back to `index.js` when not, so completeness has
+    // to be judged by the same rule the loader will use.
+    const entry = typeof manifest.main === 'string' ? manifest.main : 'index.js'
+    return lstatSync(join(directory, entry), { throwIfNoEntry: false })?.isFile() === true
+  } catch { return false }
+}
+
 export async function stageMarketRelease(
   home: string,
   name: MarketStorePackage,
@@ -272,7 +291,7 @@ export async function stageMarketRelease(
 ): Promise<string> {
   const finalDirectory = versionDirectory(home, name, release.version)
   const existing = lstatSync(finalDirectory, { throwIfNoEntry: false })
-  if (existing?.isDirectory()) return finalDirectory
+  if (existing?.isDirectory() && hasUsableRelease(finalDirectory, name, release.version)) return finalDirectory
   const archive = await fetchBytes(
     release.url,
     release.bytes === undefined ? MAX_ARCHIVE_BYTES : Math.min(release.bytes, MAX_ARCHIVE_BYTES),
@@ -304,8 +323,19 @@ export async function stageMarketRelease(
     if (manifest.name !== name) throw new Error(`Market archive contains ${String(manifest.name)}, expected ${name}`)
     if (manifest.version !== release.version) throw new Error(`Market archive contains version ${String(manifest.version)}, expected ${release.version}`)
     mkdirSync(dirname(finalDirectory), { recursive: true, mode: 0o700 })
-    rmSync(finalDirectory, { recursive: true, force: true })
-    renameSync(root, finalDirectory)
+    // Move any unusable leftover aside instead of deleting it first: deleting first means a failed
+    // rename leaves an empty directory behind, and the next run would treat that as already staged.
+    const retired = lstatSync(finalDirectory, { throwIfNoEntry: false }) === undefined
+      ? undefined
+      : `${finalDirectory}.invalid-${randomUUID()}`
+    if (retired !== undefined) renameSync(finalDirectory, retired)
+    try {
+      renameSync(root, finalDirectory)
+    } catch (error) {
+      if (retired !== undefined) renameSync(retired, finalDirectory)
+      throw error
+    }
+    if (retired !== undefined) rmSync(retired, { recursive: true, force: true })
     return finalDirectory
   } finally {
     rmSync(staging, { recursive: true, force: true })
