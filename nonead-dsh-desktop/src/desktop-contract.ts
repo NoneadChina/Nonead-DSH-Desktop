@@ -106,7 +106,7 @@ export type DesktopCommand =
   | { type: 'preferences'; preferences: DesktopPreferences }
   | { type: 'controls'; page?: 'general' | 'profiles' | 'create-profile' | 'tools' | 'recovery' | 'permissions' }
   | { type: 'restart-app' | 'restart-recovery' | 'restart-onboarding' | 'close-controls' }
-  | { type: 'market-update-status' | 'upgrade-market' }
+  | { type: 'check-market-update' | 'upgrade-market' | 'rollback-market' }
   | { type: 'set-open-at-login'; enabled: boolean }
   | { type: 'restart' | 'recover' | 'safe-mode' | 'normal-mode' | 'rollback' | 'repair-global'
     | 'reload' | 'devtools' | 'terminal' | 'open-home' | 'open-profile' | 'open-logs' | 'open-backups'
@@ -120,8 +120,7 @@ export interface DesktopBridge {
   onDeepLink?(listener: (link: DesktopDeepLink) => void): () => void
   state(): Promise<DesktopState>
   browserLinks(): Promise<DesktopBrowserLinks>
-  /** Commands may answer with data: the market status query returns the newest published version. */
-  command(command: DesktopCommand): Promise<unknown>
+  command(command: DesktopCommand): Promise<void>
 }
 
 declare global { interface Window { desktopNext?: DesktopBridge } }

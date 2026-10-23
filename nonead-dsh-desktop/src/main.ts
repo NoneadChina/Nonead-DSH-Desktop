@@ -34,7 +34,7 @@ import { auxiliaryWindowChromeOptions, auxiliaryWindowHasCustomFrame } from '../
 import { cleanupDisposableTree } from '../../dsh-plugin-desktop-beta/src/disposable-tree.ts'
 import { installEditingContextMenu } from '../../dsh-plugin-desktop-beta/src/context-menu.ts'
 import { atomicJson, privateDirectory } from './private-files.ts'
-import { checkMarketUpdate, installMarketUpdates } from './market-store.ts'
+import { MARKET_STORE_PACKAGES, checkMarketUpdate, installMarketUpdates, projectMarketRelease, rollbackMarketRelease, type MarketUpdateCheck } from './market-store.ts'
 import { windowMaterial } from './window-material.ts'
 import { ONBOARDING_ARGUMENT, RECOVERY_ARGUMENT, SAFE_ARGUMENT, relaunchApp, relaunchArguments } from './relaunch.ts'
 import { DESKTOP_RUNTIME_FILE, readInstalledPackageVersion, verifyPackagedRuntimeIdentity } from './runtime-tree.ts'
@@ -110,7 +110,7 @@ let replacingWindow = false
 let diagnosticsFile: string | undefined
 let recoveryNotice: NonNullable<DesktopState['recovery']>['notice']
 let recoveryStopping: Promise<void> | undefined
-let recoveryRequest: Promise<unknown> | undefined
+let recoveryRequest: Promise<void> | undefined
 let pendingSettings: DesktopSettingsPage | undefined
 let quitting = false
 let onboarding = false
@@ -530,37 +530,51 @@ async function showShellMessage(message: string): Promise<void> {
 }
 
 /**
- * Query or perform the bundled market update.
+ * Runtime update for the bundled markets.
  *
  * The market cannot replace itself from inside its own request: the host drops the bundle from the
  * running composition before the reinstall runs, so the desktop performs the two steps from outside,
- * which is the entry point dshmarket documents as missing (#900, #909).
- *
- * `market-update-status` answers the settings page so it can advertise an upgrade only when dshmarket
- * has actually published a newer release; nothing is downloaded until the user asks for it.
+ * which is the entry point dshmarket documents as missing. The store stages and verifies a release
+ * before its pointer moves, so this only changes what the next Host start loads.
  */
-async function marketCommand(type: 'market-update-status' | 'upgrade-market'): Promise<unknown> {
-  if (type === 'market-update-status') {
-    const check = await checkMarketUpdate(home, 'dshmarket')
-    if (check === undefined || !check.available) return { available: false }
-    return {
-      available: true,
-      current: check.current ?? null,
-      latest: check.latest,
-      notesUrl: check.notesUrl ?? null,
+async function marketCommand(type: 'check-market-update' | 'upgrade-market' | 'rollback-market'): Promise<void> {
+  if (type === 'rollback-market') {
+    const reverted: string[] = []
+    for (const name of MARKET_STORE_PACKAGES) {
+      const version = rollbackMarketRelease(home, name)
+      if (version === undefined) continue
+      projectMarketRelease(home, name)
+      reverted.push(`${name}@${version}`)
     }
+    await showShellMessage(reverted.length === 0
+      ? t('没有可回滚的市场版本。', 'No earlier market release is available to roll back to.')
+      : t(`已回滚：${reverted.join('、')}。重启后生效。`, `Rolled back: ${reverted.join(', ')}. Takes effect after a restart.`))
+    return
+  }
+  if (type === 'check-market-update') {
+    const checks = await Promise.all(MARKET_STORE_PACKAGES.map(name => checkMarketUpdate(home, name)))
+    const found = checks.filter((check): check is MarketUpdateCheck => check !== undefined)
+    if (found.length === 0) {
+      await showShellMessage(t('插件市场没有可用的更新源。', 'The plugin market has no release source.'))
+      return
+    }
+    const available = found.filter(check => check.available)
+    const lines = found.map(check => `${check.name}：${check.current ?? t('内置', 'built in')} → ${check.latest}${check.available ? '' : t('（已是最新）', ' (up to date)')}`)
+    await showShellMessage(`${available.length === 0
+      ? t('插件市场已是最新版本。', 'The plugin market is already up to date.')
+      : t('有新的市场版本可以升级，点「升级市场」完成安装。', 'A newer market release is available. Use "Upgrade market" to install it.')}\n\n${lines.join('\n')}`)
+    return
   }
   const result = await installMarketUpdates(home)
   if (result.applied.length === 0) {
     await showShellMessage(t('插件市场已是最新版本。', 'The plugin market is already up to date.'))
-    return { applied: [] }
+    return
   }
   const summary = result.applied.map(item => `${item.name} ${item.from ?? '—'} → ${item.to}`).join('、')
   await showShellMessage(t(`已更新：${summary}。重启后生效。`, `Updated: ${summary}. Takes effect after a restart.`))
-  return { applied: result.applied, updated: result.applied.map(item => ({ name: item.name, to: item.to })) }
 }
 
-async function command(value: unknown, source: 'app' | 'shell' | 'native' = 'app'): Promise<unknown> {
+async function command(value: unknown, source: 'app' | 'shell' | 'native' = 'app'): Promise<void> {
   if (!value || typeof value !== 'object' || !('type' in value)) throw new Error('Invalid Next command')
   const input = value as Record<string, unknown>
   const type = input.type
@@ -578,12 +592,12 @@ async function command(value: unknown, source: 'app' | 'shell' | 'native' = 'app
   return loggedCommand(input, type, source)
 }
 
-async function loggedCommand(input: Record<string, unknown>, type: string, source: 'app' | 'shell' | 'native'): Promise<unknown> {
+async function loggedCommand(input: Record<string, unknown>, type: string, source: 'app' | 'shell' | 'native'): Promise<void> {
   const end = runtime.diagnostics.operation('electron.commands', type, { caller: source }, true)
-  try { const result = await performCommand(input, type, source); end(); return result } catch (error) { end(error); throw error }
+  try { await performCommand(input, type, source); end() } catch (error) { end(error); throw error }
 }
 
-async function performCommand(input: Record<string, unknown>, type: string, source: 'app' | 'shell' | 'native'): Promise<unknown> {
+async function performCommand(input: Record<string, unknown>, type: string, source: 'app' | 'shell' | 'native'): Promise<void> {
   if (type === 'controls') {
     if (input.page !== undefined && (typeof input.page !== 'string' || !['general', 'profiles', 'create-profile', 'tools', 'recovery', 'permissions'].includes(input.page))) throw new Error('Invalid controls page')
     openControls(input.page as Parameters<typeof openControls>[0]); return
@@ -597,10 +611,10 @@ async function performCommand(input: Record<string, unknown>, type: string, sour
     return
   }
   if (type === 'quit') { app.quit(); return }
-  if (type === 'market-update-status') return marketCommand(type)
-  if (type === 'upgrade-market') {
+  if (type === 'check-market-update' || type === 'upgrade-market' || type === 'rollback-market') {
     if (runtime.busy || quitting) throw new Error(t('另一项操作正在进行，请稍候。', 'Another operation is in progress.'))
-    return marketCommand(type)
+    await marketCommand(type)
+    return
   }
   if (['check-updates', 'download-update', 'install-update', 'retry-install-update', 'skip-update', 'clear-skipped-update'].includes(type)) {
     if (quitting || runtime.busy) return
