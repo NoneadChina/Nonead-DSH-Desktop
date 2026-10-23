@@ -386,8 +386,8 @@
     "afterPack": "./scripts/verify-packaged-runtime.ts",
     "afterAllArtifactBuild": "./scripts/verify-electron-fuses.ts",
     "electronFuses": {
-      "EnableNodeCliInspectArguments": false,
-      "EnableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false,
+      "enableNodeOptionsEnvironmentVariable": false,
       "enableEmbeddedAsarIntegrityValidation": false,
       "onlyLoadAppFromAsar": false,
       "resetAdHocDarwinSignature": true,

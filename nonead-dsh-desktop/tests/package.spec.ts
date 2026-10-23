@@ -65,8 +65,8 @@ it('archives the application like upstream Desktop while keeping fuses and nativ
   expect(nextArchiveOnly).toBe(true)
   expect(betaArchiveOnly).toBe(false)
   expect(next.build.electronFuses.runAsNode).toBe(true)
-  expect(next.build.electronFuses.EnableNodeOptionsEnvironmentVariable).toBe(false)
-  expect(next.build.electronFuses.EnableNodeCliInspectArguments).toBe(false)
+  expect(next.build.electronFuses.enableNodeOptionsEnvironmentVariable).toBe(false)
+  expect(next.build.electronFuses.enableNodeCliInspectArguments).toBe(false)
   expect(next.build.electronFuses.enableEmbeddedAsarIntegrityValidation).toBe(false)
   // Beta's rule already keeps the interpreter payloads, identical across the two CPU builds. Next adds its own
   // per-CPU native packages, pnpm's reflink addons from its bundled dist/node_modules, and the wheels' .dylibs

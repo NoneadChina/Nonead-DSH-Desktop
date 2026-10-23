@@ -888,8 +888,8 @@ describe('published package surface', () => {
       expect(manifest.build?.[platform]).not.toHaveProperty('asarUnpack')
     }
     expect(manifest.build?.electronFuses).toEqual({
-      EnableNodeCliInspectArguments: false,
-      EnableNodeOptionsEnvironmentVariable: false,
+      enableNodeCliInspectArguments: false,
+      enableNodeOptionsEnvironmentVariable: false,
       enableEmbeddedAsarIntegrityValidation: false,
       onlyLoadAppFromAsar: false,
       resetAdHocDarwinSignature: true,
