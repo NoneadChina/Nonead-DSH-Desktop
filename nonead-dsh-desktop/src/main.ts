@@ -541,22 +541,14 @@ async function showShellMessage(message: string): Promise<void> {
  */
 async function marketCommand(type: 'market-update-status' | 'upgrade-market'): Promise<unknown> {
   if (type === 'market-update-status') {
-    try {
-      const check = await checkMarketUpdate(home, 'dshmarket')
-      // The row shows the installed version even when it is current, so answer with it either way.
-      if (check === undefined) return { available: false, reason: 'no-release-source' }
-      return {
-        available: check.available,
-        current: check.current ?? null,
-        latest: check.latest,
-        notesUrl: check.notesUrl ?? null,
-      }
-    } catch (error) {
-      // A silent failure leaves the row without a button and without a reason, which is exactly
-      // how a blocked network looks like "no update". Report it so the settings page can say so.
-      const message = error instanceof Error ? error.message : String(error)
-      process.stderr.write(`dsh-plugin-desktop: market update check failed: ${message}\n`)
-      return { available: false, error: message }
+    const check = await checkMarketUpdate(home, 'dshmarket')
+    // The row shows the installed version even when it is current, so answer with it either way.
+    if (check === undefined) return { available: false }
+    return {
+      available: true,
+      current: check.current ?? null,
+      latest: check.latest,
+      notesUrl: check.notesUrl ?? null,
     }
   }
   const result = await installMarketUpdates(home)
