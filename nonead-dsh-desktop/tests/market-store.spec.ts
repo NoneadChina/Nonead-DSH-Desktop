@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { gzipSync } from 'node:zlib'
@@ -165,9 +165,9 @@ describe('release staging and switching', () => {
     activateMarketRelease(root, PACKAGE, '1.69.0')
     expect(activeMarketVersion(root, PACKAGE)).toBe('1.69.0')
 
-    const link = projectMarketRelease(root, PACKAGE)
-    expect(link).toBeDefined()
-    expect(readFileSync(join(link!, 'package.json'), 'utf8')).toContain('1.69.0')
+    const links = projectMarketRelease(root, PACKAGE)
+    expect(links.length).toBeGreaterThan(0)
+    expect(readFileSync(join(links[0] as string, 'package.json'), 'utf8')).toContain('1.69.0')
 
     const second = archiveFor('1.70.0')
     await stageMarketRelease(root, PACKAGE, releaseFor('1.70.0', second), (async () => new Response(new Uint8Array(second))) as unknown as typeof fetch)
@@ -225,7 +225,26 @@ describe('release staging and switching', () => {
 
   it('leaves the built-in bundle alone until a release is active', () => {
     const root = home()
-    expect(projectMarketRelease(root, PACKAGE)).toBeUndefined()
+    expect(projectMarketRelease(root, PACKAGE)).toEqual([])
     expect(retireMarketRelease(root, PACKAGE)).toBeUndefined()
+  })
+
+  it('projects into every profile and repins its manifest dependency', async () => {
+    const root = home()
+    const archive = archiveFor('1.69.0')
+    await stageMarketRelease(root, PACKAGE, releaseFor('1.69.0', archive), (async () => new Response(new Uint8Array(archive))) as unknown as typeof fetch)
+    activateMarketRelease(root, PACKAGE, '1.69.0')
+    // A Profile that already ships the market: its own node_modules and its exact pin both outrank
+    // the shared projection, so an upgrade that only touches the shared link changes nothing the
+    // Host actually loads — the settings page keeps reporting the old version.
+    const profile = join(root, 'profiles', 'desktop')
+    mkdirSync(join(profile, 'node_modules', PACKAGE), { recursive: true })
+    writeFileSync(join(profile, 'package.json'), JSON.stringify({ name: 'dsh-profile-desktop', dependencies: { [PACKAGE]: '1.66.45' } }), 'utf8')
+
+    const links = projectMarketRelease(root, PACKAGE)
+
+    expect(links).toHaveLength(2)
+    expect(JSON.parse(readFileSync(join(profile, 'package.json'), 'utf8')).dependencies[PACKAGE]).toBe('1.69.0')
+    expect(readFileSync(join(profile, 'node_modules', PACKAGE, 'package.json'), 'utf8')).toContain('1.69.0')
   })
 })
