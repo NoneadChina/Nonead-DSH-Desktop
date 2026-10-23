@@ -33,12 +33,6 @@ export function registerPluginControls(ctx: Context): void {
           locale: 'nonead-dsh-desktop', inject: () => ({ context: inner }),
         }, MarketBundleAction)
       } catch { marketActions = undefined }
-      // Its own settings section, so the market is reachable in one click from the settings sidebar.
-      inner.slots.inject('settings.section', () => inner.slots.register({
-        name: 'settings.section', id: 'market', order: 101, locale: 'nonead-dsh-desktop',
-        label: () => '插件市场',
-        inject: () => ({ context: inner }),
-      }, MarketPanel))
       const item = inner.slots.register({ name: 'plugins.item', id: COMPUTER_ITEM, label: 'Computer Use',
         locale: 'nonead-dsh-desktop', inject: () => ({ context: inner }),
       }, ComputerUseItem)
@@ -91,20 +85,7 @@ function MarketBundleAction(_props: { context?: Context }) {
   </Button>
 }
 
-/**
- * The market as its own settings section.
- *
- * Its block normally sits at the top of the Plugins page, but people look for the market in the
- * settings sidebar first, so it also gets a section of its own that renders just that block.
- */
-function MarketPanel(props: PropsLocale<'nonead-dsh-desktop'> & { context: Context }) {
-  // `settings.section` carries the same standard runtime props as `plugins.overview`; the two stay
-  // structurally compatible, so the market block is reused rather than duplicated.
-  const shared = props as unknown as PropsLocale<'nonead-dsh-desktop'> & PropsRuntime<'plugins.overview'> & { context: Context }
-  return <PluginControls {...shared} view="market" onOpenBundle={() => {}} onOpenItem={() => {}} />
-}
-
-function PluginControls({ context, t: translate, onOpenBundle, onOpenItem, view = 'all' }: PropsLocale<'nonead-dsh-desktop'> & PropsRuntime<'plugins.overview'> & { context: Context, view?: 'all' | 'market' }) {
+function PluginControls({ context, t: translate, onOpenBundle, onOpenItem }: PropsLocale<'nonead-dsh-desktop'> & PropsRuntime<'plugins.overview'> & { context: Context }) {
   const zh = translate('language') === 'zh'
   const t = (cn: string, en: string): string => zh ? cn : en
   const desktopCopy = zh ? desktopZh : desktopEn
@@ -239,7 +220,7 @@ function PluginControls({ context, t: translate, onOpenBundle, onOpenItem, view 
       </div>
       {bothMarkets && <p role="status" className="dshDesktopSettingsHint">{t('当前两个市场均已开启，请选择保留其中一个。', 'Both markets are currently enabled. Choose which one to keep.')}</p>}
     </section>
-    {view === 'all' && <div className="dshNextPluginSections">
+    <div className="dshNextPluginSections">
       <PluginCard title={t('远程控制', 'Remote Control')} description={remoteDescription(t)}
         icon={<PluginArtworkDefault size={36} />} onOpen={() => { onOpenBundle(REMOTE) }}>
         <RemoteControlSettings context={context} t={t} />
@@ -248,7 +229,7 @@ function PluginControls({ context, t: translate, onOpenBundle, onOpenItem, view 
         icon={<PluginArtworkDefault size={36} />} onOpen={() => { onOpenItem(COMPUTER_ITEM) }}>
         <ComputerUseSettings context={context} zh={zh} />
       </PluginCard>
-    </div>}
+    </div>
     {notice && <p role="status" className="dshDesktopSettingsHint">{notice}</p>}
     {error && <div role="alert" className="dshDesktopSettingsError">{error} <Button variant="outline" size="sm" disabled={loading || busy} onClick={() => { setError(''); refresh(value => value + 1) }}>{t('重试', 'Retry')}</Button></div>}
   </div>
