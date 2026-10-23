@@ -48,6 +48,7 @@
 - 升级先落到 `<home>/market-store/`，再投影到**每个 Profile 自己的 `node_modules`**，并把该 Profile `package.json` 里的精确版本钉到新版本。此前只投共享目录，而 Profile 的副本与版本钉优先级更高，所以升级表现为"点了没反应"。被替换的真实目录会改名保留为 `<包名>.pre-market-<uuid>`，不直接删除。
 - 上游插件列表里那一行的按钮通过 `plugins.bundle.actions` 注册；该注册失败时只少一个按钮，不影响整个插件页面。
 - 解包落位改为「先把旧目录移到一边、再改名就位」：一次中断的升级曾留下空的版本目录，而判重只看目录是否存在，于是它被当成"已解包"，宿主拿到没有清单也没有入口的包，整个市场加载失败（`Cannot find package …\dshmarket\index.js`）。现在只有清单、版本号与入口文件都对得上才算已暂存，否则重新解包。
+- 投影改为**复制**，并在解包后就地为市场装上它自己的运行时依赖。原来的 junction 会让 Node 按实体路径到 `market-store` 下去找依赖，而市场的 npm 包只发代码、不带依赖，激活时就报 `Cannot find package 'js-yaml'`；复制之后，市场自带的依赖与 Profile 已有的 peer 依赖（`cordis`、`dsh-settings`、`schemastery`）都能就近解析。
 - `dsh-community-market` 在 npm 只有占位版本、没有发布源，因此不会自更新。
 
 打包链：
