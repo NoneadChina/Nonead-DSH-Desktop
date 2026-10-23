@@ -39,6 +39,21 @@ Repository hygiene and supply chain:
 - The `nonead-dsh-desktop/README.md` and `README.zh.md` files no longer hard-code the product version (they said `2.1.3`); they point at `package.json`'s `version` and the newest root `CHANGELOG` entry instead.
 - Docs now state that the Linux x64 AppImage and deb are built by the Beta channel only and that the stable channel ships a runnable directory on Linux; the first real check of the fuses and `onlyLoadAppFromAsar` is the CI `desktop-windows-stable` job (`package:dir:stable`), since locally only unit tests cover them.
 
+### 2026-10-23 supplement (same version number, included in later builds)
+
+Market self-update:
+
+- Opening Settings → Plugins checks GitHub for the newest `dshmarket` release automatically; the upgrade action appears on the `Plugin market  dsh-market v<installed version>` row and on the market card title only when a newer release really exists, and not at all otherwise. A failed check now explains itself ("Market update check failed: …") instead of failing silently.
+- Pressing upgrade performs the two steps from outside the app: the version comes from GitHub releases and the bytes come from the npm registry, verified against the manifest's sha512 `dist.integrity` before anything is extracted and activated. The market cannot replace itself inside its own request — the host unloads it before the reinstall runs — so the desktop has to do this step.
+- The release lands in `<home>/market-store/` first, then projects into **each Profile's own `node_modules`**, and repins that Profile's exact version in `package.json`. It previously wrote only the shared directory, while the Profile copy and its version pin both outrank it, which is why upgrading "did nothing". A replaced real directory is renamed to `<name>.pre-market-<uuid>` rather than deleted.
+- The row action in the official plugin list registers through `plugins.bundle.actions`; if that registration is rejected the row simply loses a button instead of taking the whole plugins page down.
+- `dsh-community-market` has only a placeholder npm version and no release pipeline, so it never self-updates.
+
+Packaging chain:
+
+- Fixed three Windows packaging gates that had drifted from the product's actual behaviour: junctions created by pnpm inside a Profile could not be removed recursively; `verify:host` never passed the renderer credential (32 base64url bytes, and it has to be the same one the Host received); and that script impersonated the renderer with a fixed string, which the fail-closed Web gate rejects.
+- `dsh-plugin-desktop-beta` now declares `@deepseek-ai/dsh-plugin-manager` (a required peer of `dsh-plugin-market`), restoring the 318-node runtime closure.
+
 ## 2.1.15 — 2026-10-22
 
 The version jumps from `2.1.13` straight to `2.1.15`; there is no separate `2.1.14` release commit in the history.

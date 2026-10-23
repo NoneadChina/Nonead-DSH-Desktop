@@ -1,4 +1,4 @@
 # Bilingual-pair consistency record. Both languages carry equal authority.
 # Update both files and record their Git blob hashes after editing either side.
-CHANGELOG.md: 6e0b6527af1bb196476a622c3253745b3f73f99d
-CHANGELOG.en.md: 0c147147d0fa40816d23c7cae1c6bc762e1703d0
+CHANGELOG.md: 99be3005e40d17d91d41babf4de10c63c752e75a
+CHANGELOG.en.md: d3f29a230cd26983e7113a73d15df1c190a4355c

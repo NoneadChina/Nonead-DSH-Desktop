@@ -39,6 +39,21 @@
 - 子包 `nonead-dsh-desktop/README.md` 与 `README.zh.md` 不再写死产品版本号（此前写 `2.1.3`），改为指向 `package.json` 的 `version` 与根 `CHANGELOG` 的最新条目。
 - 文档明确：Linux x64 的 AppImage 与 deb 只由 Beta 通道构建，稳定通道在 Linux 只产出可运行的目录产物；fuses 与 `onlyLoadAppFromAsar` 的首次真实校验点是 CI 的 `desktop-windows-stable` 作业（`package:dir:stable`），本地只有单元测试覆盖。
 
+### 2026-10-23 补充（版本号不变，此后的构建包含）
+
+插件市场自更新：
+
+- 打开「设置 → 插件市场」时自动向 GitHub 查询 `dshmarket` 的最新版本；只有确实发布了新版本，才在 `插件市场  dsh-market v<已装版本>` 那一行右侧与市场卡片标题行显示「升级」，没有新版本时不显示按钮。查询失败会在界面上说明原因（「检查市场更新失败：…」），不再静默。
+- 点击「升级」由桌面在应用外部完成两步：版本取自 GitHub releases，字节取自 npm registry 并按 `dist.integrity` 的 sha512 校验，校验通过后解包并切换活动版本。市场无法在自己的请求里替换自己（宿主会先把市场从运行组合摘除），所以这一步必须由桌面做。
+- 升级先落到 `<home>/market-store/`，再投影到**每个 Profile 自己的 `node_modules`**，并把该 Profile `package.json` 里的精确版本钉到新版本。此前只投共享目录，而 Profile 的副本与版本钉优先级更高，所以升级表现为"点了没反应"。被替换的真实目录会改名保留为 `<包名>.pre-market-<uuid>`，不直接删除。
+- 上游插件列表里那一行的按钮通过 `plugins.bundle.actions` 注册；该注册失败时只少一个按钮，不影响整个插件页面。
+- `dsh-community-market` 在 npm 只有占位版本、没有发布源，因此不会自更新。
+
+打包链：
+
+- 修复 Windows 打包链上三处与实际产品行为脱节的门禁：Profile 里 pnpm 生成的 junction 无法被递归删除；`verify:host` 没有传入渲染器凭据（必须是 32 字节 base64url，且要与 Host 收到的那一份一致）；同一脚本曾用固定字符串冒充渲染器，被失败即拒绝的 Web 门禁挡下。
+- `dsh-plugin-desktop-beta` 补声明 `@deepseek-ai/dsh-plugin-manager`（`dsh-plugin-market` 的必需 peer），运行时闭包恢复 318 节点闭环。
+
 ## 2.1.15 — 2026-10-22
 
 版本号从 `2.1.13` 直接提升到 `2.1.15`，提交历史中没有单独的 `2.1.14` 发布提交。
