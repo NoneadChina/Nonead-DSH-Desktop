@@ -100,12 +100,14 @@ function PluginControls({ context, t: translate, onOpenBundle, onOpenItem }: Pro
    * pressing anything first. A failed check stays silent: the row simply keeps no button.
    */
   const [marketUpgrade, setMarketUpgrade] = useState<{ current?: string, latest: string, available: boolean } | undefined>(undefined)
+  const [marketCheckError, setMarketCheckError] = useState('')
   useEffect(() => {
     let disposed = false
     void window.desktopNext?.command({ type: 'market-update-status' })
       .then(result => {
         if (disposed) return
-        const status = result as { available?: unknown, latest?: unknown, current?: unknown } | undefined
+        const status = result as { available?: unknown, latest?: unknown, current?: unknown, error?: unknown } | undefined
+        if (typeof status?.error === 'string' && status.error !== '') { setMarketCheckError(status.error); return }
         if (typeof status?.latest !== 'string') return
         setMarketUpgrade({
           latest: status.latest,
@@ -113,7 +115,7 @@ function PluginControls({ context, t: translate, onOpenBundle, onOpenItem }: Pro
           ...(typeof status.current === 'string' ? { current: status.current } : {}),
         })
       })
-      .catch(() => { /* unreachable network or rate limit: no button either way */ })
+      .catch(failure => { if (!disposed) setMarketCheckError(failure instanceof Error ? failure.message : String(failure)) })
     return () => { disposed = true }
   }, [])
   /** Install the verified market release; the shell reports the result and it lands on next start. */
@@ -147,7 +149,11 @@ function PluginControls({ context, t: translate, onOpenBundle, onOpenItem }: Pro
               {t('升级', 'Upgrade')}
             </Button>}
         </h3>
-          <p className="dshDesktopSettingsGroupIntro">{desktopText('marketIntro')}</p></div>
+          <p className="dshDesktopSettingsGroupIntro">{desktopText('marketIntro')}</p>
+          {marketCheckError !== '' &&
+            <p role="status" className="dshDesktopSettingsHint">
+              {t(`检查市场更新失败：${marketCheckError}`, `Market update check failed: ${marketCheckError}`)}
+            </p>}</div>
         <Switch label={t('启用插件市场', 'Enable plugin market')} checked={activeMarkets.length > 0}
           disabled={marketToggleLocked} onChange={enabled => {
             void change(marketToggleTargets(bundles, preferredMarket, enabled), enabled)
