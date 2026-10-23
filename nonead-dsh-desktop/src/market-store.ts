@@ -363,75 +363,28 @@ export function marketProjectionPath(home: string, name: MarketStorePackage): st
   return join(home, 'profiles', 'node_modules', name)
 }
 
-/** Profile directories that own a `node_modules` of their own (everything but the shared one). */
-function profileDirectories(home: string): string[] {
-  try {
-    return readdirSync(join(home, 'profiles'), { withFileTypes: true })
-      .filter(entry => entry.isDirectory() && entry.name !== 'node_modules')
-      .map(entry => entry.name)
-  } catch { return [] }
-}
-
 /**
- * Make `<modulesDir>/<name>` resolve to `target`, replacing a stale link or a real directory.
- *
- * A real directory is renamed rather than deleted: it is whatever the Profile package manager
- * installed, and an aborted upgrade must not be able to destroy it.
- */
-function projectInto(modulesDir: string, name: MarketStorePackage, target: string): string {
-  mkdirSync(modulesDir, { recursive: true, mode: 0o700 })
-  const link = join(modulesDir, name)
-  const existing = linkedPathTarget(link)
-  if (existing !== undefined && sameResolvedPath(existing, target)) return link
-  if (lstatSync(link, { throwIfNoEntry: false }) !== undefined) {
-    if (existing === undefined) renameSync(link, `${link}.pre-market-${randomUUID()}`)
-    else removeLinkedPath(link)
-  }
-  symlinkSync(target, link, 'junction')
-  return link
-}
-
-/**
- * Point one Profile manifest at the new version.
- *
- * The Profile pins the market to an exact version, and that pin outranks any projection: leaving it
- * alone means the next install silently reverts the upgrade, and the settings page keeps reporting
- * the old version because the Host resolves through the Profile, not through the shared directory.
- */
-function pinProfileDependency(profileDir: string, name: MarketStorePackage, version: string): void {
-  const manifestPath = join(profileDir, 'package.json')
-  let manifest: Record<string, unknown>
-  try { manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as Record<string, unknown> } catch { return }
-  const dependencies = manifest.dependencies
-  if (dependencies === null || typeof dependencies !== 'object') return
-  const pin = dependencies as Record<string, unknown>
-  if (pin[name] === version) return
-  pin[name] = version
-  writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8')
-}
-
-/**
- * Point every Profile at the active store release.
- *
- * The shared `<home>/profiles/node_modules` projection is not enough on its own: each Profile owns a
- * `node_modules` and an exact version pin, and both of those win over the shared directory. An
- * upgrade that stops at the shared link therefore changes nothing the Host actually loads — the
- * settings page keeps reporting the old version and the new release never runs.
+ * Point the Profile's bundle resolution at the active store release.
  *
  * Without an active release nothing is projected, so the built-in bundle keeps loading — that is
  * also what a first run and a rolled-back install look like.
  */
-export function projectMarketRelease(home: string, name: MarketStorePackage): string[] {
+export function projectMarketRelease(home: string, name: MarketStorePackage): string | undefined {
   const version = activeMarketVersion(home, name)
-  if (version === undefined) return []
+  if (version === undefined) return undefined
+  const modules = join(home, 'profiles', 'node_modules')
+  mkdirSync(modules, { recursive: true, mode: 0o700 })
+  const link = marketProjectionPath(home, name)
   const target = versionDirectory(home, name, version)
-  const links = [projectInto(join(home, 'profiles', 'node_modules'), name, target)]
-  for (const profile of profileDirectories(home)) {
-    const profileDir = join(home, 'profiles', profile)
-    links.push(projectInto(join(profileDir, 'node_modules'), name, target))
-    pinProfileDependency(profileDir, name, version)
+  const existing = linkedPathTarget(link)
+  if (existing !== undefined && sameResolvedPath(existing, target)) return link
+  if (lstatSync(link, { throwIfNoEntry: false }) !== undefined) {
+    // Only a link this module owns may be replaced; anything else is somebody's real package.
+    if (existing === undefined) throw new Error(`Market projection ${link} is occupied by an unmanaged entry`)
+    removeLinkedPath(link)
   }
-  return links
+  symlinkSync(target, link, 'junction')
+  return link
 }
 
 /** Drop the projection so the next generation loads the built-in bundle again. */
