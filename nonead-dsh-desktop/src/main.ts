@@ -34,7 +34,6 @@ import { auxiliaryWindowChromeOptions, auxiliaryWindowHasCustomFrame } from '../
 import { cleanupDisposableTree } from '../../dsh-plugin-desktop-beta/src/disposable-tree.ts'
 import { installEditingContextMenu } from '../../dsh-plugin-desktop-beta/src/context-menu.ts'
 import { atomicJson, privateDirectory } from './private-files.ts'
-import { MARKET_STORE_PACKAGES, installMarketUpdates, projectMarketRelease, rollbackMarketRelease } from './market-store.ts'
 import { windowMaterial } from './window-material.ts'
 import { ONBOARDING_ARGUMENT, RECOVERY_ARGUMENT, SAFE_ARGUMENT, relaunchApp, relaunchArguments } from './relaunch.ts'
 import { DESKTOP_RUNTIME_FILE, readInstalledPackageVersion, verifyPackagedRuntimeIdentity } from './runtime-tree.ts'
@@ -529,35 +528,6 @@ async function showShellMessage(message: string): Promise<void> {
   await (owner === undefined ? dialog.showMessageBox(options) : dialog.showMessageBox(owner, options))
 }
 
-/**
- * Runtime update for the two bundled markets.
- *
- * The store stages and verifies a release before its pointer moves, so this only changes what the
- * next Host start loads; the running session keeps its current bundles.
- */
-async function marketCommand(type: 'check-market-update' | 'rollback-market'): Promise<void> {
-  if (type === 'rollback-market') {
-    const reverted: string[] = []
-    for (const name of MARKET_STORE_PACKAGES) {
-      const version = rollbackMarketRelease(home, name)
-      if (version === undefined) continue
-      projectMarketRelease(home, name)
-      reverted.push(`${name}@${version}`)
-    }
-    await showShellMessage(reverted.length === 0
-      ? t('没有可回滚的市场版本。', 'No earlier market release is available to roll back to.')
-      : t(`已回滚：${reverted.join('、')}。重启后生效。`, `Rolled back: ${reverted.join(', ')}. Takes effect after a restart.`))
-    return
-  }
-  const result = await installMarketUpdates(home)
-  if (result.applied.length === 0) {
-    await showShellMessage(t('插件市场已是最新版本。', 'The plugin market is already up to date.'))
-    return
-  }
-  const summary = result.applied.map(item => `${item.name} ${item.from ?? '—'} → ${item.to}`).join('、')
-  await showShellMessage(t(`已更新：${summary}。重启后生效。`, `Updated: ${summary}. Takes effect after a restart.`))
-}
-
 async function command(value: unknown, source: 'app' | 'shell' | 'native' = 'app'): Promise<void> {
   if (!value || typeof value !== 'object' || !('type' in value)) throw new Error('Invalid Next command')
   const input = value as Record<string, unknown>
@@ -595,11 +565,7 @@ async function performCommand(input: Record<string, unknown>, type: string, sour
     return
   }
   if (type === 'quit') { app.quit(); return }
-  if (type === 'check-market-update' || type === 'rollback-market') {
-    if (runtime.busy || quitting) throw new Error(t('另一项操作正在进行，请稍候。', 'Another operation is in progress.'))
-    await marketCommand(type)
-    return
-  }
+
   if (['check-updates', 'download-update', 'install-update', 'retry-install-update', 'skip-update', 'clear-skipped-update'].includes(type)) {
     if (quitting || runtime.busy) return
     if (type === 'skip-update') { updates.skip(); native.refresh(); return }

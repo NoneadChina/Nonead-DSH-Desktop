@@ -14,7 +14,6 @@ import { RETIRED_SCHEDULE_BUNDLE, retiredSchedulePatch } from './profile-schedul
 import { removeLinkProjectionsSafely } from '../../dsh-plugin-desktop-beta/src/link-projections.ts'
 import { insideArchive, unpackedPath } from './asar-archive-policy.ts'
 import { withProfileWriteLock } from './recovery-support.ts'
-import { MARKET_STORE_PACKAGES, projectMarketRelease } from './market-store.ts'
 
 export const NEXT_PACKAGE = fileURLToPath(new URL('../package.json', import.meta.url))
 export const WEB_BUNDLES = [...PROFILE_TEMPLATES.web!.bundles]
@@ -341,21 +340,6 @@ function retireLinkProjections(projectDir: string): void {
   }
 }
 
-/**
- * Point each market bundle at the release the runtime store installed, if any.
- *
- * A problem here only degrades that package back to its built-in copy, so it must never block the
- * Profile from loading — the same fail-open policy the projection sweep above uses.
- */
-function projectMarketBundles(home: string): void {
-  for (const name of MARKET_STORE_PACKAGES) {
-    try {
-      projectMarketRelease(home, name)
-    } catch (cause) {
-      process.stderr.write(`nonead-dsh-desktop: could not project ${name} from the market store: ${String(cause)}\n`)
-    }
-  }
-}
 
 /** Add product capabilities without replacing the upstream Web presentation. */
 export function loadNextProfile(projectDir: string, home: string, installAnchor = NEXT_PACKAGE): Profile {
@@ -382,9 +366,6 @@ export function loadNextProfile(projectDir: string, home: string, installAnchor 
   if (existingLink && existingTarget === undefined) throw new Error('Next bundle fallback is occupied by an unmanaged package')
   if (existingLink && (linkTarget === undefined || existingTarget === undefined || !sameResolvedPath(existingTarget, linkTarget))) removeLinkedPath(link)
   if (linkTarget !== undefined && !lstatSync(link, { throwIfNoEntry: false })) symlinkSync(linkTarget, link, 'junction')
-  // Both markets stay built-in until the runtime store installs a release; this only redirects the
-  // bundle resolution that the next line performs.
-  projectMarketBundles(home)
   const profile = loadProfileDirectory('nonead-dsh-desktop', projectDir, installAnchor)
   profile.layers.push({ packageName: 'nonead-dsh-desktop', packageDir: target,
     patchPaths: [NEXT_BUNDLE_PATCH], patches: loadOverlayPatches('nonead-dsh-desktop', NEXT_BUNDLE_PATCH) })

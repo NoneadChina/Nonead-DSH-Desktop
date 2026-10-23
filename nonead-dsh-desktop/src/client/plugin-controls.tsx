@@ -93,26 +93,6 @@ function PluginControls({ context, t: translate, onOpenBundle, onOpenItem }: Pro
   const bothMarkets = community?.enabled === true && market?.enabled === true
   const locked = (row?: BundleInfo): boolean => loading || busy || !row || row.readOnlyReason !== undefined || row.error !== undefined
   const activeMarkets = [community, market].flatMap(row => row?.enabled === true ? [row] : [])
-  /**
-   * Runtime market update. The store verifies a release before activating it, so the shell reports
-   * the result and the change lands on the next start rather than in this session.
-   */
-  const runMarket = async (type: 'check-market-update' | 'rollback-market'): Promise<void> => {
-    if (pending.current) return
-    pending.current = true
-    setBusy(true)
-    setError('')
-    setNotice('')
-    try {
-      await window.desktopNext?.command({ type } satisfies DesktopCommand)
-      setNotice(t('已提交。重启后生效。', 'Requested. Takes effect after a restart.'))
-    } catch (failure) {
-      setError(failure instanceof Error ? failure.message : String(failure))
-    } finally {
-      pending.current = false
-      setBusy(false)
-    }
-  }
   const marketToggleLocked = loading || busy || marketToggleTargets(bundles, preferredMarket, activeMarkets.length === 0).length === 0
   return <div className="dshNextPluginControls" data-next-plugin-controls>
     <section className="dshDesktopSettingsGroup" data-next-markets aria-labelledby="next-market-title">
@@ -134,15 +114,6 @@ function PluginControls({ context, t: translate, onOpenBundle, onOpenItem }: Pro
         })}
       </div>
       {bothMarkets && <p role="status" className="dshDesktopSettingsHint">{t('当前两个市场均已开启，请选择保留其中一个。', 'Both markets are currently enabled. Choose which one to keep.')}</p>}
-      <div className="dshNextMarketChoices" role="group" aria-label={t('市场版本', 'Market version')}>
-        <Button variant="outline" size="sm" disabled={busy} onClick={() => { void runMarket('check-market-update') }}>
-          {t('检查市场更新', 'Check market updates')}
-        </Button>
-        <Button variant="outline" size="sm" disabled={busy} onClick={() => { void runMarket('rollback-market') }}>
-          {t('回滚市场版本', 'Roll back market')}
-        </Button>
-      </div>
-      <p className="dshDesktopSettingsHint">{t('更新与回滚只影响下次启动加载的市场版本。', 'Updates and rollbacks change the market loaded by the next start.')}</p>
     </section>
     <div className="dshNextPluginSections">
       <PluginCard title={t('远程控制', 'Remote Control')} description={remoteDescription(t)}

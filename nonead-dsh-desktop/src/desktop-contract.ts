@@ -106,7 +106,6 @@ export type DesktopCommand =
   | { type: 'preferences'; preferences: DesktopPreferences }
   | { type: 'controls'; page?: 'general' | 'profiles' | 'create-profile' | 'tools' | 'recovery' | 'permissions' }
   | { type: 'restart-app' | 'restart-recovery' | 'restart-onboarding' | 'close-controls' }
-  | { type: 'check-market-update' | 'rollback-market' }
   | { type: 'set-open-at-login'; enabled: boolean }
   | { type: 'restart' | 'recover' | 'safe-mode' | 'normal-mode' | 'rollback' | 'repair-global'
     | 'reload' | 'devtools' | 'terminal' | 'open-home' | 'open-profile' | 'open-logs' | 'open-backups'
