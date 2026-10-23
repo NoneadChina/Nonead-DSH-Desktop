@@ -5,8 +5,21 @@
  * `isSymbolicLink() === false`) and `readlink` fails with EINVAL, so every guard written against
  * `isSymbolicLink` misses it. `realpathSync.native` is the only call that follows junctions; the
  * JavaScript `realpathSync` returns the link itself on Windows.
+ *
+ * The module also owns the shared private-file read: every Desktop-owned state store validates a
+ * path with `lstat` and then has to open that same inode without following a link or a swap.
  */
-import { lstatSync, realpathSync, rmSync, rmdirSync } from 'node:fs'
+import {
+  closeSync,
+  constants,
+  fstatSync,
+  lstatSync,
+  openSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  rmdirSync,
+} from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
 
 /** Windows paths compare case-insensitively and may carry the extended-length prefix. */
@@ -68,5 +81,63 @@ export function removeLinkedPath(path: string): void {
     const code = (cause as NodeJS.ErrnoException).code
     if (code !== 'EPERM' && code !== 'EISDIR' && code !== 'ERR_FS_EISDIR' && code !== 'ENOTEMPTY') throw cause
     rmdirSync(path)
+  }
+}
+
+/** Result of {@link readVerifiedPrivateFile}. */
+export type VerifiedPrivateFileRead =
+  | {
+      readonly status: 'ok'
+      /** Complete file contents read from the verified descriptor. */
+      readonly bytes: Buffer
+      /** Raw `st_mode` of the opened file; callers mask their own permission bits. */
+      readonly mode: number
+    }
+  /** The entry disappeared between `lstat` and the open. */
+  | { readonly status: 'missing' }
+  /** The opened descriptor is not a regular file. */
+  | { readonly status: 'type' }
+  /** The path now names a different inode than the caller validated. */
+  | { readonly status: 'changed' }
+  /** The opened file exceeds the caller's size limit. */
+  | { readonly status: 'size' }
+
+/**
+ * Read one private file whose identity was already established by `lstat`.
+ *
+ * Every Desktop-owned state store validates a path with `lstat` and then reads it, which leaves a
+ * window in which the path can be replaced by a link or by another file. This opens the path with
+ * `O_NOFOLLOW` (where the platform supports it) and requires the opened descriptor to be a regular
+ * file with the same device and inode as the validated `lstat` snapshot; only then is the content
+ * returned. On Windows `O_NOFOLLOW` is unavailable and resolves to 0, so the device/inode check is
+ * what closes the window there.
+ * @param path - absolute path already validated by the caller.
+ * @param expected - device and inode numbers from the caller's `lstat` snapshot.
+ * @param maxBytes - largest content the caller accepts.
+ * @returns the verified content, or why it must be rejected.
+ */
+export function readVerifiedPrivateFile(
+  path: string,
+  expected: { readonly dev: number; readonly ino: number },
+  maxBytes: number,
+): VerifiedPrivateFileRead {
+  let descriptor: number
+  try {
+    descriptor = openSync(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0))
+  } catch (cause) {
+    if ((cause as NodeJS.ErrnoException | null)?.code === 'ENOENT') return { status: 'missing' }
+    throw cause
+  }
+  try {
+    const opened = fstatSync(descriptor)
+    if (!opened.isFile()) return { status: 'type' }
+    if (opened.dev !== expected.dev || opened.ino !== expected.ino) return { status: 'changed' }
+    if (opened.size > maxBytes) return { status: 'size' }
+    const bytes = readFileSync(descriptor)
+    // A file that grew between `fstat` and the read is still cut off at the caller's limit.
+    if (bytes.byteLength > maxBytes) return { status: 'size' }
+    return { status: 'ok', bytes, mode: opened.mode }
+  } finally {
+    closeSync(descriptor)
   }
 }

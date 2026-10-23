@@ -246,6 +246,9 @@ async function readLimitedBody(response: Response): Promise<string> {
   if (declaredLength !== null
     && /^[0-9]+$/u.test(declaredLength)
     && BigInt(declaredLength) > BigInt(MAX_VERSION_RESPONSE_BYTES)) {
+    // The body is never read on this path, so release it explicitly; otherwise the
+    // connection lingers until the garbage collector finalizes the response.
+    await response.body?.cancel().catch(() => undefined)
     throw new Error('version response is too large')
   }
 
@@ -254,19 +257,23 @@ async function readLimitedBody(response: Response): Promise<string> {
   const decoder = new TextDecoder('utf-8', { fatal: true })
   let bytesRead = 0
   let body = ''
+  let completed = false
   try {
     while (true) {
       const chunk = await reader.read()
       if (chunk.done) break
       bytesRead += chunk.value.byteLength
-      if (bytesRead > MAX_VERSION_RESPONSE_BYTES) {
-        await reader.cancel().catch(() => undefined)
-        throw new Error('version response is too large')
-      }
+      if (bytesRead > MAX_VERSION_RESPONSE_BYTES) throw new Error('version response is too large')
       body += decoder.decode(chunk.value, { stream: true })
     }
-    return body + decoder.decode()
+    const text = body + decoder.decode()
+    // A fully consumed stream is never cancelled: the historical success path stays as it was.
+    completed = true
+    return text
   } finally {
+    // Every early exit — the size limit, a fatal UTF-8 decode error, or a failing read —
+    // releases the body in this one place. A failing cancel must not mask the original error.
+    if (!completed) await reader.cancel().catch(() => undefined)
     reader.releaseLock()
   }
 }

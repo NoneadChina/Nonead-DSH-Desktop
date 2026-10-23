@@ -702,3 +702,38 @@ describe('desktop Host dsh runtime', () => {
     expect(environment).toEqual(original)
   })
 })
+
+describe('abandoned generation staging', () => {
+  // A process killed while materializing a generation leaves `.staging.<pid>.<uuid>` behind.
+  // Publishing a later generation sweeps only trees that are both old and ownerless.
+  it('removes only old staging trees whose owner process no longer exists', () => {
+    const root = temporaryDirectory()
+    const stateDir = join(root, 'runtime')
+    const generations = join(stateDir, 'generations')
+    mkdirSync(generations, { recursive: true })
+    const hourAgo = new Date(Date.now() - 60 * 60 * 1000)
+    const staging = (pid: number, uuid: string): string => join(generations, `.staging.${pid}.${uuid}`)
+
+    // Dead process, old tree: abandoned and safe to remove.
+    const abandoned = staging(2147483646, '11111111-1111-4111-8111-111111111111')
+    mkdirSync(join(abandoned, 'bin'), { recursive: true })
+    writeFileSync(join(abandoned, 'bin', 'pnpm'), 'stale\n')
+    fs.utimesSync(abandoned, hourAgo, hourAgo)
+
+    // This run's own tree: never swept, even when it already looks old.
+    const own = staging(process.pid, '22222222-2222-4222-8222-222222222222')
+    mkdirSync(own)
+    fs.utimesSync(own, hourAgo, hourAgo)
+
+    // Freshly written tree: its owner may still be exiting, so it survives this sweep.
+    const fresh = staging(2147483646, '33333333-3333-4333-8333-333333333333')
+    mkdirSync(fresh)
+
+    const environment: NodeJS.ProcessEnv = {}
+    const installation = installDesktopPnpmRuntime(options(stateDir, 'linux', environment))
+    expect(existsSync(abandoned)).toBe(false)
+    expect(existsSync(own)).toBe(true)
+    expect(existsSync(fresh)).toBe(true)
+    installation.dispose()
+  })
+})

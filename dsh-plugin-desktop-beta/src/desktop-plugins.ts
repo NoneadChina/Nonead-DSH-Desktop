@@ -1,15 +1,8 @@
 /** Desktop-owned inventory and persistent disable state for direct profile bundles. */
 
-import { isLinkedPath } from './fs-links.ts'
+import { isLinkedPath, readVerifiedPrivateFile } from './fs-links.ts'
 import { randomBytes } from 'node:crypto'
-import {
-  closeSync,
-  constants,
-  fstatSync,
-  lstatSync,
-  openSync,
-  readFileSync,
-} from 'node:fs'
+import { lstatSync } from 'node:fs'
 import { chmod, lstat, mkdir } from 'node:fs/promises'
 import { dirname, isAbsolute, join } from 'node:path'
 import { type Context, Service } from '@deepseek-ai/cordis'
@@ -238,22 +231,13 @@ function readProfileManifestBytes(path: string): Buffer {
   if (pathInfo.size > MAX_PROFILE_MANIFEST_BYTES) {
     throw new Error(`${BIN_NAME}: active profile manifest is too large`)
   }
-  const descriptor = openSync(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0))
-  try {
-    const openedInfo = fstatSync(descriptor)
-    if (!openedInfo.isFile() || openedInfo.size > MAX_PROFILE_MANIFEST_BYTES) {
-      throw new Error(openedInfo.size > MAX_PROFILE_MANIFEST_BYTES
-        ? `${BIN_NAME}: active profile manifest is too large`
-        : `${BIN_NAME}: active profile manifest must be a regular file`)
-    }
-    const bytes = readFileSync(descriptor)
-    if (bytes.byteLength > MAX_PROFILE_MANIFEST_BYTES) {
-      throw new Error(`${BIN_NAME}: active profile manifest is too large`)
-    }
-    return bytes
-  } finally {
-    closeSync(descriptor)
+  const read = readVerifiedPrivateFile(path, pathInfo, MAX_PROFILE_MANIFEST_BYTES)
+  if (read.status !== 'ok') {
+    throw new Error(read.status === 'size'
+      ? `${BIN_NAME}: active profile manifest is too large`
+      : `${BIN_NAME}: active profile manifest must be a regular file`)
   }
+  return read.bytes
 }
 
 interface DesktopProfileManifestInventory {
@@ -413,15 +397,23 @@ function readState(statePath: string): DesktopPluginStateV1 {
     if ((cause as NodeJS.ErrnoException).code === 'ENOENT') return emptyState()
     throw cause
   }
-  if (!stat.isFile() || isLinkedPath(directory)) {
+  if (!stat.isFile() || isLinkedPath(statePath)) {
     throw new Error(`${BIN_NAME}: plugin-management state must be a regular file`)
   }
   if (stat.size > MAX_STATE_BYTES) {
     throw new Error(`${BIN_NAME}: plugin-management state is too large`)
   }
+  // Identity and size failures keep their bare messages: the verified read runs before the
+  // parse wrapper, exactly where the pre-open `lstat` checks used to throw.
+  const read = readVerifiedPrivateFile(statePath, stat, MAX_STATE_BYTES)
+  if (read.status !== 'ok') {
+    throw new Error(read.status === 'size'
+      ? `${BIN_NAME}: plugin-management state is too large`
+      : `${BIN_NAME}: plugin-management state must be a regular file`)
+  }
+  const content = read.bytes.toString('utf8')
   let parsed: unknown
   try {
-    const content = readFileSync(statePath, 'utf8')
     if (Buffer.byteLength(content, 'utf8') > MAX_STATE_BYTES) {
       throw new Error('plugin-management state is too large')
     }

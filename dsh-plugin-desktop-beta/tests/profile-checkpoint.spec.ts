@@ -1,13 +1,43 @@
 import { cleanupDisposableTree } from '../src/disposable-tree.ts'
-import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   DesktopProfileCheckpoint,
   inspectLatestDesktopProfileCheckpointUsage,
   type ProfileCheckpointOptions,
 } from '../src/profile-checkpoint.ts'
+
+// A checkpoint file replaced between `lstat` and the open can only be observed inside the
+// verified read. Tests arm exactly one path here; every other path is delegated to the real
+// implementation, so the rest of this suite keeps exercising real files.
+const verifiedRead = vi.hoisted(() => ({
+  forced: undefined as undefined | { path: string; status: 'type' | 'changed' | 'size' | 'missing' },
+}))
+
+vi.mock('../src/fs-links.ts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../src/fs-links.ts')>()
+  return {
+    ...actual,
+    readVerifiedPrivateFile: (
+      path: string,
+      expected: { readonly dev: number; readonly ino: number },
+      maxBytes: number,
+    ): ReturnType<typeof actual.readVerifiedPrivateFile> => {
+      const forced = verifiedRead.forced
+      if (forced?.path === path) {
+        switch (forced.status) {
+          case 'type': return { status: 'type' }
+          case 'changed': return { status: 'changed' }
+          case 'size': return { status: 'size' }
+          case 'missing': return { status: 'missing' }
+        }
+      }
+      return actual.readVerifiedPrivateFile(path, expected, maxBytes)
+    },
+  }
+})
 
 const roots: string[] = []
 
@@ -352,6 +382,145 @@ describe('Desktop profile health checkpoints', () => {
       snapshotExists: true,
       manifest: { provider: 'dsh-market' },
     })
+  })
+
+  // Intentional semantic change: one unreadable slot used to fail listSlots/captureHealthy as a
+  // whole, which stopped healthy checkpoint rotation for good (main.ts only logged the error).
+  it('keeps rotating and restoring around one unreadable checkpoint slot', () => {
+    let now = Date.parse('2026-08-25T00:00:00.000Z')
+    const target = fixture({ now: () => now })
+    for (let index = 1; index <= 3; index += 1) {
+      writeFileSync(join(target.profile, 'package.json'), `{"name":"healthy-${index}"}\n`)
+      expect(target.checkpoint.captureHealthy()).toMatchObject({ status: 'captured', slotId: `slot-${index}` })
+      now += 1_000
+    }
+    const damaged = target.checkpoint.listSlots()[2]!
+    writeFileSync(join(damaged.snapshotDirectory, 'manifest.json'), '{broken')
+
+    const degraded = target.checkpoint.listSlots()
+    expect(degraded).toHaveLength(3)
+    expect(degraded[2]).toMatchObject({ slotId: 'slot-3', snapshotExists: true })
+    expect(degraded[2]!.manifest).toBeUndefined()
+    expect(degraded[2]!.unreadable).toContain('checkpoint slot-3 is unreadable')
+    // The healthy slots stay browseable instead of the list failing as a whole.
+    expect(degraded[0]!.manifest?.slotId).toBe('slot-1')
+    expect(degraded[1]!.manifest?.slotId).toBe('slot-2')
+    // Restoring or inspecting the damaged slot names it instead of raising a bare parser error.
+    expect(() => target.checkpoint.restoreSlot('slot-3')).toThrow('checkpoint slot-3 is unreadable')
+    expect(target.checkpoint.inspectSlot('slot-3')).toMatchObject({
+      snapshotExists: true,
+      unreadable: expect.stringContaining('checkpoint slot-3 is unreadable'),
+    })
+
+    writeFileSync(join(target.profile, 'package.json'), '{"name":"healthy-4"}\n')
+    now += 1_000
+    const recaptured = target.checkpoint.captureHealthy()
+    if (recaptured.status !== 'captured') throw new Error('expected a captured checkpoint')
+    // The unreadable slot is the replacement target, so rotation stays bounded at three slots.
+    expect(recaptured.slotId).toBe('slot-3')
+    const repaired = target.checkpoint.listSlots()
+    expect(repaired).toHaveLength(3)
+    expect(repaired[2]!.unreadable).toBeUndefined()
+    expect(repaired[2]!.manifest?.capturedAt).toBe(recaptured.manifest.capturedAt)
+    expect(repaired.map(slot => slot.snapshotExists)).toEqual([true, true, true])
+  })
+
+  // Intentional hardening: `readJson` now reads through the descriptor its validation
+  // approved, so a file replaced between `lstat` and the open must degrade that one slot
+  // instead of failing the whole list. Reverting to the path-based read turns this red.
+  it('reports a checkpoint file replaced between validation and read as an unreadable slot', () => {
+    const target = fixture()
+    target.checkpoint.captureHealthy()
+    const manifestPath = join(target.checkpoint.listSlots()[0]!.snapshotDirectory, 'manifest.json')
+    try {
+      for (const status of ['changed', 'type', 'size'] as const) {
+        verifiedRead.forced = { path: manifestPath, status }
+        const slots = target.checkpoint.listSlots()
+        expect(slots[0]).toMatchObject({ slotId: 'slot-1', snapshotExists: true })
+        expect(slots[0]!.manifest).toBeUndefined()
+        expect(slots[0]!.unreadable).toContain(status === 'size'
+          ? 'checkpoint file is too large'
+          : 'checkpoint file has unsafe type or mode')
+        // The restore path names the slot, not just the low-level reason.
+        expect(() => target.checkpoint.restoreSlot('slot-1')).toThrow('checkpoint slot-1 is unreadable')
+      }
+    } finally {
+      verifiedRead.forced = undefined
+    }
+    // With nothing forced the same slot reads normally again.
+    expect(target.checkpoint.listSlots()[0]!.manifest?.slotId).toBe('slot-1')
+  })
+
+  // `missing` has to keep meaning "absent", not "broken": the post-restore skip marker is
+  // consumed through `isENOENT`, so a read that raced a deletion must not reject the capture.
+  it('keeps treating a checkpoint file that vanished during the read as absent', () => {
+    const target = fixture()
+    target.checkpoint.captureHealthy()
+    target.checkpoint.restoreSlot('slot-1')
+    const skipMarker = join(target.checkpoint.profileRoot, 'skip-next-healthy.json')
+    expect(existsSync(skipMarker)).toBe(true)
+    try {
+      verifiedRead.forced = { path: skipMarker, status: 'missing' }
+      // Without the ENOENT mapping this read would reject and the healthy startup would lose
+      // its checkpoint instead of consuming the marker.
+      expect(target.checkpoint.captureHealthy()).toMatchObject({ status: 'captured' })
+      // A vanished manifest is still reported for that slot only.
+      const manifestPath = join(target.checkpoint.listSlots()[1]!.snapshotDirectory, 'manifest.json')
+      verifiedRead.forced = { path: manifestPath, status: 'missing' }
+      const slots = target.checkpoint.listSlots()
+      expect(slots[1]!.manifest).toBeUndefined()
+      expect(slots[1]!.unreadable).toContain('ENOENT')
+    } finally {
+      verifiedRead.forced = undefined
+    }
+  })
+
+  // Same hardening for the snapshotted files themselves: one backup replaced between its
+  // `lstat` and the open must degrade that slot, not fail the whole list. Reverting the backup
+  // read to the path-based `readFileSync` turns this red.
+  it('reports a checkpoint backup replaced between validation and read as an unreadable slot', () => {
+    const target = fixture()
+    target.checkpoint.captureHealthy()
+    const backupPath = join(target.checkpoint.listSlots()[0]!.snapshotDirectory, 'package.json')
+    try {
+      for (const status of ['changed', 'type'] as const) {
+        verifiedRead.forced = { path: backupPath, status }
+        const slots = target.checkpoint.listSlots()
+        expect(slots[0]).toMatchObject({ slotId: 'slot-1', snapshotExists: true })
+        expect(slots[0]!.manifest).toBeUndefined()
+        expect(slots[0]!.unreadable).toContain('checkpoint backup is unsafe: package.json')
+      }
+      for (const status of ['missing', 'size'] as const) {
+        verifiedRead.forced = { path: backupPath, status }
+        const slots = target.checkpoint.listSlots()
+        expect(slots[0]!.manifest).toBeUndefined()
+        expect(slots[0]!.unreadable).toContain('checkpoint backup is incomplete: package.json')
+      }
+    } finally {
+      verifiedRead.forced = undefined
+    }
+    // With nothing forced the same slot validates again.
+    expect(target.checkpoint.listSlots()[0]!.manifest?.slotId).toBe('slot-1')
+  })
+
+  // The mode rule moved onto the opened descriptor; this keeps it enforced on POSIX.
+  it.skipIf(process.platform === 'win32')('still rejects a checkpoint file whose opened mode is not 0600', () => {
+    const target = fixture()
+    target.checkpoint.captureHealthy()
+    const manifestPath = join(target.checkpoint.listSlots()[0]!.snapshotDirectory, 'manifest.json')
+    chmodSync(manifestPath, 0o644)
+    const slots = target.checkpoint.listSlots()
+    expect(slots[0]!.manifest).toBeUndefined()
+    expect(slots[0]!.unreadable).toContain('checkpoint file has unsafe type or mode')
+
+    // The snapshotted backup is checked the same way, on its own message.
+    const backupCase = fixture()
+    backupCase.checkpoint.captureHealthy()
+    const backupPath = join(backupCase.checkpoint.listSlots()[0]!.snapshotDirectory, 'package.json')
+    chmodSync(backupPath, 0o644)
+    const backupSlots = backupCase.checkpoint.listSlots()
+    expect(backupSlots[0]!.manifest).toBeUndefined()
+    expect(backupSlots[0]!.unreadable).toContain('checkpoint backup is unsafe: package.json')
   })
 
   // Needs the privilege to create a file symlink, which a non-elevated Windows process does not have.

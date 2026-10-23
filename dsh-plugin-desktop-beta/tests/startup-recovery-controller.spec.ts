@@ -63,6 +63,7 @@ function createHarness(root: string, options: {
   now?: () => number
   afterCheckpointRestore?: DesktopStartupRecoveryControllerOptions['afterCheckpointRestore']
   uninstallPlugin?: DesktopStartupRecoveryControllerOptions['uninstallPlugin']
+  listSlots?: () => readonly ProfileCheckpointSlot[]
 } = {}) {
   const manifestPath = writeManifest(root)
   const generation = { profileName: 'desktop', generationId: 'current-generation-0001' }
@@ -93,7 +94,7 @@ function createHarness(root: string, options: {
     generationId: generation.generationId,
     currentGeneration: () => generation,
     uninstallPlugin,
-    checkpoints: { listSlots: () => slots(root), restoreSlot, completeDependencyMaterialization },
+    checkpoints: { listSlots: options.listSlots ?? (() => slots(root)), restoreSlot, completeDependencyMaterialization },
     openCheckpointDirectory,
     ...(options.afterCheckpointRestore === undefined ? {} : { afterCheckpointRestore: options.afterCheckpointRestore }),
     ...(options.now === undefined ? {} : { now: options.now }),
@@ -211,6 +212,36 @@ describe('pre-Host Desktop startup recovery controller', () => {
     await expect(target.controller.openCheckpoint('slot-3')).rejects.toSatisfy(
       cause => errorCode(cause) === 'invalid-target',
     )
+  })
+
+  it('keeps a damaged checkpoint visible as unreadable and refuses to act on it', async () => {
+    const root = temporaryRoot()
+    const reason = 'dsh-plugin-desktop: checkpoint slot-1 is unreadable: manifest version 3 is not supported'
+    const target = createHarness(root, {
+      listSlots: () => [
+        { slotId: 'slot-1', snapshotExists: true, snapshotDirectory: join(root, 'private', 'slot-1'), unreadable: reason },
+        ...slots(root).slice(1),
+      ],
+    })
+
+    // 坏槽必须作为 unreadable 透传（而不是被当成空槽），并带上原因；健康槽的投影不变。
+    expect((await target.controller.snapshot()).checkpoints).toEqual([
+      { slotId: 'slot-1', status: 'unreadable', reason },
+      { slotId: 'slot-2', status: 'available', capturedAt: '2026-08-22T00:00:00.000Z', appVersion: '2.0.3', provider: 'desktop-profile', fileCount: 1, pluginCount: 4, totalBytes: 20 },
+      { slotId: 'slot-3', status: 'empty' },
+    ])
+
+    // 坏槽被选中时必须明确拒绝（说明它存在但读不出来），且绝不落到 restoreSlot。
+    await expect(target.controller.previewCheckpointRestore('slot-1')).rejects.toMatchObject({
+      code: 'invalid-target',
+      message: expect.stringContaining('cannot be read'),
+    })
+    await expect(target.controller.openCheckpoint('slot-1')).rejects.toMatchObject({
+      code: 'invalid-target',
+      message: expect.stringContaining('cannot be read'),
+    })
+    expect(target.restoreSlot).not.toHaveBeenCalled()
+    expect(target.openCheckpointDirectory).not.toHaveBeenCalled()
   })
 
   it('invalidates actions when the active generation changes', async () => {

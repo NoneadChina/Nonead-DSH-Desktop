@@ -1108,7 +1108,11 @@ describe('published package surface', () => {
     expect(classify(['THIRD_PARTY_NOTICES.md'])).toBe('true')
     expect(classify([])).toBe('true')
 
-    expect(ciWorkflow).toContain('product="$(git diff --name-only -z')
+    // `--no-renames` keeps a source file that was renamed into a documentation path visible
+    // to the classifier (a detected rename prints only the destination, so the deleted source
+    // would be invisible and the product gates would be skipped); `-z` keeps the path list
+    // NUL-separated so no unusual name can split into several paths.
+    expect(ciWorkflow).toContain('product="$(git diff --name-only --no-renames -z')
     expect(ciWorkflow).toContain("if: needs.changes.outputs.product == 'true'")
     expect(ciWorkflow).toContain('Documentation-only change; product build and tests are not required.')
   })

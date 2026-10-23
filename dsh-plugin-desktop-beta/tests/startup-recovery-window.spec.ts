@@ -223,6 +223,44 @@ describe('Desktop startup recovery confirmations', () => {
     expect(states[1]!.notice).toBeUndefined()
   })
 
+  it('projects an unreadable checkpoint into the recovery document model', async () => {
+    const recovery = new DesktopStartupRecoveryWindow({
+      locale: 'en',
+      failureStage: 'health-commit',
+      failureDetail: 'unreadable checkpoint test',
+      exportDiagnostics: async () => '/tmp/diagnostics.zip',
+    })
+    const loadFile = vi.fn(async (
+      _path: string,
+      _options: { readonly query: { readonly state: string } },
+    ) => {})
+    const privateRecovery = recovery as unknown as {
+      window: { isDestroyed(): boolean; loadFile: typeof loadFile }
+      snapshot: unknown
+      render: () => Promise<void>
+    }
+    privateRecovery.window = { isDestroyed: () => false, loadFile }
+    const reason = 'dsh-plugin-desktop: checkpoint slot-1 is unreadable: manifest version 3 is not supported'
+    privateRecovery.snapshot = {
+      profileName: 'desktop',
+      bundles: [],
+      checkpoints: [
+        { slotId: 'slot-1', status: 'unreadable', reason },
+        { slotId: 'slot-2', status: 'available', capturedAt: '2026-08-21T00:00:00.000Z', appVersion: '2.0.3', fileCount: 1, pluginCount: 2, totalBytes: 20 },
+        { slotId: 'slot-3', status: 'empty' },
+      ],
+    }
+
+    await privateRecovery.render()
+
+    const state = JSON.parse(Buffer.from(loadFile.mock.calls.at(-1)![1].query.state, 'base64url').toString('utf8')) as {
+      readonly snapshot: { readonly checkpoints: readonly { readonly slotId: string; readonly status: string; readonly reason?: string }[] }
+    }
+    // 恢复页拿到的必须是三态（坏槽可见且带原因），健康槽与空槽的投影保持原样。
+    expect(state.snapshot.checkpoints.map(checkpoint => checkpoint.status)).toEqual(['unreadable', 'available', 'empty'])
+    expect(state.snapshot.checkpoints[0]).toEqual({ slotId: 'slot-1', status: 'unreadable', reason })
+  })
+
   it('refreshes and marks restart ready after the Profile creator selects a new Profile', async () => {
     let selected = 'desktop'
     const profileActions = {

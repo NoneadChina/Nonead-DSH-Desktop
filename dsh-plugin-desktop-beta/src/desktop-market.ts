@@ -1,15 +1,10 @@
 /** Machine-level Desktop Market provider selection and fail-safe state. */
 
-import { isLinkedPath } from './fs-links.ts'
+import { isLinkedPath, readVerifiedPrivateFile } from './fs-links.ts'
 import {
   chmodSync,
-  closeSync,
-  constants,
-  fstatSync,
   lstatSync,
   mkdirSync,
-  openSync,
-  readFileSync,
 } from 'node:fs'
 import { isAbsolute, basename, dirname, join } from 'node:path'
 import { withFileLock, writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
@@ -137,16 +132,14 @@ function readRawState(statePath: string): unknown {
   if (!pathInfo.isFile() || isLinkedPath(statePath)) {
     throw invalidState('state must be a regular file')
   }
-  const descriptor = openSync(statePath, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0))
-  try {
-    const info = fstatSync(descriptor)
-    if (!info.isFile() || info.size > MAX_STATE_BYTES) {
-      throw invalidState('state must be a regular file within the size limit')
-    }
-    return JSON.parse(readFileSync(descriptor, 'utf8')) as unknown
-  } finally {
-    closeSync(descriptor)
+  const read = readVerifiedPrivateFile(statePath, pathInfo, MAX_STATE_BYTES)
+  if (read.status === 'type' || read.status === 'changed' || read.status === 'missing') {
+    throw invalidState('state must be a regular file')
   }
+  if (read.status === 'size') {
+    throw invalidState('state must be a regular file within the size limit')
+  }
+  return JSON.parse(read.bytes.toString('utf8')) as unknown
 }
 
 /** Read the state without ever writing a migration or repair marker. */

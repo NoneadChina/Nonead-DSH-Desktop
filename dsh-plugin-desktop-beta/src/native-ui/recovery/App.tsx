@@ -68,7 +68,9 @@ interface RecoveryBundle {
 }
 interface RecoveryCheckpoint {
   readonly slotId: 'slot-1' | 'slot-2' | 'slot-3'
-  readonly status: 'available' | 'empty'
+  readonly status: 'available' | 'empty' | 'unreadable'
+  /** 仅 unreadable 状态携带：这个槽位为什么读不出来。 */
+  readonly reason?: string
   readonly capturedAt?: string
   readonly appVersion?: string
   readonly provider?: string
@@ -177,14 +179,27 @@ function CheckpointFact({ label, value }: { readonly label: string; readonly val
   return <div className="rounded-lg border bg-muted/30 px-3 py-2"><dt className="text-xs text-muted-foreground">{label}</dt><dd className="mt-1 truncate text-sm font-medium">{value}</dd></div>
 }
 
+/**
+ * One checkpoint card. Exported for static-render tests; `RollbackPanel` is its only caller.
+ *
+ * An unreadable slot stays visible with the reason it cannot be read, but offers neither
+ * "Browse files" nor "Restore": the controller refuses both for a damaged snapshot, so showing
+ * the entry points would only produce a failure dialog after the click.
+ */
+export function CheckpointCard({ checkpoint, copy, locale }: {
+  readonly checkpoint: RecoveryCheckpoint
+  readonly copy: DesktopRecoveryCopy
+  readonly locale: DesktopLocale
+}): JSX.Element {
+  const numberLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
+  const slotNumber = checkpoint.slotId.slice(-1)
+  return <Card className="w-full overflow-hidden"><CardHeader className="gap-3 space-y-0 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0 space-y-1.5"><CardTitle>{locale === 'zh' ? `槽位 ${slotNumber}` : `Slot ${slotNumber}`}</CardTitle><CardDescription>{checkpoint.status === 'unreadable' ? copy.unreadableSlotBody : checkpoint.status === 'empty' ? copy.noHealthyStartup : checkpoint.capturedAt === undefined ? copy.rollbackBody : new Date(checkpoint.capturedAt).toLocaleString(numberLocale)}</CardDescription></div><span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">{checkpoint.status === 'unreadable' ? copy.unreadableSlot : checkpoint.status === 'empty' ? copy.emptySlot : copy.availableSlot}</span></CardHeader>{checkpoint.status === 'empty' ? null : checkpoint.status === 'unreadable' ? <CardContent><p className="break-words text-xs leading-relaxed text-muted-foreground">{checkpoint.reason ?? copy.unknown}</p></CardContent> : <><CardContent><dl className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"><CheckpointFact label={copy.desktopVersion} value={checkpoint.appVersion ?? copy.unknown} />{checkpoint.pluginCount === undefined ? null : <CheckpointFact label={copy.pluginCount} value={locale === 'zh' ? `${checkpoint.pluginCount} 个` : checkpoint.pluginCount.toLocaleString(numberLocale)} />}{checkpoint.fileCount === undefined ? null : <CheckpointFact label={copy.configurationFileCount} value={locale === 'zh' ? `${checkpoint.fileCount ?? 0} 个` : (checkpoint.fileCount ?? 0).toLocaleString(numberLocale)} />}{checkpoint.totalBytes === undefined ? null : <CheckpointFact label={copy.checkpointSize} value={formatCheckpointSize(checkpoint.totalBytes, locale)} />}</dl></CardContent><CardFooter className="flex-wrap justify-end gap-2 border-t bg-muted/20 px-6 py-4"><Action action="open-checkpoint" icon={<FolderOpen />} id={checkpoint.slotId}>{copy.openCheckpoint}</Action><Action action="preview-checkpoint" icon={<RotateCcw />} id={checkpoint.slotId} variant="default">{copy.rollbackCheckpoint}</Action></CardFooter></>}
+  </Card>
+}
+
 function RollbackPanel({ copy, state }: { readonly copy: DesktopRecoveryCopy; readonly state: RecoveryState }): JSX.Element {
   if (state.snapshot === undefined) return <PanelScroll><Alert variant="destructive"><AlertTriangle /><AlertTitle>{copy.checkpoints}</AlertTitle><AlertDescription>{copy.checkpointsUnavailable}</AlertDescription></Alert></PanelScroll>
-  const numberLocale = state.locale === 'zh' ? 'zh-CN' : 'en-US'
-  return <PanelScroll><div className="grid grid-cols-1 gap-4">{state.snapshot.checkpoints.map(checkpoint => {
-    const slotNumber = checkpoint.slotId.slice(-1)
-    return <Card key={checkpoint.slotId} className="w-full overflow-hidden"><CardHeader className="gap-3 space-y-0 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0 space-y-1.5"><CardTitle>{state.locale === 'zh' ? `槽位 ${slotNumber}` : `Slot ${slotNumber}`}</CardTitle><CardDescription>{checkpoint.status === 'empty' ? copy.noHealthyStartup : checkpoint.capturedAt === undefined ? copy.rollbackBody : new Date(checkpoint.capturedAt).toLocaleString(numberLocale)}</CardDescription></div><span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">{checkpoint.status === 'empty' ? copy.emptySlot : copy.availableSlot}</span></CardHeader>{checkpoint.status === 'empty' ? null : <><CardContent><dl className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"><CheckpointFact label={copy.desktopVersion} value={checkpoint.appVersion ?? copy.unknown} />{checkpoint.pluginCount === undefined ? null : <CheckpointFact label={copy.pluginCount} value={state.locale === 'zh' ? `${checkpoint.pluginCount} 个` : checkpoint.pluginCount.toLocaleString(numberLocale)} />}{checkpoint.fileCount === undefined ? null : <CheckpointFact label={copy.configurationFileCount} value={state.locale === 'zh' ? `${checkpoint.fileCount ?? 0} 个` : (checkpoint.fileCount ?? 0).toLocaleString(numberLocale)} />}{checkpoint.totalBytes === undefined ? null : <CheckpointFact label={copy.checkpointSize} value={formatCheckpointSize(checkpoint.totalBytes, state.locale)} />}</dl></CardContent><CardFooter className="flex-wrap justify-end gap-2 border-t bg-muted/20 px-6 py-4"><Action action="open-checkpoint" icon={<FolderOpen />} id={checkpoint.slotId}>{copy.openCheckpoint}</Action><Action action="preview-checkpoint" icon={<RotateCcw />} id={checkpoint.slotId} variant="default">{copy.rollbackCheckpoint}</Action></CardFooter></>}
-    </Card>
-  })}</div></PanelScroll>
+  return <PanelScroll><div className="grid grid-cols-1 gap-4">{state.snapshot.checkpoints.map(checkpoint => <CheckpointCard checkpoint={checkpoint} copy={copy} key={checkpoint.slotId} locale={state.locale} />)}</div></PanelScroll>
 }
 
 function SafeModePanel({ copy, state }: { readonly copy: DesktopRecoveryCopy; readonly state: RecoveryState }): JSX.Element {

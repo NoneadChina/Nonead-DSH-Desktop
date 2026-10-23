@@ -135,6 +135,7 @@ import {
   DesktopStartupRecoveryControllerError,
 } from './startup-recovery-controller.ts'
 import {
+  DESKTOP_RECOVERY_USER_QUIT_EXIT_CODE,
   DesktopStartupRecoveryWindow,
   type RecoveryWindowResult,
   type DesktopStartupRecoveryConfigurationPaths,
@@ -1293,7 +1294,15 @@ async function start(): Promise<void> {
       else if (recoveryResult === 'safe-mode') {
         nativeExit.requestRelaunch(desktopSafeModeRelaunchArguments())
       }
-      await shutdown.request(recoveryResult === 'restart' || recoveryResult === 'safe-mode' ? 0 : 1)
+      // restart / safe-mode 已经排好 relaunch，quit 是用户在**自己主动打开**的恢复助手里主动
+      // 结束：两者都不代表启动失败，用成功码。只有助手本身打不开（'unavailable'）才保留失败码；
+      // 下方 catch 分支里的启动失败码保持非零不动，供 bin.ts 透传的退出状态与启动器判定失败。
+      const requestedRecoveryExitCode = recoveryResult === 'unavailable'
+        ? 1
+        : recoveryResult === 'quit'
+          ? DESKTOP_RECOVERY_USER_QUIT_EXIT_CODE
+          : 0
+      await shutdown.request(requestedRecoveryExitCode)
       return
     }
     startupStage = 'profile-composition'

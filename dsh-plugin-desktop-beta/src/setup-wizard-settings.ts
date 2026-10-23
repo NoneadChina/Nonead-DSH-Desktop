@@ -1,19 +1,14 @@
 /** Pre-Host reader and atomic writer for Desktop Setup Wizard preferences. */
 
-import { isLinkedPath } from './fs-links.ts'
+import { isLinkedPath, readVerifiedPrivateFile } from './fs-links.ts'
 import {
   desktopBrowserAccessAvailable,
   desktopBrowserAccessEnabled,
   desktopNetworkExposureForBrowserAccess,
 } from './desktop-network.ts'
 import {
-  closeSync,
-  constants,
-  fstatSync,
   lstatSync,
   mkdirSync,
-  openSync,
-  readSync,
 } from 'node:fs'
 import { dirname, extname, isAbsolute, resolve } from 'node:path'
 import { writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
@@ -125,32 +120,17 @@ function readDocumentText(path: string): string | undefined {
   if (pathInfo.size > MAX_DOCUMENT_BYTES) {
     throw invalid(`document exceeds ${String(MAX_DOCUMENT_BYTES)} bytes`)
   }
-  const descriptor = openSync(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0))
+  const read = readVerifiedPrivateFile(path, pathInfo, MAX_DOCUMENT_BYTES)
+  if (read.status === 'type' || read.status === 'size') {
+    throw invalid(`document must be a regular file within ${String(MAX_DOCUMENT_BYTES)} bytes`)
+  }
+  if (read.status === 'changed' || read.status === 'missing') {
+    throw invalid('document changed while it was being opened')
+  }
   try {
-    const info = fstatSync(descriptor)
-    if (!info.isFile() || info.size > MAX_DOCUMENT_BYTES) {
-      throw invalid(`document must be a regular file within ${String(MAX_DOCUMENT_BYTES)} bytes`)
-    }
-    if (info.dev !== pathInfo.dev || info.ino !== pathInfo.ino) {
-      throw invalid('document changed while it was being opened')
-    }
-    const buffer = Buffer.alloc(MAX_DOCUMENT_BYTES + 1)
-    let bytesRead = 0
-    while (bytesRead < buffer.byteLength) {
-      const count = readSync(descriptor, buffer, bytesRead, buffer.byteLength - bytesRead, null)
-      if (count === 0) break
-      bytesRead += count
-    }
-    if (bytesRead > MAX_DOCUMENT_BYTES) {
-      throw invalid(`document exceeds ${String(MAX_DOCUMENT_BYTES)} bytes`)
-    }
-    try {
-      return new TextDecoder('utf-8', { fatal: true }).decode(buffer.subarray(0, bytesRead))
-    } catch {
-      throw invalid('document must contain valid UTF-8')
-    }
-  } finally {
-    closeSync(descriptor)
+    return new TextDecoder('utf-8', { fatal: true }).decode(read.bytes)
+  } catch {
+    throw invalid('document must contain valid UTF-8')
   }
 }
 

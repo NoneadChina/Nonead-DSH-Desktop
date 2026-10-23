@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto'
 import { createRequire } from 'node:module'
 import {
   existsSync,
+  lstatSync,
   readdirSync,
   readFileSync,
   renameSync,
@@ -378,7 +379,7 @@ export function migrateDesktopSettingsDocumentSections(
     if (changed) migrated.push(entryId)
   }
   if (migrated.length === 0) return []
-  writeFileSync(spec.filename, String(document))
+  writeDocumentSafely(spec.filename, String(document))
   return migrated
 }
 
@@ -578,15 +579,38 @@ function importPendingDesktopShellSection(
 }
 
 /** Replace a document in one rename, so a crash leaves either its old or its new bytes. */
-function replaceDocument(path: string, text: string): void {
+function replaceDocument(path: string, text: string, mode?: number): void {
   const temporary = `${path}.${process.pid}.${randomUUID()}.tmp`
   try {
-    writeFileSync(temporary, text, { flag: 'wx' })
+    writeFileSync(temporary, text, { flag: 'wx', ...(mode === undefined ? {} : { mode }) })
     renameSync(temporary, path)
   } catch (cause) {
     rmSync(temporary, { force: true })
     throw cause
   }
+}
+
+/**
+ * Rewrite one settings or Profile document without ever exposing half of it.
+ *
+ * These files are the user's whole configuration — `settings.yaml` carries every
+ * launcher and upstream preference, `pnpm-workspace.yaml` decides how the Profile
+ * installs its dependencies — and both are read back on the next boot by a parser
+ * that throws on a truncated document. An in-place `writeFileSync` therefore turns
+ * an interrupted write (crash, power loss, full disk) into lost settings or a
+ * Profile that can no longer be composed. The directory entry is inspected first:
+ * a link must keep its write-through semantics, because a rename would replace the
+ * link itself with a regular file and leave the link target on the old bytes.
+ * @param path - absolute document path.
+ * @param text - complete new document contents.
+ */
+function writeDocumentSafely(path: string, text: string): void {
+  const entry = lstatSync(path, { throwIfNoEntry: false })
+  if (entry !== undefined && (entry.isSymbolicLink() || isLinkedPath(path))) {
+    writeFileSync(path, text)
+    return
+  }
+  replaceDocument(path, text, entry?.isFile() === true ? entry.mode & 0o777 : undefined)
 }
 
 /** Resolve the public Web template once and reject an incompatible DSH release. */
@@ -771,7 +795,7 @@ function parseProfileYaml(path: string): ParsedProfileYaml {
 function reconcileProfilePnpmWorkspace(profileDir: string): boolean {
   const path = join(profileDir, 'pnpm-workspace.yaml')
   if (!existsSync(path)) {
-    writeFileSync(path, `packages:\n  - .\n\nnodeLinker: hoisted\nautoInstallPeers: false\n`)
+    writeDocumentSafely(path, `packages:\n  - .\n\nnodeLinker: hoisted\nautoInstallPeers: false\n`)
     return true
   }
   const { document } = parseProfileYaml(path)
@@ -788,7 +812,7 @@ function reconcileProfilePnpmWorkspace(profileDir: string): boolean {
     document.set('autoInstallPeers', false)
     changed = true
   }
-  if (changed) writeFileSync(path, document.toString())
+  if (changed) writeDocumentSafely(path, document.toString())
   return changed
 }
 

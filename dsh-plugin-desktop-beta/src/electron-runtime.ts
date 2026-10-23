@@ -123,10 +123,17 @@ export function requestDesktopArtifact(url: string, init: RequestInit): Promise<
     // Approximates the fetch `cache: 'no-store` intent over the Chromium net stack.
     headers.set('cache-control', 'no-cache')
     headers.forEach((value, key) => { request.setHeader(key, value) })
+    const signal = init.signal instanceof AbortSignal ? init.signal : undefined
+    const abortRequest = (): void => { request.abort() }
+    // The signal belongs to the update operation and outlives this single request, so the
+    // listener must come off as soon as the request settles; otherwise every finished download
+    // leaves one attached to it.
+    const detachAbort = (): void => { signal?.removeEventListener('abort', abortRequest) }
     request.on('redirect', (_status, _method, redirectUrl) => {
       if (settled) return
       const rejectHop = (error: unknown): void => {
         settled = true
+        detachAbort()
         request.abort()
         reject(error instanceof Error ? error : new Error(String(error)))
       }
@@ -144,6 +151,7 @@ export function requestDesktopArtifact(url: string, init: RequestInit): Promise<
     request.on('response', incoming => {
       if (settled) return
       settled = true
+      detachAbort()
       const status = incoming.statusCode
       if (status === undefined) {
         reject(new Error('dsh-plugin-desktop: the update download response carried no HTTP status.'))
@@ -175,6 +183,7 @@ export function requestDesktopArtifact(url: string, init: RequestInit): Promise<
     request.on('abort', () => {
       if (settled) return
       settled = true
+      detachAbort()
       // ClientRequest.abort() emits 'abort', not 'error', so without this
       // handler a pre-response cancellation would leave the promise pending.
       reject(init.signal instanceof AbortSignal && init.signal.reason !== undefined
@@ -184,15 +193,15 @@ export function requestDesktopArtifact(url: string, init: RequestInit): Promise<
     request.on('error', cause => {
       if (settled) return
       settled = true
+      detachAbort()
       reject(cause)
     })
-    const signal = init.signal
-    if (signal instanceof AbortSignal) {
+    if (signal !== undefined) {
       if (signal.aborted) {
         request.abort()
         return
       }
-      signal.addEventListener('abort', () => { request.abort() }, { once: true })
+      signal.addEventListener('abort', abortRequest, { once: true })
     }
     request.end()
   })

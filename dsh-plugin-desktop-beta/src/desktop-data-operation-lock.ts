@@ -113,7 +113,14 @@ export function acquireDesktopDataOperationLock(
       if ((cause as NodeJS.ErrnoException).code !== 'EEXIST') throw cause
       const owner = readRecord(path)
       if (attempt === 0 && !processExists(owner.pid)) {
-        unlinkSync(path)
+        try {
+          unlinkSync(path)
+        } catch (unlinkCause) {
+          // 另一个进程可能已经先回收了同一把陈旧锁：文件消失说明锁此刻是空闲的，
+          // 应当重试 O_EXCL 创建，而不是把裸 ENOENT 当成失败抛给调用方（它既不是
+          // busy，也不代表数据操作真的冲突）。
+          if ((unlinkCause as NodeJS.ErrnoException).code !== 'ENOENT') throw unlinkCause
+        }
         continue
       }
       throw new DesktopDataDirectoryError('busy', `Desktop data is busy with ${owner.operation}`)

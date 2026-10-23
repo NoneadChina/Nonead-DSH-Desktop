@@ -37,6 +37,16 @@ const DEFAULT_RECOVERY_MIN_HEIGHT = 560
 const RECOVERY_WORK_AREA_INSET = 48
 
 export type RecoveryWindowResult = 'restart' | 'safe-mode' | 'quit'
+
+/**
+ * 用户在**自己主动打开**的恢复助手里选择退出时的进程退出码。
+ *
+ * 同一套恢复助手有两种入口：用户从重启菜单主动进入（`requested`），以及启动失败后的兜底。
+ * 后者退出必须保留非零码，让 `bin.ts` 透传的退出状态、installer 与外部启动器能判定启动失败；
+ * 前者只是用户主动结束一个自己要求打开的界面，属于正常结束，因此用成功码，不能与失败混为一谈。
+ */
+export const DESKTOP_RECOVERY_USER_QUIT_EXIT_CODE = 0
+
 type RecoveryNoticeTone = 'info' | 'success' | 'warning' | 'error'
 
 export type { DesktopStartupFailureStage } from './recovery-copy.ts'
@@ -295,6 +305,8 @@ export class DesktopStartupRecoveryWindow {
   private profiles: readonly DesktopStartupRecoveryProfile[] | undefined
   private resolveResult: ((result: RecoveryWindowResult) => void) | undefined
   private settled = false
+  /** Serialized UI refresh; see {@link render}. */
+  private renderChain: Promise<void> = Promise.resolve()
 
   constructor(private readonly options: DesktopStartupRecoveryWindowOptions) {}
 
@@ -324,7 +336,17 @@ export class DesktopStartupRecoveryWindow {
     const navigate = (event: Electron.Event, href: string): void => {
       const action = parseDesktopStartupRecoveryAction(href)
       event.preventDefault()
-      if (action !== undefined) void this.handleAction(action)
+      if (action === undefined) return
+      // Every action failure is already turned into an on-screen notice or dialog inside
+      // handleAction; the only rejection that could escape is its final UI refresh. This is a
+      // fire-and-forget path, and main.ts installs fail-loud on unhandled rejections, so an
+      // escaping rejection would terminate the whole application from inside its recovery
+      // assistant. Contain it as a diagnostic line instead.
+      void this.handleAction(action).catch((cause: unknown) => {
+        process.stderr.write(
+          `dsh-plugin-desktop: recovery window action failed: ${cause instanceof Error ? cause.message : String(cause)}\n`,
+        )
+      })
     }
     window.webContents.on('will-navigate', navigate)
     window.webContents.on('will-redirect', navigate)
@@ -829,7 +851,27 @@ export class DesktopStartupRecoveryWindow {
     }
   }
 
-  private async render(): Promise<void> {
+  /**
+   * Refresh the recovery document, one navigation at a time.
+   *
+   * The automatic diagnostics export (`run()` starts it immediately) renders "saving" and then
+   * its outcome while the user is already able to trigger actions that render too. A
+   * `WebContents` accepts one navigation at a time: starting a second `loadFile` aborts the
+   * first, whose promise rejects with `ERR_ABORTED`. Callers that treat that as a real failure
+   * would report a successful archive as failed, and the fire-and-forget action path would leak
+   * an unhandled rejection. Queuing also makes every refresh read the state current when it
+   * actually runs.
+   */
+  private render(): Promise<void> {
+    const task = this.renderChain.then(
+      () => this.renderCurrentState(),
+      () => this.renderCurrentState(),
+    )
+    this.renderChain = task.then(() => undefined, () => undefined)
+    return task
+  }
+
+  private async renderCurrentState(): Promise<void> {
     const window = this.window
     if (window === undefined || window.isDestroyed()) return
     const notice = this.notice
@@ -867,14 +909,22 @@ export class DesktopStartupRecoveryWindow {
       ...(this.options.safeModeActive === true ? { safeModeActive: true } : {}),
     }
     const state = Buffer.from(JSON.stringify(model), 'utf8').toString('base64url')
-    await window.loadFile(RECOVERY_DOCUMENT, {
-      query: {
-        state,
-        locale: this.options.locale,
-        platform: process.platform,
-        frame: String(auxiliaryWindowHasCustomFrame()),
-      },
-    })
+    try {
+      await window.loadFile(RECOVERY_DOCUMENT, {
+        query: {
+          state,
+          locale: this.options.locale,
+          platform: process.platform,
+          frame: String(auxiliaryWindowHasCustomFrame()),
+        },
+      })
+    } catch (cause) {
+      // A window destroyed while its document is being replaced (finish() or the operator closing
+      // it) always fails that navigation. The surface is already gone, so this is not a recovery
+      // UI fault and must not surface as a rejection callers would report or fail loud on.
+      if (window.isDestroyed()) return
+      throw cause
+    }
     if (this.notice === notice) this.notice = undefined
   }
 
