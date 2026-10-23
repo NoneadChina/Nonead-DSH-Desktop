@@ -40,9 +40,6 @@ button.dshNextSettingsGear { width: 28px; padding: 0; }
 .dshNextPermissionRow .dshNextPluginActions { flex-shrink: 0; justify-content: flex-end; max-width: 210px; }
 .dshNextPermissionStatus { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 12px; color: var(--dsw-alias-label-secondary); }
 @media(max-width: 560px) { .dshNextMarketChoices { grid-template-columns: 1fr; } .dshNextPluginCard { align-items: flex-start; flex-wrap: wrap; } .dshNextPluginCardMain { flex-basis: calc(100% - 68px); } .dshNextPluginCardActions { margin-left: 62px; } .dshNextPermissionRow { align-items: flex-start; flex-direction: column; gap: 12px; } .dshNextPermissionRow .dshNextPluginActions { max-width: none; } }
-
-.dshNextPluginControls .dshNextMarketVersion { margin-left: 8px; font-size: 13px; font-weight: 400; color: var(--dsw-alias-label-tertiary); }
-.dshNextPluginControls h3 > button { margin-left: 8px; vertical-align: middle; }
 `
 
 export function installPluginControlsStyles(): () => void {

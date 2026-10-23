@@ -542,8 +542,7 @@ async function showShellMessage(message: string): Promise<void> {
 async function marketCommand(type: 'market-update-status' | 'upgrade-market'): Promise<unknown> {
   if (type === 'market-update-status') {
     const check = await checkMarketUpdate(home, 'dshmarket')
-    // The row shows the installed version even when it is current, so answer with it either way.
-    if (check === undefined) return { available: false }
+    if (check === undefined || !check.available) return { available: false }
     return {
       available: true,
       current: check.current ?? null,
