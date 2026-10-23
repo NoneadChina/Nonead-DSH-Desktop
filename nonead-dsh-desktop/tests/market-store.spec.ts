@@ -12,8 +12,7 @@ import {
   extractTarGz,
   installMarketUpdates,
   installedMarketVersions,
-  parseGitHubRelease,
-  parseNpmManifest,
+  parseMarketCatalog,
   projectMarketRelease,
   retireMarketRelease,
   rollbackMarketRelease,
@@ -68,51 +67,30 @@ function tarGz(entries: Array<{ name: string, body?: string, type?: string }>): 
   return gzipSync(Buffer.concat(chunks))
 }
 
-const GITHUB_RELEASE = JSON.stringify({
-  tag_name: 'v1.69.0',
-  html_url: 'https://github.com/dsh-market/dsh-market/releases/tag/v1.69.0',
-  draft: false,
-})
-const NPM_INTEGRITY = `sha512-${'A'.repeat(86)}==`
-const NPM_MANIFEST = JSON.stringify({
-  name: 'dshmarket',
-  version: '1.69.0',
-  dist: { tarball: 'https://registry.npmjs.org/dshmarket/-/dshmarket-1.69.0.tgz', integrity: NPM_INTEGRITY },
+const CATALOG = JSON.stringify({
+  schemaVersion: 1,
+  packages: { dshmarket: { '1.69.0': { url: 'https://example.test/dshmarket.tgz', sha256: 'a'.repeat(64), bytes: 10 } } },
 })
 
-describe('release discovery', () => {
-  it('reads the version from the GitHub tag', () => {
-    expect(parseGitHubRelease(GITHUB_RELEASE).version).toBe('1.69.0')
+describe('market catalogue', () => {
+  it('accepts a pinned release', () => {
+    expect(parseMarketCatalog(CATALOG).packages.dshmarket?.['1.69.0']?.bytes).toBe(10)
   })
 
-  it('keeps the release page as the notes url', () => {
-    expect(parseGitHubRelease(GITHUB_RELEASE).notesUrl).toBe('https://github.com/dsh-market/dsh-market/releases/tag/v1.69.0')
+  it('rejects packages the store does not own', () => {
+    expect(() => parseMarketCatalog(CATALOG.replaceAll('dshmarket', 'lodash'))).toThrow(/unknown package/u)
   })
 
-  it('rejects a tag that is not a version', () => {
-    expect(() => parseGitHubRelease(GITHUB_RELEASE.replace('v1.69.0', 'nightly'))).toThrow(/not a version/u)
+  it('rejects a plain-http url', () => {
+    expect(() => parseMarketCatalog(CATALOG.replace('https://example.test', 'http://example.test'))).toThrow(/https/u)
   })
 
-  it('rejects a draft release', () => {
-    expect(() => parseGitHubRelease(GITHUB_RELEASE.replace('"draft":false', '"draft":true'))).toThrow(/draft/u)
+  it('rejects a digest that is not sha256', () => {
+    expect(() => parseMarketCatalog(CATALOG.replace('a'.repeat(64), 'abc'))).toThrow(/sha256/u)
   })
 
-  it('reads the tarball and its integrity from the npm manifest', () => {
-    const release = parseNpmManifest(NPM_MANIFEST, 'dshmarket', '1.69.0')
-    expect(release.url).toBe('https://registry.npmjs.org/dshmarket/-/dshmarket-1.69.0.tgz')
-    expect(release.integrity).toBe(NPM_INTEGRITY)
-  })
-
-  it('rejects a manifest for another version', () => {
-    expect(() => parseNpmManifest(NPM_MANIFEST, 'dshmarket', '1.68.0')).toThrow(/version 1\.69\.0/u)
-  })
-
-  it('rejects a plain-http tarball', () => {
-    expect(() => parseNpmManifest(NPM_MANIFEST.replace('https://registry.npmjs.org', 'http://registry.npmjs.org'), 'dshmarket', '1.69.0')).toThrow(/https/u)
-  })
-
-  it('rejects a manifest without a sha512 integrity', () => {
-    expect(() => parseNpmManifest(NPM_MANIFEST.replace(NPM_INTEGRITY, 'sha1-deadbeef'), 'dshmarket', '1.69.0')).toThrow(/sha512 integrity/u)
+  it('rejects an unsupported schema version', () => {
+    expect(() => parseMarketCatalog(CATALOG.replace('"schemaVersion":1', '"schemaVersion":2'))).toThrow(/schemaVersion/u)
   })
 })
 
@@ -195,22 +173,15 @@ describe('release staging and switching', () => {
     expect(compareMarketVersions('2.0.0', '1.99.99')).toBeGreaterThan(0)
   })
 
-  it('adopts a newer release discovered on GitHub and reports the transition', async () => {
+  it('adopts a newer catalogue release and reports the transition', async () => {
     const root = home()
     const archive = archiveFor('1.70.0')
-    const tarball = 'https://registry.npmjs.org/dshmarket/-/dshmarket-1.70.0.tgz'
-    const integrity = `sha512-${createHash('sha512').update(archive).digest('base64')}`
-    const fetcher = async (input: string | URL | Request): Promise<Response> => {
-      const url = String(input)
-      if (url.includes('api.github.com')) {
-        return new Response(JSON.stringify({ tag_name: 'v1.70.0', html_url: 'https://github.com/dsh-market/dsh-market/releases/tag/v1.70.0', draft: false }))
-      }
-      if (url.endsWith('/dshmarket/1.70.0')) {
-        return new Response(JSON.stringify({ name: PACKAGE, version: '1.70.0', dist: { tarball, integrity } }))
-      }
-      return new Response(new Uint8Array(archive))
-    }
-    const result = await installMarketUpdates(root, fetcher as unknown as typeof fetch)
+    const catalog = JSON.stringify({ schemaVersion: 1, packages: { [PACKAGE]: {
+      '1.70.0': { url: 'https://example.test/1.70.0.tgz', sha256: createHash('sha256').update(archive).digest('hex'), bytes: archive.byteLength },
+    } } })
+    const fetcher = async (input: string | URL | Request): Promise<Response> =>
+      String(input).includes('catalog') ? new Response(catalog) : new Response(new Uint8Array(archive))
+    const result = await installMarketUpdates(root, fetcher as unknown as typeof fetch, 'https://example.test/catalog.json')
     expect(result.applied).toHaveLength(1)
     expect(result.applied[0]?.to).toBe('1.70.0')
     expect(activeMarketVersion(root, PACKAGE)).toBe('1.70.0')

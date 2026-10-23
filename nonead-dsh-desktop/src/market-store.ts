@@ -3,18 +3,13 @@
  *
  * Both markets are ordinary Profile bundles, so a newer release only has to win the bundle
  * resolution that `profiles.ts` already performs through `<home>/profiles/node_modules`. This
- * module owns everything before that projection: resolving the published version, verifying and
- * extracting the archive, and the version switch with a rollback slot.
+ * module owns everything before that projection: the catalogue, the digest check, the archive
+ * extraction, and the version switch with a rollback slot.
  *
- * The market cannot update itself through the host (the host unloads it before the reinstall runs,
- * and dshmarket's own `market-self-update` is refused there by design), so the desktop performs the
- * two steps from outside — which is exactly the missing entry point dshmarket documents.
- *
- * Trust model: the version comes from the market's GitHub release over HTTPS, and the bytes come
- * from the npm registry manifest, which pins a sha512 integrity. Nothing is extracted before that
- * digest matches, and an extracted package must name itself and the advertised version before it can
- * become active. A failed switch leaves the previous version active, so a broken release can never
- * strand a user without a market.
+ * Trust model: the catalogue is fetched over HTTPS from nonead.com and every entry pins a SHA-256
+ * and a byte length. Nothing is extracted before both match, and an extracted package must name
+ * itself and the advertised version before it can become active. A failed switch leaves the
+ * previous version active, so a broken release can never strand a user without a market.
  */
 import { createHash, randomUUID } from 'node:crypto'
 import { createRequire } from 'node:module'
@@ -27,21 +22,9 @@ import { linkedPathTarget, removeLinkedPath, sameResolvedPath } from '../../dsh-
 export const MARKET_STORE_PACKAGES = Object.freeze(['dsh-community-market', 'dshmarket'] as const)
 export type MarketStorePackage = (typeof MARKET_STORE_PACKAGES)[number]
 
-/**
- * Where a newer release of each bundled market is discovered and downloaded.
- *
- * The version is published on the market's own GitHub releases; the bytes come from the npm
- * registry, whose manifest pins the tarball with a sha512 integrity. `dsh-community-market` has no
- * release pipeline of its own yet, so it never self-updates.
- */
-export const MARKET_RELEASE_SOURCES: Readonly<Record<MarketStorePackage, { readonly repo: string, readonly registry: string } | undefined>> = Object.freeze({
-  'dsh-community-market': undefined,
-  dshmarket: Object.freeze({ repo: 'dsh-market/dsh-market', registry: 'dshmarket' }),
-})
-
-const githubReleaseUrl = (repo: string): string => `https://api.github.com/repos/${repo}/releases/latest`
-const npmManifestUrl = (registry: string, version: string): string => `https://registry.npmjs.org/${registry}/${version}`
-const MAX_MANIFEST_BYTES = 256 * 1024
+export const MARKET_CATALOG_URL = 'https://www.nonead.com/software/ndsh-desktop/market/catalog.json'
+const MARKET_CATALOG_SCHEMA_VERSION = 1 as const
+const MAX_CATALOG_BYTES = 256 * 1024
 const MAX_ARCHIVE_BYTES = 64 * 1024 * 1024
 const MAX_EXTRACTED_BYTES = 256 * 1024 * 1024
 const MAX_ARCHIVE_ENTRIES = 20_000
@@ -51,56 +34,50 @@ const KEPT_VERSIONS = 2
 
 const VERSION_PATTERN = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?$/u
 const SHA256_PATTERN = /^[0-9a-f]{64}$/u
-const INTEGRITY_PATTERN = /^sha512-[A-Za-z0-9+/]+={0,2}$/u
 
-/**
- * One downloadable release.
- *
- * A digest is mandatory but may arrive in either form: npm publishes a sha512 SRI, while an offline
- * mirror could still pin a plain sha256. `bytes` stays optional because the registry manifest records
- * `unpackedSize`, not the tarball length.
- */
+/** One downloadable release. `url` is absolute HTTPS and `sha256` pins the archive bytes. */
 export interface MarketRelease {
   readonly version: string
   readonly url: string
-  readonly sha256?: string
-  readonly integrity?: string
-  readonly bytes?: number
-  readonly notesUrl?: string
+  readonly sha256: string
+  readonly bytes: number
 }
 
-function invalid(reason: string): never { throw new Error(`Market release is invalid: ${reason}`) }
+export interface MarketCatalog {
+  readonly schemaVersion: typeof MARKET_CATALOG_SCHEMA_VERSION
+  readonly packages: Readonly<Record<string, Readonly<Record<string, Omit<MarketRelease, 'version'>>>>>
+}
 
-/** Read the newest published tag of a market repository. */
-export function parseGitHubRelease(text: string): { readonly version: string, readonly notesUrl?: string } {
+function invalid(reason: string): never { throw new Error(`Market catalogue is invalid: ${reason}`) }
+
+/** Parse and validate the catalogue. Unknown packages are rejected, not ignored. */
+export function parseMarketCatalog(text: string): MarketCatalog {
   let value: unknown
-  try { value = JSON.parse(text) } catch { invalid('the GitHub release is not JSON') }
-  if (typeof value !== 'object' || value === null) invalid('the GitHub release is not an object')
-  const release = value as { tag_name?: unknown, html_url?: unknown, draft?: unknown }
-  if (release.draft === true) invalid('the GitHub release is a draft')
-  if (typeof release.tag_name !== 'string') invalid('the GitHub release has no tag')
-  const version = release.tag_name.replace(/^v/u, '')
-  if (!VERSION_PATTERN.test(version)) invalid(`the GitHub tag ${release.tag_name} is not a version`)
-  return {
-    version,
-    ...(typeof release.html_url === 'string' && release.html_url.startsWith('https://') ? { notesUrl: release.html_url } : {}),
+  try { value = JSON.parse(text) } catch { invalid('not JSON') }
+  if (typeof value !== 'object' || value === null) invalid('not an object')
+  const catalog = value as { schemaVersion?: unknown, packages?: unknown }
+  if (catalog.schemaVersion !== MARKET_CATALOG_SCHEMA_VERSION) invalid('unsupported schemaVersion')
+  if (typeof catalog.packages !== 'object' || catalog.packages === null) invalid('no packages')
+  const packages: Record<string, Record<string, Omit<MarketRelease, 'version'>>> = {}
+  for (const [name, versions] of Object.entries(catalog.packages as Record<string, unknown>)) {
+    if (!(MARKET_STORE_PACKAGES as readonly string[]).includes(name)) invalid(`unknown package ${name}`)
+    if (typeof versions !== 'object' || versions === null) invalid(`${name} has no versions`)
+    const entries: Record<string, Omit<MarketRelease, 'version'>> = {}
+    for (const [version, release] of Object.entries(versions as Record<string, unknown>)) {
+      if (!VERSION_PATTERN.test(version)) invalid(`${name} has an invalid version ${version}`)
+      const entry = release as { url?: unknown, sha256?: unknown, bytes?: unknown } | null
+      if (typeof entry !== 'object' || entry === null) invalid(`${name}@${version} is not an object`)
+      if (typeof entry.url !== 'string' || !entry.url.startsWith('https://')) invalid(`${name}@${version} needs an https url`)
+      if (typeof entry.sha256 !== 'string' || !SHA256_PATTERN.test(entry.sha256)) invalid(`${name}@${version} needs a sha256`)
+      if (!Number.isSafeInteger(entry.bytes) || (entry.bytes as number) <= 0 || (entry.bytes as number) > MAX_ARCHIVE_BYTES) {
+        invalid(`${name}@${version} has an impossible byte length`)
+      }
+      entries[version] = { url: entry.url, sha256: entry.sha256, bytes: entry.bytes as number }
+    }
+    packages[name] = entries
   }
-}
-
-/** Read one exact npm manifest and require a tarball plus the integrity that covers it. */
-export function parseNpmManifest(text: string, name: string, version: string): MarketRelease {
-  let value: unknown
-  try { value = JSON.parse(text) } catch { invalid('the npm manifest is not JSON') }
-  if (typeof value !== 'object' || value === null) invalid('the npm manifest is not an object')
-  const manifest = value as { name?: unknown, version?: unknown, dist?: unknown }
-  if (manifest.name !== name) invalid(`the npm manifest names ${String(manifest.name)}`)
-  if (manifest.version !== version) invalid(`the npm manifest is version ${String(manifest.version)}`)
-  const dist = manifest.dist
-  if (typeof dist !== 'object' || dist === null) invalid(`${name}@${version} has no dist`)
-  const { tarball, integrity } = dist as { tarball?: unknown, integrity?: unknown }
-  if (typeof tarball !== 'string' || !tarball.startsWith('https://')) invalid(`${name}@${version} needs an https tarball`)
-  if (typeof integrity !== 'string' || !INTEGRITY_PATTERN.test(integrity)) invalid(`${name}@${version} has no sha512 integrity`)
-  return { version, url: tarball, integrity }
+  if (Object.keys(packages).length === 0) invalid('no packages')
+  return { schemaVersion: MARKET_CATALOG_SCHEMA_VERSION, packages }
 }
 
 export function marketStoreRoot(home: string): string { return join(home, 'market-store') }
@@ -131,8 +108,6 @@ export function installedMarketVersions(home: string, name: MarketStorePackage):
 }
 
 function sha256(bytes: Uint8Array): string { return createHash('sha256').update(bytes).digest('hex') }
-/** npm's Subresource-Integrity form for sha512, which is what a registry manifest publishes. */
-function sha512Integrity(bytes: Uint8Array): string { return `sha512-${createHash('sha512').update(bytes).digest('base64')}` }
 
 /**
  * Extract a npm-style tar.gz into `destination`, refusing anything that could escape it.
@@ -217,45 +192,11 @@ async function fetchBytes(url: string, limit: number, fetcher: typeof fetch): Pr
   return bytes
 }
 
-/** Resolve the newest published release of one bundled market, or `undefined` when it has no source. */
-export async function latestMarketRelease(
-  name: MarketStorePackage,
-  fetcher: typeof fetch = fetch,
-): Promise<MarketRelease | undefined> {
-  const source = MARKET_RELEASE_SOURCES[name]
-  if (source === undefined) return undefined
-  const releaseText = Buffer.from(await fetchBytes(githubReleaseUrl(source.repo), MAX_MANIFEST_BYTES, fetcher)).toString('utf8')
-  const release = parseGitHubRelease(releaseText)
-  const manifestText = Buffer.from(await fetchBytes(npmManifestUrl(source.registry, release.version), MAX_MANIFEST_BYTES, fetcher)).toString('utf8')
-  const manifest = parseNpmManifest(manifestText, source.registry, release.version)
-  return release.notesUrl === undefined ? manifest : { ...manifest, notesUrl: release.notesUrl }
-}
-
-/** What a version check found, without downloading anything. */
-export interface MarketUpdateCheck {
-  readonly name: MarketStorePackage
-  readonly current: string | undefined
-  readonly latest: string
-  readonly available: boolean
-  readonly notesUrl?: string
-}
-
-/** Compare the active release of one market with what its source publishes. */
-export async function checkMarketUpdate(
-  home: string,
-  name: MarketStorePackage,
-  fetcher: typeof fetch = fetch,
-): Promise<MarketUpdateCheck | undefined> {
-  const latest = await latestMarketRelease(name, fetcher)
-  if (latest === undefined) return undefined
-  const current = currentMarketVersion(home, name)
-  return {
-    name,
-    current,
-    latest: latest.version,
-    available: current === undefined || compareMarketVersions(latest.version, current) > 0,
-    ...(latest.notesUrl === undefined ? {} : { notesUrl: latest.notesUrl }),
-  }
+/** Fetch and validate the catalogue. */
+export async function fetchMarketCatalog(fetcher: typeof fetch = fetch, url = MARKET_CATALOG_URL): Promise<MarketCatalog> {
+  if (!url.startsWith('https://')) throw new Error('Market catalogue must be fetched over https')
+  const text = Buffer.from(await fetchBytes(url, MAX_CATALOG_BYTES, fetcher)).toString('utf8')
+  return parseMarketCatalog(text)
 }
 
 /**
@@ -273,25 +214,10 @@ export async function stageMarketRelease(
   const finalDirectory = versionDirectory(home, name, release.version)
   const existing = lstatSync(finalDirectory, { throwIfNoEntry: false })
   if (existing?.isDirectory()) return finalDirectory
-  const archive = await fetchBytes(
-    release.url,
-    release.bytes === undefined ? MAX_ARCHIVE_BYTES : Math.min(release.bytes, MAX_ARCHIVE_BYTES),
-    fetcher,
-  )
-  if (release.sha256 === undefined && release.integrity === undefined) {
-    throw new Error(`Market release ${name}@${release.version} publishes no digest`)
-  }
-  if (release.bytes !== undefined && archive.byteLength !== release.bytes) {
-    throw new Error(`Market download is ${archive.byteLength} bytes, expected ${release.bytes}`)
-  }
-  if (release.sha256 !== undefined) {
-    const digest = sha256(archive)
-    if (digest !== release.sha256) throw new Error(`Market download digest ${digest} does not match the published sha256`)
-  }
-  if (release.integrity !== undefined) {
-    const integrity = sha512Integrity(archive)
-    if (integrity !== release.integrity) throw new Error(`Market download integrity ${integrity} does not match the published integrity`)
-  }
+  const archive = await fetchBytes(release.url, Math.min(release.bytes, MAX_ARCHIVE_BYTES), fetcher)
+  if (archive.byteLength !== release.bytes) throw new Error(`Market download is ${archive.byteLength} bytes, expected ${release.bytes}`)
+  const digest = sha256(archive)
+  if (digest !== release.sha256) throw new Error(`Market download digest ${digest} does not match the catalogue`)
   const stagingRoot = join(marketStorePackage(home, name), STAGING_DIRECTORY)
   mkdirSync(stagingRoot, { recursive: true, mode: 0o700 })
   const staging = mkdtempSync(join(stagingRoot, `${release.version}-${randomUUID().slice(0, 8)}-`))
@@ -429,29 +355,32 @@ export interface MarketUpdateResult {
 }
 
 /**
- * Resolve every bundled market's newest release and adopt the newer ones.
+ * Fetch the catalogue and adopt every newer release this store owns.
  *
  * Each package is staged and verified before its pointer moves, so a failure leaves that package on
  * its current version. Callers decide whether to ask the user first; this function is the unchecked
- * step. A package with no release source is reported as up to date rather than failed.
+ * step.
  */
 export async function installMarketUpdates(
   home: string,
   fetcher: typeof fetch = fetch,
+  catalogUrl = MARKET_CATALOG_URL,
 ): Promise<MarketUpdateResult> {
+  const catalog = await fetchMarketCatalog(fetcher, catalogUrl)
   const applied: Array<{ name: MarketStorePackage, from: string | undefined, to: string }> = []
   const upToDate: MarketStorePackage[] = []
   for (const name of MARKET_STORE_PACKAGES) {
+    const versions = catalog.packages[name] ?? {}
     const current = currentMarketVersion(home, name)
-    const release = await latestMarketRelease(name, fetcher)
-    if (release === undefined || (current !== undefined && compareMarketVersions(release.version, current) <= 0)) {
+    const newest = Object.keys(versions).sort(compareMarketVersions).at(-1)
+    if (newest === undefined || (current !== undefined && compareMarketVersions(newest, current) <= 0)) {
       upToDate.push(name)
       continue
     }
-    await stageMarketRelease(home, name, release, fetcher)
-    activateMarketRelease(home, name, release.version)
+    await stageMarketRelease(home, name, { ...versions[newest]!, version: newest }, fetcher)
+    activateMarketRelease(home, name, newest)
     projectMarketRelease(home, name)
-    applied.push({ name, from: current, to: release.version })
+    applied.push({ name, from: current, to: newest })
   }
   return { applied, upToDate }
 }
