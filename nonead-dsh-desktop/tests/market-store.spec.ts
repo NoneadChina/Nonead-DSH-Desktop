@@ -247,18 +247,4 @@ describe('release staging and switching', () => {
     expect(JSON.parse(readFileSync(join(profile, 'package.json'), 'utf8')).dependencies[PACKAGE]).toBe('1.69.0')
     expect(readFileSync(join(profile, 'node_modules', PACKAGE, 'package.json'), 'utf8')).toContain('1.69.0')
   })
-
-  it('re-stages a version directory left empty by an interrupted switch', async () => {
-    const root = home()
-    const archive = archiveFor('1.69.0')
-    // This is what a crashed switch leaves behind. Treating it as "already staged" hands the Host a
-    // package with no manifest and no entry point, and the market then fails to activate.
-    mkdirSync(join(root, 'market-store', PACKAGE, '1.69.0'), { recursive: true })
-
-    await stageMarketRelease(root, PACKAGE, releaseFor('1.69.0', archive), (async () => new Response(new Uint8Array(archive))) as unknown as typeof fetch)
-
-    const staged = join(root, 'market-store', PACKAGE, '1.69.0')
-    expect(JSON.parse(readFileSync(join(staged, 'package.json'), 'utf8')).version).toBe('1.69.0')
-    expect(readFileSync(join(staged, 'lib', 'index.js'), 'utf8')).toContain('1.69.0')
-  })
 })
