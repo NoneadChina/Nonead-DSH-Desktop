@@ -1,6 +1,7 @@
 /** Exercise the actual 0.2.1-alpha.5 Host, credentials, Market routes and AA manifest without Electron UI. */
 import assert from 'node:assert/strict'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import crypto from 'node:crypto'
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, rmdirSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { delimiter, join } from 'node:path'
@@ -12,6 +13,36 @@ import { bundledPnpmEntry, createPackageRunner } from '../lib/extensions.js'
 import { forwardWebRequest } from '../lib/web-document.js'
 import { startRecentRegistry } from './fixtures/recent-registry.mjs'
 
+/**
+ * Remove a tree that pnpm filled with junctions.
+ *
+ * `rmSync(recursive)` treats a Windows junction as a directory and then fails on it, leaving the
+ * whole tree behind; every link has to be unlinked on its own before its parent can go.
+ */
+function removeLinkedTree(target) {
+  let entries
+  try { entries = readdirSync(target, { withFileTypes: true }) } catch { return }
+  for (const entry of entries) {
+    const child = join(target, entry.name)
+    let info
+    try { info = lstatSync(child) } catch { continue }
+    if (!info.isDirectory()) {
+      try { rmSync(child, { force: true }) } catch { /* raced with the Host */ }
+      continue
+    }
+    let linked = false
+    try {
+      linked = realpathSync.native(child) !== join(realpathSync.native(target), entry.name)
+    } catch { linked = false }
+    if (linked) {
+      try { rmdirSync(child) } catch { /* already unlinked */ }
+      continue
+    }
+    removeLinkedTree(child)
+    try { rmdirSync(child) } catch { /* raced */ }
+  }
+  try { rmdirSync(target) } catch { /* raced */ }
+}
 const root = fileURLToPath(new URL('..', import.meta.url))
 const home = mkdtempSync(join(tmpdir(), 'nonead-dsh-desktop-host-'))
 const manager = new NextProfiles(home)
@@ -23,10 +54,27 @@ const pnpmInvocation = { command: executable, args: ['--expose-internals', bundl
   ELECTRON_RUN_AS_NODE: '1', DSH_DESKTOP_NODE_EXECUTABLE: executable,
   PATH: `${join(root, 'scripts', 'node-bin')}${delimiter}${process.env.PATH ?? ''}`,
 } }
+const rendererCredential = crypto.randomBytes(32).toString('base64url')
+
+/**
+ * Every Host request carries the renderer header: the Web gate refuses browser-class traffic
+ * without it, and this smoke authenticates on top of that with its own cookie.
+ */
+function hostFetch(url, init = {}) {
+  return fetch(url, { ...init, headers: { ...(init.headers ?? {}), 'x-dsh-desktop-renderer': rendererCredential } })
+}
+/**
+ * The Web gate refuses browser-class traffic without this header, so the smoke presents the same
+ * credential an Electron renderer would and keeps its own cookie-based authentication on top.
+ */
 async function boot(name) {
   host = new DesktopHostProcess(executable, root, manager.directory(name), undefined,
     { ...process.env, DSH_HOME: home, DSH_TELEMETRY_DISABLED: '1' }, undefined, undefined, undefined,
-    join(root, 'scripts', 'fixtures', 'isolated-user-host.mjs'), () => {})
+    join(root, 'scripts', 'fixtures', 'isolated-user-host.mjs'), () => {},
+    // The Host refuses to start without the renderer credential it reads from its private stdin
+    // pipe, so this smoke hands one over even though it authenticates its own requests by cookie.
+    undefined, undefined, undefined, undefined, undefined, undefined, undefined,
+    rendererCredential)
   let timer
   const ready = await Promise.race([
     host.start(), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Next Host smoke exceeded 60 seconds')), 60_000) }),
@@ -35,7 +83,7 @@ async function boot(name) {
   assert.equal(url.hostname, '127.0.0.1')
   assert.ok(Number(url.port) > 0)
   assert.ok(Array.isArray(ready.injections))
-  const login = await fetch(url, { redirect: 'manual' })
+  const login = await hostFetch(url, { redirect: 'manual', headers: { 'x-dsh-desktop-renderer': rendererCredential } })
   assert.equal(login.status, 303)
   const cookie = login.headers.get('set-cookie')?.split(';')[0]
   assert.ok(cookie)
@@ -69,7 +117,7 @@ try {
     'AA must resolve its default shared state inside the smoke user home')
   const rpc = async (method, args = {}) => {
     const rpcId = crypto.randomUUID()
-    const response = await fetch(`${origin}/api/pluginManager/${method}`, {
+    const response = await hostFetch(`${origin}/api/pluginManager/${method}`, {
       method: 'POST', headers: { cookie, origin, 'content-type': 'application/json' },
       body: JSON.stringify({ type: 'client-request', rpcId, method: `pluginManager/${method}`, payload: { args } }),
     })
@@ -152,14 +200,15 @@ try {
   assert.equal(selectedMarket.application, 'applied', JSON.stringify(selectedMarket))
   assert.deepEqual(manager.features('desktop'), { market: true, remoteControl: true })
   assert.equal((await rpc('listPlugins')).some(row => row.moduleName === packages[1] && row.enabled), false)
-  const denied = await fetch(`${origin}/api/community-market/state`)
+  const denied = await hostFetch(`${origin}/api/community-market/state`)
   assert.equal(denied.status, 401)
-  const state = await fetch(`${origin}/api/community-market/state`, { headers: { cookie } })
+  const state = await hostFetch(`${origin}/api/community-market/state`, { headers: { cookie } })
   assert.equal(state.status, 200, await state.clone().text())
   const stateBody = await state.json()
   assert.ok(Array.isArray(stateBody.sources))
   assert.deepEqual(stateBody.desktopActions, { openTerminal: ['darwin', 'win32'].includes(process.platform) })
-  const nativeToken = 'fixture-native-request'
+  // The Host accepts exactly the credential it read from stdin, so forwarded requests reuse it.
+  const nativeToken = rendererCredential
   const call = async (path, body, expected = 200) => {
     // Match the native session marker, including an absent Origin header.
     const request = new Request(`dsh-app://app/api/community-market/${path}`, {
@@ -186,7 +235,7 @@ try {
     assert.equal(response.status, 400, JSON.stringify(payload))
     assert.equal(payload.error, 'plugin is not installed')
   }
-  const untrustedUpdate = await fetch(`${origin}/dsh-market/update`, {
+  const untrustedUpdate = await hostFetch(`${origin}/dsh-market/update`, {
     method: 'POST', headers: { cookie, origin: 'https://example.invalid', 'content-type': 'application/json' }, body: '{}',
   })
   assert.equal(untrustedUpdate.status, 403)
@@ -207,11 +256,11 @@ try {
   // Official plugins and Desktop's own bundles belong to the official Plugins page; the Market lists community plugins only.
   assert.deepEqual(marketInventory.filter(item => item.packageName !== 'fixture-next-plugin'), [], JSON.stringify(marketInventory))
   // This invalid mutation must reach the existing schema gate, with no installation or external requests.
-  const mutation = await fetch(`${origin}/api/community-market/operations/preview`, {
+  const mutation = await hostFetch(`${origin}/api/community-market/operations/preview`, {
     method: 'POST', headers: { cookie, origin, 'content-type': 'application/json' }, body: '{}',
   })
   assert.equal(mutation.status, 400, await mutation.text())
-  const crossOrigin = await fetch(`${origin}/api/community-market/operations/preview`, {
+  const crossOrigin = await hostFetch(`${origin}/api/community-market/operations/preview`, {
     method: 'POST', headers: { cookie, origin: 'https://example.invalid', 'content-type': 'application/json' }, body: '{}',
   })
   assert.equal(crossOrigin.status, 403)
@@ -233,7 +282,7 @@ try {
   assert.equal(removed.restartToken, undefined)
   assert.equal((await call('installations')).installations.some(item => item.packageName === 'fixture-next-plugin'), false)
   assert.equal((await rpc('listBundles')).some(row => row.name === 'fixture-next-plugin' && row.installed), false)
-  const page = await fetch(`${origin}/`, { headers: { cookie } })
+  const page = await hostFetch(`${origin}/`, { headers: { cookie } })
   assert.equal(page.status, 200)
   const html = await page.text()
   assert.ok(html.includes('dsh-community-market'), 'Market client must appear in the boot manifest')
@@ -290,7 +339,7 @@ try {
   await manager.recover('desktop')
   assert.deepEqual(manager.features('desktop'), { remoteControl: false, market: false })
   const recovered = await boot('desktop')
-  const recoveredPage = await fetch(`${recovered.origin}/`, { headers: { cookie: recovered.cookie } })
+  const recoveredPage = await hostFetch(`${recovered.origin}/`, { headers: { cookie: recovered.cookie } })
   assert.equal(recoveredPage.status, 200)
   const recoveredHtml = await recoveredPage.text()
   assert.equal(recoveredHtml.includes('dsh-community-market'), false)
@@ -309,7 +358,7 @@ try {
   }
   const enableMarket = await rpc('setBundleEnabled', { name: 'dsh-community-market', enabled: true })
   assert.equal(enableMarket.application, 'applied', JSON.stringify(enableMarket))
-  const switchedState = await fetch(`${switched.origin}/api/community-market/state`, { headers: { cookie: switched.cookie } })
+  const switchedState = await hostFetch(`${switched.origin}/api/community-market/state`, { headers: { cookie: switched.cookie } })
   assert.equal(switchedState.status, 200)
   await switchedState.body?.cancel()
   await stop()
@@ -319,7 +368,7 @@ try {
     assert.equal(manager.onboardingRequired('computer-use'), false)
     const enabled = await boot('computer-use')
     const rpcId = crypto.randomUUID()
-    const response = await fetch(`${enabled.origin}/api/pluginManager/listPlugins`, {
+    const response = await hostFetch(`${enabled.origin}/api/pluginManager/listPlugins`, {
       method: 'POST', headers: { cookie: enabled.cookie, origin: enabled.origin, 'content-type': 'application/json' },
       body: JSON.stringify({ type: 'client-request', rpcId, method: 'pluginManager/listPlugins', payload: { args: {} } }),
     })
@@ -344,5 +393,5 @@ try {
   await runner?.dispose()
   await host?.stop()
   await registry?.stop()
-  rmSync(home, { recursive: true, force: true })
+  removeLinkedTree(home)
 }

@@ -10954,6 +10954,7 @@ __metadata:
     "@deepseek-ai/dsh-permission-presets": "npm:0.2.1-rc.2"
     "@deepseek-ai/dsh-persona": "npm:0.2.1-rc.2"
     "@deepseek-ai/dsh-plan-mode": "npm:0.2.1-rc.2"
+    "@deepseek-ai/dsh-plugin-manager": "npm:0.2.1-rc.2"
     "@deepseek-ai/dsh-ptc-runtime": "npm:0.2.1-rc.2"
     "@deepseek-ai/dsh-pwsh-local": "npm:0.2.1-rc.2"
     "@deepseek-ai/dsh-pwsh-sandbox": "npm:0.2.1-rc.2"
