@@ -2,7 +2,7 @@
 
 [中文文档](README.md)
 
-This directory is the product and developer documentation index for Nonead DSH Desktop, version **2.1.16**. The root [`README.en.md`](../README.en.md) covers what the product is, what it can do and how to install it; these pages explain why the project exists, how to get more out of it, and how to build plugins for it. Version history lives in the [changelog](../CHANGELOG.en.md).
+This directory is the product and developer documentation index for Nonead DSH Desktop, version **2.1.18**. The root [`README.en.md`](../README.en.md) covers what the product is, what it can do and how to install it; these pages explain why the project exists, how to get more out of it, and how to build plugins for it. Version history lives in the [changelog](../CHANGELOG.en.md).
 
 ## Read by goal
 
@@ -53,7 +53,7 @@ The outer repository has two formal product READMEs plus one legacy compatibilit
 
 `dsh-plugin-desktop-beta/README.md` and `dsh-plugin-desktop-beta/README.zh.md` ship with the npm package and are the more technical package reference. `nonead-dsh-desktop/README.md` and `nonead-dsh-desktop/README.zh.md` describe the Nonead DSH Desktop workspace. `dsh-plugin-desktop-beta/docs/` contains stable API contracts rather than marketing copy. `.agents/notes/implemented/` contains dated maintainer decision records and does not replace user documentation.
 
-`deepseek-harness/` is the pinned upstream submodule: its active channel is `beta`, its current pin is DSH `0.2.1-rc.2` (`687f282e`), and it ships the vendored runtime at `vendor/dsh-runtime/0.2.1-rc.2/`; the other channel, `stable`, is recorded as DSH `0.2.0-rc.2` (`639ed015`). The root `upstream.json` records both channels. Normal builds, typecheck and tests do **not** need that submodule; only `corepack yarn upstream:*` does. Its README and `docs/` belong to the upstream project and are not Desktop documentation.
+`deepseek-harness/` is the pinned upstream submodule: its active channel is `beta`, its current pin is DSH `0.2.1-rc.3` (`1f81c047`), and it ships the vendored runtime at `vendor/dsh-runtime/0.2.1-rc.3/`; the other channel, `stable`, is recorded as DSH `0.2.0-rc.2` (`639ed015`). The root `upstream.json` records both channels. Normal builds, typecheck and tests do **not** need that submodule; only `corepack yarn upstream:*` does. Its README and `docs/` belong to the upstream project and are not Desktop documentation.
 
 ## Status convention
 

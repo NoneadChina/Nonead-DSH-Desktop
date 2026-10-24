@@ -4,7 +4,7 @@ This guide is for people who install and use Nonead DSH Desktop. It covers insta
 
 ## Installation and first launch
 
-Download the macOS or Windows installer from the product download page. The installer already contains Electron, Node.js, pnpm, and a pinned DSH runtime (currently DSH `0.2.1-rc.2`, shipped with the package and never downloaded), so ordinary users do not need to install Node.js or pnpm separately.
+Download the macOS or Windows installer from the product download page. The installer already contains Electron, Node.js, pnpm, and a pinned DSH runtime (currently DSH `0.2.1-rc.3`, shipped with the package and never downloaded), so ordinary users do not need to install Node.js or pnpm separately.
 
 The first launch prepares the default profile and starts the official DSH Web surface locally. The first-run wizard walks through welcome, plugin market, remote control, Computer Use, and recovery mode. The market choice made in the wizard is remembered (choosing "no market" is remembered as well), so reopening the wizard does not ask again. When a tray is available, closing the window only hides it by default; quit from the tray menu instead.
 
