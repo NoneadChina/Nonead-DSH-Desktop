@@ -38,7 +38,7 @@ export function updateLabel(state: NextUpdateState, language: string): string {
     case 'error':
       if (state.error === 'development') return t('开发环境可检查更新，请使用安装版进行更新。', 'Updates can be checked in development. Install a packaged build to update.')
       if (state.error === 'unsupported') return t('当前平台暂不支持应用内更新。', 'In-app updates are unavailable on this platform.')
-      if (state.error === 'service') return t('暂时无法获取 Next 更新，请稍后重试。', 'Next updates are temporarily unavailable. Try again later.')
+      if (state.error === 'service') return t('暂时无法获取 Nonead-DSH-Desktop 更新，请稍后重试。', 'Nonead-DSH-Desktop updates are temporarily unavailable. Try again later.')
       // The verified package survived the failure, so the next attempt must not download it again.
       if (state.error === 'install' && state.retryInstall) return t('安装未完成，已保留安装包，可直接重试。', 'Installation failed. The installer is kept, so you can retry without downloading again.')
       return t('更新未完成，请重试。', 'The update could not be completed. Please retry.')

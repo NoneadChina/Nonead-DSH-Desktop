@@ -180,6 +180,12 @@ export function packageWindowsArtifact(
     options.log('Skipping the Windows package preflight; the package gate already passed.')
   }
   options.prepareRuntime()
+  // A running installation keeps the previous `resources/app.asar` mapped, and electron-builder
+  // cannot unlink that file while it is mapped. `DSH_PACKAGE_OUTPUT_DIR` lets a local build write
+  // to a fresh directory instead; the verifier reads electron-builder's own `outDir`, so it follows
+  // the override without further configuration.
+  const outputDirectory = options.env.DSH_PACKAGE_OUTPUT_DIR
+  if (outputDirectory) options.log(`Packaging into ${outputDirectory} instead of the default output directory.`)
   options.run(
     options.nodeExecutable,
     [
@@ -192,6 +198,7 @@ export function packageWindowsArtifact(
       '--config.win.signExecutable=false',
       '--config.npmRebuild=false',
       ...(compression === undefined ? [] : [`--config.win.compression=${compression}`]),
+      ...(outputDirectory === undefined ? [] : [`--config.directories.output=${outputDirectory}`]),
     ],
     options.desktopRoot,
     electronBuilderEnvironment({
