@@ -1,7 +1,8 @@
 /** Exercise the actual Electron filesystem implementation without opening windows. */
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs'
+import { randomUUID } from 'node:crypto'
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { rm } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
@@ -10,12 +11,23 @@ import { fileURLToPath } from 'node:url'
 
 if (!process.versions.electron) {
   const electron = createRequire(import.meta.url)('electron')
-  const child = spawnSync(electron, [fileURLToPath(import.meta.url)], {
-    env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' }, windowsHide: true,
-    stdio: 'inherit', timeout: 30_000,
-  })
-  if (child.error) throw child.error
-  assert.equal(child.status, 0, 'Electron safe-home cleanup verification failed')
+  // Electron 44's Node cannot create directories under %TEMP% on this host: `mkdir` and
+  // `mkdtemp` both fail with EPERM from inside the Electron process while the same calls
+  // succeed in plain Node. Hand the child a workspace-local TEMP instead of skipping the
+  // check; the directory is removed whether the child passes or fails.
+  const workspaceRoot = resolve(fileURLToPath(new URL('..', import.meta.url)))
+  const sandbox = join(workspaceRoot, `.tmp-safe-cleanup-${String(process.pid)}-${randomUUID()}`)
+  mkdirSync(sandbox)
+  try {
+    const child = spawnSync(electron, [fileURLToPath(import.meta.url)], {
+      env: { ...process.env, ELECTRON_RUN_AS_NODE: '1', TEMP: sandbox, TMP: sandbox, TMPDIR: sandbox },
+      windowsHide: true, stdio: 'inherit', timeout: 30_000,
+    })
+    if (child.error) throw child.error
+    assert.equal(child.status, 0, 'Electron safe-home cleanup verification failed')
+  } finally {
+    rmSync(sandbox, { recursive: true, force: true, maxRetries: 3 })
+  }
 } else {
   const { NextDesktopRuntime } = await import('../lib/desktop-runtime.js')
   for (const action of ['close', 'normal-mode']) for (const fixture of ['readonly', 'external-junction', 'ancestor-junction']) {

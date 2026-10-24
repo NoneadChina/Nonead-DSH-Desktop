@@ -13,6 +13,20 @@ Maintenance conventions:
 - Entries record only changes users can perceive and boundary changes maintainers must know about; pure refactors do not get their own entry.
 - Earlier history lives in the Git tags (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) and in the commit log.
 
+## 2.1.17 — 2026-10-24
+
+Audit fix batch (runtime and dependency pins unchanged; DSH runtime stays at `0.2.1-rc.2`):
+
+- Recovery assistant: when the automatic diagnostics export and a user action refreshed the same document concurrently, the first navigation failed with `ERR_ABORTED`; on the non-action path that failure could be escalated by fail-loud into a full application exit. Refreshes are now serialized, a navigation aborted by window destruction is treated as a normal end, and action-path failures are only logged as diagnostics.
+- Checkpoint reads and degradation: manifest and backup files are opened and then re-checked by inode (`O_NOFOLLOW` + `fstat`), so a path swapped between `lstat` and the read is no longer trusted; a damaged slot no longer fails the whole snapshot list — it is marked unreadable, stays visible but not restorable in the recovery page, and rotation reuses it as the next overwrite target.
+- Settings writes: `settings.yaml` and a Profile's `pnpm-workspace.yaml` are published through a temporary file plus rename, so an interrupted write leaves either the old or the new content instead of half a YAML that loses every setting on the next start.
+- Updates: response bodies are released on the size-limit and decode-failure paths; macOS arms the install handoff before the native stage starts, so quitting no longer deletes the package the local feed is still serving; choosing Quit in a recovery window the user opened is no longer reported as a startup failure (success code), while startup failures stay non-zero.
+- Plugin and state stores: plugin state reads re-check the inode; stale data-lock reclamation tolerates a concurrent `ENOENT`; the damaged-state guard now checks the file it actually protects; runtime staging trees left by a crash are swept before the next publish.
+- Stable shell: the tray-initiated update check dialog is owned by the main window, so it can no longer be buried and lose the answer; the Computer Use switch treats `cancelled` like `failed`; browser guest teardown is bounded (force after 1.5 s, then a 0.5 s grace), the lease is released first, and `browserRelease` no longer hangs forever.
+- Community market and skin: an interrupted pagination request no longer leaves "load more" stuck in loading; the market overlay returns focus when it closes; the injected style declares `data-plugin`, so a later-loaded plugin can no longer claim it and delete it on unload; the package-name grammar matches the Host.
+- Gates and CI: `upstream-command-windows` installs dependencies before `check:layout`; change classification disables rename detection so a source file renamed into a documentation path cannot skip the product gates; the inspector compatibility test anchors on the repository root.
+- Packaging: the Stable shell's `verify:safe-cleanup` now points the Electron child's `TEMP` at a writable workspace directory (Electron 44 on this host is refused directory creation under `%TEMP%`), so the preflight no longer aborts before the installer is produced.
+
 ## 2.1.16 — 2026-10-22
 
 Security hardening and gate fixes (the result of a full audit):
