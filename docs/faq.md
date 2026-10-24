@@ -16,7 +16,7 @@ Nonead DSH Desktop 是面向 Windows 和 macOS 的开源 DeepSeek Harness 桌面
 
 ## 需要先安装 Node.js、pnpm 或 DSH 吗？
 
-不需要。安装包已经包含 Electron、Node.js、pnpm 和固定版本的 DSH 运行时（当前为 DSH `0.2.1-rc.2`）。下载安装后即可启动，Desktop 也不会修改系统全局 PATH 或用户的 shell 配置。
+不需要。安装包已经包含 Electron、Node.js、pnpm 和固定版本的 DSH 运行时（当前为 DSH `0.2.1-rc.3`）。下载安装后即可启动，Desktop 也不会修改系统全局 PATH 或用户的 shell 配置。
 
 ## 首次启动需要联网下载运行环境吗？
 
@@ -24,7 +24,7 @@ Nonead DSH Desktop 是面向 Windows 和 macOS 的开源 DeepSeek Harness 桌面
 
 ## 会修改官方 Harness 吗？
 
-不会。仓库以一个固定的上游 commit 原样引入未修改的官方 Harness（Beta 通道 pin 为 `687f282e`，对应 DSH `0.2.1-rc.2`，记录在根 `upstream.json`）。兼容模式在独立桌面框下运行上游默认 Web 客户端；扩展窗口与增强模式通过插件与 Profile 组合的边界安装桌面侧自己的根注册，并继续承载官方占用者。所有模式都不直接修改上游源码。
+不会。仓库以一个固定的上游 commit 原样引入未修改的官方 Harness（Beta 通道 pin 为 `687f282e`，对应 DSH `0.2.1-rc.3`，记录在根 `upstream.json`）。兼容模式在独立桌面框下运行上游默认 Web 客户端；扩展窗口与增强模式通过插件与 Profile 组合的边界安装桌面侧自己的根注册，并继续承载官方占用者。所有模式都不直接修改上游源码。
 
 ## 数据保存在本地吗？
 

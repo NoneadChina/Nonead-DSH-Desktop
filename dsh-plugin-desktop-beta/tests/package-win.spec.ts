@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   packageWindowsArtifact,
   packageWindowsInstaller,
+  windowsTargetArch,
   type WindowsPackageOptions,
 } from '../scripts/package-win.ts'
 
@@ -24,6 +25,7 @@ function options(calls: CommandCall[], logs: string[] = []): WindowsPackageOptio
     },
     platform: 'win32',
     arch: 'x64',
+    targetArch: 'x64',
     nodeVersion: '22.23.2',
     workspaceRoot: 'C:\\repo',
     desktopRoot: 'C:\\repo\\dsh-plugin-desktop',
@@ -208,5 +210,32 @@ describe('Windows x64 installer packaging', () => {
 
     expect(() => packageWindowsInstaller(value)).toThrow('headless check failed')
     expect(calls).toHaveLength(1)
+  })
+
+  it('packages an arm64 artifact when DSH_PACKAGE_ARCH requests one', () => {
+    const calls: CommandCall[] = []
+    const logs: string[] = []
+    const base = options(calls, logs)
+    const value = {
+      ...base,
+      targetArch: 'arm64' as const,
+      env: { ...base.env, DSH_PACKAGE_CHECK_ALREADY_RAN: '1' },
+    }
+
+    packageWindowsInstaller(value)
+
+    expect(calls[0]?.args).toContain('--arm64')
+    expect(calls[0]?.args).not.toContain('--x64')
+    expect(logs).toEqual([
+      'Building an unsigned Windows arm64 installer; Authenticode is a separate release step.',
+      'Cross-arch build: this x64 host cannot execute the packaged arm64 binaries, so the runtime smokes are skipped.',
+      'Skipping the Windows package preflight; the package gate already passed.',
+    ])
+  })
+
+  it('reads the target CPU from the environment and rejects unknown values', () => {
+    expect(windowsTargetArch({})).toBe('x64')
+    expect(windowsTargetArch({ DSH_PACKAGE_ARCH: 'arm64' })).toBe('arm64')
+    expect(() => windowsTargetArch({ DSH_PACKAGE_ARCH: 'ia64' })).toThrow('DSH_PACKAGE_ARCH must be one of x64, arm64')
   })
 })

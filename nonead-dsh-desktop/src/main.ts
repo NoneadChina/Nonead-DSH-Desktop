@@ -130,8 +130,14 @@ const version = (JSON.parse(readFileSync(NEXT_PACKAGE, 'utf8')) as { version: st
 let dshVersion: string | undefined
 try { dshVersion = readInstalledPackageVersion(root, '@deepseek-ai/dsh') } catch { /* Not installed beside the shell; only diagnostics lose the field. */ }
 const t = (zh: string, en: string): string => windowsLanguage.toLowerCase().startsWith('zh') ? zh : en
-/** The bundled interpreter payload of this CPU: beside the archive when packaged, prepared by `prepare:runtime` in development. */
-const primaryRuntime = join(app.isPackaged ? join(process.resourcesPath, 'runtime') : join(root, '.desktop-build', 'runtime'), process.arch, 'primary-runtime')
+/**
+ * The bundled interpreter payload of this CPU: beside the archive when packaged, prepared by
+ * `prepare:runtime` in development. The payload is pinned for win-x64 only, so an arm64 shell
+ * resolves that slice and lets Windows run the x64 interpreter under its emulation layer instead
+ * of looking for a missing arm64 payload.
+ */
+const runtimeArch = process.platform === 'win32' && process.arch === 'arm64' ? 'x64' : process.arch
+const primaryRuntime = join(app.isPackaged ? join(process.resourcesPath, 'runtime') : join(root, '.desktop-build', 'runtime'), runtimeArch, 'primary-runtime')
 // Variables a user can edit without changing the system environment. They only fill
 // in what the real environment leaves unset; a packaged app has no repository to read.
 const hostEnvFiles: EnvLayer[] = [

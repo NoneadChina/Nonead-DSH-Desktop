@@ -8,5 +8,10 @@ const { version: sourceVersion } = JSON.parse(readFileSync(join(root, 'package.j
 // from the source tree (see scripts/package.ts); electron-builder names the
 // artifact after that override, so the verifier must follow it too.
 const version = process.env.DSH_NONEAD_BUILD_VERSION ?? process.env.DSH_NEXT_BUILD_VERSION ?? sourceVersion
-assertPortableExecutable(join(root, 'dist', `Nonead-DSH-Desktop-${version}-x64-Setup.exe`), 'Next NSIS installer')
-assertPortableExecutable(join(root, 'dist', 'win-unpacked', 'Nonead DSH Desktop.exe'), 'Next application')
+// A cross-arch build writes its own output directory and unpacked folder, and names the artifact
+// after the requested CPU; the verifier always reads what electron-builder actually produced.
+const arch = process.env.DSH_PACKAGE_ARCH ?? 'x64'
+const output = process.env.DSH_PACKAGE_OUTPUT_DIR ?? 'dist'
+const unpacked = arch === 'x64' ? 'win-unpacked' : `win-${arch}-unpacked`
+assertPortableExecutable(join(root, output, `Nonead-DSH-Desktop-${version}-${arch}-Setup.exe`), 'Next NSIS installer')
+assertPortableExecutable(join(root, output, unpacked, 'Nonead DSH Desktop.exe'), 'Next application')

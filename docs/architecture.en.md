@@ -2,7 +2,7 @@
 
 DSH Desktop is a desktop product built around the **unmodified DeepSeek Harness upstream**: an Electron shell plus a Host process that runs the official Web application, with the upstream renderer as the front end. This repository does not change upstream semantics; it fills in what a desktop form factor needs at the process boundary, in profile composition, packaging and the release channel.
 
-This document describes the code as it stands (HEAD `c5896ac`, product version 2.1.16, DSH Beta runtime `0.2.1-rc.2`). Where it disagrees with the code, the code wins.
+This document describes the code as it stands (HEAD `c5896ac`, product version 2.1.16, DSH Beta runtime `0.2.1-rc.3`). Where it disagrees with the code, the code wins.
 
 ## Overview
 
@@ -184,7 +184,7 @@ Four boundaries:
 | Channel | Vendored runtime | Upstream commit | Workspace package |
 | --- | --- | --- | --- |
 | stable | `0.2.0-rc.2` | `639ed015` | `nonead-dsh-desktop` |
-| beta | `0.2.1-rc.2` | `687f282e` | `dsh-plugin-desktop-beta` |
+| beta | `0.2.1-rc.3` | `1f81c047` | `dsh-plugin-desktop-beta` |
 
 Two boundaries to keep straight:
 

@@ -86,13 +86,13 @@ index c808046..72b6d0f 100644
      @property
      def identity(self) -> RuntimeIdentity:
 diff --git a/lib/index.js b/lib/index.js
-index 0dd0c35..64551be 100644
+index 4f66aaf..dcc7ea5 100644
 --- a/lib/index.js
 +++ b/lib/index.js
-@@ -1238,6 +1238,14 @@ async function materializeConnectorProject(config) {
+@@ -1220,6 +1220,14 @@ async function materializeConnectorProject(config) {
+ 	return target;
  }
- //#endregion
- //#region src/host/connector/process.ts
+ // src/host/connector/process.ts
 +/** httpx requires bare IPv6 in NO_PROXY; keep undici's bracketed bypass in the parent. */
 +function connectorEnvironment(environment) {
 +	const result = { ...environment };
@@ -104,7 +104,7 @@ index 0dd0c35..64551be 100644
  const runFile = promisify(execFile);
  const MAX_FRAME = 1048576;
  /**
-@@ -1393,7 +1401,7 @@ var SourceConnector = class {
+@@ -1375,7 +1383,7 @@ var SourceConnector = class {
  			windowsHide: true,
  			detached: process.platform !== "win32",
  			env: {
@@ -113,7 +113,7 @@ index 0dd0c35..64551be 100644
  				AA_CONNECTOR_OWNER_KIND: "dsh-plugin",
  				...this.config.dshHome ? { DSH_HOME: this.config.dshHome } : {},
  				AGENT_CONNECTOR_DATA_DIR: dataDir,
-@@ -1538,6 +1546,12 @@ var SourceConnector = class {
+@@ -1520,6 +1528,12 @@ var SourceConnector = class {
  			this.buffer = this.buffer.slice(newline + 1);
  			try {
  				const frame = JSON.parse(line);
@@ -126,7 +126,7 @@ index 0dd0c35..64551be 100644
  				if (frame.method === "connector/state" && frame.id === void 0) {
  					this.updateState(frame.params);
  					continue;
-@@ -3368,7 +3382,8 @@ function contentHash(item) {
+@@ -3339,7 +3353,8 @@ function contentHash(item) {
  		type: item.type,
  		status: item.status,
  		role: item.role,
@@ -135,17 +135,8 @@ index 0dd0c35..64551be 100644
 +		content: json(item.content)
  	}))}`;
  }
- //#endregion
-@@ -4383,7 +4398,7 @@ var NativeSessionSource = class {
- function openInteractionEvents(wireStream, signal) {
- 	const open = wireStream.open;
- 	const args = ["$events", { args: {} }];
--	if (open.length === 5) args.push((async function* () {})(), void 0, signal);
-+	if (open.length === 5) args.push((async function* () {})(), { signal, interactions: "answer" }, signal);
- 	else if (open.length === 3) args.push(signal);
- 	else throw new Error("Unsupported DSH interaction stream signature.");
- 	return Reflect.apply(open, wireStream, args);
-@@ -5838,6 +5853,7 @@ var SyncFeed = class {
+ // src/host/dsh-runtime/attachments.ts
+@@ -5804,6 +5819,7 @@ var SyncFeed = class {
  	bufferedBytes = 0;
  	receivedCheckpoint;
  	checkpointDirty = /* @__PURE__ */ new Set();
@@ -153,7 +144,7 @@ index 0dd0c35..64551be 100644
  	constructor(native, namespace, notify, failed, ackTimeoutMs = 6e4, durableCheckpoints = false, uploadProgress = false) {
  		this.native = native;
  		this.namespace = namespace;
-@@ -5862,7 +5878,10 @@ var SyncFeed = class {
+@@ -5833,7 +5849,10 @@ var SyncFeed = class {
  				};
  			}
  			if (this.queue.length >= MAX_BUFFER || this.queuedBytes > 16777216) {
@@ -165,7 +156,7 @@ index 0dd0c35..64551be 100644
  				return;
  			}
  			this.queue.push(change);
-@@ -5876,6 +5895,31 @@ var SyncFeed = class {
+@@ -5847,6 +5866,31 @@ var SyncFeed = class {
  			if (!this.closed) this.fail(error);
  		});
  	}

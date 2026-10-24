@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  Product <code>2.1.16</code> · DSH runtime <code>0.2.1-rc.2</code> · Electron 44 · MIT License
+  Product <code>2.1.18</code> · DSH runtime <code>0.2.1-rc.3</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">One-click download, ready to use out of the box.</a></h3>
@@ -66,19 +66,19 @@ Shell and Host communicate over exactly one child-process IPC channel. Switching
 
 | Item | Value |
 | --- | --- |
-| Product version | `2.1.16` (`nonead-dsh-desktop` and `dsh-plugin-desktop-beta` in lockstep) |
+| Product version | `2.1.18` (`nonead-dsh-desktop` and `dsh-plugin-desktop-beta` in lockstep) |
 | Stable-channel workspace | `nonead-dsh-desktop` (root scripts use the `:stable` suffix) |
 | Beta-channel workspace | `dsh-plugin-desktop-beta` (root scripts use the `:beta` suffix) |
-| DSH runtime | `0.2.1-rc.2`, every `@deepseek-ai/dsh*` dependency pinned exactly, runtime vendored |
-| Vendored runtime | `vendor/dsh-runtime/0.2.1-rc.2/` (several historical version directories are kept) |
-| Upstream pin | `687f282e8625c6b8d11ff58211a90524be2e4317` (`channels.beta` in `upstream.json`, mirrored in `nonead-dsh-desktop/upstream-reference.json`) |
+| DSH runtime | `0.2.1-rc.3`, every `@deepseek-ai/dsh*` dependency pinned exactly, runtime vendored |
+| Vendored runtime | `vendor/dsh-runtime/0.2.1-rc.3/` (several historical version directories are kept) |
+| Upstream pin | `1f81c047fc48fa190a683e469daa699857e9afe8` (`channels.beta` in `upstream.json`, mirrored in `nonead-dsh-desktop/upstream-reference.json`) |
 | Electron / packager | Electron `44.0.0` / electron-builder `26.15.7` (patched `app-builder-lib`) |
 | Node / Yarn | Node `^22.19.0` or `>=24.0.0`; Yarn `4.18.0` via Corepack (`nodeLinker: node-modules`) |
 | Plugin market | `dshmarket` `1.66.47`, plus this repository's `dsh-community-market` `0.1.0-dev.0` |
 | Remote-control bridge | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop` (upstream commit `39b82d4`) |
 | Brand skin | `dsh-nonead-client-skin` (shipped in the installer, mounted per profile) |
 
-`upstream.json` records two vendored runtime lines: `stable` maps to upstream `0.2.0-rc.2` and `beta` to upstream `0.2.1-rc.2`. What actually ships inside an installer is the line a workspace pins exactly — currently both desktop workspaces pin `0.2.1-rc.2`. **Channel names describe runtime lines, not the release channel a workspace queries.**
+`upstream.json` records two vendored runtime lines: `stable` maps to upstream `0.2.0-rc.2` and `beta` to upstream `0.2.1-rc.3`. What actually ships inside an installer is the line a workspace pins exactly — currently both desktop workspaces pin `0.2.1-rc.2`. **Channel names describe runtime lines, not the release channel a workspace queries.**
 
 <a id="download"></a>
 
@@ -93,6 +93,8 @@ Official installers cover Windows x64, macOS (Universal, Intel and Apple Silicon
 | Linux x64 | [Download AppImage](https://www.nonead.com/software/ndsh-desktop/downloads/linux) | Make it executable and run: `chmod +x Nonead-DSH-Desktop-*.AppImage && ./Nonead-DSH-Desktop-*.AppImage` |
 
 Linux notes: some distributions need FUSE installed, or you can run with `--appimage-extract-and-run`. In-app update on Linux **only checks the version and never downloads an installer**; upgrade by downloading a fresh AppImage. Use the Beta channel when you need a Linux installer — the stable channel only produces a runnable directory on Linux.
+
+Windows ARM64 is available as an **experimental build only** and is not served by the download links or in-app updates above: the shell is native arm64, but the bundled Python / Node / Office runtime is still the x64 payload (executed through Windows emulation), and the artifact has not been run on ARM hardware yet. Build it yourself with the command under [Common commands](#building-from-source).
 
 Step-by-step usage, profiles and plugin commands are in the [user guide](docs/user-guide.en.md); platform and scope questions are answered in the [FAQ](docs/faq.en.md).
 
@@ -223,6 +225,7 @@ git submodule update --init --recursive
 | `corepack yarn aa:prepare-release` / `aa:check` | Build or verify Agents Anywhere release artifacts |
 | `corepack yarn package:dir:beta` | Produce an unpacked application directory |
 | `corepack yarn dist:win:beta` / `dist:mac:beta` / `dist:win-portable:beta` | Produce platform release artifacts |
+| `DSH_PACKAGE_ARCH=arm64 corepack yarn dist:win:stable` | Produce an experimental Windows ARM64 installer (x64 by default; a cross-arch build skips the smokes that can only run on this host) |
 
 Conventions:
 
@@ -282,6 +285,8 @@ The full history is in the [changelog](CHANGELOG.en.md) ([中文](CHANGELOG.md))
 | Version | Date | Highlights |
 | --- | --- | --- |
 | `2.1.15` | 2026-10-22 | Release notes in the update card, tray and native dialogs, skip-a-version, install retry and snapshot rollback; remembered window state, layered `.env`, `dsh-desktop://` deep links and launch at login; market media preview and install-by-name; `dshmarket` `1.66.45` |
+| `2.1.18` | 2026-10-24 | Runtime moved to DSH `0.2.1-rc.3` (344 packages re-vendored, 24 patches rebased), the Agents Anywhere bridge is built from source with a rebased connector patch, an experimental Windows ARM64 build lands, and the update card copy and progress placement are fixed; includes the 2.1.17 audit fix batch |
+| `2.1.17` | 2026-10-24 | Audit fix batch: recovery refresh race, checkpoint inode re-checks and single-slot degradation, atomic settings writes, update failure-path release, plugin state and staging cleanup, tray dialog ownership, market paging and skin declaration, CI gate fixes |
 | `2.1.16` | 2026-10-22 | Security and gate fixes: CI gates run the base-side classifier, Electron fuses tightened (`NODE_OPTIONS`/`--inspect` closed, Stable loads only from `app.asar`; `runAsNode` kept because the Host/CLI/pnpm shims need it, and now pinned by layout-derived assertions), renderer credential injected over a private pipe, web gate fails closed, deep-link action allowlist, base64url secret masking; the Stable-shell `asarUnpack` / `files[].from` coupling is now pinned by a prefix-deriving test (the existing patterns verified correct), added Stable packaging CI, and `verify-layout` now enforces version parity |
 | `2.1.13` | 2026-10-21 | Runtime moved to DSH `0.2.1-rc.2`, `dshmarket` `1.66.44`, AA bridge `39b82d4`, new boot wordmark and onboarding API-key guidance, AA queue overflow drops events instead of crashing |
 
@@ -290,6 +295,7 @@ The full history is in the [changelog](CHANGELOG.en.md) ([中文](CHANGELOG.md))
 ## Known limitations
 
 - **In-app update on Linux only checks the version** and never downloads an installer; upgrade by downloading a fresh AppImage.
+- **Windows ARM64 ships as an experimental build**: `dist:win:stable` produces only the x64 installer by default; arm64 requires `DSH_PACKAGE_ARCH=arm64` (pair it with `DSH_PACKAGE_OUTPUT_DIR` for a separate output directory). The shell is native arm64 while the bundled runtime stays on the x64 payload (Windows emulation), a cross-arch build skips the run-only smokes, and the update channel currently carries a single `windows` artifact, so it cannot serve x64 and arm64 side by side.
 - **Windows installers are not cryptographically verified yet**: the download path supports a server `installerSha256`, but the version endpoint does not publish it, so only `ProductName` / `ProductVersion` are compared for now (Stable shell only; the Beta shell checks just the installer magic bytes and size, then executes it).
 - **LAN access has no authentication** — it hands this machine's DSH to everyone on the same network segment.
 - **A wrong plugin `inject` service name fails silently** as a permanently pending plugin, showing up only as HTTP 4xx.

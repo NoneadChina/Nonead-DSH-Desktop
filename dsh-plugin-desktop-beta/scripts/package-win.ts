@@ -40,6 +40,30 @@ export function windowsCompressionOverride(
   return value
 }
 
+/** Windows CPUs this packaging path can emit. */
+export const WINDOWS_TARGET_ARCHES = ['x64', 'arm64'] as const
+
+/** A Windows CPU electron-builder can package from an x64 host. */
+export type WindowsTargetArch = (typeof WINDOWS_TARGET_ARCHES)[number]
+
+/**
+ * Read the Windows target CPU from `DSH_PACKAGE_ARCH`.
+ *
+ * The build host must stay x64: the packaging chain executes the packaged binaries to verify them,
+ * and an x64 host cannot run arm64 code. `arm64` therefore produces an artifact this host can only
+ * inspect, never run (see `scripts/verify-fuses.ts`).
+ * @param env - environment of the packaging process.
+ * @returns the requested CPU, `x64` when unset.
+ * @throws When the value is not a supported Windows CPU.
+ */
+export function windowsTargetArch(env: NodeJS.ProcessEnv): WindowsTargetArch {
+  const requested = env.DSH_PACKAGE_ARCH ?? 'x64'
+  if (!(WINDOWS_TARGET_ARCHES as readonly string[]).includes(requested)) {
+    throw new Error(`DSH_PACKAGE_ARCH must be one of ${WINDOWS_TARGET_ARCHES.join(', ')}; received ${requested}`)
+  }
+  return requested as WindowsTargetArch
+}
+
 /** Injectable native Windows packaging boundary used by focused tests. */
 export interface WindowsPackageOptions {
   /** Environment inherited by the packaging command. */
@@ -48,6 +72,8 @@ export interface WindowsPackageOptions {
   readonly platform: NodeJS.Platform
   /** Node architecture executing the package build. */
   readonly arch: string
+  /** Windows CPU the artifact is built for; a cross-arch artifact cannot be executed here. */
+  readonly targetArch: WindowsTargetArch
   /** Node version executing the package build. */
   readonly nodeVersion: string
   /** Repository root containing the Yarn workspace. */
@@ -114,6 +140,7 @@ export function createWindowsPackageOptions(verifier = './verify-win-installer.t
     env: process.env,
     platform: process.platform,
     arch: process.arch,
+    targetArch: windowsTargetArch(process.env),
     nodeVersion: process.versions.node,
     workspaceRoot,
     desktopRoot,
@@ -160,7 +187,10 @@ export function packageWindowsArtifact(
   const compression = windowsCompressionOverride(options.env)
 
   const cleanEnvironment = withoutWindowsSigningSecrets(options.env)
-  options.log(`Building an unsigned Windows x64 ${artifact}; Authenticode is a separate release step.`)
+  options.log(`Building an unsigned Windows ${options.targetArch} ${artifact}; Authenticode is a separate release step.`)
+  if (options.targetArch !== 'x64') {
+    options.log(`Cross-arch build: this ${options.arch} host cannot execute the packaged ${options.targetArch} binaries, so the runtime smokes are skipped.`)
+  }
   if (compression !== undefined) {
     options.log(`Packaging the ${artifact} with ${compression} compression.`)
   }
@@ -192,7 +222,7 @@ export function packageWindowsArtifact(
       options.builderCli,
       '--win',
       target,
-      '--x64',
+      `--${options.targetArch}`,
       '--publish',
       'never',
       '--config.win.signExecutable=false',
