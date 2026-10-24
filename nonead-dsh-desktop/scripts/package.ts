@@ -10,6 +10,7 @@ import { adaptMacReleaseEnvironment, assertMacReleaseReady, withoutMacReleaseSec
 import { packageMacSmoke } from '../../dsh-plugin-desktop-beta/scripts/package-mac.ts'
 import { createWindowsPackageOptions, packageWindowsInstaller } from '../../dsh-plugin-desktop-beta/scripts/package-win.ts'
 import { prepareNextMacRuntime } from './mac-runtime.ts'
+import { targetArch } from './packaged-payload.ts'
 import { runNextPackagingCommand } from './packaging-command.ts'
 import { expectedNextVersion, nextRuntimeBuildPaths, nextRuntimeTargets, prepareNextRuntime, primaryRuntimeDirectory, smokeNextRuntime, verifyNextRuntimeTree } from './prepare-runtime.ts'
 import { signMacRuntime, withMacSigningIdentity } from './sign-runtime.ts'
@@ -118,15 +119,22 @@ if (mode === 'dir') {
     verifier: join(desktopRoot, 'scripts/verify-win-installer.ts') })
 } else if (mode === 'linux') {
   // Linux ships no interpreter payload, so the prepared tree is verified (nothing to check) and only
-  // the archive payload is materialized. AppImage and deb are both unsigned: there is no credential
-  // boundary to cross, and the same overrides Beta's unsigned directory build uses apply here.
+  // the archive payload is materialized. AppImage, deb and rpm are all unsigned: there is no
+  // credential boundary to cross, and the same overrides Beta's unsigned directory build uses apply.
+  // NONEAD_TARGET_ARCH packages the named CPU on any Linux host: the payload descriptor, the file
+  // policy and the artifact names all follow it. A cross-architecture run cannot use this host's
+  // Electron binary, so NONEAD_ELECTRON_DIST must name the unpacked dist of the target CPU.
+  const arch = targetArch()
+  if (arch !== process.arch && process.env.NONEAD_ELECTRON_DIST === undefined) {
+    throw new Error(`Packaging ${arch} on ${process.arch} needs NONEAD_ELECTRON_DIST pointing at the unpacked ${arch} Electron dist`)
+  }
   await prepareInterpreters()
   prepareRuntime()
-  const electronDistPath = join(dirname(require.resolve('electron/package.json')), 'dist')
+  const electronDistPath = process.env.NONEAD_ELECTRON_DIST ?? join(dirname(require.resolve('electron/package.json')), 'dist')
   run(process.execPath, [
     require.resolve('electron-builder/cli.js'),
     '--linux', 'AppImage', 'deb', 'rpm',
-    '--x64',
+    `--${arch}`,
     '--publish', 'never',
     '--config.forceCodeSigning=false',
     '--config.electronDist=' + electronDistPath,

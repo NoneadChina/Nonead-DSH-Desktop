@@ -12,14 +12,26 @@ import { DESKTOP_RUNTIME_FILE, parseDesktopRuntime, verifyPayload, type DesktopR
 export const PAYLOAD_DIR = '.desktop-build/payload'
 
 /**
+ * CPU architecture a Linux package targets. A Linux payload carries one architecture per archive,
+ * so an x64 host seals and verifies an arm64 package by naming the target here instead of reading
+ * the host CPU; every other platform ignores it.
+ * @param env - Environment holding the optional target override.
+ * @returns Electron architecture name used by the payload descriptor and the file policy.
+ */
+export function targetArch(env: NodeJS.ProcessEnv = process.env): string {
+  const arch = env.NONEAD_TARGET_ARCH
+  return arch === undefined || arch === '' ? process.arch : arch
+}
+
+/**
  * Architectures whose native dependencies one Next package carries.
  * macOS releases are universal and the Yarn tree installs both Darwin CPU variants, so even a
  * single-architecture directory build ships both; Windows releases are x64 only.
  * @param platform - Electron platform being packaged.
- * @param hostArch - Build host architecture, used for platforms without a release target.
+ * @param hostArch - Target architecture, used for platforms without a release target.
  * @returns Platform and architectures recorded in the payload descriptor.
  */
-export function nextPackagingTarget(platform: NodeJS.Platform, hostArch: string = process.arch): NextPackagingTarget {
+export function nextPackagingTarget(platform: NodeJS.Platform, hostArch: string = targetArch()): NextPackagingTarget {
   if (platform === 'darwin') return { platform, archs: ['arm64', 'x64'] }
   if (platform === 'win32') return { platform, archs: ['x64'] }
   return { platform, archs: [hostArch] }
