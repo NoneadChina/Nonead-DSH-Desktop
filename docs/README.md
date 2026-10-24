@@ -2,7 +2,7 @@
 
 [English documentation](README.en.md)
 
-这里是 Nonead DSH Desktop 的产品与开发文档入口，对应产品版本 **2.1.16**。根目录的 [`README.md`](../README.md) 负责"这是什么、能做什么、怎么装"；本目录解释项目为什么存在、怎么用得更顺，以及如何为 Desktop 编写插件。版本变更见[更新日志](../CHANGELOG.md)。
+这里是 Nonead DSH Desktop 的产品与开发文档入口，对应产品版本 **2.1.18**。根目录的 [`README.md`](../README.md) 负责"这是什么、能做什么、怎么装"；本目录解释项目为什么存在、怎么用得更顺，以及如何为 Desktop 编写插件。版本变更见[更新日志](../CHANGELOG.md)。
 
 ## 按目标阅读
 
@@ -53,7 +53,7 @@
 
 `dsh-plugin-desktop-beta/README.md` 与 `dsh-plugin-desktop-beta/README.zh.md` 是 npm 包随包发布的包级参考，比根 README 更技术化；`nonead-dsh-desktop/README.md`（英文）与 `nonead-dsh-desktop/README.zh.md`（中文）介绍 Nonead DSH Desktop 工作区；`dsh-plugin-desktop-beta/docs/` 是稳定 API 合同，不是营销页；`.agents/notes/implemented/` 是日期化的维护者决策记录，适合追溯取舍，不替代用户文档。
 
-`deepseek-harness/` 是固定版本的官方上游子模块：活动通道为 `beta`，当前 pin 为 DSH `0.2.1-rc.2`（`687f282e`），随附 vendored 运行时 `vendor/dsh-runtime/0.2.1-rc.2/`；另一个通道 `stable` 记录为 DSH `0.2.0-rc.2`（`639ed015`）。两个通道的记录都在根 `upstream.json`。常规构建、类型检查与测试**不需要**该子模块，只有 `corepack yarn upstream:*` 需要上游源码。它自己的 README 与 `docs/` 属于上游项目，不能当作 Desktop 文档。
+`deepseek-harness/` 是固定版本的官方上游子模块：活动通道为 `beta`，当前 pin 为 DSH `0.2.1-rc.3`（`1f81c047`），随附 vendored 运行时 `vendor/dsh-runtime/0.2.1-rc.3/`；另一个通道 `stable` 记录为 DSH `0.2.0-rc.2`（`639ed015`）。两个通道的记录都在根 `upstream.json`。常规构建、类型检查与测试**不需要**该子模块，只有 `corepack yarn upstream:*` 需要上游源码。它自己的 README 与 `docs/` 属于上游项目，不能当作 Desktop 文档。
 
 ## 状态约定
 

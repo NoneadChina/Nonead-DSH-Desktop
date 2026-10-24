@@ -78,7 +78,7 @@ Shell and Host communicate over exactly one child-process IPC channel. Switching
 | Remote-control bridge | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop` (upstream commit `39b82d4`) |
 | Brand skin | `dsh-nonead-client-skin` (shipped in the installer, mounted per profile) |
 
-`upstream.json` records two vendored runtime lines: `stable` maps to upstream `0.2.0-rc.2` and `beta` to upstream `0.2.1-rc.3`. What actually ships inside an installer is the line a workspace pins exactly — currently both desktop workspaces pin `0.2.1-rc.2`. **Channel names describe runtime lines, not the release channel a workspace queries.**
+`upstream.json` records two vendored runtime lines: `stable` maps to upstream `0.2.0-rc.2` and `beta` to upstream `0.2.1-rc.3`. What actually ships inside an installer is the line a workspace pins exactly — currently both desktop workspaces pin `0.2.1-rc.3`. **Channel names describe runtime lines, not the release channel a workspace queries.**
 
 <a id="download"></a>
 

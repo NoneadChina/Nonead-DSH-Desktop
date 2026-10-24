@@ -1,6 +1,6 @@
 # Nonead DSH Desktop 常见问题
 
-本页回答安装、平台、运行环境、插件、更新与网络相关的常见疑问，针对当前版本 2.1.16。功能范围以[最新 GitHub Release](https://github.com/anywhere-labs/deepseek-harness-desktop/releases/latest)和[用户指南](user-guide.md)为准；具体的界面操作与限制在用户指南里写得更细。
+本页回答安装、平台、运行环境、插件、更新与网络相关的常见疑问，针对当前版本 2.1.18。功能范围以[最新 GitHub Release](https://github.com/anywhere-labs/deepseek-harness-desktop/releases/latest)和[用户指南](user-guide.md)为准；具体的界面操作与限制在用户指南里写得更细。
 
 ## Nonead DSH Desktop 是什么？
 
@@ -24,7 +24,7 @@ Nonead DSH Desktop 是面向 Windows 和 macOS 的开源 DeepSeek Harness 桌面
 
 ## 会修改官方 Harness 吗？
 
-不会。仓库以一个固定的上游 commit 原样引入未修改的官方 Harness（Beta 通道 pin 为 `687f282e`，对应 DSH `0.2.1-rc.3`，记录在根 `upstream.json`）。兼容模式在独立桌面框下运行上游默认 Web 客户端；扩展窗口与增强模式通过插件与 Profile 组合的边界安装桌面侧自己的根注册，并继续承载官方占用者。所有模式都不直接修改上游源码。
+不会。仓库以一个固定的上游 commit 原样引入未修改的官方 Harness（Beta 通道 pin 为 `1f81c047`，对应 DSH `0.2.1-rc.3`，记录在根 `upstream.json`）。兼容模式在独立桌面框下运行上游默认 Web 客户端；扩展窗口与增强模式通过插件与 Profile 组合的边界安装桌面侧自己的根注册，并继续承载官方占用者。所有模式都不直接修改上游源码。
 
 ## 数据保存在本地吗？
 

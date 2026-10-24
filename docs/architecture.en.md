@@ -2,7 +2,7 @@
 
 DSH Desktop is a desktop product built around the **unmodified DeepSeek Harness upstream**: an Electron shell plus a Host process that runs the official Web application, with the upstream renderer as the front end. This repository does not change upstream semantics; it fills in what a desktop form factor needs at the process boundary, in profile composition, packaging and the release channel.
 
-This document describes the code as it stands (HEAD `c5896ac`, product version 2.1.16, DSH Beta runtime `0.2.1-rc.3`). Where it disagrees with the code, the code wins.
+This document describes the code as it stands (HEAD `f89d121`, product version 2.1.18, DSH Beta runtime `0.2.1-rc.3`). Where it disagrees with the code, the code wins.
 
 ## Overview
 
@@ -29,7 +29,7 @@ There are two shells in this repository and they are **two different implementat
 | Control channel | Private RPC (`{ kind, id, method, args }`) | Node named IPC messages (`process.send`) |
 | Renderer credential | 32 bytes per generation, base64url, same HTTP header | Same header, constant lives in `src/desktop-contract.ts` |
 
-Both shells are at version 2.1.16 and their feature sets largely match, but their Host lifecycles are entirely different. Before relying on any statement below, check which shell it applies to.
+Both shells are at version 2.1.18 and their feature sets largely match, but their Host lifecycles are entirely different. Before relying on any statement below, check which shell it applies to.
 
 ## Startup order
 
