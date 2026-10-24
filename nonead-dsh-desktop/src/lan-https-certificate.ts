@@ -11,6 +11,7 @@ import { chmod, lstat, mkdir, open } from 'node:fs/promises'
 import { isAbsolute, join, resolve } from 'node:path'
 import { withFileLock, writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
 import { generate } from 'selfsigned'
+import { isLinkedPath } from './private-files.ts'
 
 const STATE_DIRECTORY_NAME = 'lan-https'
 const STATE_FILENAME = 'ca.json'
@@ -197,7 +198,7 @@ async function requireAvailableProtector(
 async function prepareStateDirectory(userDataDir: string, stateDirectory: string): Promise<void> {
   try {
     const userDataInfo = await lstat(userDataDir)
-    if (!userDataInfo.isDirectory() || userDataInfo.isSymbolicLink()) {
+    if (!userDataInfo.isDirectory() || isLinkedPath(userDataDir)) {
       throw certificateError('certificate-state', 'LAN HTTPS userData must be an ordinary directory.')
     }
     try {
@@ -207,7 +208,7 @@ async function prepareStateDirectory(userDataDir: string, stateDirectory: string
       if ((cause as NodeJS.ErrnoException).code !== 'EEXIST') throw cause
     }
     const stateInfo = await lstat(stateDirectory)
-    if (!stateInfo.isDirectory() || stateInfo.isSymbolicLink()) {
+    if (!stateInfo.isDirectory() || isLinkedPath(stateDirectory)) {
       throw certificateError('certificate-state', 'LAN HTTPS state directory must be an ordinary directory.')
     }
     if (CHECK_POSIX_MODE && (stateInfo.mode & 0o777) !== PRIVATE_DIRECTORY_MODE) {
@@ -227,7 +228,7 @@ async function readPrivateStateFile(statePath: string): Promise<string | undefin
     if ((cause as NodeJS.ErrnoException).code === 'ENOENT') return undefined
     throw certificateError('certificate-state', 'LAN HTTPS CA state could not be inspected.', cause)
   }
-  if (!pathInfo.isFile() || pathInfo.isSymbolicLink()) {
+  if (!pathInfo.isFile() || isLinkedPath(statePath)) {
     throw certificateError('certificate-state', 'LAN HTTPS CA state must be an ordinary file.')
   }
   assertPrivateFile(pathInfo.mode, pathInfo.size)

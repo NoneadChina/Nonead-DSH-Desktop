@@ -11,6 +11,7 @@ import { loadNextProfile, NEXT_PACKAGE, readNextProfilePatches } from '../profil
 import { bundledPnpmEntry } from '../extensions.ts'
 import { withDesktopPnpmPolicy } from '../pnpm-policy.ts'
 import { configureNextBrowserAccess } from '../desktop-browser-access.ts'
+import { readRendererCredential } from './credential.ts'
 import { parsePreferences } from '../desktop-preferences.ts'
 import { atomicJson } from '../private-files.ts'
 import { existingPath, LEGACY } from '../legacy-names.ts'
@@ -34,6 +35,9 @@ export async function main(): Promise<void> {
   const primaryRuntime = process.argv[4]
   const home = process.env.DSH_HOME
   if (!runtimeDir || !projectDir || !home || !process.send) throw new Error('Next Host requires runtime, profile, home and IPC')
+  // The renderer credential arrives on the private stdin pipe the launcher writes and closes;
+  // it never travels in the environment, where any same-user process could read it.
+  const rendererCredential = await readRendererCredential()
   // The Office engine runs as a native child process, so an archived payload resolves it to its unpacked copy.
   installOfficeEngineResolution(runtimeDir)
   // The Creator preset reads its skills through the Host's filesystem service, which cannot stat inside the archive.
@@ -48,9 +52,10 @@ export async function main(): Promise<void> {
   const trustedHosts = JSON.parse(process.env.DSH_NONEAD_TRUSTED_HOSTS ?? process.env.DSH_NEXT_TRUSTED_HOSTS ?? '[]') as unknown
   if (!Array.isArray(trustedHosts) || trustedHosts.some(host => typeof host !== 'string')) throw new Error('Invalid Next trusted hosts')
   const systemProxy = parseSystemProxyProbe(process.env[SYSTEM_PROXY_ENV] ?? process.env.DSH_NEXT_SYSTEM_PROXY)
-  configureNextBrowserAccess(process.env.DSH_NONEAD_NATIVE_TOKEN ?? process.env.DSH_NEXT_NATIVE_TOKEN, preferences.browserAccess)
+  configureNextBrowserAccess(rendererCredential, preferences.browserAccess)
   // The `DSH_NEXT_*` spellings are the pre-rename names of the same hand-off
-  // variables; both are cleared so neither reaches a child process.
+  // variables. The credential no longer uses either spelling; every hand-off name is
+  // still cleared so a stale launcher cannot push one into a child process.
   delete process.env.DSH_NONEAD_NATIVE_TOKEN
   delete process.env.DSH_NEXT_NATIVE_TOKEN
   delete process.env.DSH_NONEAD_PREFERENCES

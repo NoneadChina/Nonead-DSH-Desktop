@@ -1,15 +1,6 @@
+import { cleanupDisposableTree } from '../src/disposable-tree.ts'
 import { createHash } from 'node:crypto'
-import {
-  chmodSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  readdirSync,
-  rmSync,
-  statSync,
-  symlinkSync,
-  writeFileSync,
-} from 'node:fs'
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -62,7 +53,7 @@ function temporaryDirectory(label: string): string {
 
 afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) {
-    rmSync(directory, { recursive: true, force: true })
+    cleanupDisposableTree(directory)
   }
 })
 
@@ -330,7 +321,9 @@ describe('Desktop Setup Wizard state', () => {
     expect(() => readDesktopSetupWizardState(userData, profile)).toThrow('permissions must be 700')
   })
 
-  it('never follows a marker symlink for read, replacement, or clear', async () => {
+  // Needs the privilege to create a file symlink, which a non-elevated Windows process does not have.
+  // POSIX CI covers the link-refusal logic; junctions are covered by the link-guard suites.
+  it.skipIf(process.platform === 'win32')('never follows a marker symlink for read, replacement, or clear', async () => {
     const userData = temporaryDirectory('dsh-setup-state-user-')
     const profile = temporaryDirectory('dsh-setup-state-profile-')
     const outside = join(temporaryDirectory('dsh-setup-state-outside-'), 'outside.json')

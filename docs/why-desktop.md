@@ -1,51 +1,77 @@
 # 为什么做 Nonead DSH Desktop
 
+这篇文档说明 Nonead DSH Desktop 存在的理由：它替用户承担了哪些本该由操作系统承担的工作，为什么这些能力必须以插件和 Profile 的形式加在未修改的上游 Harness 之上，以及它明确不做什么。当前版本为 2.1.15。
+
 ## 我们解决什么问题
 
-DeepSeek Harness 的核心是一个可组合的 agent harness。它适合通过命令行和 Web UI 使用，也适合开发者把模型、工具、会话和工作流组合成自己的运行时。但对很多用户来说，第一次运行仍然要面对 Node.js、profile、依赖安装、端口和进程生命周期。
+DeepSeek Harness 的核心是一个可组合的 agent harness：它适合通过命令行与 Web 界面使用，也适合开发者把模型、工具、会话和工作流组合成自己的运行时。但普通用户第一次运行时，仍要面对 Node.js 运行时、Profile 与依赖安装、端口选择、进程生命周期这些与“用起来”无关的事情。
 
-Nonead DSH Desktop 的目标不是重新实现 Harness，而是把同一个运行时放进一个容易启动、容易管理、符合操作系统习惯的应用里：
+Nonead DSH Desktop 的目标不是重新实现 Harness，而是把同一个运行时放进一个容易启动、容易管理、符合操作系统习惯的应用里：安装包负责提供 Electron、Node 与固定版本的 DSH 依赖，应用负责窗口、托盘、单实例、退出与本地服务生命周期，用户继续使用官方 DSH 的 Profile、插件、会话与 Web 界面。
 
-- 安装包负责提供 Electron、Node 运行时和固定版本的 DSH 依赖。
-- 应用负责窗口、托盘、单实例、退出和本地服务生命周期。
-- 用户仍然使用官方 DSH 的 profile、插件、会话和 Web UI。
-- 上游 Harness 继续拥有 agent、模型、工具、会话和 Web 客户端的核心语义。
+## 三层职责
 
-因此 Desktop 是一个产品入口和运行时适配层，不是上游项目的替代品，也不是把上游源码复制一份再长期分叉。
+| 层 | 负责什么 |
+| --- | --- |
+| 上游 DeepSeek Harness | agent、模型、工具、会话与 Web 客户端的核心语义；以固定 commit 原样引入 |
+| Profile | DSH bundle、依赖与 patch 的组合；切换即有序重启，失败可回退 |
+| Nonead DSH Desktop | 窗口与托盘、终端、更新、配置恢复、深链接与系统集成，以及 Host 生命周期 |
+
+边界一旦含糊，升级就会变贵。所以 Desktop 只在自己这一层解决问题：上游定义语义，Profile 定义组合，桌面壳定义操作系统层面的交互。
 
 ## 为什么坚持插件化
 
-“一切皆插件”让 Harness 的能力可以被组合，而不是被一个固定应用绑死。Desktop 采用同一原则有三个直接好处：
+“一切皆插件”让 Harness 的能力可以被组合，而不是被一个固定应用绑死。Desktop 采用同一原则有三个直接好处：上游能力保持可替换（可以使用官方 Web 客户端，用户 Profile 也可以加入模型、工具、界面与工作流插件）；桌面能力保持可扩展（窗口、托盘、更新等能力通过明确的 Host service 暴露，而不是让插件去猜 Electron 的内部对象）；边界更容易维护（第三方插件只依赖自己真正需要的 contract）。
 
-1. **上游能力保持可替换。** Desktop 可以使用官方 Web client，用户的 profile 也可以加入模型、工具、界面和工作流插件。
-2. **桌面能力保持可扩展。** profile 管理和打包环境提供的能力可以通过明确的 Host service 给插件使用，而不是让每个插件猜 Electron 的内部对象。
-3. **边界更容易维护。** 上游 DSH 负责 agent 语义，Desktop 负责原生窗口和系统集成，第三方插件只依赖自己真正需要的 contract。
+插件化也意味着不是所有东西都该暴露。第三方插件只能使用明确公开的接口，不能直接控制窗口、托盘、安装器等内部实现；稳定的边界比“什么都能访问”更容易升级和排错。接口细节见[插件开发](plugin-development.md)。
 
-插件化也意味着不是所有东西都应该暴露。第三方插件只能使用明确公开的接口，不能直接控制窗口、托盘、安装器等内部实现；稳定的边界比“什么都能访问”更容易升级和排错。公开接口的细节见[插件开发](plugin-development.md)。
+## 桌面日常由 Desktop 补齐
 
-## Desktop 自己提供什么
+Harness 本身不关心窗口该开在哪块屏、更新该不该打扰人、环境变量该由谁补。这些“桌面日常”在 2.1.15 已经比较完整：
 
-当前 Desktop 主要提供：
+- **窗口**：记住主窗口位置与尺寸，恢复前校验它仍与已挂载的显示器相交，拔掉外接屏不会还原到屏外。
+- **托盘与原生交互**：关闭窗口默认隐藏到托盘，确认、警告与结果使用独立原生对话框，而不是侵入官方页面。
+- **开机自启**：读取操作系统记录的实际状态，系统拒绝登记时开关照实显示为关闭。
+- **更新**：可以显示发行说明、持久化“跳过此版本”、安装失败后重试（不重新下载），以及回滚到任一已存配置快照。
+- **入口**：注册 `dsh-desktop://` 协议，`dsh-desktop://settings/general` 这类链接可以直接打开设置。
+- **环境**：`.env` 严格分层，只补齐 Host 子进程缺失的变量，不覆盖已有环境，也不改写 `process.env`。
+- **并发安全**：Profile 配置的读、改、写由单一写入者串行执行，同时保存多个设置不会写出半截文件。
+- **可观测**：界面里的未处理错误显示在提示区，不必打开开发者工具才发现。
+- **插件市场**：支持非图片媒体预览与按名字安装，向导里“跳过市场”的选择也会被记住。
 
-- macOS 和 Windows 原生窗口、托盘和单实例生命周期。
-- 兼容、扩展窗口和增强三种呈现模式。兼容模式在独立 Desktop frame 下保留上游默认客户端；扩展窗口使用自己独立注册的 Desktop layout/sidebar surface 承载官方 occupant 并形成倒 L；增强模式保留独立 root registration 与紧凑内部 caption。Desktop frame 还会按能力提供原生材质与拖动区域。
-- 多 profile 选择。当前 generation 的 profile 身份由 Desktop 明确提供，切换通过有序重启生效。
-- 内置的 DSH Community Market 插件市场：从 Profile 的 bundles 中选择，与 `dsh-market` 互斥。
-- 内置终端和固定版本 pnpm 环境。它们只作用于 Desktop 自己创建的进程，不修改用户的全局 PATH。
-- 随安装包分发的品牌皮肤插件 `dsh-nonead-client-skin`，由 Profile 组合为每个 Profile 默认加载。
-- 面向插件开发者的一组受控扩展接口（详见[插件开发](plugin-development.md)）。
-- 版本检查、用户确认后的安装包下载，以及 macOS DMG/Windows NSIS 的平台交接。
+## 为什么不改上游
+
+仓库以一个固定的上游 commit 原样引入未修改的官方 Harness，pin 记录在根 `upstream.json`。兼容模式在独立桌面框下运行上游默认 Web 客户端，不覆盖它的 layout、sidebar 或 conversation 组合；扩展窗口与增强模式通过插件与 Profile 组合的边界安装桌面侧自己的根注册，并继续承载官方占用者。
+
+这样做换来的是可替换性：上游升级时可以整体替换运行时，而不是先合并一个长期分叉。代价是桌面能力必须通过公开的扩展点实现，做不到的事情就如实写成限制，而不是悄悄改上游。
 
 ## 我们刻意不做什么
 
-- 不把上游 Web UI 重新实现成 Electron 原生页面。
-- 不在兼容模式中覆盖上游 layout、sidebar 或 conversation 组合。
-- 不把记录复制到另一个“Desktop 数据库”；官方 profile 默认共享 DSH home 中的会话和设置。
-- 不给第三方插件一个未定义的 Electron 私有 API。
-- 不把 roadmap（手机远程控制）写成当前版本已经交付的功能。
+- 不把上游 Web 界面重新实现成 Electron 原生页面。
+- 不在兼容模式里覆盖上游的 layout、sidebar 或 conversation 组合。
+- 不建另一套“Desktop 数据库”：官方 Profile 默认共享 DSH home 里的会话与设置。
+- 不给第三方插件未定义的 Electron 私有 API。
+- 不把尚未交付的路线图功能写成现有能力。
+- 不在更新请求里携带账号或机器指纹：请求只带随机安装标识、安装版本与发布通道。
+
+## 已知限制
+
+这些限制是当前实现的选择，不是待修的顺序问题：
+
+- **Windows 更新包没有密码学校验**：2.1.15 撤销了此前引入的签名与发布者校验，当前只比对 PE 版本资源里的 `ProductName` 与 `ProductVersion`；macOS 侧仍校验磁盘映像内应用的身份、版本与签名团队；两项校验都只存在于稳定壳，Beta 壳的下载侧只校验安装包魔数与大小后直接执行。
+- **Linux 应用内更新只检查版本**：不会下载或安装安装包，升级需要重新下载 AppImage。
+- **上游没有的能力不会凭空出现**：桌面版是入口与适配层，不扩大 Harness 的模型或工具能力。
+- **固定端口冲突**：Nonead DSH Desktop 会直接启动失败（需要释放端口或改回 `0`），Beta 则会顺延到后续端口。
 
 ## 适合谁
 
 - 只想安装后直接使用 Harness 的用户：从[用户指南](user-guide.md)开始。
 - 想安装或开发 DSH 插件的用户：先读[插件开发](plugin-development.md)，再看 [Desktop service contract](../dsh-plugin-desktop-beta/docs/plugin-services.md)。
-- 想理解启动、profile 和打包边界的维护者：阅读[架构说明](architecture.md)和包级 [README](../dsh-plugin-desktop-beta/README.md)。
+- 想理解启动、Profile 与打包边界的维护者：阅读[架构](architecture.md)和[包级 README](../dsh-plugin-desktop-beta/README.md)。
+
+## 相关文档
+
+- [用户指南](user-guide.md)
+- [常见问题](faq.md)
+- [架构](architecture.md)
+- [插件生态](plugin-ecosystem.md)
+- [文档索引](README.md)

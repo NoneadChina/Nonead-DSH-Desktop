@@ -72,7 +72,7 @@ export interface ClosurePackage {
 function installedPackage(installedModules: string, name: string): { source: string; version: string } | undefined {
   const directory = join(installedModules, name)
   if (!existsSync(join(directory, 'package.json'))) return undefined
-  const source = realpathSync(directory)
+  const source = realpathSync.native(directory)
   return { source, version: readManifest(source).version ?? '' }
 }
 
@@ -87,7 +87,7 @@ function installedPackage(installedModules: string, name: string): { source: str
  * @returns Packages sorted by destination.
  */
 export function collectProductionClosure(desktopRoot: string): ClosurePackage[] {
-  const root = realpathSync(desktopRoot)
+  const root = realpathSync.native(desktopRoot)
   const installedModules = join(root, 'node_modules')
   const installedPlacement = (source: string): string | undefined => {
     const rel = relative(installedModules, source)
@@ -115,7 +115,7 @@ export function collectProductionClosure(desktopRoot: string): ClosurePackage[] 
         if (required.includes(name)) throw new Error(`Next payload: dependency ${name} required by ${dependent} is not installed`)
         continue
       }
-      let source = realpathSync(installed)
+      let source = realpathSync.native(installed)
       let destination = installedPlacement(source)
       if (destination === undefined) {
         const version = readManifest(source).version ?? ''

@@ -54,9 +54,14 @@ export async function startIsolatedDesktopHost(options: IsolatedHostOptions): Pr
   const stderrLog = createProcessOutputLogging('stderr', () => child.pid)
   child.stdout?.on('data', (data: Buffer) => { process.stdout.write(data); stdoutLog.write(data) })
   child.stdout?.once('end', () => stdoutLog.end())
-  child.stderr?.once('end', () => stderrLog.end())
   const stderrDecoder = new StringDecoder('utf8')
   let stderrTail = ''
+  child.stderr?.once('end', () => {
+    // Flush the decoder's buffered tail before closing the log: the exit evidence has to carry
+    // the final bytes a fatal Host wrote, including an incomplete multi-byte sequence.
+    stderrTail = (stderrTail + stderrDecoder.end()).slice(-HOST_STDERR_TAIL_CHARS)
+    stderrLog.end()
+  })
   child.stderr?.on('data', (data: Buffer) => {
     process.stderr.write(data)
     stderrLog.write(data)

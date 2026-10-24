@@ -1,5 +1,6 @@
 /** App-local command environments available to desktop Host plugins. */
 
+import { isLinkedPath } from './fs-links.ts'
 import { createHash, randomUUID } from 'node:crypto'
 import {
   chmodSync,
@@ -28,6 +29,10 @@ const PRIVATE_FILE_MODE = 0o600
 const GENERATION_SCHEMA_VERSION = 1
 const GENERATION_NAME = /^(?<hash>[0-9a-f]{64})-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u
 const MANIFEST_NAME = '.generation.json'
+/** Private staging tree written before {@link createRuntimeGeneration} publishes one rename. */
+const STAGING_NAME = /^\.staging\.(?<pid>[0-9]+)\.[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u
+/** Age below which a staging tree is never considered abandoned. */
+const STALE_STAGING_MIN_AGE_MS = 15 * 60 * 1000
 
 /** Inputs used to install one app-local pnpm command environment. */
 export interface DesktopPnpmRuntimeOptions {
@@ -114,7 +119,7 @@ function escapeBatchSetValue(value: string): string {
 function preparePrivateDirectory(directory: string): void {
   mkdirSync(directory, { recursive: true, mode: DIRECTORY_MODE })
   const stat = lstatSync(directory)
-  if (!stat.isDirectory() || stat.isSymbolicLink()) {
+  if (!stat.isDirectory() || isLinkedPath(directory)) {
     throw new Error(`dsh-plugin-desktop: command runtime path is not a private directory: ${directory}`)
   }
   chmodSync(directory, DIRECTORY_MODE)
@@ -213,14 +218,14 @@ function generationPath(root: string, relativePath: string): string {
 function generationTree(root: string): { directories: string[]; files: string[] } | undefined {
   try {
     const rootStat = lstatSync(root)
-    if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) return undefined
+    if (!rootStat.isDirectory() || isLinkedPath(root)) return undefined
     const directories: string[] = []
     const files: string[] = []
     const visit = (directory: string, prefix: string): boolean => {
       for (const entry of readdirSync(directory)) {
         const relativePath = prefix.length === 0 ? entry : `${prefix}/${entry}`
         const stat = lstatSync(join(directory, entry))
-        if (stat.isSymbolicLink()) return false
+        if (isLinkedPath(join(directory, entry))) return false
         if (stat.isDirectory()) {
           directories.push(relativePath)
           if (!visit(join(directory, entry), relativePath)) return false
@@ -252,7 +257,7 @@ function reusableGeneration(root: string, plan: RuntimeGenerationPlan): boolean 
     for (const artifact of plan.artifacts) {
       const filename = generationPath(root, artifact.relativePath)
       const stat = lstatSync(filename)
-      if (!stat.isFile() || stat.isSymbolicLink()) return false
+      if (!stat.isFile() || isLinkedPath(filename)) return false
       if (process.platform !== 'win32' && (stat.mode & 0o777) !== artifact.mode) return false
       if (readFileSync(filename, 'utf8') !== artifact.contents) return false
     }
@@ -305,11 +310,65 @@ function createRuntimeGeneration(generationsDir: string, plan: RuntimeGeneration
   }
 }
 
+/** Whether one recorded owner process id is still alive; "cannot tell" counts as alive. */
+function processAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch (cause) {
+    return (cause as NodeJS.ErrnoException).code !== 'ESRCH'
+  }
+}
+
+/**
+ * Remove staging trees left behind by a process that died before publishing its generation.
+ *
+ * {@link createRuntimeGeneration} publishes with one rename and only removes its own staging on
+ * failure, so a process killed mid-materialization leaves the directory behind forever. Ownership
+ * is decided from the name (the pid) plus the directory mtime, and both conditions must hold:
+ * this run's own pid is never touched, a live pid is never touched (its tree may be half written,
+ * and a stale pid may also have been reused by an unrelated process), and a tree younger than
+ * {@link STALE_STAGING_MIN_AGE_MS} is never touched because its owner may still be exiting. A tree
+ * whose age cannot be read is left alone rather than guessed at.
+ * @param generationsDir - private directory holding published generations and staging trees.
+ * @param now - current wall clock, in epoch milliseconds.
+ */
+function removeStaleStaging(generationsDir: string, now: number): void {
+  let entries: string[]
+  try {
+    entries = readdirSync(generationsDir)
+  } catch {
+    return
+  }
+  for (const entry of entries) {
+    const pid = Number(STAGING_NAME.exec(entry)?.groups?.pid)
+    if (!Number.isSafeInteger(pid) || pid <= 0 || pid === process.pid) continue
+    const directory = join(generationsDir, entry)
+    let modifiedAt: number
+    try {
+      const stat = lstatSync(directory)
+      if (!stat.isDirectory() || isLinkedPath(directory)) continue
+      modifiedAt = stat.mtimeMs
+    } catch {
+      continue
+    }
+    if (now - modifiedAt < STALE_STAGING_MIN_AGE_MS) continue
+    if (processAlive(pid)) continue
+    try {
+      rmSync(directory, { recursive: true, force: true, maxRetries: 0 })
+    } catch (cleanupCause) {
+      reportCleanupFailure(directory, cleanupCause)
+    }
+  }
+}
+
 /** Reuse an exact immutable generation or publish a clean sibling when any candidate is tainted. */
 function installRuntimeGeneration(stateDir: string, plan: RuntimeGenerationPlan): RuntimeGeneration {
   preparePrivateDirectory(stateDir)
   const generationsDir = join(stateDir, 'generations')
   preparePrivateDirectory(generationsDir)
+  // Sweep before listing, so an abandoned tree never becomes an obsolete PATH candidate.
+  removeStaleStaging(generationsDir, Date.now())
   const entries = readdirSync(generationsDir)
   let root: string | undefined
   for (const entry of entries.sort()) {

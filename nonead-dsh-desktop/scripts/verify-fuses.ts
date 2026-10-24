@@ -29,8 +29,9 @@ export default async function afterAllArtifactBuild(result: { outDir: string }):
   if (!executables.length) throw new Error('No packaged Next executable to verify')
   const expectedVersion = expectedNextVersion(desktopRoot)
   for (const path of executables) {
-    // Upstream Desktop keeps both archive fuses off; the archive is sealed by code signing instead.
-    await verifyElectronExecutableFuses(path, undefined, false)
+    // The stable shell ships an archive: assert the hardened fuse table, including the archive
+    // fuse that keeps Electron from loading a replaced physical `app/` tree beside `app.asar`.
+    await verifyElectronExecutableFuses(path, undefined, true)
     const darwin = path.includes('.app/')
     const resources = darwin ? join(dirname(path), '../Resources') : join(dirname(path), 'resources')
     const root = join(resources, 'app.asar')

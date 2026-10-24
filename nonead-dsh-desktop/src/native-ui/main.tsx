@@ -28,6 +28,20 @@ function NativePages({ adapter }: { adapter: NextSettingsAdapter }) {
   const [failure, setFailure] = useState('')
   const [busy, setBusy] = useState(false)
   useEffect(() => { const change = () => setPage(location.hash.slice(1)); window.addEventListener('hashchange', change); return () => window.removeEventListener('hashchange', change) }, [])
+  // Unhandled renderer failures otherwise only reach the devtools console. Surface them in the
+  // same notice area the native commands use, so a broken page still explains itself.
+  useEffect(() => {
+    const onError = (event: ErrorEvent): void => { setFailure(event.error instanceof Error ? event.error.message : event.message) }
+    const onRejection = (event: PromiseRejectionEvent): void => {
+      setFailure(event.reason instanceof Error ? event.reason.message : String(event.reason))
+    }
+    window.addEventListener('error', onError)
+    window.addEventListener('unhandledrejection', onRejection)
+    return () => {
+      window.removeEventListener('error', onError)
+      window.removeEventListener('unhandledrejection', onRejection)
+    }
+  }, [])
   const perform = async (command: DesktopCommand): Promise<void> => {
     if (busy) return
     setFailure(''); setBusy(true)

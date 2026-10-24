@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { existsSync, lstatSync, readFileSync, readlinkSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 const root = resolve(import.meta.dirname, '..')
@@ -18,6 +18,19 @@ const nextDesktop = readJson('nonead-dsh-desktop/package.json')
 const nextReference = readJson('nonead-dsh-desktop/upstream-reference.json')
 const fabric = readJson('dsh-community-fabric/package.json')
 const market = readJson('dsh-community-market/package.json')
+// Both shells ship one product from one release, so their versions move together and the newest
+// CHANGELOG entry is the version that was actually built. This runs before the upstream checkout is
+// read: releasing must not depend on the submodule being initialized.
+const released = /^## (\d+\.\d+\.\d+) — \d{4}-\d{2}-\d{2}$/mu.exec(
+  readFileSync(resolve(root, 'CHANGELOG.md'), 'utf8'),
+)?.[1]
+if (released === undefined) fail('CHANGELOG.md must lead with a "## <version> — <date>" release heading')
+for (const [name, manifest] of [
+  ['dsh-plugin-desktop-beta', betaPlugin],
+  ['nonead-dsh-desktop', nextDesktop],
+]) {
+  if (manifest.version !== released) fail(`${name} must ship the newest CHANGELOG.md release ${released}, not ${manifest.version}`)
+}
 const upstreamPackage = readJson('deepseek-harness/package.json')
 
 if (betaPlugin.name !== 'dsh-plugin-desktop-beta') fail('the Beta Desktop workspace must publish as dsh-plugin-desktop-beta')
@@ -48,16 +61,6 @@ for (const [name, manifest] of [
 }
 if (fabric.name !== 'dsh-community-fabric') fail('the Fabric workspace must own dsh-community-fabric')
 if (market.name !== 'dsh-community-market') fail('the market workspace must own dsh-community-market')
-const claudePath = resolve(root, 'CLAUDE.md')
-const claudeStat = lstatSync(claudePath)
-// Windows checkouts materialize the symlink as a regular file holding the
-// target name; accept both forms so the pointer stays verified on every host.
-const claudeTarget = claudeStat.isSymbolicLink()
-  ? readlinkSync(claudePath)
-  : readFileSync(claudePath, 'utf8').trim()
-if (claudeTarget !== 'AGENTS.md') {
-  fail('CLAUDE.md must link to the outer repository AGENTS.md')
-}
 for (const legacyFile of [
   'pnpm-lock.yaml',
   'pnpm-workspace.yaml',

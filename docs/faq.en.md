@@ -1,76 +1,116 @@
 # Nonead DSH Desktop FAQ
 
-[中文](faq.md)
-
-This page answers common questions about installation, supported platforms, the bundled runtime, and plugins in the current stable release. The [latest GitHub Release](https://github.com/anywhere-labs/deepseek-harness-desktop/releases/latest) and [user guide](user-guide.en.md) define the shipped product scope.
+This page answers common questions about installation, platforms, runtime requirements, plugins, updates, and networking for the current version 2.1.16. The feature scope follows the [latest GitHub Release](https://github.com/anywhere-labs/deepseek-harness-desktop/releases/latest) and the [user guide](user-guide.en.md); the user guide describes the interface flows and limits in more detail.
 
 ## What is Nonead DSH Desktop?
 
-Nonead DSH Desktop is an open-source DeepSeek Harness desktop client for Windows and macOS. It packages the official Harness local Web UI, Host service, and plugin system into a native desktop application with a window, system tray, terminal, updates, profile management, and the built-in DSH Community Market.
+Nonead DSH Desktop is an open-source desktop client for DeepSeek Harness on Windows and macOS. It wraps the official Harness local Web interface, Host service, and plugin system in a native application and adds windows, a system tray, a terminal, updates, profile management, and the bundled DSH Community Market plugin market.
 
 ## Is this an official DeepSeek product?
 
-No. Nonead DSH Desktop is an independent, community-maintained open-source project. It is not affiliated with or endorsed by DeepSeek. The name only describes its technical relationship with the official [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness).
+No. Nonead DSH Desktop is a community-maintained, independent open-source project. It is not affiliated with or endorsed by DeepSeek; the project name only describes its technical relationship to the official [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness).
 
 ## Which operating systems are supported?
 
-The release scripts cover Windows x64 and universal macOS (Intel and Apple Silicon): the root `package.json` provides `dist:mac:*` and `dist:win:*`. Linux x64 AppImage and Debian artifacts are built by CI's `desktop-linux` job through the Beta workspace's (`dsh-plugin-desktop-beta`) `dist:linux`, x64 only; until you see Linux artifacts in the release notes, cross-platform compatibility code in the source tree does not imply that an installer has been released for that platform.
+The release scripts for official installers cover Windows x64 and universal macOS (Intel and Apple Silicon); the Linux x64 AppImage and Debian packages are built by the CI `desktop-linux` job using the Beta workspace and are x64 only. On Linux the in-app update only checks the version and downloads no installer, so upgrading means downloading the AppImage again.
 
-## Do I need to install Node.js, pnpm, or DSH?
+## Do I need to install Node.js, pnpm, or DSH first?
 
-No. The installer includes Electron, Node.js, pnpm, and pinned DSH dependencies (the current pin is upstream DSH `0.2.1-rc.2`). Ordinary users can install and launch directly, and Desktop does not modify the global system PATH or user shell configuration.
+No. The installer already contains Electron, Node.js, pnpm, and a pinned DSH runtime (currently DSH `0.2.1-rc.2`). You can start right after installing, and Desktop does not modify the global PATH or your shell configuration.
 
 ## Does the first launch download a runtime?
 
-No separate Node.js or Harness core download is required. The installer is larger because it contains the runtime and pinned dependencies, trading download size for a more deterministic first launch and dependency set. Cloud models, update checks, and new-version downloads still require network access.
+No. The runtime and pinned dependencies ship inside the installer, which is why the package is large: it buys a predictable first launch and version combination. The first launch prepares a default profile locally and starts the local Web interface; the network is needed for cloud models, update checks, and the plugin market.
 
 ## Does Nonead DSH Desktop modify official Harness?
 
-No. The repository pulls an unmodified official Harness checkout at a fixed upstream commit (the current pin is DSH `0.2.1-rc.2`, recorded in the root `upstream.json`). Compatibility mode runs the upstream default Web client below an independent overlay frame. Extended and enhanced modes each install their own Desktop-owned root registration through the plugin/profile composition boundary while retaining the official slot occupants. None of these modes edits upstream source.
+No. The repository imports the unmodified official Harness at a pinned upstream commit (the Beta channel pin is `687f282e`, corresponding to DSH `0.2.1-rc.2`, recorded in the root `upstream.json`). Compatibility mode runs the upstream default Web client below a separate desktop frame; the extended and advanced modes install the Desktop-owned root registration through plugin and profile composition boundaries while still hosting the official occupants. No mode edits upstream source.
 
-## Is data stored locally?
+## Is my data stored locally?
 
-The Desktop Host, profiles, and DSH home live on the local machine. Whether content is sent to an external service depends on the model or tool providers the user configures; requests to cloud models still go to those providers.
+The Host, profiles, and DSH home live on your machine. Whether content leaves the machine depends on the model or tool providers you configure; with a cloud model, those requests still go to that provider. The window position (`window-state.json`), skipped versions, update cache, and logs live in the application's own user-data directory.
 
-## Can I install DSH plugins?
+## How do I install plugins?
 
-Yes. Nonead DSH Desktop uses the official Harness plugin system. Open DSH Terminal from the tray and run `dsh plugin add`, `dsh plugin remove`, or `dsh plugin update`. These commands default to the active profile, and Desktop must be restarted after plugin changes. Desktop also includes DSH Community Market (mutually exclusive with `dsh-market` in a profile's bundles) and the brand skin plugin `dsh-nonead-client-skin`, which every profile loads by default.
+Use the official Harness plugin system. Open DSH Terminal from the tray and run `dsh plugin add`, `dsh plugin remove`, and `dsh plugin update`; commands target the active profile by default, and `--profile <name>` makes the target explicit. Restart the application after plugin changes.
 
-## Does the Desktop profile automatically sync with an existing web profile?
+## What can the plugin market do?
 
-No plugins are copied automatically. Each profile has its own bundle and dependency composition. After switching profiles, default plugin commands target the active profile; `--profile <name>` can always select one explicitly.
+The bundled DSH Community Market browses and installs plugins and is mutually exclusive with `dsh-market` in a profile's bundles. It can preview non-image media such as video and install a plugin by name. The market choice made in the first-run wizard is remembered, including "no market", so reopening the wizard does not ask again. The brand skin plugin `dsh-nonead-client-skin` ships inside the installer and is loaded by default for every profile through profile composition.
 
-## The "Files" panel on the right keeps returning HTTP 4xx. How do I troubleshoot it?
+## Do Desktop profiles and existing profiles sync automatically?
 
-Unexplained HTTP 4xx responses from a panel such as "Files" on the right usually mean an enabled plugin lacks a service it depends on and stays pending: the routes it registers never appear, so the interface's requests receive a 4xx.
+Plugins are never copied automatically. Each profile has its own bundles and dependency set, and after switching profiles the terminal's default plugin commands target the new active profile. Official profiles normally share one DSH home, so sessions, settings, and storage need no migration; a profile whose patch deliberately redirects the persistence root wins instead. Profile configuration is read, modified, and written by a single writer, so saving several settings at once cannot overwrite each other.
 
-Search the `logs/` folder in the data directory for `pending (waiting for service:`. A matching line names the plugin and the service it is missing:
+## Can I open a folder at launch?
+
+Yes, but only DSH Desktop Beta: run `dsh-desktop-beta <folder>`, or drop a folder onto a Beta shortcut. The folder is registered as a workspace and opened, and one that is already a workspace is only opened again; this is one-shot, so a restart triggered from settings does not reopen it. Nonead DSH Desktop can only choose a directory inside the interface.
+
+## Why does closing the window not quit the app?
+
+When a tray is available, closing the window only hides it by default, and the Host and local services keep running. Quit from the tray menu to end everything, or turn off the close-to-tray preference first. Without a tray, closing the last window quits.
+
+## Will my window end up offscreen after changing monitors?
+
+No. The application remembers the window position and size (including the maximized state) and, before restoring, checks whether the saved position still intersects a mounted display: at least 160 by 80 pixels must be visible, otherwise the creation defaults of 1280 by 840 are used; even when it does intersect, the window is pushed inside the work area, so unplugging an external monitor or changing the scale factor never restores it offscreen.
+
+## How do I make the app start at login?
+
+Turn on "open at login" in settings. The switch reads the state the operating system actually recorded rather than a copy kept by the application, and shows disabled when the system refuses the registration. It cannot be changed in safe or recovery mode. You may also edit the operating system's own startup entry; the switch reflects the real result.
+
+## Can a link or script open settings directly?
+
+Yes. The application claims the `dsh-desktop://` scheme, so `dsh-desktop://settings/general` opens the settings page; the first segment is the action and the remaining segments are passed to the interface as a path. A link that arrives before the window is ready is queued and delivered after the interface loads, and a link that names no recognizable action is ignored.
+
+## How does the application update?
+
+Packaged applications check the version in the background (endpoint `https://www.nonead.com/software/ndsh-desktop/version`), sending the installed version, the channel (`stable` or `beta`), and a randomly generated, locally persisted installation identifier in the request headers. Background failures are silent and never interrupt use, and a newer version only updates the tray state without opening a download confirmation by itself. The tray update item checks the current channel manually and displays a result. Nonead DSH Desktop downloads into the application cache, verifies the package, and installs it; DSH Desktop Beta first opens a native save dialog for the installer location, and cancelling it starts no download. A version response may carry release notes: the update card in settings shows them, and Beta's download confirmation dialog includes them too. Installers come from the fixed URLs `https://www.nonead.com/software/ndsh-desktop/downloads/mac` and `.../windows`; the download request and its redirects carry neither the installation identifier nor the current version.
+
+## How do I skip a release?
+
+Choose "Skip this version" on the update card. The choice is written into the application data directory and persisted, so scheduled background checks stop offering that version and the choice survives restarts; "Stop skipping" clears the record so the version is offered again. A later release is offered anyway.
+
+## What if an update fails or the new version misbehaves?
+
+Download and installer failures never damage the running version. When an installation fails, the tray and the update card offer "Retry install"; the downloaded, prepared installer is kept, so retrying does not download it again. If you already installed a version that misbehaves, the recovery assistant can roll back to a saved configuration snapshot — the selectable snapshots are not limited to the last successful start but also include those taken before installation and plugin changes or before a profile repair, and every restore first backs up the current configuration, so the rollback itself can be rolled back.
+
+## Is the installer signature checked?
+
+On Windows the application currently compares only `ProductName` and `ProductVersion` in the PE version resource, with no cryptographic verification and no certificate or publisher check (2.1.15 reverted the signature and publisher checks introduced earlier). On macOS it verifies the identity, version, and signing team of the application inside the disk image. That identity check exists only in the Stable shell; the Beta shell's download path checks just the installer magic bytes and size, then executes the installer. The download path enforces a SHA-256 digest once the service publishes it. If you need stronger provenance, get the installer from the official download page and check the verification data published with the release.
+
+## Does the app use my system proxy?
+
+Yes. At startup the application reads the operating system proxy configuration through Chromium — Windows Internet Options, macOS network settings, Linux desktop settings, including automatic configuration scripts (PAC/WPAD) — and applies it to its own requests: model conversations, web fetches, web search, MCP services, plugin installs, and commands it starts in the terminal. Turning on the "system proxy" switch in a client such as Clash or v2rayN is enough. A few rules:
+
+- **Your own proxy wins**: if `HTTPS_PROXY`, `HTTP_PROXY`, or `ALL_PROXY` is set before launch (including in `.env`), the application uses it; `NO_PROXY` applies as well.
+- **Restart after changing the proxy**: the proxy configuration is read once at startup, so after toggling the system proxy or switching nodes in the client, quit and reopen the application.
+- **SOCKS-only configurations do not work**: the HTTP egress accepts only `http://` and `https://` proxies; if the system proxy is SOCKS only, enable an HTTP or mixed port in the client.
+- **Local addresses never use the proxy**: `localhost`, `127.0.0.1`, and local network addresses bypass it.
+- **On macOS and Linux, launching from the Dock or Finder does not read proxy variables from shell files**: this is deliberate, because a proxy URL may embed credentials; use the system proxy settings or launch from a terminal instead.
+- **How to confirm it took effect**: every startup logs one `outbound proxy = ...` line whose `source` is `system`, `environment`, or `none`; logs live in `logs/` under the application data directory and can be packaged with "Export diagnostics".
+
+## Does `.env` override my system environment variables?
+
+No. The application reads a `.env` from its own user-data directory (in development also the repository root), and that layer only fills variables the Host child process would otherwise miss: an already defined environment variable wins, a file never replaces a real environment variable, and `process.env` itself is never modified. The syntax is strict `KEY=VALUE` with no variable expansion, escaping, or inline comments; a key takes its first assignment, and every skipped line produces one warning in the diagnostics log.
+
+## A panel such as "Files" keeps returning HTTP 4xx — how do I debug it?
+
+The usual cause is an enabled plugin that is missing a service it depends on and therefore stays pending: the route it would have registered never appears, so requests from the interface get 4xx. Search `logs/` in the data directory for `pending (waiting for service:` (the data directory defaults to `~/.dsh`, so logs are in `~/.dsh/logs/`); a matching line names the plugin and the missing service:
 
 ```text
 better-sidebar (dsh-better-sidebar): pending (waiting for service: webRuntime)
 ```
 
-The data directory defaults to `~/.dsh`, so the log is at `~/.dsh/logs/` by default; "Export diagnostics" packages the same logs. Disable that plugin (or run `dsh plugin remove` in DSH Terminal) and restart Desktop; the official panel recovers.
+"Export diagnostics" packages the same logs. Disable that plugin (or run `dsh plugin remove` in DSH Terminal) and restart to get the official panels back.
 
-## How are updates installed?
+## Where do I download it and report problems?
 
-Packaged applications check for stable releases in the background but never install silently. A newer version requires confirmation. Before downloading, a native save dialog lets you choose the installer's directory and filename; cancelling it does not start a download. macOS downloads and opens a DMG; Windows downloads and starts an NSIS installer. After the upgrade and next launch, the app asks whether to delete or keep the installer. Network and download failures leave the current installation intact.
+Download the installer from the [product download page](https://www.dshdesktop.cn/) or the [latest GitHub Release](https://github.com/anywhere-labs/deepseek-harness-desktop/releases/latest). When you hit a problem, read the troubleshooting part of the [user guide](user-guide.en.md) first; if that does not help, open a [GitHub Issue](https://github.com/anywhere-labs/deepseek-harness-desktop/issues/new/choose) with your operating system, application version, reproduction steps, and error text. For network problems, include the `outbound proxy = ...` line from the log.
 
-The version check goes to the fixed endpoint `https://www.nonead.com/software/ndsh-desktop/version` and sends the installed version, the channel (`stable` or `beta`), and a locally generated, persistently stored random installation UUID in request headers. Installers download from `https://www.nonead.com/software/ndsh-desktop/downloads/mac` and `https://www.nonead.com/software/ndsh-desktop/downloads/windows`; download requests and their redirects carry neither the installation identity nor the installed version. Once the service publishes SHA-256 digests, the download path enforces them; until then, a Windows update installer is verified only against the ProductName and ProductVersion in its PE version resource.
+## Related documentation
 
-## Does the app use my system proxy?
-
-Yes. At startup the app reads the operating system's proxy configuration — Windows Internet options, macOS network settings, Linux desktop settings, including automatic configuration scripts (PAC/WPAD) — and applies it to everything it sends: model conversations, web fetches, web search, MCP servers, plugin installs, and commands the app starts in its terminal. Turning on the "system proxy" switch in a client such as Clash or v2rayN is enough; nothing needs to be entered in the app.
-
-A few rules worth knowing:
-
-- **A proxy you set yourself wins.** If `HTTPS_PROXY`, `HTTP_PROXY`, or `ALL_PROXY` is set before launch, the app uses that one and ignores the system configuration. `NO_PROXY` is honored the same way.
-- **Restart the app after changing the proxy.** The configuration is read once, at startup. After toggling the system proxy in your client, or switching to a node that changes the port, quit the app and open it again.
-- **A SOCKS-only configuration cannot be used.** The app's HTTP egress accepts only `http://` and `https://` proxies. If the system proxy is configured for SOCKS alone, enable the HTTP port or the mixed port in your proxy client (Clash's "mixed port" serves both), then turn the system proxy on. The application window itself and the update check keep working either way; only the features listed above connect directly.
-- **Local addresses never go through the proxy.** `localhost`, `127.0.0.1`, and this machine's own LAN addresses bypass it, so a locally running server or a LAN address is never blocked by the proxy.
-- **Known limitation: on macOS and Linux, launching from the Dock or Finder does not pick up proxy variables written only in `~/.zshrc` or `~/.bashrc`.** This is deliberate — a proxy address can carry a username and password, and the app does not inherit that class of variable from shell configuration. Use the system proxy settings instead, or start the app from a terminal.
-- **How to confirm it worked.** Every start writes one `outbound proxy = ...` line to the log, for example `outbound proxy = http://127.0.0.1:7890 (source: system, no_proxy: ...)`. A `source` of `system` means the system configuration was used, `environment` means a variable you set was used, and `none` means the app is connecting directly. The log lives in the `logs` folder of the application data directory, and "Export diagnostics" packages it up. Please include that line when reporting a network problem.
-
-## Where can I download the app or report a problem?
-
-Download from the [project download page](https://www.dshdesktop.cn/) or the [latest GitHub Release](https://github.com/anywhere-labs/deepseek-harness-desktop/releases/latest). Check the [troubleshooting section](user-guide.en.md#troubleshooting) first. If the problem remains, open a [GitHub Issue](https://github.com/anywhere-labs/deepseek-harness-desktop/issues/new/choose) with the operating system, app version, reproduction steps, and error details.
+- [User guide](user-guide.en.md)
+- [Why a desktop edition](why-desktop.en.md)
+- [Architecture](architecture.en.md)
+- [Plugin development](plugin-development.en.md)
+- [Documentation index](README.en.md)

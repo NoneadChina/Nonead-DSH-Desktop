@@ -1,5 +1,6 @@
 /** Cross-process exclusion for DSH data mutations owned by Desktop. */
 
+import { isLinkedPath } from './fs-links.ts'
 import { randomUUID } from 'node:crypto'
 import {
   chmodSync,
@@ -50,7 +51,7 @@ function processExists(pid: number): boolean {
 
 function readRecord(path: string): LockRecord {
   const info = lstatSync(path)
-  if (!info.isFile() || info.isSymbolicLink() || info.size > MAX_LOCK_BYTES) {
+  if (!info.isFile() || isLinkedPath(path) || info.size > MAX_LOCK_BYTES) {
     throw new DesktopDataDirectoryError('busy', 'Desktop data operation lock is unsafe')
   }
   let value: unknown
@@ -80,7 +81,7 @@ function readRecord(path: string): LockRecord {
 function prepareDirectory(path: string): void {
   mkdirSync(path, { recursive: true, mode: DIRECTORY_MODE })
   const info = lstatSync(path)
-  if (!info.isDirectory() || info.isSymbolicLink()) {
+  if (!info.isDirectory() || isLinkedPath(path)) {
     throw new DesktopDataDirectoryError('busy', 'Desktop data operation lock directory is unsafe')
   }
   if (process.platform !== 'win32') chmodSync(path, DIRECTORY_MODE)
@@ -112,7 +113,14 @@ export function acquireDesktopDataOperationLock(
       if ((cause as NodeJS.ErrnoException).code !== 'EEXIST') throw cause
       const owner = readRecord(path)
       if (attempt === 0 && !processExists(owner.pid)) {
-        unlinkSync(path)
+        try {
+          unlinkSync(path)
+        } catch (unlinkCause) {
+          // 另一个进程可能已经先回收了同一把陈旧锁：文件消失说明锁此刻是空闲的，
+          // 应当重试 O_EXCL 创建，而不是把裸 ENOENT 当成失败抛给调用方（它既不是
+          // busy，也不代表数据操作真的冲突）。
+          if ((unlinkCause as NodeJS.ErrnoException).code !== 'ENOENT') throw unlinkCause
+        }
         continue
       }
       throw new DesktopDataDirectoryError('busy', `Desktop data is busy with ${owner.operation}`)

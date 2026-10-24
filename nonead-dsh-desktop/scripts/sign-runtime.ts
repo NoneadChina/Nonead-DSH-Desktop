@@ -5,6 +5,7 @@ import { chmodSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { isMachO } from './primary-runtime.ts'
+import { isLinkedPath } from '../../dsh-plugin-desktop-beta/src/fs-links.ts'
 
 /** The pinned upstream checkout owns the entitlement files the payload executables receive. */
 export const UPSTREAM_DESKTOP_SCRIPTS = resolve(import.meta.dirname, '..', '..', 'deepseek-harness', 'apps', 'desktop', 'scripts')
@@ -38,7 +39,8 @@ function listFiles(root: string, directory = ''): string[] {
   const files: string[] = []
   for (const entry of readdirSync(join(root, directory), { withFileTypes: true })) {
     const path = directory === '' ? entry.name : `${directory}/${entry.name}`
-    if (entry.isSymbolicLink()) throw new Error(`Next runtime signing: the payload must not contain links: ${path}`)
+    // `Dirent.isSymbolicLink()` misses a Windows junction, which `lstat` also reports as a directory.
+    if (isLinkedPath(join(root, path))) throw new Error(`Next runtime signing: the payload must not contain links: ${path}`)
     if (entry.isDirectory()) files.push(...listFiles(root, path))
     else if (entry.isFile()) files.push(path)
   }

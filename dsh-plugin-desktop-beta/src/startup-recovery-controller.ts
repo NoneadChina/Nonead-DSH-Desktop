@@ -53,7 +53,13 @@ export interface DesktopStartupRecoveryBundle {
 /** Renderer-safe metadata for one fixed checkpoint slot. Paths stay private. */
 export interface DesktopStartupRecoveryCheckpoint {
   readonly slotId: DesktopProfileCheckpointSlotId
-  readonly status: 'available' | 'empty'
+  /**
+   * `unreadable` 表示槽位在磁盘上存在、但其清单或备份未通过校验：它永远不可恢复，但必须在
+   * 列表里可见，否则恢复页会把「存在但读不出来」误报成「尚未保存检查点」。
+   */
+  readonly status: 'available' | 'empty' | 'unreadable'
+  /** 仅 `unreadable` 状态携带：这个槽位为什么读不出来（非机密诊断行）。 */
+  readonly reason?: string
   readonly capturedAt?: string
   readonly appVersion?: string
   readonly provider?: string
@@ -183,6 +189,11 @@ interface RestorePreviewRecord {
 }
 
 function safeCheckpoint(slot: ProfileCheckpointSlot): DesktopStartupRecoveryCheckpoint {
+  // 损坏的槽位同样报告 snapshotExists=true 且没有 manifest，所以 unreadable 必须先判：
+  // 否则它会被下面这只「空槽」分支吞掉，恢复页就看不到真实原因。
+  if (slot.unreadable !== undefined) {
+    return { slotId: slot.slotId, status: 'unreadable', reason: slot.unreadable }
+  }
   if (!slot.snapshotExists || slot.manifest === undefined) return { slotId: slot.slotId, status: 'empty' }
   return {
     slotId: slot.slotId,
@@ -496,7 +507,15 @@ export class DesktopStartupRecoveryController {
     this.assertCurrentGeneration()
     const slot = this.options.checkpoints.listSlots().find(candidate => candidate.slotId === slotId)
     this.assertCurrentGeneration()
-    if (slot === undefined || !slot.snapshotExists || slot.manifest === undefined) throw this.invalidTarget()
+    if (slot === undefined || !slot.snapshotExists) throw this.invalidTarget()
+    // 坏槽不是空槽：明确拒绝并说明它存在但读不出来，而不是用「目标已失效」含糊带过。
+    if (slot.unreadable !== undefined) {
+      throw new DesktopStartupRecoveryControllerError(
+        'invalid-target',
+        'The selected checkpoint exists but cannot be read, so it cannot be restored.',
+      )
+    }
+    if (slot.manifest === undefined) throw this.invalidTarget()
     return slot
   }
 

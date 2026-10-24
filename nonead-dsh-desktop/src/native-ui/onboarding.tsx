@@ -9,8 +9,9 @@ import { DesktopFrame } from '../../../dsh-plugin-desktop-beta/src/native-ui/sha
 import type { DesktopBridge, DesktopState } from '../desktop-contract.ts'
 import type { SetupNavigation } from '../../../dsh-plugin-desktop-beta/src/client/onboarding.tsx'
 import { installPluginControlsStyles } from '../client/plugin-controls-styles.ts'
+import { initialOnboardingComputerUse } from '../onboarding-defaults.ts'
 import './onboarding.css'
-import whaleArtwork from '../../build/app-icon.icon/Assets/DeepSeek.svg'
+import brandLogo from '../../build/app-icon.png'
 // Reuse the portable device family artwork and composition from the AA landing page.
 import phoneArtwork from './assets/agents-anywhere-phone.webp'
 import tabletArtwork from './assets/agents-anywhere-tablet.webp'
@@ -25,9 +26,16 @@ export function Onboarding({ state, locale, bridge, renderNavigation, embedded =
   const [transitioning, setTransitioning] = useState(false)
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState('')
-  const [market, setMarket] = useState<Market>(state.features.market ? 'community' : state.features.dshMarket ? 'dsh' : 'none')
+  // Reopening the wizard must show the market this profile already uses; only a fresh
+  // setup (no feature flags yet) falls back to dsh-market so it has a working market.
+  // "none" has to come back as "none": the two booleans alone cannot tell a skipped
+  // market apart from dsh-market, which is why the manifest stores marketChoice.
+  const [market, setMarket] = useState<Market>(() =>
+    state.features.marketChoice ?? (state.features.market ? 'community' : state.features.dshMarket ? 'dsh' : 'dsh'))
   const [remote, setRemote] = useState(state.features.remoteControl)
-  const [computerUse, setComputerUse] = useState(state.onboardingComputerUse ?? false)
+  // Reopening the wizard shows what this Profile stored; a Profile that never recorded
+  // Computer Use falls back to the documented default instead of a hardcoded value.
+  const [computerUse, setComputerUse] = useState(initialOnboardingComputerUse(state.onboardingComputerUse))
   const slide = useRef<HTMLDivElement>(null)
   const navigationLock = useRef(false)
   const saving = useRef(false)
@@ -77,7 +85,7 @@ export function Onboarding({ state, locale, bridge, renderNavigation, embedded =
     try {
       await bridge.command(skip ? { type: 'onboarding-skip', profile: state.selected }
         : { type: 'onboarding-complete', profile: state.selected, computerUse, features: {
-          market: market === 'community', dshMarket: market === 'dsh', remoteControl: remote,
+          market: market === 'community', dshMarket: market === 'dsh', marketChoice: market, remoteControl: remote,
         } })
     } catch (error) {
       if (!mounted.current) return
@@ -122,7 +130,7 @@ export function Onboarding({ state, locale, bridge, renderNavigation, embedded =
         </section>
         <aside className="next-onboarding-panel next-onboarding-reveal" aria-label={steps[page]}>
           {page === 0 && <div className="next-onboarding-wordmark" aria-hidden="true">
-            <span className="next-onboarding-whale" style={{ maskImage: `url("${whaleArtwork}")` }} /><span>NEXT</span>
+            <img className="next-onboarding-whale" src={brandLogo} width="1024" height="1024" alt="" draggable={false} /><span>NONEAD.COM</span>
           </div>}
           {page === 1 && <RadioGroup aria-label={t('插件市场', 'Plugin market')} value={market} disabled={disabled} onValueChange={value => setMarket(value as Market)}>
             {markets.map(option => <label className="next-onboarding-choice" data-selected={market === option.value} key={option.value}>

@@ -1,3 +1,5 @@
+import { cleanupDisposableTree } from '../src/disposable-tree.ts'
+import { isLinkedPath } from '../src/fs-links.ts'
 import * as fileSystem from 'node:fs'
 import { existsSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { mkdtemp, rm } from 'node:fs/promises'
@@ -17,7 +19,7 @@ describe('dsh 0.1.5 link projection cleanup', () => {
 
   afterEach(async () => {
     vi.restoreAllMocks()
-    await Promise.all(roots.splice(0).map(async root => { await rm(root, { recursive: true, force: true }) }))
+    await Promise.all(roots.splice(0).map(async root => { cleanupDisposableTree(root) }))
   })
 
   /** Lay out a profile exactly as the 0.1.5 link backend left it: profile link -> owned link -> installation. */
@@ -71,7 +73,7 @@ describe('dsh 0.1.5 link projection cleanup', () => {
     removeLinkProjectionsSafely(profile)
 
     expect(readFileSync(join(installed, 'package.json'), 'utf8')).toBe('{"name":"@community/plugin"}')
-    expect(lstatSync(userLink).isSymbolicLink()).toBe(true)
+    expect(isLinkedPath(userLink)).toBe(true)
   })
 
   it('does nothing for a profile without a projection directory', async () => {

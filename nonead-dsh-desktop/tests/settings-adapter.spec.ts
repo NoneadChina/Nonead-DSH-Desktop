@@ -7,7 +7,7 @@ function fixture() {
     selected: 'desktop', profiles: ['desktop', 'work', 'broken'], unavailableProfiles: ['broken'],
     features: { market: true, remoteControl: false }, preferences: { ...DEFAULT_PREFERENCES },
     phase: 'ready', busy: false, failure: '', safeMode: false, home: '/fixture', platform: 'darwin', version: '0.1.0',
-    trayAvailable: true, notificationsAvailable: true, browserUrl: null, lan: null, checkpoint: null, logs: '',
+    trayAvailable: true, openAtLogin: false, notificationsAvailable: true, browserUrl: null, lan: null, checkpoint: null, logs: '',
   }
   const commands: DesktopCommand[] = []
   const links: DesktopBrowserLinks = { localUrl: null, lanUrls: [] }
@@ -72,6 +72,16 @@ it('maps only supported features and available Profiles to the shared settings A
   const switched = await adapter.api.read()
   expect(switched.current).toBe('work')
   expect(switched.profiles.find(item => item.name === 'desktop')?.deletable).toBe(false)
+})
+
+it('projects the same three market choices the Host reports', () => {
+  const { state } = fixture()
+  state.features = { market: false, remoteControl: false }
+  expect(projectSettings(state).market).toMatchObject({ requested: 'disabled', effective: 'disabled' })
+  state.features = { market: false, dshMarket: true, remoteControl: false }
+  expect(projectSettings(state).market).toMatchObject({ requested: 'dsh-market', effective: 'dsh-market' })
+  state.features = { market: true, remoteControl: false }
+  expect(projectSettings(state).market).toMatchObject({ requested: 'community-market', effective: 'community-market' })
 })
 
 it('renders full login links and opens or copies the exact selected address', async () => {

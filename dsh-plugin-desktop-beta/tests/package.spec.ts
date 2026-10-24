@@ -1,14 +1,7 @@
+import { cleanupDisposableTree } from '../src/disposable-tree.ts'
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
-import {
-  copyFileSync,
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -93,7 +86,9 @@ const dshResolution = (name: string): unknown =>
 describe('published package surface', () => {
   it('keeps the private workspace version-neutral and versions the Beta package', () => {
     expect(workspaceManifest.version).toBeUndefined()
-    expect(manifest.version).toBe('2.1.11')
+    // The two Desktop manifests ship as one product, so this compares them instead of restating a
+    // literal that every release would otherwise have to edit here as well.
+    expect(manifest.version).toBe(JSON.parse(readFileSync(new URL('nonead-dsh-desktop/package.json', workspaceRoot), 'utf8')).version)
   })
 
   it('runs every desktop edition and community market typecheck from the root command', () => {
@@ -468,7 +463,7 @@ describe('published package surface', () => {
         expect(stdout).toContain('OPEN_OK')
         expect(stdout).not.toContain('Unable to find Electron app')
       } finally {
-        rmSync(root, { recursive: true, force: true })
+        cleanupDisposableTree(root)
       }
     },
     45_000,
@@ -867,7 +862,9 @@ describe('published package surface', () => {
 
   it('fixes the installed application identity', () => {
     expect(workspaceManifest.version).toBeUndefined()
-    expect(manifest.version).toBe('2.1.11')
+    // The two Desktop manifests ship as one product, so this compares them instead of restating a
+    // literal that every release would otherwise have to edit here as well.
+    expect(manifest.version).toBe(JSON.parse(readFileSync(new URL('nonead-dsh-desktop/package.json', workspaceRoot), 'utf8')).version)
     expect(manifest.name).toBe('dsh-plugin-desktop-beta')
     expect(manifest.bin).toEqual({
       'dsh-desktop-beta': 'lib/bin.js',
@@ -884,6 +881,8 @@ describe('published package surface', () => {
       expect(manifest.build?.[platform]).not.toHaveProperty('asarUnpack')
     }
     expect(manifest.build?.electronFuses).toEqual({
+      enableNodeCliInspectArguments: false,
+      enableNodeOptionsEnvironmentVariable: false,
       enableEmbeddedAsarIntegrityValidation: false,
       onlyLoadAppFromAsar: false,
       resetAdHocDarwinSignature: true,
@@ -1003,13 +1002,13 @@ describe('published package surface', () => {
     expect(manifest.scripts?.['verify:cli']).toBe('node scripts/verify-cli-runtime.mjs')
     expect(manifest.scripts?.check).toContain('yarn run verify:cli')
     expect(workspaceManifest.scripts?.['dist:mac:beta'])
-      .toBe('yarn market:prepare && yarn aa:prepare-release && yarn workspace dsh-community-market build && yarn workspace dsh-plugin-desktop-beta dist:mac')
+      .toBe('yarn market:check && yarn aa:prepare-release && yarn workspace dsh-community-market build && yarn workspace dsh-plugin-desktop-beta dist:mac')
     expect(workspaceManifest.scripts?.['dist:mac-smoke:beta'])
-      .toBe('yarn market:prepare && yarn aa:prepare-release && yarn workspace dsh-community-market build && yarn workspace dsh-plugin-desktop-beta dist:mac-smoke')
+      .toBe('yarn market:check && yarn aa:prepare-release && yarn workspace dsh-community-market build && yarn workspace dsh-plugin-desktop-beta dist:mac-smoke')
     expect(workspaceManifest.scripts?.['dist:win:beta'])
-      .toBe('yarn market:prepare && yarn aa:prepare-release && yarn aa:prepare-release --verify-release && yarn workspace dsh-community-market build && yarn workspace dsh-plugin-desktop-beta dist:win')
+      .toBe('yarn market:check && yarn aa:prepare-release && yarn aa:prepare-release --verify-release && yarn workspace dsh-community-market build && yarn workspace dsh-plugin-desktop-beta dist:win')
     expect(workspaceManifest.scripts?.['dist:win-portable:beta'])
-      .toBe('yarn market:prepare && yarn aa:prepare-release && yarn aa:prepare-release --verify-release && yarn workspace dsh-community-market build && yarn workspace dsh-plugin-desktop-beta dist:win-portable')
+      .toBe('yarn market:check && yarn aa:prepare-release && yarn aa:prepare-release --verify-release && yarn workspace dsh-community-market build && yarn workspace dsh-plugin-desktop-beta dist:win-portable')
     expect(manifest.build?.afterPack).toBe('./scripts/verify-packaged-runtime.ts')
     expect(manifest.build?.afterAllArtifactBuild).toBe('./scripts/verify-electron-fuses.ts')
     expect(manifest.build?.mac).toEqual(expect.objectContaining({
@@ -1095,15 +1094,25 @@ describe('published package surface', () => {
       'docs/architecture.md',
       '.agents/notes/implemented/architecture/decision.md',
       '.agents/notes/implemented/architecture/decision.i18n.yaml',
-      'dsh-community-market/docs/schema.json',
       '.github/ISSUE_TEMPLATE/feature_request.yml',
     ])).toBe('false')
+    /*
+     * A documentation DIRECTORY no longer short-circuits the gates. `docs/` also carries
+     * runtime assets (`docs/schemas/*.schema.json` is only the one we know about), so any
+     * non-document extension under it runs the product gates. Over-running the gates costs
+     * one build; silently skipping a runtime asset costs a broken release.
+     */
+    expect(classify(['dsh-community-market/docs/schema.json'])).toBe('true')
     expect(classify(['README.md', 'nonead-dsh-desktop/src/index.ts'])).toBe('true')
     expect(classify(['.github/workflows/ci.yml'])).toBe('true')
     expect(classify(['THIRD_PARTY_NOTICES.md'])).toBe('true')
     expect(classify([])).toBe('true')
 
-    expect(ciWorkflow).toContain('product="$(git diff --name-only -z')
+    // `--no-renames` keeps a source file that was renamed into a documentation path visible
+    // to the classifier (a detected rename prints only the destination, so the deleted source
+    // would be invisible and the product gates would be skipped); `-z` keeps the path list
+    // NUL-separated so no unusual name can split into several paths.
+    expect(ciWorkflow).toContain('product="$(git diff --name-only --no-renames -z')
     expect(ciWorkflow).toContain("if: needs.changes.outputs.product == 'true'")
     expect(ciWorkflow).toContain('Documentation-only change; product build and tests are not required.')
   })
@@ -1371,7 +1380,9 @@ describe('published package surface', () => {
     // dsh 0.2.1-alpha.2 replaced `nodeExecutable` with `launch`; the local default is still this process.
     expect(index).toMatch(/const launch = config \?\? \{\s+kind: "pkg" in process \? "embedded" : "node-script",\s+executable: process\.execPath\s+\};/u)
     expect(index).toContain('confined = policy.mode === "danger-full-access" ? void 0 : await this.ctx.sandbox.confine(')
-    const block = /\t+const env = Object\.fromEntries\(Object\.keys\(process\.env\)[\s\S]*?\n\t+if \(packaged\) \{[\s\S]*?\n\t+\}\n(?=\t+handle = this\.ctx\.subprocess\.spawn\()/u.exec(index)?.[0]
+    // Upstream also builds an env map without the Electron selector, so anchor on the block that
+    // continues into `if (process.versions.electron …)` through comments only.
+    const block = /\t+const env = Object\.fromEntries\(Object\.keys\(process\.env\)[^\n]*\n(?:\s*\/\/[^\n]*\n)*\t+if \(process\.versions\.electron !== void 0\) env\.ELECTRON_RUN_AS_NODE = "1";\n\t+if \(packaged\) \{[\s\S]*?\n\t+\}\n(?=\t+handle = this\.ctx\.subprocess\.spawn\()/u.exec(index)?.[0]
     if (block === undefined) throw new Error('Cannot find the PTC worker environment')
     const evaluate = (electron: string | undefined, parent: Record<string, string>, packaged = true) => runInNewContext(
       `${block}\nenv`,
@@ -1396,7 +1407,10 @@ describe('published package surface', () => {
     const names = /const STARTUP_ENVIRONMENT_NAMES = new Set\(\[([\s\S]*?)\]\)/u.exec(bootstrap)?.[1]
     if (names === undefined) throw new Error('Cannot find the PTC bootstrap environment allowlist')
     expect(names).not.toMatch(/ELECTRON_RUN_AS_NODE/iu)
-    expect(bootstrap).toContain('if (!STARTUP_ENVIRONMENT_NAMES.has(key.toUpperCase())) Reflect.deleteProperty(processState.env, key);')
+    // Upstream renamed the cleared-env helper argument; assert the deletion itself, not its parameter name.
+    expect(bootstrap).toMatch(
+      /for \(const key of Object\.keys\(state\.env\)\) if \(!STARTUP_ENVIRONMENT_NAMES\.has\(key\.toUpperCase\(\)\)\) Reflect\.deleteProperty\(state\.env, key\);/u,
+    )
   })
 
   // A patch whose filename does not match the pinned version degrades silently to the

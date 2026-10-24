@@ -1,5 +1,6 @@
 /** Worker-owned diagnostic archive construction and retention. */
 
+import { isLinkedPath } from './fs-links.ts'
 import { randomUUID } from 'node:crypto'
 import {
   closeSync,
@@ -62,7 +63,7 @@ function regularLogEntry(logsDir: string, name: string): LogEntry | undefined {
   const path = join(logsDir, name)
   try {
     const stats = lstatSync(path)
-    return !stats.isSymbolicLink() && stats.isFile() ? { name, path, stats } : undefined
+    return !isLinkedPath(path) && stats.isFile() ? { name, path, stats } : undefined
   } catch (cause) {
     if (skippableFileError(cause)) return undefined
     throw cause
@@ -87,7 +88,7 @@ function hostLogEntries(hostLogsDir: string | undefined): LogEntry[] {
     if (skippableFileError(cause)) return []
     throw cause
   }
-  if (rootStats.isSymbolicLink() || !rootStats.isDirectory()) {
+  if (isLinkedPath(hostLogsDir) || !rootStats.isDirectory()) {
     throw new Error('dsh-plugin-desktop: refusing linked Host log directory')
   }
   return readdirSync(hostLogsDir).flatMap((name) => {
@@ -99,7 +100,7 @@ function hostLogEntries(hostLogsDir: string | undefined): LogEntry[] {
 function regularEvidenceEntry(path: string, name: string, ownerDir: string): LogEntry | undefined {
   try {
     const stats = lstatSync(path)
-    if (stats.isSymbolicLink() || !stats.isFile() || hasLinkedParent(path, ownerDir)) return undefined
+    if (isLinkedPath(path) || !stats.isFile() || hasLinkedParent(path, ownerDir)) return undefined
     return { name, path, stats }
   } catch (cause) {
     if (skippableFileError(cause)) return undefined
@@ -113,8 +114,9 @@ function hasLinkedParent(path: string, ownerDir: string): boolean {
   const relativeParent = relative(owner, current)
   if (relativeParent === '..' || relativeParent.startsWith(`..${sep}`) || isAbsolute(relativeParent)) return true
   while (true) {
-    const stats = lstatSync(current)
-    if (stats.isSymbolicLink()) return true
+    // Walk from the evidence file up to the owner directory only, so a junction above the user data
+    // directory (a legitimate redirection) stays allowed while a linked parent inside it is refused.
+    if (isLinkedPath(current)) return true
     if (relative(owner, current) === '') return false
     const parent = dirname(current)
     if (parent === current) return true
@@ -131,7 +133,7 @@ function crashDumpEntries(crashDumpsDir: string | undefined): LogEntry[] {
     if (skippableFileError(cause)) return []
     throw cause
   }
-  if (rootStats.isSymbolicLink() || !rootStats.isDirectory()) {
+  if (isLinkedPath(crashDumpsDir) || !rootStats.isDirectory()) {
     throw new Error('dsh-plugin-desktop: refusing linked crash dump directory')
   }
   const entries: LogEntry[] = []
@@ -150,7 +152,7 @@ function crashDumpEntries(crashDumpsDir: string | undefined): LogEntry[] {
       const relativePath = directory.relativePath === '' ? name : `${directory.relativePath}/${name}`
       try {
         const stats = lstatSync(path)
-        if (stats.isSymbolicLink()) continue
+        if (isLinkedPath(path)) continue
         if (stats.isDirectory()) {
           pending.push({ path, relativePath })
         } else if (stats.isFile() && name.toLowerCase().endsWith('.dmp')) {
@@ -186,7 +188,7 @@ function readStableLog(entry: LogEntry, remainingBytes: number): Buffer | undefi
 function regularArchive(path: string): { path: string, modifiedAt: number } | undefined {
   try {
     const stats = lstatSync(path)
-    return !stats.isSymbolicLink() && stats.isFile() ? { path, modifiedAt: stats.mtimeMs } : undefined
+    return !isLinkedPath(path) && stats.isFile() ? { path, modifiedAt: stats.mtimeMs } : undefined
   } catch (cause) {
     if (skippableFileError(cause)) return undefined
     throw cause
@@ -195,13 +197,13 @@ function regularArchive(path: string): { path: string, modifiedAt: number } | un
 
 async function createDiagnosticsArchive(data: DiagnosticExportWorkerData): Promise<string> {
   const logsStats = lstatSync(data.logsDir)
-  if (logsStats.isSymbolicLink() || !logsStats.isDirectory()) {
+  if (isLinkedPath(data.logsDir) || !logsStats.isDirectory()) {
     throw new Error('dsh-plugin-desktop: refusing linked log directory')
   }
   const outDir = join(data.userDataDir, 'diagnostics')
   mkdirSync(outDir, { recursive: true })
   const outputStats = lstatSync(outDir)
-  if (outputStats.isSymbolicLink() || !outputStats.isDirectory()) {
+  if (isLinkedPath(outDir) || !outputStats.isDirectory()) {
     throw new Error('dsh-plugin-desktop: refusing linked diagnostics directory')
   }
 

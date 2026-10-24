@@ -1,222 +1,238 @@
 # DSH Desktop Plugin Development
 
-> **Do not confuse current APIs with a Draft:** this guide describes working DSH/Cordis and Desktop services. The manifest, capability, and unified event model in `dsh-community-fabric` remains a [community RFC Draft](../dsh-community-fabric/README.md) and cannot yet be used as a dependency or release target.
+DSH Desktop runs the **unmodified upstream runtime**, so the first rule of writing a plugin is: write it as a normal DSH plugin first, then decide whether it needs anything desktop-specific. The shell adds exactly two things — profiles and package operations — and both are deliberately narrowed to two Host services.
 
-## Understand the two plugin layers
+> This document describes the **current implementation**. The manifest and capability proposals in `dsh-community-fabric` are still Drafts (`0.1.0-dev.0`); do not write production code against them.
 
-A normal DSH plugin can provide Host services, commands, routes, bundles, or a Web Client. It should depend on upstream DSH contracts whenever possible so the same package can work in the CLI, an ordinary Web profile, and DSH Desktop.
+## Understand the two layers first
 
-Desktop adds two public Host services:
+A plugin that runs inside Desktop consists of at most two halves.
 
-- `desktopProfiles`: reads the active profile.
-- `desktopPnpm`: runs the packaged pnpm in the active profile, or manages plugins through the official `dsh plugin` CLI semantics.
+### The Host-side Cordis plugin
 
-These services live in the Host child process's Cordis generation. The renderer cannot read them directly; a plugin with browser UI should continue to use ordinary DSH Web routes, RPC, client metadata, services, and slots.
+An ordinary Cordis plugin that runs in the Host process with `export const name`, `export const inject` and `export function apply(ctx)`. It can use every service upstream provides, plus the services the desktop shell injects. This half is Node code: it can read files, start child processes and install packages.
 
-The complete types, lifecycle, and failure semantics are in [`dsh-plugin-desktop-beta/docs/plugin-services.md`](../dsh-plugin-desktop-beta/docs/plugin-services.md). This page focuses on selection and the minimum safe patterns.
+### The browser half
 
-### Establish the **actual shape** of both services first
+The half that runs in the renderer, declared by `dsh.client` and loaded by the upstream client loader. It **cannot** read profiles directly and cannot call Host services; its only view of the desktop is what the Web API and the desktop shell's renderer-facing channel expose.
 
-This is the easiest place to go wrong: **a service name existing does not mean a method of the same name exists.** What the runtime really provides today is:
+The split is the same as in ordinary DSH: keep logic that needs Node in the Host half and hand the renderer only the result.
+
+### The real shape of the two public Host services
+
+Desktop exposes exactly two Host services to plugins. Everything else (`desktopRuntime`, `desktopPnpmBootstrap`, `desktopSettingsController`, ...) is internal to the shell.
 
 ```ts
-// desktopProfiles
-interface DesktopProfiles {
-  readonly current: { readonly name: string; readonly dir: string }
-}
+interface DesktopCurrentProfile { readonly name: string; readonly dir: string }
 
-// desktopPnpm
-interface DesktopPnpm {
-  run(argv: readonly string[], signal?: AbortSignal): DesktopPnpmHandle
-  runPlugin(argv: readonly string[], invokingDir: string, signal?: AbortSignal): DesktopPnpmHandle
-  runExternalMarketPluginInstall(argv: readonly string[], invokingDir: string, signal?: AbortSignal): DesktopPnpmHandle
+interface DesktopProfiles {
+  readonly current: DesktopCurrentProfile
+  create(name: string): DesktopProfileSummary
+  list(): readonly DesktopProfileSummary[]
+  prepareSelection(name: string): Promise<DesktopProfileSelection>
+  select(name: string): Promise<void>
+  canDelete(name: string): boolean
+  delete(name: string): Promise<void>
+}
+```
+
+**Only `current` is safe to depend on.** `create` / `list` / `prepareSelection` / `select` / `canDelete` / `delete` are profile management surfaces that Desktop added for itself; they are desktop-product internals that move with the desktop version. Do not treat them as a cross-platform contract.
+
+```ts
+interface DesktopPnpmOutcome {
+  readonly exitCode: number | null
+  readonly signal: NodeJS.Signals | null
 }
 
 interface DesktopPnpmHandle {
   readonly stdout: Readable
   readonly stderr: Readable
-  readonly done: Promise<{ readonly exitCode: number | null; readonly signal: NodeJS.Signals | null }>
+  readonly done: Promise<DesktopPnpmOutcome>
   cancel(): void
 }
-```
 
-In the current Desktop-shell Host, `desktopProfiles` carries **only `current`** — profile discovery and switching belong to the shell's own windows and do not cross the Host service. `desktopPnpm` has **no** `installPlugin()`-style recoverable-install entry point, and offers no snapshot, rollback, retry, receipt, or recovery bookkeeping: **the caller owns package identity policy, command construction, `dsh.profile.bundles` reconciliation, and post-operation validation.**
-
-## Desktop-only plugins
-
-If a plugin only makes sense in Desktop, declare the services as required injections:
-
-```ts
-import type { Context } from '@deepseek-ai/cordis'
-import type { DesktopPnpmHandle } from 'dsh-plugin-desktop-beta/pnpm'
-import type {} from 'dsh-plugin-desktop-beta/profile-service'
-
-export const name = 'example-desktop-plugin'
-export const inject = ['desktopProfiles', 'desktopPnpm']
-
-declare function registerInstallAction(
-  callback: (target: string) => Promise<void>,
-): () => void
-
-export function apply(ctx: Context): void {
-  ctx.logger.info(`active Desktop profile: ${ctx.desktopProfiles.current.name}`)
-  ctx.effect(() => {
-    let active: DesktopPnpmHandle | undefined
-
-    // Connect this callback to an explicit user action in the plugin UI.
-    const dispose = registerInstallAction(async (target) => {
-      // Validate target against this plugin's trust policy before touching a package manager.
-      const signal = AbortSignal.timeout(5 * 60_000)
-      const operation = ctx.desktopPnpm.run(['add', '--save-exact', `${target}@1.0.0`], signal)
-      active = operation
-      operation.stdout.setEncoding('utf8')
-      operation.stderr.setEncoding('utf8')
-      operation.stdout.on('data', chunk => ctx.logger.info(String(chunk).trimEnd()))
-      operation.stderr.on('data', chunk => ctx.logger.warn(String(chunk).trimEnd()))
-      try {
-        const outcome = await operation.done
-        if (outcome.exitCode !== 0) {
-          throw new Error(
-            `plugin install failed: exit=${String(outcome.exitCode)} signal=${String(outcome.signal)}`,
-          )
-        }
-      } finally {
-        if (active === operation) active = undefined
-      }
-    })
-
-    return async () => {
-      dispose()
-      const operation = active
-      operation?.cancel()
-      await operation?.done.catch(() => {})
-    }
-  }, 'example: package-manager user action')
+interface DesktopPnpm {
+  run(argv: readonly string[], signal?: AbortSignal): DesktopPnpmHandle
+  runPlugin(argv: readonly string[], invokingDir: string, signal?: AbortSignal): DesktopPnpmHandle
+  runExternalMarketPluginInstall(argv: readonly string[], invokingDir: string, signal?: AbortSignal): DesktopPnpmHandle
 }
 ```
 
-Production code should invoke package operations from an explicit user action, validate the target, set its own deadline, drain stdout/stderr, and check both `exitCode` and `signal` afterwards; a zero exit code does not replace the plugin's own domain validation. A generation allows only one `desktopPnpm` package operation at a time and a second call **throws synchronously**; dispose must cancel and await it.
+There is no `installPlugin()`, no snapshots, no rollback, no retry and no receipt. To install something you send an argv, read the output and judge the result yourself.
 
-### Depending on a service name that does not exist stays silently pending
-
-Cordis treats a required `inject` as "wait until this service appears": **a misspelled service name, or one the current runtime does not provide, leaves the plugin permanently inactive with no error from the host.** Its routes, commands, and tools simply never exist, and the UI only shows unexplained HTTP 4xx responses.
-
-To confirm that a service name really exists, look in two places: the `cordis.patch.yml` / `host.cordis.patch.yml` the shell contributes inside the runtime directory, and whether the package you depend on is mounted as a Loader row in `dsh.profile.bundles`. Do not decide by whether the name looks right.
-
-## Plugins that work in Desktop and ordinary DSH
-
-When the same package must also run under ordinary `dsh web`, do not put Desktop services in the top-level required `inject` list. Detect Desktop from `ctx.get('desktopProfiles')`, then keep the Desktop service in a nested injection so the adapter unloads with its generation:
+## A desktop-only plugin
 
 ```ts
-export const inject = ['webServer', 'loader']
+export const name = 'example-desktop-capability'
+export const inject = ['desktopProfiles', 'desktopPnpm']
 
-export function apply(ctx: Context, config: { profile?: string }): void {
-  const profiles = ctx.get('desktopProfiles')
-  if (profiles === undefined) {
-    mountOrdinaryDshManager(ctx, config.profile ?? 'web')
-    return
-  }
-
-  ctx.inject(['desktopPnpm'], (desktopCtx) => {
-    desktopCtx.effect(() => mountManager(desktopCtx, {
-      profile: profiles.current.name,
-      profileDir: profiles.current.dir,
-      runPnpm: (argv, signal) => desktopCtx.desktopPnpm.run(argv, signal),
-    }), 'example: Desktop plugin manager')
+export function apply(ctx: any) {
+  ctx.effect(() => {
+    ctx.logger?.info?.('profile: %s', ctx.desktopProfiles.current.name)
+    return () => {}
   })
 }
 ```
 
-`ctx.inject()` is not an optional-dependency declaration: every name passed to that callback is required for the callback. That is exactly what makes it useful here — **only the nested Desktop adapter waits for `desktopPnpm`**, while the outer plugin still owns the ordinary DSH fallback.
+A real package operation looks like this:
 
-The ordinary DSH fallback remains the plugin's authoritative implementation. Do not infer the Desktop profile from `process.argv`, `ctx.baseUrl`, settings, or `$DSH_HOME`; in Desktop, use `desktopProfiles.current`. Do **not** use a name inferred outside Desktop to guess at a different profile.
+```ts
+const controller = new AbortController()
+const timer = setTimeout(() => controller.abort(), 5 * 60_000)
+const handle = ctx.desktopPnpm.runPlugin(
+  ['add', 'some-plugin@1.2.3'],
+  '/absolute/path/of/your/plugin',
+  controller.signal,
+)
+handle.stdout.on('data', chunk => ctx.logger?.info?.(String(chunk).trimEnd()))
+handle.stderr.on('data', chunk => ctx.logger?.warn?.(String(chunk).trimEnd()))
+const { exitCode, signal } = await handle.done
+clearTimeout(timer)
+if (exitCode !== 0 || signal !== null) throw new Error(`package operation failed: ${exitCode ?? signal}`)
+```
 
-## Compose platform capabilities through profile patches
+Rules to remember:
 
-The supported way to add desktop capability is a **patch**, not a fork of upstream source. Patches match by row id and do three things; getting one wrong is not an error but a silent failure (see [the patch section of the architecture](architecture.en.md#patches-match-by-row-id-and-a-mistake-is-not-an-error)):
+- `runPlugin`'s `invokingDir` must be an **absolute path**.
+- Arguments are passed as argv, never through a shell; empty argv, a NUL byte, an already-aborted signal, or a package operation already in flight all **throw synchronously** (they do not return a rejected promise).
+- `done` settles only after the whole child process tree has exited; check `exitCode` and `signal` together, because looking only at `exitCode` treats a signal-killed run (`exitCode === null`) as success.
+- One package operation per generation; a second call fails synchronously instead of queueing.
+- The handle carries `cancel()` to abandon **this one** operation; it is a separate path from the `AbortSignal` you passed in, and neither implies `done` stops settling — `done` still reports that operation's exit code and signal.
+- Do not treat the `AbortSignal` as a politeness request: generation dispose terminates the operation, so your cleanup must handle that.
 
-- **Override an upstream row's config**: `- id: <row id>` plus the field (`config` is replaced wholesale, not deep-merged).
-- **Disable an upstream row**: `- id: <row id>` plus `disabled: true`.
-- **Add your own rows**: `- insert: [{ id: ..., name: ... }]`; with an `id` it inserts into that group, without one it appends at the top level.
+### An inject for a service that does not exist stays pending silently
+
+If `inject: ['desktopPnpm']` is wrong (say `desktopPnpmBootstrap`, or an old name), the plugin does not fail — it waits in pending forever and only shows external symptoms (a 4xx in the UI). This is the most expensive trap in this loader: **there is no exception to read**.
+
+Investigation order: check the spelling → check that the bundle providing it is actually loaded in this generation → check that the profile's insert row was not filtered out. If you are unsure, use conditional injection (next section) so it degrades instead of hanging.
+
+## Compatible with both Desktop and plain DSH
+
+A package that must run in both places cannot declare desktop-only required injects at the top level.
+
+```ts
+export const inject = ['webServer']   // only services that exist in both
+
+export function apply(ctx: any) {
+  const profiles = ctx.get('desktopProfiles')
+  if (!profiles) {
+    ctx.logger?.info?.('running outside DSH Desktop; desktop features disabled')
+    return
+  }
+  ctx.inject(['desktopPnpm'], (desktopCtx: any) => {
+    // both services are guaranteed to exist here
+  })
+}
+```
+
+`ctx.get(name)` returning `undefined` means "not there", not "broken"; `ctx.inject([...], cb)` handles services that arrive later. Do **not** infer the active profile inside a plugin — `desktopProfiles.current` is the single source of truth; read it instead of parsing environment variables or paths.
+
+## Using profile patches to plug into the platform
+
+Profile patches are the sanctioned way for a plugin to take part in composition, not a shortcut for editing the user's config. Three legitimate uses:
+
+1. Override the config of an upstream row (for example, disable automatically opening a browser).
+2. Disable a row with `disabled: true`.
+3. Append your own loader entry with `insert`.
 
 ```yaml
-# A plugin bundle's own cordis.patch.yml
-- id: ui-sidebar-browser
-  # Upstream decides this row from the Profile name; this product does not depend on it.
-  disabled: false
+# <your package>/cordis.patch.yml
+- id: web-runtime
+  config:
+    openBrowser: false
 - insert:
     - id: example-capabilities
       name: example-plugin
 ```
 
-Three criteria:
+Three rules, ordered by cost:
 
-1. **A wrong `id` produces only a Loader warning and startup proceeds.** `name` is an assertion rather than a rename, so a wrong `name` likewise skips the patch with a warning. When "I changed the config and nothing happened", read the patch warnings in the startup log before suspecting the plugin failed to load.
-2. **An `insert`'s `name` is a module specifier** resolved through Node's rules; getting it wrong throws while loading that row, the opposite of a wrong `id`.
-3. **Patch layers are ordered**: each bundle's own patch → the profile directory's `cordis.patch.yml` → launcher overlays. Later layers override earlier ones, which is why a user patch can turn off a default a bundle added.
+- A wrong `- id:` only logs an `entry not found` warning while the remaining patches still apply — so "my patch did nothing" is usually a mistyped id, not a broken patch.
+- The `name` in an `insert` is a **module specifier**; a wrong one fails loudly (the module cannot load), which is easier to diagnose than a wrong id.
+- Patch layers are ordered: the bundle's own patches → profile user patches → the shell's overlay → machine-wide patches. Do not assume "last writer wins"; check which layer covers you before you patch.
 
-## Getting the browser half loaded
+## Making the browser half load
 
-A plugin with a Web Client half (a pure front-end plugin such as a brand skin) must satisfy three conditions at once, or you get "the Host half runs and the page never changes":
+All three conditions must hold:
 
-1. `package.json` declares `dsh.bundle.patch` pointing at your patch file, whose `insert` adds one loader entry — **the client-module scan walks rows that already exist in the Host Loader**, so without that row the browser half never enters the boot graph.
-2. `package.json` declares `dsh.client.platform = "web"` and exports a `./client` bundle. Declaring `dsh.client` without a `./client` export throws; a package whose `platform` is not `web` is skipped by the scan.
-3. The package keeps a Node half (the file `main` points at must exist) even if it does nothing. This is the dual-face package convention: **drop the Node half and the package has no `lib/index.js`, so the Host Loader cannot import it.**
+1. `package.json`'s `dsh.bundle.patch` points at your patch file and the patch inserts a loader entry.
+2. `dsh.client.platform = "web"` and you export `./client`.
+3. The Node half still has a `main` — without a Host-side entry the loader considers the bundle incomplete.
 
-For a working in-repository implementation, read [`dsh-nonead-client-skin`](../dsh-nonead-client-skin/): its `cordis.patch.yml` performs one `insert`, `dsh.client.platform = web` is declared, the Host half is an empty `apply()`, and the browser half injects slot-addressed styles.
+The minimal shape:
 
-Role boundary: **a plugin's host is just an ordinary package referenced by a Loader row** — it carries no privileges. A package installed into a profile takes the same resolution and loading path as an official one.
-
-## `run()`, `runPlugin()`, and `runExternalMarketPluginInstall()`
-
-`desktopPnpm.run(argv, signal)` is a low-level pnpm operation whose cwd is fixed to the active profile directory. It is appropriate for lifecycle-owned local work such as `['--dir', pluginDir, 'run', 'build']` when you need Desktop's packaged pnpm and Node surface without mutating the active profile. It does not promise DSH profile initialization, caller-relative `file:`/`link:` anchoring, or `dsh.profile.bundles` reconciliation — **those are the caller's responsibility.**
-
-`desktopPnpm.runPlugin(argv, invokingDir, signal)` runs packaged `dsh plugin --profile <active>` semantics for non-install mutations and preserves upstream plugin-management behavior, including bundle reconciliation. It requires an **absolute** caller-owned working directory.
-
-`desktopPnpm.runExternalMarketPluginInstall(argv, invokingDir, signal)` is a narrow adapter for the bundled `dshmarket`: it accepts only `add`, flag-style options, and **one exact-version** npm target, and rejects every other shape synchronously.
-
-```ts
-const signal = AbortSignal.timeout(5 * 60_000)
-desktopPnpm.run(['add', '--save-exact', 'example-plugin@1.0.0'], signal)
-desktopPnpm.runPlugin(['remove', packageName], invokingDir, signal)
-desktopPnpm.runPlugin(['update'], invokingDir, signal)
-desktopPnpm.runPlugin(['install', '--no-frozen-lockfile'], invokingDir, signal)
+```json
+{
+  "name": "example-plugin",
+  "main": "lib/index.js",
+  "exports": { "./client": "./lib/client.js" },
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": { "platform": "web", "inject": ["@deepseek-ai/dsh-client-ui-layout"] }
+  }
+}
 ```
 
-Arguments are always passed as argv; do not concatenate shell strings or depend on Windows `.cmd` shims. Empty argv, a NUL-bearing argument, an already-aborted signal, and a generation with an operation already running all **throw synchronously before a handle is returned**. The service settles only after the whole subprocess tree exits (not as soon as the direct wrapper exits) and terminates active operations during generation disposal.
+You can copy `dsh-nonead-client-skin`: it is a complete example of a Host plugin plus a browser half plus a patch.
 
-## APIs not to depend on
+## run(), runPlugin() and runExternalMarketPluginInstall()
 
-`desktopRuntime`, `desktopPnpmBootstrap`, Electron `BrowserWindow`, the tray registry, private Node helpers, `ELECTRON_RUN_AS_NODE`, and generated shims are Desktop internals. Their presence in declarations or runtime context does not make them third-party compatibility contracts.
+All three run pnpm; the difference is **which semantics** they run:
 
-The IPC messages between the shell and the Host child (`ready` / `fatal` / `shutdown` / `permission` and the rest) are likewise an internal handshake, not a plugin interface.
+| | cwd | Extra behaviour |
+| --- | --- | --- |
+| `run(argv)` | active profile | plain pnpm; the shell adds no semantics |
+| `runPlugin(argv, invokingDir)` | active profile | requires an absolute `invokingDir`; performs bundle reconcile |
+| `runExternalMarketPluginInstall(argv, invokingDir)` | active profile | accepts only `add` plus an exact-version npm target |
+
+`runExternalMarketPluginInstall` accepts exactly one shape: `add`, flags, and an exact-version npm target. It rejects `latest`, paths and git targets, because a market install needs a reproducible result and `latest` is not one. The Host resolves `latest` itself and validates the DSH manifest before pinning the exact version.
+
+Everything else is shared: arguments always travel as argv and never through a shell; empty argv, a NUL byte, an already-aborted signal or an operation in flight throw synchronously; `done` settles only after the whole process tree exits; generation dispose terminates the generation's operation.
+
+## Market plugins: install by name and non-image media preview
+
+`dsh-community-market` has two behaviours on the market side that plugin authors meet directly (2.1.15):
+
+- **Install by name** (`src/plugin-spec.ts`) accepts only valid package names, rejecting empty, over-long (>214), version-pinned and invalid names. The module has zero dependencies and the renderer and Host share the same rules, so the rejection a user sees matches the final install decision.
+- **Non-image media preview** (`src/client/media-preview.ts`) classifies an asset by the extension in its `name` (`image` / `video` / `audio` / `pdf` / `archive` / `document` / `other`). Non-image assets are not pushed into an `<img>` to fail; they show a type label, a size and an "open with the system handler" link.
+
+The takeaway for plugin authors: give market media assets a `name` with an extension, otherwise they can only be classified as `other`.
+
+## Interfaces not to depend on
+
+These are shell internals and can change at any time. Treat them as private:
+
+- `desktopRuntime`, `desktopPnpmBootstrap`, `desktopSettingsController`
+- `BrowserWindow`, the tray registry, native menu items
+- any private Node helper, `ELECTRON_RUN_AS_NODE`, the shim the shell generates
+- the control channel between shell and Host (private RPC in Beta, `process.send` messages in Stable) — that is an internal handshake, and the two shells implement it differently; a plugin should never see it
+
+The test is simple: if the thing a plugin needs can only be obtained from the shell and the plugin cannot run in plain DSH without it, it does not belong in a plugin.
 
 ## Testing and release checks
 
-At minimum, a plugin should cover:
+- Run it in **plain DSH**: with no desktop services it must degrade through `ctx.get` instead of hanging.
+- Run it in Desktop: confirm `desktopProfiles.current` matches the profile the window actually shows.
+- Turn the market off, switch to another profile, then start once from recovery mode — these three scenarios expose any "assume this generation exists" assumption fastest.
+- Check that `dsh.client.platform` and `dsh.bundle.patch` both exist; a browser half without a Host half will fail to load.
+- Check that the package lands in the production closure: anything in `devDependencies` does not exist after packaging.
 
-- Loading under ordinary DSH without Desktop services, or staying pending by design.
-- Matching the profile name and directory reported by Desktop to the user's actual selection.
-- Cancellation, non-zero exit, spawn failure, and generation teardown for package operations.
-- Restarting after a plugin change and seeing the bundle in the next Loader composition.
-- With a browser half, that the page actually changed — a loaded Host half does not prove the client half entered the boot graph.
+## Dependency classification when packaging
 
-Read the [architecture](architecture.en.md) next, then use the package-level [service contract](../dsh-plugin-desktop-beta/docs/plugin-services.md) as the API reference.
+| Category | Outcome |
+| --- | --- |
+| `dependencies` | enters the production closure and ships |
+| non-optional `peerDependencies` | enters the production closure (and must be something upstream really provides) |
+| installed `optionalDependencies` | enters the production closure |
+| `devDependencies` | does not ship |
+| type-only dependencies | demote to optional peers or devDependencies; never leave them in `dependencies` |
 
-## Dependency classification for packaging
+Two boundaries worth knowing: closure placement is decided by resolving *from the dependent*, not by simple top-level hoisting, so do not depend on a large package from a position hoisting would change; and `files` accepts only literal names and `directory/**`, so no amount of glob cleverness is recognised.
 
-The payload inside the installer is assembled independently by the Desktop shell's scripts, and the production closure is `dependencies` + non-optional `peerDependencies` + installed `optionalDependencies`. **If a local plugin needs our packages only for types, those dependencies must be demoted to optional peers or left in `devDependencies`:** anything left in `dependencies` is treated as a runtime dependency, shipped inside the installer, and can also fail the build by conflicting with the version the installation already carries. Separately, workspace packages publish by their `files` list, and `files` accepts only literal names and the `directory/**` form — any other glob fails the build outright.
+## Related documents
 
-## Ecosystem vision: keep the plugin ecosystem composable
-
-The DSH plugin ecosystem is growing quickly. The more plugins there are, the more their ability to work together matters — if every plugin assumes or overrides another plugin's internals, installing a few plugins starts to conflict and the ecosystem fragments.
-
-We advocate a browser-plugin style of development: everyone extends the same platform against the same conventions, instead of each maintaining a modified runtime of their own. DSH Desktop is the first practitioner of this approach — the desktop shell itself is an ordinary plugin on the same composition path as official and third-party plugins, with no special privileges.
-
-To that end we are starting a development-conventions initiative and hope it becomes a de facto standard through community adoption:
-
-- **Composition first**: compose capabilities through official slots, services, and patches; do not assume or override other plugins' internals.
-- **Declare clearly**: state the services and slots you depend on; do not rely on runtime coincidences.
-- **Compatibility first**: keep upgrades backward compatible and never break existing compositions.
-
-The manifesto is a living document that follows ecosystem practice and accepts community discussion and revisions. Once the plugin marketplace ships, plugins following shared conventions will be easier to discover, install, and evaluate for compatibility, making convention-driven development the beneficial choice for every author. See the [DSH plugin ecosystem manifesto](plugin-ecosystem.en.md) for the vision and [DSH Community Fabric](../dsh-community-fabric/README.md) for the proposed future interoperability contract.
+- [Architecture](architecture.en.md)
+- [Plugin ecosystem proposal](plugin-ecosystem.en.md)
+- [Desktop shell service reference (Beta)](../dsh-plugin-desktop-beta/docs/plugin-services.md)
+- [Community market](../dsh-community-market/README.md)
+- [Community fabric (Draft)](../dsh-community-fabric/README.md)

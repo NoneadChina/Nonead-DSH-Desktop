@@ -1,5 +1,6 @@
 /** Recoverable factory reset for the active Desktop-owned DSH data directory. */
 
+import { isLinkedPath } from './fs-links.ts'
 import { lstatSync } from 'node:fs'
 import { mkdir, readdir } from 'node:fs/promises'
 import { isAbsolute, join, parse, relative, resolve, sep } from 'node:path'
@@ -56,7 +57,7 @@ export function assertDesktopFactoryResetTarget(
     throw new Error(`${DESKTOP_PACKAGE_NAME}: refusing to reset a filesystem root`)
   }
   const info = lstatSync(target)
-  if (!info.isDirectory() || info.isSymbolicLink()) {
+  if (!info.isDirectory() || isLinkedPath(target)) {
     throw new Error(`${DESKTOP_PACKAGE_NAME}: factory-reset data directory must be a real directory`)
   }
   for (const candidate of protectedPaths) {
@@ -75,7 +76,7 @@ export function assertDesktopFactoryResetTarget(
     }
     throw cause
   }
-  if (!profiles.isDirectory() || profiles.isSymbolicLink()) {
+  if (!profiles.isDirectory() || isLinkedPath(profilesPath)) {
     throw new Error(`${DESKTOP_PACKAGE_NAME}: factory-reset target is not an initialized DSH Home`)
   }
   return target
@@ -106,7 +107,7 @@ export async function resetDesktopDataDirectory(
   await selectDesktopMarketProvider(userDataDir, 'disabled')
   await mkdir(target, { recursive: false, mode: DIRECTORY_MODE })
   const recreated = lstatSync(target)
-  if (!recreated.isDirectory() || recreated.isSymbolicLink()) {
+  if (!recreated.isDirectory() || isLinkedPath(target)) {
     throw new Error(`${DESKTOP_PACKAGE_NAME}: factory-reset data directory could not be recreated safely`)
   }
   return target

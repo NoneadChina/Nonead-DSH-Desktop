@@ -1,3 +1,4 @@
+import { cleanupDisposableTree } from '../src/disposable-tree.ts'
 import {
   chmodSync,
   existsSync,
@@ -32,7 +33,7 @@ function temporaryDirectory(): string {
 }
 
 afterEach(() => {
-  for (const path of temporaryDirectories.splice(0)) rmSync(path, { recursive: true, force: true })
+  for (const path of temporaryDirectories.splice(0)) cleanupDisposableTree(path)
 })
 
 function createDesktopHome(home: string, marker: string): void {

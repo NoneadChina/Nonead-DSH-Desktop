@@ -1,4 +1,11 @@
-/** Refresh the bundled market from npm latest without floating the committed lockfile. */
+/**
+ * Keep the bundled market on a reviewed version.
+ *
+ * `market:check` (run by every build) is offline and only proves the committed manifests, the
+ * resolution and the installed copies agree. `market:check --latest` additionally compares that
+ * pin against the npm tag without touching the tree. Only `market:prepare` (explicit, human
+ * driven) moves the pin, so a build can never adopt a freshly published release on its own.
+ */
 import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -42,24 +49,47 @@ function install(directory) {
   if (result.status !== 0) throw new Error(`Market dependency install failed (${result.status})`)
 }
 
-export async function prepareMarket(directory, { check = false, fetcher = fetch, runInstall = install } = {}) {
-  // Resolve the tag before any writes. An offline check must not silently bless an old release.
-  const version = await latestMarket(fetcher)
+/** The single `dshmarket@npm:<version>` resolution a checked-in tree must carry, if any. */
+function pinnedVersion(rootManifest) {
+  const keys = Object.keys(rootManifest.resolutions ?? {}).filter(key => key === 'dshmarket' || key.startsWith('dshmarket@'))
+  if (keys.length !== 1) return undefined
+  return /^dshmarket@npm:(.+)$/.exec(keys[0])?.[1]
+}
+
+export async function prepareMarket(directory, { check = false, latest = false, fetcher = fetch, runInstall = install } = {}) {
   const paths = ['package.json', ...MARKET_WORKSPACES.map(name => `${name}/package.json`), 'yarn.lock']
   const originals = new Map(paths.map(path => [path, readFileSync(join(directory, path))]))
   const manifests = new Map(paths.filter(path => path.endsWith('.json')).map(path =>
     [path, JSON.parse(originals.get(path).toString())]))
   const rootManifest = manifests.get('package.json')
-  const overrides = Object.keys(rootManifest.resolutions ?? {}).filter(key => key === 'dshmarket' || key.startsWith('dshmarket@'))
+
+  if (check) {
+    // Offline by default: a build must be reproducible without asking npm which release is current.
+    const pinned = pinnedVersion(rootManifest)
+    if (pinned === undefined) throw new Error('no unambiguous dshmarket resolution; run corepack yarn market:prepare')
+    const patchCurrent = rootManifest.resolutions[`dshmarket@npm:${pinned}`] === marketResolution(pinned)
+    const stale = MARKET_WORKSPACES.filter(workspace =>
+      manifests.get(`${workspace}/package.json`).dependencies?.dshmarket !== pinned
+      || installedVersion(directory, workspace) !== pinned)
+    if (stale.length || !patchCurrent) {
+      throw new Error(`dshmarket ${pinned} is not consistent (${stale.join(', ') || 'stale resolution'}); run corepack yarn market:prepare`)
+    }
+    if (!latest) return pinned
+    const available = await latestMarket(fetcher)
+    if (available !== pinned) {
+      throw new Error(`dshmarket latest is ${available} but the tree pins ${pinned}; run corepack yarn market:prepare to adopt it`)
+    }
+    return pinned
+  }
+
+  // Only the explicit command resolves the tag, and it writes nothing before that lookup succeeds.
+  const version = await latestMarket(fetcher)
   const resolutionKey = `dshmarket@npm:${version}`
+  const overrides = Object.keys(rootManifest.resolutions ?? {}).filter(key => key === 'dshmarket' || key.startsWith('dshmarket@'))
   const patchCurrent = overrides.length === 1 && rootManifest.resolutions[resolutionKey] === marketResolution(version)
   const stale = MARKET_WORKSPACES.filter(workspace =>
     manifests.get(`${workspace}/package.json`).dependencies?.dshmarket !== version
     || installedVersion(directory, workspace) !== version)
-  if (check) {
-    if (stale.length || !patchCurrent) throw new Error(`dshmarket latest is ${version}; run corepack yarn market:prepare (${stale.join(', ') || 'stale resolution'})`)
-    return version
-  }
   if (!stale.length && patchCurrent) return version
   try {
     // Follow latest while retaining Desktop self-update and rollback fixes. Yarn rejects
@@ -86,7 +116,12 @@ export async function prepareMarket(directory, { check = false, fetcher = fetch,
 
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
   const args = process.argv.slice(2)
-  if (args.some(arg => arg !== '--check')) throw new Error('Usage: corepack yarn market:prepare [--check]')
-  const version = await prepareMarket(root, { check: args.includes('--check') })
-  console.log(`dshmarket latest verified: ${version} in ${MARKET_WORKSPACES.join(', ')}`)
+  if (args.some(arg => arg !== '--check' && arg !== '--latest')) {
+    throw new Error('Usage: corepack yarn market:prepare [--check [--latest]]')
+  }
+  const check = args.includes('--check')
+  const version = await prepareMarket(root, { check, latest: args.includes('--latest') })
+  console.log(check
+    ? `dshmarket ${version} is pinned consistently in ${MARKET_WORKSPACES.join(', ')}`
+    : `dshmarket latest verified: ${version} in ${MARKET_WORKSPACES.join(', ')}`)
 }

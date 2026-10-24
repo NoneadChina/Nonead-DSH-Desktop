@@ -1,5 +1,6 @@
 /** Durable bounds for the one DSH Desktop main window. */
 
+import { isLinkedPath } from './fs-links.ts'
 import { randomUUID } from 'node:crypto'
 import {
   lstatSync,
@@ -88,7 +89,7 @@ export class FileMainWindowStateStore implements MainWindowStateStore {
       if ((cause as NodeJS.ErrnoException).code === 'ENOENT') return undefined
       throw cause
     }
-    if (!info.isFile() || info.isSymbolicLink()) {
+    if (!info.isFile() || isLinkedPath(this.statePath)) {
       throw new Error('main-window state must be a regular file')
     }
     if (info.size > MAX_STATE_BYTES) {
@@ -106,7 +107,7 @@ export class FileMainWindowStateStore implements MainWindowStateStore {
     const directory = dirname(this.statePath)
     mkdirSync(directory, { recursive: true, mode: STATE_DIRECTORY_MODE })
     const directoryInfo = lstatSync(directory)
-    if (!directoryInfo.isDirectory() || directoryInfo.isSymbolicLink()) {
+    if (!directoryInfo.isDirectory() || isLinkedPath(directory)) {
       throw new Error('main-window state directory must be a real directory')
     }
     const state: MainWindowStateV1 = { version: STATE_VERSION, bounds: validated }

@@ -9,6 +9,7 @@ import { Choice, MARKET_OPTIONS, marketBody, marketTitle } from '../../../dsh-pl
 import { en as desktopEn, zh as desktopZh, type DesktopSettingsLocaleKey } from '../../../dsh-plugin-desktop-beta/src/client/desktop-settings-locales.ts'
 import { ComputerUseSettings } from './computer-use.tsx'
 import { COMMUNITY_MARKET as COMMUNITY, DSH_MARKET as MARKET, marketToggleTargets, type MarketName } from './market-toggle.ts'
+import type { DesktopCommand } from '../desktop-contract.ts'
 
 const REMOTE = '@agents-anywhere/dsh-bridge-next'
 const COMPUTER_ITEM = 'nonead-dsh-desktop-computer-use'

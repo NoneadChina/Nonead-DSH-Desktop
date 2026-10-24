@@ -1,14 +1,10 @@
 /** Desktop-owned DSH Home selection that never copies or mutates the previous Home. */
 
+import { isLinkedPath, readVerifiedPrivateFile } from './fs-links.ts'
 import {
   chmodSync,
-  closeSync,
-  constants,
-  fstatSync,
   lstatSync,
   mkdirSync,
-  openSync,
-  readSync,
   readdirSync,
 } from 'node:fs'
 import type { Stats } from 'node:fs'
@@ -132,14 +128,14 @@ function existingInfo(path: string): Stats | undefined {
 function ensurePrivateDirectory(path: string): void {
   mkdirSync(path, { recursive: true, mode: STATE_DIRECTORY_MODE })
   const info = lstatSync(path)
-  if (!info.isDirectory() || info.isSymbolicLink()) throw invalidState(`state directory is unsafe: ${path}`)
+  if (!info.isDirectory() || isLinkedPath(path)) throw invalidState(`state directory is unsafe: ${path}`)
   if (CHECK_POSIX_MODE && (info.mode & 0o777) !== STATE_DIRECTORY_MODE) chmodSync(path, STATE_DIRECTORY_MODE)
 }
 
 function assertPrivateStateFile(path: string): Stats | undefined {
   const info = existingInfo(path)
   if (info === undefined) return undefined
-  if (!info.isFile() || info.isSymbolicLink()) throw invalidState(`state is not a regular file: ${path}`)
+  if (!info.isFile() || isLinkedPath(path)) throw invalidState(`state is not a regular file: ${path}`)
   if (info.size > MAX_STATE_BYTES) throw invalidState(`state exceeds ${String(MAX_STATE_BYTES)} bytes`)
   if (CHECK_POSIX_MODE && (info.mode & 0o777) !== STATE_FILE_MODE) {
     throw invalidState(`state permissions must be ${STATE_FILE_MODE.toString(8)}`)
@@ -150,28 +146,12 @@ function assertPrivateStateFile(path: string): Stats | undefined {
 function readPrivateState(path: string): string | undefined {
   const pathInfo = assertPrivateStateFile(path)
   if (pathInfo === undefined) return undefined
-  const descriptor = openSync(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0))
+  const read = readVerifiedPrivateFile(path, pathInfo, MAX_STATE_BYTES)
+  if (read.status !== 'ok') throw invalidState('state changed while it was being opened')
   try {
-    const descriptorInfo = fstatSync(descriptor)
-    if (!descriptorInfo.isFile() || descriptorInfo.size > MAX_STATE_BYTES
-      || descriptorInfo.dev !== pathInfo.dev || descriptorInfo.ino !== pathInfo.ino) {
-      throw invalidState('state changed while it was being opened')
-    }
-    const bytes = Buffer.alloc(MAX_STATE_BYTES + 1)
-    let offset = 0
-    while (offset < bytes.byteLength) {
-      const count = readSync(descriptor, bytes, offset, bytes.byteLength - offset, null)
-      if (count === 0) break
-      offset += count
-    }
-    if (offset > MAX_STATE_BYTES) throw invalidState(`state exceeds ${String(MAX_STATE_BYTES)} bytes`)
-    try {
-      return new TextDecoder('utf-8', { fatal: true }).decode(bytes.subarray(0, offset))
-    } catch {
-      throw invalidState('state must contain valid UTF-8')
-    }
-  } finally {
-    closeSync(descriptor)
+    return new TextDecoder('utf-8', { fatal: true }).decode(read.bytes)
+  } catch {
+    throw invalidState('state must contain valid UTF-8')
   }
 }
 
@@ -221,7 +201,7 @@ function assertRealDirectory(path: string, code: DesktopDataDirectoryErrorCode, 
       `${label} is unavailable: ${cause instanceof Error ? cause.message : String(cause)}`,
     )
   }
-  if (!info.isDirectory() || info.isSymbolicLink()) {
+  if (!info.isDirectory() || isLinkedPath(path)) {
     throw new DesktopDataDirectoryError(code, `${label} must be a real directory: ${path}`)
   }
 }
@@ -266,7 +246,7 @@ function contains(parent: string, child: string, platform: NodeJS.Platform): boo
 export function validDesktopProfileExists(homeDir: string): boolean {
   const profilesDir = join(homeDir, 'profiles')
   const profilesInfo = existingInfo(profilesDir)
-  if (profilesInfo === undefined || !profilesInfo.isDirectory() || profilesInfo.isSymbolicLink()) return false
+  if (profilesInfo === undefined || !profilesInfo.isDirectory() || isLinkedPath(profilesDir)) return false
   return listDesktopProfiles(homeDir).some(profile => profile.webCapable && profile.problem === undefined)
 }
 

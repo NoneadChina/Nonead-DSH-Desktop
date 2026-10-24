@@ -64,6 +64,8 @@ describe('Desktop product copy', () => {
     expect(copy.terminalErrorTitle).toBe('无法打开 DSH 终端')
     expect(copy.diagnosticsErrorTitle).toBe('无法导出诊断信息')
     expect(copy.updateAvailableMessage('2.1.0')).toBe('DSH Desktop 2.1.0 已可用。')
+    expect(copy.viewReleaseNotes).toBe('查看完整说明')
+    expect(desktopNativeCopy('en').viewReleaseNotes).toBe('View Full Release Notes')
   })
 
   it('explains cross-channel Profile risk and routes users to Profile selection', () => {

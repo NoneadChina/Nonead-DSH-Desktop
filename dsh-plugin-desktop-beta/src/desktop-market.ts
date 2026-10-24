@@ -1,14 +1,10 @@
 /** Machine-level Desktop Market provider selection and fail-safe state. */
 
+import { isLinkedPath, readVerifiedPrivateFile } from './fs-links.ts'
 import {
   chmodSync,
-  closeSync,
-  constants,
-  fstatSync,
   lstatSync,
   mkdirSync,
-  openSync,
-  readFileSync,
 } from 'node:fs'
 import { isAbsolute, basename, dirname, join } from 'node:path'
 import { withFileLock, writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
@@ -133,19 +129,17 @@ export function parseDesktopMarketState(value: unknown): DesktopMarketStateV1 {
 
 function readRawState(statePath: string): unknown {
   const pathInfo = lstatSync(statePath)
-  if (!pathInfo.isFile() || pathInfo.isSymbolicLink()) {
+  if (!pathInfo.isFile() || isLinkedPath(statePath)) {
     throw invalidState('state must be a regular file')
   }
-  const descriptor = openSync(statePath, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0))
-  try {
-    const info = fstatSync(descriptor)
-    if (!info.isFile() || info.size > MAX_STATE_BYTES) {
-      throw invalidState('state must be a regular file within the size limit')
-    }
-    return JSON.parse(readFileSync(descriptor, 'utf8')) as unknown
-  } finally {
-    closeSync(descriptor)
+  const read = readVerifiedPrivateFile(statePath, pathInfo, MAX_STATE_BYTES)
+  if (read.status === 'type' || read.status === 'changed' || read.status === 'missing') {
+    throw invalidState('state must be a regular file')
   }
+  if (read.status === 'size') {
+    throw invalidState('state must be a regular file within the size limit')
+  }
+  return JSON.parse(read.bytes.toString('utf8')) as unknown
 }
 
 /** Read the state without ever writing a migration or repair marker. */
@@ -167,7 +161,7 @@ function assertRealStateDirectory(statePath: string): void {
   const directory = dirname(statePath)
   try {
     const info = lstatSync(directory)
-    if (!info.isDirectory() || info.isSymbolicLink()) {
+    if (!info.isDirectory() || isLinkedPath(directory)) {
       throw new Error(`${BIN_NAME}: Desktop Market state directory must be a real directory`)
     }
     chmodSync(directory, STATE_DIRECTORY_MODE)
@@ -175,7 +169,7 @@ function assertRealStateDirectory(statePath: string): void {
     if ((cause as NodeJS.ErrnoException).code === 'ENOENT') {
       mkdirSync(directory, { recursive: true, mode: STATE_DIRECTORY_MODE })
       const info = lstatSync(directory)
-      if (!info.isDirectory() || info.isSymbolicLink()) {
+      if (!info.isDirectory() || isLinkedPath(directory)) {
         throw new Error(`${BIN_NAME}: Desktop Market state directory must be a real directory`)
       }
       chmodSync(directory, STATE_DIRECTORY_MODE)

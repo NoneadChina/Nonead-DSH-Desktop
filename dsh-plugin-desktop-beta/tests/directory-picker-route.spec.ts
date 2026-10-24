@@ -6,14 +6,25 @@ import {
   handleDesktopDirectoryValidationRequest,
 } from '../src/directory-picker-route.ts'
 
-function request(origin = 'http://127.0.0.1:43120', method = 'POST'): IncomingMessage {
-  return { method, headers: { origin } } as IncomingMessage
+const ORIGIN = 'http://127.0.0.1:43120'
+
+/**
+ * A renderer request as the server sees it: the loopback socket plus the Host header are what
+ * the route now checks, so a test that only supplies `Origin` would no longer be realistic.
+ */
+function request(origin: string | undefined = ORIGIN, method = 'POST', remoteAddress = '127.0.0.1'): IncomingMessage {
+  return {
+    method,
+    headers: { origin, host: '127.0.0.1:43120', 'sec-fetch-site': 'same-origin' },
+    socket: { remoteAddress },
+  } as unknown as IncomingMessage
 }
 
-function jsonRequest(value: unknown, origin = 'http://127.0.0.1:43120'): IncomingMessage {
+function jsonRequest(value: unknown, origin: string | undefined = ORIGIN, remoteAddress = '127.0.0.1'): IncomingMessage {
   const req = Readable.from([JSON.stringify(value)]) as IncomingMessage
   req.method = 'POST'
-  req.headers = { origin, 'content-type': 'application/json' }
+  req.headers = { origin, host: '127.0.0.1:43120', 'sec-fetch-site': 'same-origin', 'content-type': 'application/json' }
+  Object.assign(req, { socket: { remoteAddress } })
   return req
 }
 
@@ -71,6 +82,29 @@ describe('desktop directory picker route', () => {
       await handleDesktopDirectoryPickerRequest(req, res, 'http://127.0.0.1:43120', pick)
       expect(res.statusCode).toBe(req.method === 'GET' ? 405 : 403)
     }
+    expect(pick).not.toHaveBeenCalled()
+  })
+
+  it('rejects a non-loopback peer even when it claims the renderer Origin', async () => {
+    const pick = vi.fn(async () => null)
+    const res = response()
+
+    await handleDesktopDirectoryPickerRequest(request(ORIGIN, 'POST', '10.0.0.5'), res, ORIGIN, pick)
+
+    expect(res.statusCode).toBe(403)
+    expect(JSON.parse(res.body)).toEqual({ error: 'forbidden' })
+    expect(pick).not.toHaveBeenCalled()
+  })
+
+  it('rejects a request whose Host header is not the loopback origin', async () => {
+    const pick = vi.fn(async () => null)
+    const res = response()
+    const req = request()
+    req.headers = { origin: ORIGIN, host: 'evil.example:43120', 'sec-fetch-site': 'same-origin' }
+
+    await handleDesktopDirectoryPickerRequest(req, res, ORIGIN, pick)
+
+    expect(res.statusCode).toBe(403)
     expect(pick).not.toHaveBeenCalled()
   })
 
@@ -133,6 +167,21 @@ describe('desktop directory validation route', () => {
       jsonRequest({ path: 'C:\\Work' }, 'https://example.com'),
       res,
       'http://127.0.0.1:43120',
+      validate,
+    )
+
+    expect(validate).not.toHaveBeenCalled()
+    expect(res.statusCode).toBe(403)
+  })
+
+  it('rejects a non-loopback validation peer even when it claims the renderer Origin', async () => {
+    const validate = vi.fn(async () => true)
+    const res = response()
+
+    await handleDesktopDirectoryValidationRequest(
+      jsonRequest({ path: 'C:\\Work' }, ORIGIN, '10.0.0.5'),
+      res,
+      ORIGIN,
       validate,
     )
 

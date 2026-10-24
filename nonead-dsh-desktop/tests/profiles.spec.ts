@@ -1,6 +1,7 @@
+import { spawn } from 'node:child_process'
 import { existsSync, lstatSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, expect, it, vi } from 'vitest'
 import { composeEntries, loadOverlayPatches, loadProfileDirectory, OPTIONAL_BUNDLES } from '@deepseek-ai/dsh-app-boot'
@@ -100,7 +101,7 @@ it('records onboarding per Profile together with its plugin choices and retains 
   reread.dismissAccountSetup('desktop')
   expect(new NextProfiles(manager.home).accountSetupPending('desktop')).toBe(false)
   expect(reread.onboardingRequired('work')).toBe(true)
-  expect(reread.features('desktop')).toEqual({ market: false, dshMarket: true, remoteControl: true })
+  expect(reread.features('desktop')).toEqual({ market: false, dshMarket: true, marketChoice: 'dsh', remoteControl: true })
   expect(reread.computerUseEnabled('desktop')).toBe(true)
   expect(reread.computerUseEnabled('work')).toBe(false)
   expect(JSON.parse(readFileSync(file, 'utf8'))).toMatchObject({
@@ -120,7 +121,7 @@ it('skips onboarding without changing current choices, while a recreated Profile
   manager.finishOnboarding('work')
   expect(manager.accountSetupPending('work')).toBe(false)
   expect(manager.onboardingRequired('work')).toBe(false)
-  expect(manager.features('work')).toEqual({ market: false, dshMarket: true, remoteControl: true })
+  expect(manager.features('work')).toEqual({ market: false, dshMarket: true, marketChoice: 'dsh', remoteControl: true })
   expect(readFileSync(join(dir, 'cordis.patch.yml'), 'utf8')).toBe(patch)
   expect(JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')).dsh.desktopNextOnboarding.outcome).toBe('skipped')
   rmSync(dir, { recursive: true })
@@ -356,7 +357,7 @@ it('migrates legacy switches once and preserves later official plugin selections
   writeFileSync(file, JSON.stringify(manifest))
   writeFileSync(join(dir, 'nonead-dsh-desktop.features.json'), JSON.stringify({ market: false, remoteControl: true }))
   manager.ensure('desktop')
-  expect(manager.features('desktop')).toEqual({ market: false, remoteControl: true, dshMarket: true })
+  expect(manager.features('desktop')).toEqual({ market: false, remoteControl: true, dshMarket: true, marketChoice: 'dsh' })
   const migrated = JSON.parse(readFileSync(file, 'utf8'))
   expect(migrated).toMatchObject({ dependencies: manifest.dependencies, custom: 'keep' })
   expect(migrated.dsh.profile.bundles).not.toContain('nonead-dsh-desktop')
@@ -368,7 +369,7 @@ it('migrates legacy switches once and preserves later official plugin selections
   writeFileSync(file, JSON.stringify(migrated))
   manager.ensure('desktop')
   loadNextProfile(dir, manager.home)
-  expect(manager.features('desktop')).toEqual({ market: true, remoteControl: false, dshMarket: true })
+  expect(manager.features('desktop')).toEqual({ market: true, remoteControl: false, dshMarket: true, marketChoice: 'dsh' })
   const overlay = JSON.parse(readFileSync(join(dir, 'nonead-dsh-desktop.cordis.patch.json'), 'utf8'))
   expect(overlay.every((row: object) => !Object.hasOwn(row, 'disabled'))).toBe(true)
   manager.create('work')
@@ -560,6 +561,107 @@ it('leaves no Profile link into an archived installation and points the AA bridg
   } }])
   // A physical installation keeps the managed link and the bridge's own defaults.
   loadNextProfile(dir, manager.home)
-  expect(lstatSync(link).isSymbolicLink()).toBe(true)
+  expect(privateFiles.isLinkedPath(link)).toBe(true)
   expect(JSON.parse(readFileSync(join(dir, 'nonead-dsh-desktop.cordis.patch.json'), 'utf8'))).toEqual([{ id: 'agents-anywhere-bridge-next', config: { dshHome: manager.home } }])
+})
+
+/**
+ * The lock state observed at every manifest commit, so a read-modify-write path
+ * that skipped the shared lock is visible as `unlocked` in the result.
+ */
+function commitLocks(directory: string, operation: () => void): string[] {
+  const lock = join(directory, 'lock.lock')
+  const observed: string[] = []
+  const commit = privateFiles.atomicJson
+  const spy = vi.spyOn(privateFiles, 'atomicJson').mockImplementation((path, value) => {
+    observed.push(`${basename(path)}=${existsSync(lock) ? readFileSync(lock, 'utf8').trim() : 'unlocked'}`)
+    commit(path, value)
+  })
+  try { operation() } finally { spy.mockRestore() }
+  return observed
+}
+
+it('holds the shared writer lock across every configuration read-modify-write', () => {
+  const manager = profiles()
+  const dir = manager.ensure('desktop')
+  manager.finishOnboarding('desktop', { features: { market: false, remoteControl: false }, computerUse: false })
+  expect(manager.accountSetupPending('desktop')).toBe(true)
+  const held = `package.json=${process.pid}`
+  const writes = commitLocks(dir, () => {
+    manager.dismissAccountSetup('desktop')
+    manager.setFeatures('desktop', { market: true, remoteControl: false })
+    manager.finishOnboarding('desktop', { features: { market: false, dshMarket: true, remoteControl: false }, computerUse: false })
+    // Already migrated, so this is a read-only no-op and commits nothing.
+    manager.migrateFeatures('desktop')
+  })
+  expect(writes).toEqual([held, held, held])
+  // The lock is released, so a finished shell write cannot block the Host.
+  expect(existsSync(join(dir, 'lock.lock'))).toBe(false)
+})
+
+it('holds the lock while `ensure` migrates the manifest it just read', () => {
+  const manager = profiles()
+  const dir = manager.ensure('desktop')
+  const file = join(dir, 'package.json')
+  const manifest = JSON.parse(readFileSync(file, 'utf8'))
+  manifest.dsh.profile.bundles = [...WEB_BUNDLES, 'nonead-dsh-desktop', DSH_MARKET_PACKAGE]
+  delete manifest.dsh.desktopNextPlugins
+  delete manifest.dsh.desktopNextScheduleBundle
+  writeFileSync(file, JSON.stringify(manifest))
+  writeFileSync(join(dir, 'cordis.patch.yml'), '- id: time-context\n  disabled: true\n')
+  const writes = commitLocks(dir, () => { manager.ensure('desktop') })
+  expect(writes.length).toBeGreaterThan(0)
+  expect(writes.every(entry => entry.endsWith(`=${process.pid}`))).toBe(true)
+  expect(existsSync(join(dir, 'lock.lock'))).toBe(false)
+})
+
+it('waits for another writer process instead of starting from a stale manifest', async () => {
+  const manager = profiles()
+  const dir = manager.ensure('desktop')
+  manager.finishOnboarding('desktop', { features: { market: false, remoteControl: false }, computerUse: false })
+  expect(manager.accountSetupPending('desktop')).toBe(true)
+  const scripts = mkdtempSync(join(tmpdir(), 'nonead-dsh-desktop-writer-'))
+  roots.push(scripts)
+  const script = join(scripts, 'writer.cjs')
+  const ready = join(scripts, 'held')
+  const report = join(scripts, 'report.json')
+  // A second process takes the same lock, holds it, and records what the
+  // manifest still says at the moment it commits its own field.
+  writeFileSync(script, [
+    "const { closeSync, openSync, readFileSync, rmSync, writeFileSync, writeSync } = require('node:fs')",
+    "const { join } = require('node:path')",
+    'const [directory, ready, report] = process.argv.slice(2)',
+    "const lock = join(directory, 'lock.lock')",
+    'const descriptor = openSync(lock, "wx")',
+    "writeSync(descriptor, process.pid + '\\n')",
+    'closeSync(descriptor)',
+    "writeFileSync(ready, 'held')",
+    'Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1200)',
+    "const path = join(directory, 'package.json')",
+    "const manifest = JSON.parse(readFileSync(path, 'utf8'))",
+    'writeFileSync(report, JSON.stringify({ accountPending: manifest.dsh.desktopNextOnboarding.accountPending === true }))',
+    'manifest.dsh.childWrite = 1',
+    "writeFileSync(path, JSON.stringify(manifest, null, 2) + '\\n')",
+    'rmSync(lock, { force: true })',
+  ].join('\n'))
+  const child = spawn(process.execPath, [script, dir, ready, report], { stdio: 'ignore', windowsHide: true })
+  const exited = new Promise<void>(resolve => { child.once('exit', () => resolve()) })
+  try {
+    const deadline = Date.now() + 15_000
+    while (!existsSync(ready)) {
+      if (Date.now() > deadline) throw new Error('the other writer never took the lock')
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10)
+    }
+    // Blocks until the other process releases, then re-reads the committed state.
+    manager.dismissAccountSetup('desktop')
+    await exited
+  } finally { child.kill() }
+  // The other writer's critical section saw the pre-write manifest: the shell
+  // writer was excluded from it rather than interleaved with it.
+  expect(JSON.parse(readFileSync(report, 'utf8'))).toEqual({ accountPending: true })
+  const manifest = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'))
+  // Its field survives, and the shell's change is applied on top of it.
+  expect(manifest.dsh.childWrite).toBe(1)
+  expect(manifest.dsh.desktopNextOnboarding.accountPending).toBeUndefined()
+  expect(existsSync(join(dir, 'lock.lock'))).toBe(false)
 })

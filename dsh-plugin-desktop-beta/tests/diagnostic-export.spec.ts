@@ -164,7 +164,8 @@ describe('exportDiagnosticsZip', () => {
     expect(zip.readAsText('system-info.txt')).toContain('omitted-log-files: 1')
   })
 
-  it('skips a linked lifecycle evidence file without failing the diagnostic export', async () => {
+  // Windows without SeCreateSymbolicLinkPrivilege cannot create a file symlink; POSIX covers it.
+it.skipIf(process.platform === 'win32')('skips a linked lifecycle evidence file without failing the diagnostic export', async () => {
     const root = mkdtempSync(join(tmpdir(), 'dsh-dx-lifecycle-file-link-'))
     const logs = join(root, 'logs')
     const target = join(root, 'target.jsonl')

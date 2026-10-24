@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
   MarketCatalogResponse,
   MarketInstallableResponse,
+  MarketOperationPreviewResponse,
   MarketSourceView,
   MarketStateResponse,
 } from '../src/api-types.js'
@@ -1309,6 +1310,59 @@ describe('MarketSettingsTab', () => {
     expect(screen.getByRole('button', { name: en.loadMore })).toBeTruthy()
   })
 
+  it('returns the load-more control when a filter reload supersedes an unfinished page', async () => {
+    // 分页请求在途时切换分类会用一次非分页请求打断它；被打断请求的 finally 不再执行，
+    // 若不同步收回 loadingMore，按钮会永久停在「加载中」且不可点。
+    const firstInstallablePage: MarketInstallableResponse = {
+      ...installableResponse([
+        makeInstallableItem(firstSource, 'available-plugin', 'Available Plugin', 'dsh-plugin-available', '1.4.0', ['tools']),
+      ]),
+      categories: ['interface', 'tools', 'utility'],
+      nextCursor: 'page-2',
+    }
+    const filteredInstallablePage: MarketInstallableResponse = {
+      ...installableResponse([
+        makeInstallableItem(firstSource, 'second-installable', 'Second Installable', 'dsh-plugin-second', '3.0.0', ['interface']),
+      ]),
+      categories: ['interface', 'tools', 'utility'],
+      nextCursor: 'page-3',
+    }
+    let resolvePage: ((value: MarketInstallableResponse) => void) | undefined
+    const pendingPage = new Promise<MarketInstallableResponse>(resolve => { resolvePage = resolve })
+    vi.mocked(readMarketState).mockResolvedValue(enabledState)
+    vi.mocked(readMarketInstallable).mockImplementation((_locale, options = {}) => {
+      if (options.cursor === 'page-2') return pendingPage
+      if (options.categories?.includes('interface') === true) return Promise.resolve(filteredInstallablePage)
+      return Promise.resolve(firstInstallablePage)
+    })
+    render(<MarketSettingsTab {...({
+      t,
+      readLocale: () => 'en',
+      initialView: 'installable',
+    } as MarketSettingsTabProps)} />)
+
+    expect(await screen.findByRole('button', { name: `${en.install}: Available Plugin` })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: en.loadMore }))
+    await waitFor(() => {
+      expect(readMarketInstallable).toHaveBeenLastCalledWith('en', {
+        sourceRecordId: firstSource.sourceRecordId,
+        cursor: 'page-2',
+        refresh: false,
+      }, expect.any(AbortSignal))
+    })
+    expect(screen.getByRole('button', { name: en.loadingMore })).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'interface' }))
+    expect(await screen.findByRole('button', { name: `${en.install}: Second Installable` })).toBeTruthy()
+    const loadMore = screen.getByRole('button', { name: en.loadMore }) as HTMLButtonElement
+    expect(loadMore.disabled).toBe(false)
+
+    await act(async () => {
+      resolvePage?.(firstInstallablePage)
+      await pendingPage
+    })
+  })
+
   it('uses multi-select category filters with OR query semantics and resets the current page', async () => {
     const initial = catalogForSource(firstSource, [makeItem(firstSource, 'fixture-plugin', 'Fixture Plugin', ['interface', 'tools'])], 'unfiltered-next')
     const interfaceOnly = {
@@ -1460,5 +1514,76 @@ describe('MarketSettingsTab', () => {
     expect(await screen.findByRole('heading', { name: en.emptyTitle })).toBeTruthy()
     fireEvent.click(screen.getAllByRole('button', { name: en.closeMarket })[1]!)
     await waitFor(() => { expect(screen.queryByRole('dialog', { name: en.title })).toBeNull() })
+  })
+
+  it('renders a non-image media slot as a typed badge and links it from the detail view', async () => {
+    const mediaItem = {
+      ...makeItem(firstSource, 'media-plugin', 'Media Plugin'),
+      media: {
+        icon: {
+          assetRef: 'mktimg_videofeedfacefeedfacefeedfacefa',
+          role: 'plugin-icon',
+          alt: 'Walkthrough video',
+          name: 'walkthrough.mp4',
+          bytes: 1_572_864,
+        },
+      },
+    } as unknown as CatalogSnapshot['items'][number]
+    vi.mocked(readMarketState).mockResolvedValue(enabledState)
+    vi.mocked(readMarketCatalog).mockResolvedValue(catalogForSource(firstSource, [mediaItem]))
+    render(<MarketSettingsTab {...props} />)
+
+    const card = await screen.findByRole('button', { name: /Media Plugin/u })
+    expect(card.querySelector('img')).toBeNull()
+    expect(card.querySelector('.dshMarketMediaBadge')?.textContent).toBe('MP4')
+
+    fireEvent.click(card)
+    const dialog = screen.getByRole('dialog')
+    expect(within(dialog).getByText(en.mediaAttachments)).toBeTruthy()
+    const link = within(dialog).getByRole('link', { name: /walkthrough\.mp4/u }) as HTMLAnchorElement
+    expect(link.getAttribute('href')).toBe('/api/community-market/assets?ref=mktimg_videofeedfacefeedfacefeedfacefa')
+    expect(link.target).toBe('_blank')
+    expect(link.rel).toContain('noopener')
+    expect(link.textContent).toContain(en.mediaKindVideo)
+    expect(link.textContent).toContain('1.5 MB')
+  })
+
+  it('adds a package the catalog does not list through the verified install preview', async () => {
+    const preview: MarketOperationPreviewResponse = {
+      action: 'install',
+      profileName: 'web',
+      packageName: 'dsh-plugin-typed',
+      version: '1.0.0',
+      displayName: 'dsh-plugin-typed',
+      expiresAt: '2026-08-18T04:00:00.000Z',
+      previewId: 'spec-preview-1',
+    }
+    vi.mocked(readMarketState).mockResolvedValue(enabledState)
+    vi.mocked(readMarketCatalog).mockResolvedValue(catalog)
+    vi.mocked(previewMarketOperation).mockResolvedValue(preview)
+    render(<MarketSettingsTab {...props} />)
+
+    fireEvent.click(await screen.findByRole('button', { name: en.addPlugin }))
+    const dialog = await screen.findByRole('dialog', { name: en.addPlugin })
+    const input = within(dialog).getByLabelText(en.addPluginPackageLabel)
+
+    fireEvent.change(input, { target: { value: 'dsh-plugin-typed@1.2.3' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: en.addPluginSubmit }))
+    expect(within(dialog).getByRole('alert').textContent).toBe(en.addPluginRejectVersionPinned)
+    expect(previewMarketOperation).not.toHaveBeenCalled()
+
+    fireEvent.change(input, { target: { value: '  dsh-plugin-typed  ' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: en.addPluginSubmit }))
+    await waitFor(() => {
+      expect(previewMarketOperation).toHaveBeenCalledWith(
+        { action: 'install-spec', spec: 'dsh-plugin-typed' },
+        expect.any(AbortSignal),
+      )
+    })
+    await waitFor(() => { expect(screen.queryByRole('dialog', { name: en.addPlugin })).toBeNull() })
+    const confirm = await screen.findByRole('dialog', { name: en.confirmInstallTitle })
+    expect(within(confirm).getAllByText('dsh-plugin-typed').length).toBeGreaterThan(0)
+    expect(within(confirm).getByText('1.0.0')).toBeTruthy()
+    expect(executeMarketOperation).not.toHaveBeenCalled()
   })
 })

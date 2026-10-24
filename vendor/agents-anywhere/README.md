@@ -27,19 +27,25 @@ corepack yarn aa:check
 corepack yarn aa:prepare-release
 # Development: resolve latest AA, then launch Desktop
 corepack yarn dev
-# Normal release: resolve latest AA, then package Desktop
+# Normal release: reuse or prepare the AA build recorded in provenance.json
 corepack yarn dist:mac:beta
-# Reproduce the committed AA artifact without contacting GitHub
-DSH_AA_SOURCE_REF=pinned corepack yarn dist:mac:beta
-# Select an exact full 40-character commit instead of the moving branch
+# Select an exact full 40-character commit for one preparation run
 DSH_AA_SOURCE_REF=<commit> corepack yarn aa:prepare-release
 ```
 
-On Windows PowerShell, set `$env:DSH_AA_SOURCE_REF = 'pinned'` before running
-Yarn, then remove the variable when returning to latest builds. An alternative
-repository (for example an authenticated SSH URL) can be supplied through
-`DSH_AA_SOURCE_REPOSITORY`. The default is the public AA GitHub repository.
-`DSH_AA_SOURCE_REF` accepts a branch name, full commit SHA, or `pinned`.
+To hold the release on one AA build, set `pinnedCommit` (and say why in
+`pinReason`) in `vendor/agents-anywhere/provenance.json`. Every preparation
+then builds, or reuses the checksum-verified tarball of, that exact commit, and
+packaging an already-prepared artifact does not contact GitHub. The earlier
+`DSH_AA_SOURCE_REF=pinned` switch was removed because a pin has to be a
+committed, reviewable channel choice that `--verify-release` can check against
+the installed packages, not an environment variable one machine could set
+silently. `DSH_AA_SOURCE_REF` itself only selects a branch name or a full
+40-character commit for a single run. On Windows PowerShell, set
+`$env:DSH_AA_SOURCE_REF` before running Yarn, then remove the variable to return
+to the recorded source. An alternative repository (for example an authenticated
+SSH URL) can be supplied through `DSH_AA_SOURCE_REPOSITORY`; the default is the
+public AA GitHub repository.
 
 The preparation step runs AA's build, typecheck and build-artifact checks. It
 removes prepack/postpack hooks in staging because the full upstream integration
@@ -55,8 +61,8 @@ not silently ship the old plugin. On failure the dependency manifests, lockfile
 and provenance are restored. If root installation had started, rerun
 `corepack yarn install --immutable` to restore installed dependencies before
 retrying. The source SHA and artifact checksum identify exactly what shipped.
-`pinned` verifies the committed tarball checksum and requires dependencies to
-have been installed normally first.
+A recorded `pinnedCommit` verifies the committed tarball checksum and requires
+dependencies to have been installed normally first.
 
 These checks do not guarantee compatibility with every future AA change.
 Before adopting an update, validate both Desktop variants and run

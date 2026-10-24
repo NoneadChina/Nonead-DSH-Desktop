@@ -1,11 +1,11 @@
 /** Next-owned profile state. Recovery works without importing any user plugin. */
-import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, readlinkSync, realpathSync, symlinkSync, unlinkSync } from 'node:fs'
+import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, symlinkSync, unlinkSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { initProfile, loadOverlayPatches, loadProfileDirectory, PROFILE_TEMPLATES, readProfilePatches, type Profile, type ProfileContext } from '@deepseek-ai/dsh-app-boot'
 import { withFileLock } from '@deepseek-ai/dsh-atomic-write'
-import { atomicJson, atomicText, readPrivateFile } from './private-files.ts'
+import { atomicJson, atomicText, isLinkedPath, linkedPathTarget, readPrivateFile, removeLinkedPath, sameResolvedPath } from './private-files.ts'
 import { existingPath, LEGACY, readPrivateFileWithLegacy } from './legacy-names.ts'
 import { NextRecovery } from './recovery.ts'
 import { DEFAULT_PROFILE } from './desktop-contract.ts'
@@ -13,6 +13,7 @@ import { computerUsePatch } from './profile-computer-use.ts'
 import { RETIRED_SCHEDULE_BUNDLE, retiredSchedulePatch } from './profile-schedule.ts'
 import { removeLinkProjectionsSafely } from '../../dsh-plugin-desktop-beta/src/link-projections.ts'
 import { insideArchive, unpackedPath } from './asar-archive-policy.ts'
+import { withProfileWriteLock } from './recovery-support.ts'
 
 export const NEXT_PACKAGE = fileURLToPath(new URL('../package.json', import.meta.url))
 export const WEB_BUNDLES = [...PROFILE_TEMPLATES.web!.bundles]
@@ -21,7 +22,17 @@ export const AA_PACKAGE = '@agents-anywhere/dsh-bridge-next'
 export const COMMUNITY_MARKET_PACKAGE = 'dsh-community-market'
 export const DSH_MARKET_PACKAGE = 'dshmarket'
 /** Legacy shell shape, now projected from the standard Profile bundle selection. */
-export interface Features { remoteControl: boolean; market: boolean; dshMarket?: boolean }
+export interface Features {
+  remoteControl: boolean
+  market: boolean
+  dshMarket?: boolean
+  /**
+   * Which market the wizard chose, including "none": the two booleans above
+   * cannot tell "the user skipped the market" apart from "dsh-market", so
+   * reopening the wizard used to flip a skipped choice to dsh-market.
+   */
+  marketChoice?: 'none' | 'community' | 'dsh'
+}
 export interface OnboardingChoices { features: Features; computerUse: boolean }
 export const DEFAULT_FEATURES: Readonly<Features> = { remoteControl: false, market: false }
 
@@ -34,6 +45,8 @@ interface ProfileManifest {
      */
     desktopNextScheduleBundle?: number
     desktopNextOnboarding?: { version: number; outcome: 'completed' | 'skipped'; accountPending?: boolean }
+    /** Which market the wizard chose, including "none"; mirrors `Features.marketChoice`. */
+    desktopNextMarket?: 'none' | 'community' | 'dsh'
     /** Names recovery removed from `profile.bundles`; a UI ledger, never a policy. */
     desktopNextDeselectedBundles?: string[]
     profile: { bundles: string[] }
@@ -47,6 +60,10 @@ function applyFeatures(manifest: ProfileManifest, features: Features): void {
     ...(features.market ? [COMMUNITY_MARKET_PACKAGE] : []), ...(features.dshMarket ? [DSH_MARKET_PACKAGE] : []),
     ...(features.remoteControl ? [AA_PACKAGE] : [])]
   manifest.dsh.desktopNextPlugins = 1
+  // Only record a choice we can trust: 'both false' means no choice yet (a fresh
+  // setup must still default to dsh-market), and 'both true' cannot happen.
+  if (features.marketChoice !== undefined) manifest.dsh.desktopNextMarket = features.marketChoice
+  else if (Boolean(features.market) !== Boolean(features.dshMarket)) manifest.dsh.desktopNextMarket = features.market ? 'community' : 'dsh'
 }
 
 export function profileName(value: unknown): string {
@@ -62,10 +79,25 @@ export function parseFeatures(value: unknown): Features {
   const features = value as Record<string, unknown>
   if (typeof features.remoteControl !== 'boolean' || typeof features.market !== 'boolean'
     || (features.dshMarket !== undefined && typeof features.dshMarket !== 'boolean')
-    || Object.keys(features).some(key => !['remoteControl', 'market', 'dshMarket'].includes(key))) throw new Error('Invalid Next features')
-  return { remoteControl: features.remoteControl, market: features.market, ...(features.dshMarket ? { dshMarket: true } : {}) }
+    || Object.keys(features).some(key => !['remoteControl', 'market', 'dshMarket', 'marketChoice'].includes(key))) throw new Error('Invalid Next features')
+  const marketChoice = features.marketChoice
+  if (marketChoice !== undefined && marketChoice !== 'none' && marketChoice !== 'community' && marketChoice !== 'dsh') throw new Error('Invalid Next features')
+  return { remoteControl: features.remoteControl, market: features.market,
+    ...(features.dshMarket !== undefined ? { dshMarket: features.dshMarket } : {}),
+    ...(marketChoice === undefined ? {} : { marketChoice }) }
 }
 
+/**
+ * Shell-owned Profile configuration.
+ *
+ * The Profile files are shared with the Host's profile manager, so every method
+ * that reads configuration and writes it back runs under `withProfileWriteLock`
+ * over `<profile>/lock.lock` — the same lock file the asynchronous recovery
+ * writers take through `withFileLock(join(dir, 'lock'))`. Reads stay lock-free:
+ * the atomic rename commit means a reader observes either the whole old or the
+ * whole new file. Methods documented as "unlocked" assume the caller already
+ * holds that lock, which is how a nested migration reuses one critical section.
+ */
 export class NextProfiles {
   constructor(readonly home: string) {
     if (!isAbsolute(home)) throw new Error('Next home must be absolute')
@@ -74,7 +106,7 @@ export class NextProfiles {
     const root = join(this.home, 'profiles')
     const dir = join(root, profileName(name))
     for (const path of [this.home, root, dir]) {
-      if (existsSync(path) && (!lstatSync(path).isDirectory() || lstatSync(path).isSymbolicLink())) {
+      if (existsSync(path) && (!lstatSync(path).isDirectory() || isLinkedPath(path))) {
         throw new Error(`Next profile path must be a real directory: ${path}`)
       }
     }
@@ -109,6 +141,13 @@ export class NextProfiles {
   }
   ensure(name: string): string {
     const dir = this.directory(name)
+    // Create the directory before locking, so a first-time Profile is already
+    // covered by the shared writer lock while `initProfile` renders it.
+    if (!existsSync(join(dir, 'package.json'))) mkdirSync(dir, { recursive: true, mode: 0o700 })
+    return withProfileWriteLock(dir, () => this.writeEnsure(name, dir))
+  }
+  /** Unlocked: the caller holds the Profile writer lock. */
+  private writeEnsure(name: string, dir: string): string {
     const existing = existsSync(join(dir, 'package.json'))
     if (!existing) initProfile(dir, WEB_BUNDLES)
     if (existing) {
@@ -117,35 +156,45 @@ export class NextProfiles {
         // Retire the former Next-specific selection from the shared manifest.
         // Other launchers must not inherit this application's capability.
         new NextRecovery(this).backup(name, 'before-next-bundle-removal')
-        this.migrateFeatures(name)
+        this.writeMigrateFeatures(name)
         const migrated = this.manifest(name)
         migrated.dsh.profile.bundles = migrated.dsh.profile.bundles.filter(bundle => bundle !== 'nonead-dsh-desktop')
         atomicJson(join(dir, 'package.json'), migrated)
       }
-    } else this.setFeatures(name, DEFAULT_FEATURES)
-    this.migrateSchedule(name)
+    } else this.writeFeatures(name, DEFAULT_FEATURES)
+    this.writeMigrateSchedule(name)
     return dir
   }
   create(name: string): string {
     const dir = this.directory(name)
     mkdirSync(dirname(dir), { recursive: true, mode: 0o700 })
     mkdirSync(dir, { mode: 0o700 })
-    initProfile(dir, WEB_BUNDLES)
-    this.setFeatures(name, DEFAULT_FEATURES)
-    this.migrateSchedule(name)
-    return dir
+    // The directory exists before the lock is taken, so a concurrent manager
+    // contends on this Profile instead of racing the initial manifest render.
+    return withProfileWriteLock(dir, () => {
+      initProfile(dir, WEB_BUNDLES)
+      this.writeFeatures(name, DEFAULT_FEATURES)
+      this.writeMigrateSchedule(name)
+      return dir
+    })
   }
   features(name: string): Features {
     const manifest = this.manifest(name)
     if (manifest.dsh.desktopNextPlugins === 1 || !manifest.dsh.profile.bundles.includes('nonead-dsh-desktop')) {
       const bundles = manifest.dsh.profile.bundles
       return { remoteControl: bundles.includes(AA_PACKAGE), market: bundles.includes(COMMUNITY_MARKET_PACKAGE),
-        ...(bundles.includes(DSH_MARKET_PACKAGE) ? { dshMarket: true } : {}) }
+        ...(bundles.includes(DSH_MARKET_PACKAGE) ? { dshMarket: true } : {}),
+        ...(manifest.dsh.desktopNextMarket === undefined ? {} : { marketChoice: manifest.dsh.desktopNextMarket }) }
     }
     const text = readPrivateFileWithLegacy(this.directory(name), 'nonead-dsh-desktop.features.json', LEGACY.features)
     return text === undefined ? { ...DEFAULT_FEATURES } : parseFeatures(JSON.parse(text))
   }
   setFeatures(name: string, value: unknown): void {
+    const dir = this.directory(name)
+    withProfileWriteLock(dir, () => this.writeFeatures(name, value))
+  }
+  /** Unlocked: the caller holds the Profile writer lock. */
+  private writeFeatures(name: string, value: unknown): void {
     const features = parseFeatures(value)
     const manifest = this.manifest(name)
     applyFeatures(manifest, features)
@@ -159,10 +208,13 @@ export class NextProfiles {
     return !this.onboardingRequired(name) && this.manifest(name).dsh.desktopNextOnboarding?.accountPending === true
   }
   dismissAccountSetup(name: string): void {
-    const manifest = this.manifest(name)
-    if (manifest.dsh.desktopNextOnboarding?.accountPending !== true) return
-    delete manifest.dsh.desktopNextOnboarding.accountPending
-    atomicJson(join(this.directory(name), 'package.json'), manifest)
+    const dir = this.directory(name)
+    withProfileWriteLock(dir, () => {
+      const manifest = this.manifest(name)
+      if (manifest.dsh.desktopNextOnboarding?.accountPending !== true) return
+      delete manifest.dsh.desktopNextOnboarding.accountPending
+      atomicJson(join(dir, 'package.json'), manifest)
+    })
   }
   /** Read the saved native-provider choice without importing any user plugin. */
   computerUseEnabled(name: string): boolean {
@@ -170,8 +222,16 @@ export class NextProfiles {
   }
   /** Save choices before completion. Skip preserves both bundles and the user's patch verbatim. */
   finishOnboarding(name: string, value?: unknown): void {
+    const dir = this.directory(name)
+    withProfileWriteLock(dir, () => this.writeOnboarding(name, dir, value))
+  }
+  /**
+   * Unlocked: the caller holds the Profile writer lock, so the manifest read,
+   * the patch read and the two-file commit cannot interleave with another writer.
+   */
+  private writeOnboarding(name: string, dir: string, value?: unknown): void {
     const manifest = this.manifest(name)
-    const patchPath = join(this.directory(name), 'cordis.patch.yml')
+    const patchPath = join(dir, 'cordis.patch.yml')
     let originalPatch: string | undefined
     let nextPatch: string | undefined
     if (value !== undefined) {
@@ -191,7 +251,7 @@ export class NextProfiles {
     if (patchChanged && nextPatch !== undefined) atomicText(patchPath, nextPatch)
     try {
       // Completion is the final write: a failed/interrupted save must never start the Host.
-      atomicJson(join(this.directory(name), 'package.json'), manifest)
+      atomicJson(join(dir, 'package.json'), manifest)
     } catch (error) {
       if (patchChanged) {
         if (originalPatch === undefined) unlinkSync(patchPath)
@@ -202,17 +262,23 @@ export class NextProfiles {
   }
   /** Once per Profile, preserve the old choices without overriding future plugin-manager edits. */
   migrateFeatures(name: string): void {
+    const dir = this.directory(name)
+    withProfileWriteLock(dir, () => this.writeMigrateFeatures(name))
+  }
+  /** Unlocked: the caller holds the Profile writer lock. */
+  private writeMigrateFeatures(name: string): void {
     const manifest = this.manifest(name)
     if (manifest.dsh.desktopNextPlugins === 1) return
-    this.setFeatures(name, { ...this.features(name), dshMarket: manifest.dsh.profile.bundles.includes(DSH_MARKET_PACKAGE) })
+    this.writeFeatures(name, { ...this.features(name), dshMarket: manifest.dsh.profile.bundles.includes(DSH_MARKET_PACKAGE) })
   }
   /**
    * Once per Profile: upstream retired the Scheduled Tasks bundle and the Web
    * composition now mounts Schedule. Drop the bundle (app-boot would on load,
    * but Next reads the list first) and the `time-context` overrides that no
    * longer match a row; overrides on `schedule` and `ui-schedule` keep applying.
+   * Unlocked: `ensure` and `create` call it while holding the Profile writer lock.
    */
-  private migrateSchedule(name: string): void {
+  private writeMigrateSchedule(name: string): void {
     const manifest = this.manifest(name)
     if (manifest.dsh.desktopNextScheduleBundle === 2) return
     const patchPath = join(this.directory(name), 'cordis.patch.yml')
@@ -251,7 +317,8 @@ export class NextProfiles {
         ...(onboarding?.version === 1 && ['completed', 'skipped'].includes(onboarding.outcome) ? { desktopNextOnboarding: onboarding } : {}) }
       atomicJson(join(dir, 'package.json'), manifest)
       atomicText(join(dir, 'cordis.patch.yml'), '[]\n')
-      this.setFeatures(name, { remoteControl: false, market: false })
+      // Already inside the writer lock taken above, so write through the unlocked helper.
+      this.writeFeatures(name, { remoteControl: false, market: false })
       return readPrivateFile(join(backup, 'cordis.patch.yml')) === undefined ? undefined : join(backup, 'cordis.patch.yml')
     })
   }
@@ -273,6 +340,7 @@ function retireLinkProjections(projectDir: string): void {
   }
 }
 
+
 /** Add product capabilities without replacing the upstream Web presentation. */
 export function loadNextProfile(projectDir: string, home: string, installAnchor = NEXT_PACKAGE): Profile {
   const manager = new NextProfiles(home)
@@ -290,10 +358,13 @@ export function loadNextProfile(projectDir: string, home: string, installAnchor 
   mkdirSync(modules, { recursive: true, mode: 0o700 })
   const link = join(modules, 'nonead-dsh-desktop')
   const target = realpathSync(dirname(installAnchor))
-  const linkTarget = insideArchive(installAnchor) ? undefined : target
+  // Compare through `realpathSync.native`: a junction is invisible to `lstat` and `readlink`
+  // throws EINVAL on it, so both would treat a planted junction as an unmanaged directory.
+  const linkTarget = insideArchive(installAnchor) ? undefined : realpathSync.native(dirname(installAnchor))
   const existingLink = lstatSync(link, { throwIfNoEntry: false })
-  if (existingLink && !existingLink.isSymbolicLink()) throw new Error('Next bundle fallback is occupied by an unmanaged package')
-  if (existingLink && (linkTarget === undefined || resolve(modules, readlinkSync(link)) !== linkTarget)) unlinkSync(link)
+  const existingTarget = existingLink ? linkedPathTarget(link) : undefined
+  if (existingLink && existingTarget === undefined) throw new Error('Next bundle fallback is occupied by an unmanaged package')
+  if (existingLink && (linkTarget === undefined || existingTarget === undefined || !sameResolvedPath(existingTarget, linkTarget))) removeLinkedPath(link)
   if (linkTarget !== undefined && !lstatSync(link, { throwIfNoEntry: false })) symlinkSync(linkTarget, link, 'junction')
   const profile = loadProfileDirectory('nonead-dsh-desktop', projectDir, installAnchor)
   profile.layers.push({ packageName: 'nonead-dsh-desktop', packageDir: target,

@@ -1,0 +1,4 @@
+# Bilingual-pair consistency record. Both languages carry equal authority.
+# Update both files and record their Git blob hashes after editing either side.
+why-desktop.md: 9450b6333057d1f659635c9574497be994445782
+why-desktop.en.md: cac5f18720eb9ed5742c91ee18a0bd8f07321614

@@ -39,7 +39,9 @@ function fuseWire(overrides: Partial<Record<FuseV1Options, FuseState>> = {}): Fu
   return {
     version: FuseVersion.V1,
     [FuseV1Options.RunAsNode]: FuseState.ENABLE,
-    [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: FuseState.ENABLE,
+    [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: FuseState.DISABLE,
+    [FuseV1Options.EnableNodeCliInspectArguments]: FuseState.DISABLE,
+    [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: FuseState.DISABLE,
     [FuseV1Options.OnlyLoadAppFromAsar]: FuseState.ENABLE,
     ...overrides,
   }
@@ -298,28 +300,30 @@ describe('final Electron fuse verification', () => {
   })
 
   it.each([
-    [FuseV1Options.RunAsNode, 'RunAsNode'],
-    [FuseV1Options.EnableEmbeddedAsarIntegrityValidation, 'EnableEmbeddedAsarIntegrityValidation'],
-    [FuseV1Options.OnlyLoadAppFromAsar, 'OnlyLoadAppFromAsar'],
-  ])('fails loud when required fuse %s is not enabled', async (option, name) => {
-    const read: ElectronFuseReader = async () => fuseWire({ [option]: FuseState.DISABLE })
+    [FuseV1Options.RunAsNode, 'RunAsNode', FuseState.DISABLE],
+    [FuseV1Options.EnableNodeOptionsEnvironmentVariable, 'EnableNodeOptionsEnvironmentVariable', FuseState.ENABLE],
+    [FuseV1Options.EnableNodeCliInspectArguments, 'EnableNodeCliInspectArguments', FuseState.ENABLE],
+    [FuseV1Options.EnableEmbeddedAsarIntegrityValidation, 'EnableEmbeddedAsarIntegrityValidation', FuseState.ENABLE],
+    [FuseV1Options.OnlyLoadAppFromAsar, 'OnlyLoadAppFromAsar', FuseState.DISABLE],
+  ])('fails loud when hardened fuse %s is loosened', async (option, name, loosened) => {
+    const read: ElectronFuseReader = async () => fuseWire({ [option]: loosened })
 
     await expect(verifyElectronExecutableFuses('/build/DSH Desktop Beta.exe', read))
-      .rejects.toThrow(`${name}=DISABLE`)
+      .rejects.toThrow(`${name}=${FuseState[loosened]}`)
   })
 
-  it('requires both ASAR fuses disabled for directory packages', async () => {
-    const disabled = {
+  it('requires the archive fuse to follow the packaged layout', async () => {
+    const directoryWire: ElectronFuseReader = async () => fuseWire({
       [FuseV1Options.OnlyLoadAppFromAsar]: FuseState.DISABLE,
-      [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: FuseState.DISABLE,
-    }
-    await expect(verifyElectronExecutableFuses('/build/app', async () => fuseWire(disabled), false))
+    })
+    await expect(verifyElectronExecutableFuses('/build/app', directoryWire, false))
       .resolves.toBeUndefined()
-    for (const option of [FuseV1Options.OnlyLoadAppFromAsar, FuseV1Options.EnableEmbeddedAsarIntegrityValidation]) {
-      await expect(verifyElectronExecutableFuses('/build/app', async () => fuseWire({
-        ...disabled, [option]: FuseState.ENABLE,
-      }), false)).rejects.toThrow('invalid required fuses')
-    }
+    await expect(verifyElectronExecutableFuses('/build/DSH Desktop Beta.exe', directoryWire))
+      .rejects.toThrow('OnlyLoadAppFromAsar=DISABLE')
+
+    const archiveWire: ElectronFuseReader = async () => fuseWire()
+    await expect(verifyElectronExecutableFuses('/build/app', archiveWire, false))
+      .rejects.toThrow('OnlyLoadAppFromAsar=ENABLE')
   })
 
   it('wraps an unreadable final executable with its resolved path', async () => {

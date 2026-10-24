@@ -8,6 +8,7 @@
  * checkpoint.
  */
 
+import { isLinkedPath, readVerifiedPrivateFile } from './fs-links.ts'
 import { createHash, randomUUID } from 'node:crypto'
 import {
   closeSync,
@@ -171,6 +172,15 @@ export interface ProfileCheckpointSlot {
   readonly pluginCount?: number
   /** Total bytes of the declarative files present in this checkpoint. */
   readonly totalBytes?: number
+  /**
+   * Why this slot exists on disk but cannot be read.
+   *
+   * A slot is unreadable when its directory is present and its manifest or one of its
+   * backups fails validation: an older Desktop release reading a newer manifest
+   * version, or a snapshot modified from outside. It is never restorable, but it must
+   * neither hide the other slots nor stop healthy captures from rotating through it.
+   */
+  readonly unreadable?: string
 }
 
 export type CaptureHealthyResult =
@@ -191,6 +201,8 @@ export interface RestoreInspection {
   readonly currentDiffers: boolean
   readonly changedFiles: readonly DesktopProfileCheckpointFilename[]
   readonly manifest?: ProfileCheckpointManifest
+  /** Present when the slot exists but cannot be read; see {@link ProfileCheckpointSlot.unreadable}. */
+  readonly unreadable?: string
 }
 
 export interface RestoreResult {
@@ -268,13 +280,29 @@ function isENOENT(cause: unknown): boolean {
   return (cause as NodeJS.ErrnoException | null)?.code === 'ENOENT'
 }
 
+/**
+ * Diagnostic for a slot that exists on disk but cannot be read.
+ *
+ * Messages raised by this module already start with the Desktop prefix, so that prefix is
+ * stripped before the slot identity is added. Anything else — a filesystem or parser error —
+ * is kept verbatim, because it is the only description of why the snapshot is unusable.
+ * @param slotId - slot whose snapshot failed validation.
+ * @param cause - the read failure.
+ * @returns one complete diagnostic line.
+ */
+function unreadableSlotReason(slotId: DesktopProfileCheckpointSlotId, cause: unknown): string {
+  const message = cause instanceof Error ? cause.message : String(cause)
+  const reason = message.startsWith(`${BIN_NAME}: `) ? message.slice(BIN_NAME.length + 2) : message
+  return `${BIN_NAME}: checkpoint ${slotId} is unreadable: ${reason}`
+}
+
 function realDirectory(label: string, path: string): string {
   const absolute = assertAbsolute(label, path)
   let item
   try { item = lstatSync(absolute) } catch (cause) {
     fail(`${label} is unavailable: ${cause instanceof Error ? cause.message : String(cause)}`)
   }
-  if (!item.isDirectory() || item.isSymbolicLink()) fail(`${label} must be a real directory`)
+  if (!item.isDirectory() || isLinkedPath(absolute)) fail(`${label} must be a real directory`)
   realpathSync(absolute)
   return absolute
 }
@@ -282,7 +310,7 @@ function realDirectory(label: string, path: string): string {
 function ensureDirectory(path: string): void {
   mkdirSync(path, { recursive: true, mode: DIRECTORY_MODE })
   const item = lstatSync(path)
-  if (!item.isDirectory() || item.isSymbolicLink()) fail(`checkpoint directory is not a real directory: ${path}`)
+  if (!item.isDirectory() || isLinkedPath(path)) fail(`checkpoint directory is not a real directory: ${path}`)
   if (CHECK_POSIX_MODE && (item.mode & 0o777) !== DIRECTORY_MODE) chmodSync(path, DIRECTORY_MODE)
 }
 
@@ -307,13 +335,39 @@ function writeDurable(path: string, bytes: Uint8Array, mode = FILE_MODE): void {
   }
 }
 
+/**
+ * Read one checkpoint JSON document through the descriptor its validation approved.
+ *
+ * The `lstat` still runs first, because callers distinguish "no such document" from "broken
+ * document" through `isENOENT`: an absent manifest is an empty slot, an absent skip marker is
+ * no pending restore. Everything after that — regular-file identity, the exact inode, the size
+ * limit and the POSIX mode — is decided from the opened descriptor, so a file replaced between
+ * the two calls is rejected instead of being read. A failure here still surfaces as an error,
+ * which the slot readers (`listSlots`, `inspectSlot`, `restoreSlot`) turn into that slot's
+ * `unreadable` reason instead of failing the whole list.
+ * @param path - absolute checkpoint document path.
+ * @returns the parsed JSON value.
+ */
 function readJson(path: string): unknown {
   const item = lstatSync(path)
-  if (!item.isFile() || item.isSymbolicLink() || (CHECK_POSIX_MODE && (item.mode & 0o777) !== FILE_MODE)) {
+  if (!item.isFile() || isLinkedPath(path)) fail(`checkpoint file has unsafe type or mode: ${path}`)
+  if (item.size > MANIFEST_MAX_BYTES) fail(`checkpoint file is too large: ${path}`)
+  const read = readVerifiedPrivateFile(path, item, MANIFEST_MAX_BYTES)
+  if (read.status === 'missing') {
+    // A document that vanished between the two calls stays "absent" for every caller: an
+    // ENOENT with the shape the previous single-`readFileSync` implementation produced.
+    throw Object.assign(new Error(`ENOENT: no such file or directory, open '${path}'`), { code: 'ENOENT' })
+  }
+  if (read.status === 'type' || read.status === 'changed') {
     fail(`checkpoint file has unsafe type or mode: ${path}`)
   }
-  if (item.size > MANIFEST_MAX_BYTES) fail(`checkpoint file is too large: ${path}`)
-  return JSON.parse(readFileSync(path, 'utf8')) as unknown
+  if (read.status === 'size') fail(`checkpoint file is too large: ${path}`)
+  // Decided from the opened descriptor rather than the pre-read `lstat`, so a swap to a file
+  // with different permissions is rejected as well.
+  if (CHECK_POSIX_MODE && (read.mode & 0o777) !== FILE_MODE) {
+    fail(`checkpoint file has unsafe type or mode: ${path}`)
+  }
+  return JSON.parse(read.bytes.toString('utf8')) as unknown
 }
 
 function checkpointPluginCount(directory: string): number | undefined {
@@ -378,14 +432,14 @@ export function inspectLatestDesktopProfileCheckpointUsage(
   const profileRoot = join(snapshotRoot, hash(profileIdentity))
   try {
     const userData = lstatSync(userDataDir)
-    if (!userData.isDirectory() || userData.isSymbolicLink()) fail('userDataDir must be a real directory')
+    if (!userData.isDirectory() || isLinkedPath(userDataDir)) fail('userDataDir must be a real directory')
     const snapshots = lstatSync(snapshotRoot)
-    if (!snapshots.isDirectory() || snapshots.isSymbolicLink()
+    if (!snapshots.isDirectory() || isLinkedPath(snapshotRoot)
       || (CHECK_POSIX_MODE && (snapshots.mode & 0o777) !== DIRECTORY_MODE)) {
       fail('checkpoint root has unsafe type or mode')
     }
     const root = lstatSync(profileRoot)
-    if (!root.isDirectory() || root.isSymbolicLink()
+    if (!root.isDirectory() || isLinkedPath(profileRoot)
       || (CHECK_POSIX_MODE && (root.mode & 0o777) !== DIRECTORY_MODE)) {
       fail('checkpoint directory has unsafe type or mode')
     }
@@ -403,7 +457,7 @@ export function inspectLatestDesktopProfileCheckpointUsage(
         if (isENOENT(cause)) continue
         throw cause
       }
-      if (!directoryItem.isDirectory() || directoryItem.isSymbolicLink()
+      if (!directoryItem.isDirectory() || isLinkedPath(directory)
         || (CHECK_POSIX_MODE && (directoryItem.mode & 0o777) !== DIRECTORY_MODE)) {
         fail('checkpoint directory has unsafe type or mode')
       }
@@ -486,7 +540,7 @@ function assertTargetParent(
   const parent = dirname(targetPath(profileDir, homeDir, name))
   try {
     const item = lstatSync(parent)
-    if (item.isSymbolicLink() || !item.isDirectory()) fail(`checkpoint target parent must be a real directory: ${name}`)
+    if (isLinkedPath(parent) || !item.isDirectory()) fail(`checkpoint target parent must be a real directory: ${name}`)
     realpathSync(parent)
   } catch (cause) {
     if (!isENOENT(cause)) throw cause
@@ -535,28 +589,44 @@ export class DesktopProfileCheckpoint {
     ensureDirectory(this.profileRoot)
   }
 
-  /** Return all three stable slots, including empty slots. */
+  /**
+   * Return all three stable slots, including empty and unreadable ones.
+   *
+   * A slot whose snapshot fails validation is reported with
+   * {@link ProfileCheckpointSlot.unreadable} instead of failing the whole list: one damaged
+   * checkpoint must not hide the other recovery points, and callers need to distinguish
+   * "no checkpoint yet" from "this checkpoint is broken".
+   */
   listSlots(): readonly ProfileCheckpointSlot[] {
     this.recoverOrphanedSlots()
     return DESKTOP_PROFILE_CHECKPOINT_SLOT_IDS.map(slotId => {
       const directory = this.slotDirectory(slotId)
-      const snapshot = this.readSnapshot(directory, false)
-      return snapshot === undefined
-        ? { slotId, snapshotExists: false, snapshotDirectory: directory }
-        : (() => {
-            const pluginCount = checkpointPluginCount(snapshot.directory)
-            return {
-              slotId,
-              snapshotExists: true,
-              snapshotDirectory: directory,
-              manifest: snapshot.manifest,
-              ...(pluginCount === undefined ? {} : { pluginCount }),
-              totalBytes: snapshot.manifest.files.reduce(
-                (total, file) => total + (file.present ? (file.size ?? 0) : 0),
-                0,
-              ),
-            }
-          })()
+      let snapshot: LoadedSnapshot | undefined
+      try {
+        snapshot = this.readSnapshot(directory, false)
+      } catch (cause) {
+        return {
+          slotId,
+          snapshotExists: true,
+          snapshotDirectory: directory,
+          unreadable: unreadableSlotReason(slotId, cause),
+        }
+      }
+      if (snapshot === undefined) {
+        return { slotId, snapshotExists: false, snapshotDirectory: directory }
+      }
+      const pluginCount = checkpointPluginCount(snapshot.directory)
+      return {
+        slotId,
+        snapshotExists: true,
+        snapshotDirectory: directory,
+        manifest: snapshot.manifest,
+        ...(pluginCount === undefined ? {} : { pluginCount }),
+        totalBytes: snapshot.manifest.files.reduce(
+          (total, file) => total + (file.present ? (file.size ?? 0) : 0),
+          0,
+        ),
+      }
     })
   }
 
@@ -572,7 +642,10 @@ export class DesktopProfileCheckpoint {
 
     const slots = this.listSlots()
     const empty = slots.find(slot => !slot.snapshotExists)
-    const target = empty ?? [...slots].sort((left, right) => {
+    // An unreadable slot can never be restored, so it is the next replacement candidate:
+    // rotation stays bounded at three slots instead of failing every healthy startup.
+    const degraded = slots.find(slot => slot.unreadable !== undefined)
+    const target = empty ?? degraded ?? [...slots].sort((left, right) => {
       const leftTime = Date.parse(left.manifest!.capturedAt)
       const rightTime = Date.parse(right.manifest!.capturedAt)
       return leftTime - rightTime || left.slotId.localeCompare(right.slotId)
@@ -620,7 +693,20 @@ export class DesktopProfileCheckpoint {
   inspectSlot(slotId: DesktopProfileCheckpointSlotId): RestoreInspection {
     const resolvedSlot = assertSlotId(slotId)
     this.recoverOrphanedSlot(resolvedSlot)
-    const snapshot = this.readSnapshot(this.slotDirectory(resolvedSlot), false)
+    const directory = this.slotDirectory(resolvedSlot)
+    let snapshot: LoadedSnapshot | undefined
+    try {
+      snapshot = this.readSnapshot(directory, false)
+    } catch (cause) {
+      // Report the damaged slot instead of failing the caller's whole inspection pass.
+      return {
+        slotId: resolvedSlot,
+        snapshotExists: true,
+        currentDiffers: false,
+        changedFiles: [],
+        unreadable: unreadableSlotReason(resolvedSlot, cause),
+      }
+    }
     if (snapshot === undefined) {
       return { slotId: resolvedSlot, snapshotExists: false, currentDiffers: false, changedFiles: [] }
     }
@@ -642,7 +728,14 @@ export class DesktopProfileCheckpoint {
   restoreSlot(slotId: DesktopProfileCheckpointSlotId): RestoreResult {
     const resolvedSlot = assertSlotId(slotId)
     this.recoverOrphanedSlot(resolvedSlot)
-    const snapshot = this.readSnapshot(this.slotDirectory(resolvedSlot), true)
+    let snapshot: LoadedSnapshot | undefined
+    try {
+      snapshot = this.readSnapshot(this.slotDirectory(resolvedSlot), true)
+    } catch (cause) {
+      // Name the damaged slot explicitly: the generic parser message does not tell the
+      // recovery UI which checkpoint is unusable.
+      throw new Error(unreadableSlotReason(resolvedSlot, cause))
+    }
     if (snapshot === undefined) fail(`checkpoint ${resolvedSlot} is empty`)
     const names = checkpointFiles(snapshot.manifest.version)
     const current = this.readCurrentImages(names, false)
@@ -678,7 +771,7 @@ export class DesktopProfileCheckpoint {
       } else {
         try {
           const item = lstatSync(target)
-          if (item.isSymbolicLink() || !item.isFile()) fail(`cannot remove unsafe profile entry: ${name}`)
+          if (isLinkedPath(target) || !item.isFile()) fail(`cannot remove unsafe profile entry: ${name}`)
           unlinkSync(target)
         } catch (cause) {
           if (!isENOENT(cause)) throw cause
@@ -727,7 +820,7 @@ export class DesktopProfileCheckpoint {
         }
         throw cause
       }
-      if (item.isSymbolicLink() || !item.isFile()) fail(`checkpoint entry must be a regular file: ${name}`)
+      if (isLinkedPath(path) || !item.isFile()) fail(`checkpoint entry must be a regular file: ${name}`)
       if (item.size > this.limits[name]) fail(`profile checkpoint file is too large: ${name}`)
       const bytes = readFileSync(path)
       return { present: true, sha256: hash(bytes), size: bytes.byteLength, mode: item.mode & 0o777 }
@@ -766,7 +859,7 @@ export class DesktopProfileCheckpoint {
       const candidate = join(this.profileRoot, name)
       try {
         const item = lstatSync(candidate)
-        if (!item.isDirectory() || item.isSymbolicLink()
+        if (!item.isDirectory() || isLinkedPath(candidate)
           || (CHECK_POSIX_MODE && (item.mode & 0o777) !== DIRECTORY_MODE)) continue
         renameSync(candidate, target)
         return
@@ -806,7 +899,7 @@ export class DesktopProfileCheckpoint {
     try {
       const expectedSlotId = assertSlotId(basename(directory))
       const directoryItem = lstatSync(directory)
-      if (!directoryItem.isDirectory() || directoryItem.isSymbolicLink()
+      if (!directoryItem.isDirectory() || isLinkedPath(directory)
         || (CHECK_POSIX_MODE && (directoryItem.mode & 0o777) !== DIRECTORY_MODE)) {
         fail('checkpoint directory has unsafe type or mode')
       }
@@ -848,9 +941,23 @@ export class DesktopProfileCheckpoint {
         const backup = filePath(directory, expected)
         if (item.present) {
           const backupItem = lstatSync(backup)
-          if (!backupItem.isFile() || backupItem.isSymbolicLink()
-            || (CHECK_POSIX_MODE && (backupItem.mode & 0o777) !== FILE_MODE)) fail(`checkpoint backup is unsafe: ${expected}`)
-          const bytes = readFileSync(backup)
+          if (!backupItem.isFile() || isLinkedPath(backup)) fail(`checkpoint backup is unsafe: ${expected}`)
+          // The manifest's recorded size is the backup's only trusted bound: it was already
+          // validated against this file's own limit above (up to 32 MiB for a lockfile), so
+          // MANIFEST_MAX_BYTES must not be used here — it would reject legitimate backups.
+          const read = readVerifiedPrivateFile(backup, backupItem, item.size as number)
+          if (read.status === 'missing' || read.status === 'size') {
+            fail(`checkpoint backup is incomplete: ${expected}`)
+          }
+          if (read.status === 'type' || read.status === 'changed') {
+            fail(`checkpoint backup is unsafe: ${expected}`)
+          }
+          // Decided from the opened descriptor, like `readJson`: a swap to a different-mode
+          // file is rejected instead of being hashed.
+          if (CHECK_POSIX_MODE && (read.mode & 0o777) !== FILE_MODE) {
+            fail(`checkpoint backup is unsafe: ${expected}`)
+          }
+          const bytes = read.bytes
           if (bytes.byteLength !== item.size || hash(bytes) !== item.sha256) fail(`checkpoint backup is incomplete: ${expected}`)
         } else if (existsSync(backup)) fail(`checkpoint contains an unexpected backup: ${expected}`)
       }
@@ -888,7 +995,7 @@ export function clearDesktopProfileCheckpoint(userDataDir: string, profileDir: s
     if (isENOENT(cause)) return
     throw cause
   }
-  if (item.isSymbolicLink() || !item.isDirectory()) fail('profile checkpoint directory has unsafe type')
+  if (isLinkedPath(profileRoot) || !item.isDirectory()) fail('profile checkpoint directory has unsafe type')
   rmSync(profileRoot, { recursive: true, force: false })
 }
 

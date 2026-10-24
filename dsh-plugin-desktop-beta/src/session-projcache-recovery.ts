@@ -1,3 +1,4 @@
+import { isLinkedPath } from './fs-links.ts'
 import {
   existsSync,
   lstatSync,
@@ -81,7 +82,7 @@ export function recoverOversizedSessionProjectionCache(
     }
     throw cause
   }
-  if (!stat.isFile() || stat.isSymbolicLink()) return { status: 'non-file', cachePath }
+  if (!stat.isFile() || isLinkedPath(cachePath)) return { status: 'non-file', cachePath }
   if (stat.size <= maxBytes) return { status: 'within-limit', cachePath }
   const stamp = compactTimestamp((options.now ?? (() => new Date()))())
   const backupPath = uniqueBackupPath(cachePath, stamp)

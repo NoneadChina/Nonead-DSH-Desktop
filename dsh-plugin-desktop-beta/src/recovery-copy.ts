@@ -116,6 +116,8 @@ export interface DesktopRecoveryCopy {
   readonly openTerminal: string
   readonly emptySlot: string
   readonly availableSlot: string
+  readonly unreadableSlot: string
+  readonly unreadableSlotBody: string
   readonly noHealthyStartup: string
   readonly openCheckpoint: string
   readonly rollbackCheckpoint: string
@@ -270,6 +272,8 @@ const COPY: Record<DesktopLocale, DesktopRecoveryCopy> = {
     openTerminal: 'Open DSH Terminal',
     emptySlot: 'No checkpoint yet',
     availableSlot: 'Ready to restore',
+    unreadableSlot: 'Cannot be read',
+    unreadableSlotBody: 'This checkpoint exists on disk but cannot be read, so it cannot be restored.',
     noHealthyStartup: 'No configuration from a successful startup has been saved here yet.',
     openCheckpoint: 'Browse files',
     rollbackCheckpoint: 'Restore this checkpoint',
@@ -427,6 +431,8 @@ const COPY: Record<DesktopLocale, DesktopRecoveryCopy> = {
     openTerminal: '打开 DSH 终端',
     emptySlot: '尚无检查点',
     availableSlot: '可恢复',
+    unreadableSlot: '无法读取',
+    unreadableSlotBody: '此检查点在磁盘上存在但无法读取，因此不能恢复。',
     noHealthyStartup: '此位置尚未保存成功启动时的配置。',
     openCheckpoint: '浏览文件',
     rollbackCheckpoint: '恢复此检查点',

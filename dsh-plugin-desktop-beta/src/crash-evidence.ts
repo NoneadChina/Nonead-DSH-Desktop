@@ -1,3 +1,4 @@
+import { isLinkedPath } from './fs-links.ts'
 import { randomUUID } from 'node:crypto'
 import {
   chmodSync,
@@ -80,8 +81,10 @@ function lstatOptional(filename: string): ReturnType<typeof lstatSync> | undefin
   }
 }
 
-function assertOwnedMarker(stats: NonNullable<ReturnType<typeof lstatSync>>): void {
-  if (stats.isSymbolicLink() || !stats.isFile() || stats.nlink > 1) {
+function assertOwnedMarker(path: string | undefined, stats: NonNullable<ReturnType<typeof lstatSync>>): void {
+  // `stats.isSymbolicLink()` is false for a Windows junction, so the path decides when it is known;
+  // the descriptor form relies on `O_NOFOLLOW` plus the link count instead.
+  if ((path !== undefined && isLinkedPath(path)) || !stats.isFile() || stats.nlink > 1) {
     throw new Error('dsh-plugin-desktop: active run marker is invalid')
   }
 }
@@ -89,10 +92,10 @@ function assertOwnedMarker(stats: NonNullable<ReturnType<typeof lstatSync>>): vo
 function readStoredRun(statePath: string): StoredDesktopRun | UnreadableDesktopRun | undefined {
   const pathStats = lstatOptional(statePath)
   if (pathStats === undefined) return undefined
-  assertOwnedMarker(pathStats)
+  assertOwnedMarker(statePath, pathStats)
   const descriptor = openSync(statePath, constants.O_RDONLY | noFollowFlag())
   try {
-    assertOwnedMarker(fstatSync(descriptor))
+    assertOwnedMarker(undefined, fstatSync(descriptor))
     const value: unknown = JSON.parse(readFileSync(descriptor, 'utf8'))
     if (typeof value !== 'object' || value === null) return { unreadable: true }
     const record = value as Partial<StoredDesktopRun>
@@ -125,7 +128,7 @@ function writeCurrentRun(statePath: string, currentRun: StoredDesktopRun): void 
   const directory = dirname(statePath)
   mkdirSync(directory, { recursive: true, mode: PRIVATE_DIRECTORY_MODE })
   const directoryStats = lstatSync(directory)
-  if (directoryStats.isSymbolicLink() || !directoryStats.isDirectory()) {
+  if (isLinkedPath(directory) || !directoryStats.isDirectory()) {
     throw new Error('dsh-plugin-desktop: active run directory is invalid')
   }
   try { chmodSync(directory, PRIVATE_DIRECTORY_MODE) } catch {}

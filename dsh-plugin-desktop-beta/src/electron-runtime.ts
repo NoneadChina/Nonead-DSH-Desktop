@@ -63,7 +63,7 @@ import {
   type DesktopUpdateArtifact,
   type UpdateArtifactResponse,
 } from './update-download.ts'
-import type { UpdateCheckResult } from './update-checker.ts'
+import { parseDesktopReleaseNotes, type UpdateCheckResult, type UpdateReleaseNotes } from './update-checker.ts'
 import type { DesktopInstallationId } from './desktop-installation-id.ts'
 import { DESKTOP_RELEASE_CHANNEL } from './product-identity.ts'
 import type { DesktopReleaseChannel } from './update-checker.ts'
@@ -123,10 +123,17 @@ export function requestDesktopArtifact(url: string, init: RequestInit): Promise<
     // Approximates the fetch `cache: 'no-store` intent over the Chromium net stack.
     headers.set('cache-control', 'no-cache')
     headers.forEach((value, key) => { request.setHeader(key, value) })
+    const signal = init.signal instanceof AbortSignal ? init.signal : undefined
+    const abortRequest = (): void => { request.abort() }
+    // The signal belongs to the update operation and outlives this single request, so the
+    // listener must come off as soon as the request settles; otherwise every finished download
+    // leaves one attached to it.
+    const detachAbort = (): void => { signal?.removeEventListener('abort', abortRequest) }
     request.on('redirect', (_status, _method, redirectUrl) => {
       if (settled) return
       const rejectHop = (error: unknown): void => {
         settled = true
+        detachAbort()
         request.abort()
         reject(error instanceof Error ? error : new Error(String(error)))
       }
@@ -144,6 +151,7 @@ export function requestDesktopArtifact(url: string, init: RequestInit): Promise<
     request.on('response', incoming => {
       if (settled) return
       settled = true
+      detachAbort()
       const status = incoming.statusCode
       if (status === undefined) {
         reject(new Error('dsh-plugin-desktop: the update download response carried no HTTP status.'))
@@ -175,6 +183,7 @@ export function requestDesktopArtifact(url: string, init: RequestInit): Promise<
     request.on('abort', () => {
       if (settled) return
       settled = true
+      detachAbort()
       // ClientRequest.abort() emits 'abort', not 'error', so without this
       // handler a pre-response cancellation would leave the promise pending.
       reject(init.signal instanceof AbortSignal && init.signal.reason !== undefined
@@ -184,15 +193,15 @@ export function requestDesktopArtifact(url: string, init: RequestInit): Promise<
     request.on('error', cause => {
       if (settled) return
       settled = true
+      detachAbort()
       reject(cause)
     })
-    const signal = init.signal
-    if (signal instanceof AbortSignal) {
+    if (signal !== undefined) {
       if (signal.aborted) {
         request.abort()
         return
       }
-      signal.addEventListener('abort', () => { request.abort() }, { once: true })
+      signal.addEventListener('abort', abortRequest, { once: true })
     }
     request.end()
   })
@@ -253,7 +262,7 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
       get statePath() { return join(app.getPath('userData'), 'updates', 'state.json') },
       ...(installationId === undefined ? {} : { installationId }),
       request: (url, init) => net.fetch(url, init),
-      confirmDownload: (version, channel) => this.confirmUpdateDownload(version, channel),
+      confirmDownload: (version, channel, notes) => this.confirmUpdateDownload(version, channel, notes),
       showManualCheckResult: result => this.showManualUpdateCheckResult(result),
       downloadAndOpen: (version, signal, channel, installerSha256) => this.downloadAndOpenUpdate(version, signal, channel, installerSha256),
       notify: notification => { this.showNotification(notification) },
@@ -805,6 +814,34 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
     return await this.showDesktopMessageBox(options)
   }
 
+  /**
+   * Show one update prompt, adding the complete-notes link as its last button when there is one.
+   *
+   * Opening the browser must not swallow the question, so the prompt is shown again afterwards and
+   * the user still decides whether to download. Without a link the box is shown exactly once with
+   * the historical button set, which keeps every "no notes" flow unchanged.
+   */
+  private async showUpdateMessageBoxWithReleaseNotes(
+    options: Electron.MessageBoxOptions,
+    notesUrl: string | undefined,
+  ): Promise<Electron.MessageBoxReturnValue> {
+    if (notesUrl === undefined) return await this.showUpdateMessageBox(options)
+    const buttons = [...options.buttons ?? [], desktopNativeCopy(this.currentLocale).viewReleaseNotes]
+    const notesButton = buttons.length - 1
+    for (;;) {
+      const result = await this.showUpdateMessageBox({ ...options, buttons })
+      if (result.response !== notesButton) return result
+      await this.openReleaseNotes(notesUrl)
+    }
+  }
+
+  /** Hand one validated notes page to the system browser; a failure must not break the prompt. */
+  private async openReleaseNotes(url: string): Promise<void> {
+    await shell.openExternal(url).catch((cause: unknown) => {
+      this.logError(`dsh-plugin-desktop: failed to open release notes: ${cause instanceof Error ? cause.message : String(cause)}`)
+    })
+  }
+
   private async showDesktopMessageBox(options: Electron.MessageBoxOptions): Promise<Electron.MessageBoxReturnValue> {
     return this.generation === undefined
       ? await showDesktopMessageBox(options)
@@ -821,20 +858,25 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
   private async confirmUpdateDownload(
     version: string,
     channel: DesktopReleaseChannel = 'stable',
+    notes?: UpdateReleaseNotes,
   ): Promise<boolean> {
     const copy = desktopNativeCopy(this.currentLocale)
-    const result = await this.showUpdateMessageBox({
+    const releaseNotes = parsePromptReleaseNotes(notes)
+    const question = channel === DESKTOP_RELEASE_CHANNEL
+      ? copy.downloadUpdate
+      : copy.installStableAlongsideBeta
+    const result = await this.showUpdateMessageBoxWithReleaseNotes({
       type: 'info',
       title: copy.updateAvailableTitle,
       message: copy.updateAvailableMessage(version),
-      detail: channel === DESKTOP_RELEASE_CHANNEL
-        ? copy.downloadUpdate
-        : copy.installStableAlongsideBeta,
+      // The notes answer "what changes?" after the question, so they extend the detail instead of
+      // replacing it; without them the detail is byte-identical to the historical prompt.
+      detail: releaseNotes?.notes === undefined ? question : `${question}\n\n${releaseNotes.notes}`,
       buttons: [copy.download, copy.later],
       defaultId: 1,
       cancelId: 1,
       noLink: true,
-    })
+    }, releaseNotes?.notesUrl)
     return result.response === 0
   }
 
@@ -867,15 +909,18 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
       return
     }
 
-    await this.showUpdateMessageBox({
+    const releaseNotes = parsePromptReleaseNotes(result)
+    await this.showUpdateMessageBoxWithReleaseNotes({
       type: 'info',
       title: copy.updateAvailableTitle,
       message: copy.updateAvailableMessage(result.latestVersion),
-      detail: copy.installerUnavailable,
+      detail: releaseNotes?.notes === undefined
+        ? copy.installerUnavailable
+        : `${copy.installerUnavailable}\n\n${releaseNotes.notes}`,
       buttons: [copy.ok],
       defaultId: 0,
       noLink: true,
-    })
+    }, releaseNotes?.notesUrl)
   }
 
   /** Download a confirmed installer and hand it to the native installation flow. */
@@ -893,6 +938,12 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
     const destinationPath = await this.chooseUpdateDestination(version, channel)
     if (destinationPath === undefined) return
     signal.throwIfAborted()
+    // Fail closed: without a published digest there is nothing to verify, and this installer is
+    // executed as-is, so refuse the download instead of opening an unverified file.
+    const expectedSha256 = installerSha256?.[platform]
+    if (expectedSha256 === undefined) {
+      throw new Error(`dsh-plugin-desktop: the ${channel} release publishes no installer digest for ${platform}; refusing to download it`)
+    }
     const artifactPath = await downloadDesktopUpdate({
       platform,
       version,
@@ -900,7 +951,7 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
       destinationPath,
       request: requestDesktopArtifact,
       signal,
-      ...(installerSha256?.[platform] === undefined ? {} : { expectedSha256: installerSha256[platform] }),
+      expectedSha256,
     })
     signal.throwIfAborted()
     const artifact: DesktopUpdateArtifact = { platform, version, path: artifactPath }
@@ -1136,4 +1187,17 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
     }
     return items
   }
+}
+
+/**
+ * Re-validate release notes that crossed the Host/Electron process boundary.
+ *
+ * The checker already rejects malformed values, but this process is the one that hands the link to
+ * the system browser and the text to a native prompt, so the same rules are applied again here
+ * rather than trusting a payload this file cannot type-check. A value with neither field collapses
+ * to undefined, keeping every "no notes" path identical to the historical behaviour.
+ */
+function parsePromptReleaseNotes(value: unknown): UpdateReleaseNotes | undefined {
+  const notes = parseDesktopReleaseNotes(value)
+  return notes.notes === undefined && notes.notesUrl === undefined ? undefined : notes
 }

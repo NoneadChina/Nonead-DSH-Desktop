@@ -53,7 +53,9 @@ it('backs up a malformed manifest, repairs without deleting data, and restores t
   await recovery.restore('desktop')
   expect(readFileSync(join(dir, 'package.json'), 'utf8')).toBe(original)
   expect(readFileSync(join(dir, 'cordis.patch.yml'), 'utf8')).toBe('# working\n[]\n')
-  expect(profiles.features('desktop')).toEqual({ market: true, remoteControl: true })
+  // setFeatures also records the three-state market choice, so match the restored flags without
+  // pinning the extra bookkeeping field this test does not exercise.
+  expect(profiles.features('desktop')).toMatchObject({ market: true, remoteControl: true })
   recovery.repairGlobalPatch()
   expect(readFileSync(join(home, 'cordis.patch.yml'), 'utf8')).toBe('[]\n')
 })
@@ -97,7 +99,7 @@ it('exports only bounded redacted diagnostics, including secrets split across ch
   log.append('debug information', 'debug')
   const data = log.export({ version: 'next-dev', platform: 'test', selected: 'desktop', profiles: [], unavailableProfiles: [], phase: 'error',
     safeMode: false, failure: 'token=private-token', features: { market: false, remoteControl: false }, preferences: { ...DEFAULT_PREFERENCES },
-    trayAvailable: true, browserUrl: null, lan: null, busy: false, home, notificationsAvailable: true, checkpoint: null, logs: '' } satisfies DesktopState)
+    trayAvailable: true, openAtLogin: false, browserUrl: null, lan: null, busy: false, home, notificationsAvailable: true, checkpoint: null, logs: '' } satisfies DesktopState)
   expect(data).not.toContain('private-token')
   expect(data).not.toContain('secret-cookie')
   expect(data).not.toContain('debug information')

@@ -1,13 +1,5 @@
-import {
-  lstatSync,
-  mkdtempSync,
-  readFileSync,
-  readdirSync,
-  rmSync,
-  statSync,
-  symlinkSync,
-  writeFileSync,
-} from 'node:fs'
+import { cleanupDisposableTree } from '../src/disposable-tree.ts'
+import { lstatSync, mkdtempSync, readFileSync, readdirSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { parseDocument } from 'yaml'
@@ -33,7 +25,7 @@ function temporaryDirectory(): string {
 
 afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) {
-    rmSync(directory, { recursive: true, force: true })
+    cleanupDisposableTree(directory)
   }
 })
 
@@ -388,7 +380,9 @@ describe('Desktop Setup Wizard settings document', () => {
     })
   })
 
-  it('never follows an existing settings-document symlink', async () => {
+  // Needs the privilege to create a file symlink, which a non-elevated Windows process does not have.
+  // POSIX CI covers the link-refusal logic; junctions are covered by the link-guard suites.
+  it.skipIf(process.platform === 'win32')('never follows an existing settings-document symlink', async () => {
     const root = temporaryDirectory()
     const outside = join(temporaryDirectory(), 'outside.yaml')
     const path = join(root, 'settings.yaml')

@@ -9,6 +9,9 @@ import type { DesktopOnboardingBridge, DesktopOnboardingSnapshot } from '../setu
 export type SetupNavigation = PropsRuntime<'onboarding.desktop.before'>['renderNavigation']
 export type SetupContent = (snapshot: DesktopOnboardingSnapshot, locale: 'zh' | 'en', finish: DesktopOnboardingBridge['finish'], renderNavigation: SetupNavigation) => ReactNode
 
+/** Vendor site opened by the final setup page; the shell hands http(s) URLs to the OS browser. */
+const NONEAD_WEBSITE = 'https://www.nonead.com'
+
 function pendingSnapshot(value: DesktopOnboardingSnapshot | null): DesktopOnboardingSnapshot | null {
   return value?.required || value?.accountPending || value?.restartPending ? value : null
 }
@@ -21,7 +24,7 @@ export function registerDesktopOnboarding(ctx: Context, content: SetupContent): 
   }, DesktopOnboarding))
 }
 
-function DesktopOnboarding({ bridge, content, zh, renderSurface, renderLoading, renderNext, renderNavigation, accountStatus, openLogin }: PropsRuntime<'onboarding.desktop.before'> & {
+function DesktopOnboarding({ bridge, content, zh, renderSurface, renderLoading, renderNext, renderNavigation, accountStatus }: PropsRuntime<'onboarding.desktop.before'> & {
   bridge: DesktopOnboardingBridge; content: SetupContent; zh: boolean
 }) {
   const [snapshot, setSnapshot] = useState<DesktopOnboardingSnapshot | null>()
@@ -68,26 +71,25 @@ function DesktopOnboarding({ bridge, content, zh, renderSurface, renderLoading, 
   }
   if (!snapshot.required) {
     if (accountStatus === 'credential-stored') return renderLoading()
-    const dismiss = async (login: boolean) => {
+    const dismiss = async () => {
       if (busy) return
       setBusy(true)
       try {
         await bridge.dismissAccount(snapshot.profile)
         const next = snapshot.restartPending ? pendingSnapshot(await bridge.read()) : null
         setSnapshot(next)
-        if (login) openLogin()
       } catch (cause) { setError(String(cause)) }
       finally { setBusy(false) }
     }
     return renderSurface(<section className="dshDesktopAccountSetup" aria-labelledby="desktop-account-title" aria-busy={busy}>
       <div>
         <h1 id="desktop-account-title">{zh ? '桌面设置已完成' : 'Desktop setup is complete'}</h1>
-        <p>{zh ? `登录 DeepSeek，开始使用 Profile「${snapshot.profile}」。` : `Sign in to DeepSeek to get started with Profile “${snapshot.profile}”.`}</p>
-        <p>{zh ? '登录后，如当前 Profile 尚未完成官方引导，将继续进行设置。你也可以在登录窗口中选择使用 API Key，或稍后登录。' : 'After sign-in, any unfinished official setup for this Profile will continue. You can also choose an API key in the sign-in dialog, or sign in later.'}</p>
+        <p>{zh ? `请至 DeepSeek 官网获取 API Key，开始使用 Profile「${snapshot.profile}」。` : `Get an API key from the DeepSeek website to get started with Profile “${snapshot.profile}”.`}</p>
+        <p>{zh ? '感谢你使用拓德科技的 Nonead-DSH-Desktop AI 产品。设置完成后你可以到插件市场安装需要的插件，我们的插件产品：dsh-nonead-universal-robots & dsh-nonead-ursim。' : 'Thanks for using the Nonead-DSH-Desktop AI product from Tuode Technology. After setup you can install the plugins you need from the plugin market; our plugins: dsh-nonead-universal-robots & dsh-nonead-ursim.'}</p>
         {accountStatus === 'error' && <p role="alert">{zh ? '暂时无法读取登录状态，可以稍后在账号菜单中登录。' : 'Account status is unavailable. You can sign in later from the account menu.'}</p>}
         <div className="dshDesktopAccountActions">
-          <Button variant="primary" disabled={busy || accountStatus !== 'signed-out'} onClick={() => { void dismiss(true) }}>{zh ? '登录 DeepSeek' : 'Sign in to DeepSeek'}</Button>
-          <Button variant="outline" disabled={busy} onClick={() => { void dismiss(false) }}>{zh ? '暂时跳过' : 'Not now'}</Button>
+          <Button variant="primary" onClick={() => { window.open(NONEAD_WEBSITE, '_blank', 'noopener,noreferrer') }}>{zh ? '访问 NONEAD' : 'Visit NONEAD'}</Button>
+          <Button variant="outline" disabled={busy} onClick={() => { void dismiss() }}>{zh ? '暂时跳过' : 'Not now'}</Button>
         </div>
       </div>
     </section>)

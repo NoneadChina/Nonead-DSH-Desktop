@@ -4,6 +4,9 @@ import type {
   DesktopDirectoryValidationRequest,
   DesktopDirectoryValidationResponse,
 } from './directory-picker-contract.ts'
+// The settings routes own the loopback/origin policy; both route families must agree on it
+// rather than trusting a client-supplied `Origin` header on its own.
+import { isSameOriginLoopbackRequest } from './desktop-settings-route.ts'
 
 const MAX_VALIDATION_BODY_BYTES = 16 * 1024
 
@@ -40,7 +43,7 @@ export async function handleDesktopDirectoryPickerRequest(
   reportError: (cause: unknown) => void = () => {},
 ): Promise<void> {
   if (req.method !== 'POST') return finishJson(res, 405, { error: 'method not allowed' })
-  if (req.headers.origin !== expectedOrigin) return finishJson(res, 403, { error: 'forbidden' })
+  if (!isSameOriginLoopbackRequest(req, expectedOrigin, true)) return finishJson(res, 403, { error: 'forbidden' })
   try {
     const response: DesktopDirectoryPickerResponse = { path: await pickDirectory() }
     finishJson(res, 200, response)
@@ -59,7 +62,7 @@ export async function handleDesktopDirectoryValidationRequest(
   reportError: (cause: unknown) => void = () => {},
 ): Promise<void> {
   if (req.method !== 'POST') return finishJson(res, 405, { error: 'method not allowed' })
-  if (req.headers.origin !== expectedOrigin) return finishJson(res, 403, { error: 'forbidden' })
+  if (!isSameOriginLoopbackRequest(req, expectedOrigin, true)) return finishJson(res, 403, { error: 'forbidden' })
   if (req.headers['content-type']?.split(';', 1)[0]?.trim().toLowerCase() !== 'application/json') {
     return finishJson(res, 415, { error: 'content type must be application/json' })
   }

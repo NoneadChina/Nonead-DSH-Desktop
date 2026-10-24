@@ -1,5 +1,6 @@
 /** Private local CA and short-lived certificates for Desktop LAN HTTPS. */
 
+import { isLinkedPath } from './fs-links.ts'
 import {
   X509Certificate,
   createHash,
@@ -191,7 +192,7 @@ async function requireAvailableProtector(
 async function prepareStateDirectory(userDataDir: string, stateDirectory: string): Promise<void> {
   try {
     const userDataInfo = await lstat(userDataDir)
-    if (!userDataInfo.isDirectory() || userDataInfo.isSymbolicLink()) {
+    if (!userDataInfo.isDirectory() || isLinkedPath(userDataDir)) {
       throw certificateError('certificate-state', 'LAN HTTPS userData must be an ordinary directory.')
     }
     try {
@@ -201,7 +202,7 @@ async function prepareStateDirectory(userDataDir: string, stateDirectory: string
       if ((cause as NodeJS.ErrnoException).code !== 'EEXIST') throw cause
     }
     const stateInfo = await lstat(stateDirectory)
-    if (!stateInfo.isDirectory() || stateInfo.isSymbolicLink()) {
+    if (!stateInfo.isDirectory() || isLinkedPath(stateDirectory)) {
       throw certificateError('certificate-state', 'LAN HTTPS state directory must be an ordinary directory.')
     }
     if (CHECK_POSIX_MODE && (stateInfo.mode & 0o777) !== PRIVATE_DIRECTORY_MODE) {
@@ -221,7 +222,7 @@ async function readPrivateStateFile(statePath: string): Promise<string | undefin
     if ((cause as NodeJS.ErrnoException).code === 'ENOENT') return undefined
     throw certificateError('certificate-state', 'LAN HTTPS CA state could not be inspected.', cause)
   }
-  if (!pathInfo.isFile() || pathInfo.isSymbolicLink()) {
+  if (!pathInfo.isFile() || isLinkedPath(statePath)) {
     throw certificateError('certificate-state', 'LAN HTTPS CA state must be an ordinary file.')
   }
   assertPrivateFile(pathInfo.mode, pathInfo.size)

@@ -1,3 +1,4 @@
+import { cleanupDisposableTree } from '../src/disposable-tree.ts'
 import {
   chmodSync,
   existsSync,
@@ -42,7 +43,7 @@ const roots: string[] = []
 afterEach(() => {
   for (const root of roots.splice(0)) {
     try { chmodSync(root, 0o700) } catch {}
-    rmSync(root, { recursive: true, force: true })
+    cleanupDisposableTree(root)
   }
 })
 
@@ -432,7 +433,9 @@ describe('desktop direct bundle management', () => {
     expect(() => harness.service.previewDisable(target.bundleId)).toThrow('service disposed')
   })
 
-  it('treats only a missing state as empty and fails loud for invalid state files', () => {
+  // Needs the privilege to create a file symlink, which a non-elevated Windows process does not have.
+  // POSIX CI covers the link-refusal logic; junctions are covered by the link-guard suites.
+  it.skipIf(process.platform === 'win32')('treats only a missing state as empty and fails loud for invalid state files', () => {
     const root = temporaryRoot()
     const options = bootstrap(root)
     expect(readDesktopDisabledBundles(options.statePath, 'desktop').size).toBe(0)

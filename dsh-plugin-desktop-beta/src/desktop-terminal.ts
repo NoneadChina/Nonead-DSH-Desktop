@@ -1,5 +1,6 @@
 /** Isolated command-line environment launched from the DSH Desktop tray. */
 
+import { isLinkedPath } from './fs-links.ts'
 import type { ChildProcess, SpawnOptions } from 'node:child_process'
 import {
   chmodSync,
@@ -206,7 +207,7 @@ function replacePrivateFile(filename: string, contents: string, mode: number): v
 function prepareStateDirectory(stateDir: string): void {
   mkdirSync(stateDir, { recursive: true, mode: STATE_DIRECTORY_MODE })
   const stat = lstatSync(stateDir)
-  if (!stat.isDirectory() || stat.isSymbolicLink()) {
+  if (!stat.isDirectory() || isLinkedPath(stateDir)) {
     throw new Error(`dsh-plugin-desktop: terminal state path is not a private directory: ${stateDir}`)
   }
   chmodSync(stateDir, STATE_DIRECTORY_MODE)

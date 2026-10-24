@@ -110,7 +110,15 @@ it.each(['arm64', 'x64'] as const)('gives only the standalone Node %s entitlemen
 it('rejects a payload containing links instead of signing through them', async () => {
   const path = root()
   writeFileSync(join(path, 'real.node'), machO)
-  symlinkSync(join(path, 'real.node'), join(path, 'alias.node'))
+  // Windows without SeCreateSymbolicLinkPrivilege cannot create a file symlink, so a directory
+  // junction covers the same "payload must not contain links" rule there.
+  if (process.platform === 'win32') {
+    mkdirSync(join(path, 'real-dir'))
+    writeFileSync(join(path, 'real-dir', 'inner.node'), machO)
+    symlinkSync(join(path, 'real-dir'), join(path, 'alias'), 'junction')
+  } else {
+    symlinkSync(join(path, 'real.node'), join(path, 'alias.node'))
+  }
   await expect(signMacRuntime(path, 'com.example.app', identity, 'arm64', tools())).rejects.toThrow('must not contain links')
 })
 

@@ -26,9 +26,22 @@ const server = createServer((request, response) => {
   response.setHeader('content-type', 'application/json')
   response.end(JSON.stringify({runtime: process.argv[2], profile: process.argv[3], cwd: process.cwd(), nodePath: process.env.NODE_PATH, registry: process.env.NPM_CONFIG_REGISTRY, nodeOptions: process.env.NODE_OPTIONS, runAsNode: process.env.ELECTRON_RUN_AS_NODE, internals: process.execArgv.includes('--expose-internals')}))
 })
-server.listen(0, '127.0.0.1', () => {
-  process.send({ type: 'ready', url: 'http://127.0.0.1:' + server.address().port + '/?token=fixture' })
-})
+// \`fetch\` refuses the WHATWG "bad port" list, and this machine's ephemeral range is
+// 1024-15000 (netsh int ipv4 show dynamicport tcp), so \`listen(0)\` can hand out one of
+// them (6000, 5060, ...). Rebinding keeps the fixture deterministic instead of failing
+// with "fetch failed: bad port" once every few hundred runs.
+const FETCH_BLOCKED_PORTS = new Set([1719, 1720, 1723, 2049, 3659, 4045, 4190, 5060, 5061, 6000])
+function listenOnFetchablePort(remaining) {
+  server.listen(0, '127.0.0.1', () => {
+    const port = server.address().port
+    if (FETCH_BLOCKED_PORTS.has(port) && remaining > 0) {
+      server.close(() => listenOnFetchablePort(remaining - 1))
+      return
+    }
+    process.send({ type: 'ready', url: 'http://127.0.0.1:' + port + '/?token=fixture' })
+  })
+}
+listenOnFetchablePort(20)
 process.on('message', message => {
   if (message.type === 'browser-access') {
     process.send({ type: 'browser-access', requestId: message.requestId, ...(message.enabled ? {} : { error: 'fixture rejection' }) })

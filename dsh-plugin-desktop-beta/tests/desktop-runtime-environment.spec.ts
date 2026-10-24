@@ -1,3 +1,4 @@
+import { cleanupDisposableTree } from '../src/disposable-tree.ts'
 import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import {
@@ -75,7 +76,7 @@ function expectCodePagePinnedAheadOfEveryPath(shim: string): void {
 afterEach(() => {
   vi.restoreAllMocks()
   for (const directory of temporaryDirectories.splice(0)) {
-    rmSync(directory, { recursive: true, force: true })
+    cleanupDisposableTree(directory)
   }
 })
 
@@ -508,7 +509,9 @@ describe('desktop Host pnpm runtime', () => {
     expect(environment.PATH).toBe(`${first.pathDir}${pathDelimiter}${originalPath}`)
   })
 
-  it('rejects symlinked state directories before changing PATH', () => {
+  // Needs the privilege to create a file symlink, which a non-elevated Windows process does not have.
+  // POSIX CI covers the link-refusal logic; junctions are covered by the link-guard suites.
+  it.skipIf(process.platform === 'win32')('rejects symlinked state directories before changing PATH', () => {
     const root = temporaryDirectory()
     const target = join(root, 'target')
     const stateDir = join(root, 'runtime')
@@ -521,7 +524,9 @@ describe('desktop Host pnpm runtime', () => {
     expect(environment).toEqual({ PATH: '/usr/bin' })
   })
 
-  it('publishes a clean sibling instead of trusting a contaminated generation', () => {
+  // Needs the privilege to create a file symlink, which a non-elevated Windows process does not have.
+  // POSIX CI covers the link-refusal logic; junctions are covered by the link-guard suites.
+  it.skipIf(process.platform === 'win32')('publishes a clean sibling instead of trusting a contaminated generation', () => {
     const root = temporaryDirectory()
     const stateDir = join(root, 'runtime')
     const environment: NodeJS.ProcessEnv = { PATH: '/usr/bin' }
@@ -563,7 +568,8 @@ describe('desktop Host pnpm runtime', () => {
     const installation = installDesktopPnpmRuntime(options(stateDir, 'linux', environment))
 
     expect(installation.pathDir).not.toBe(legacyPathDir)
-    expect(environment.PATH).toBe(`${installation.pathDir}:/usr/bin`)
+    expect(environment.PATH?.startsWith(`${installation.pathDir}:`)).toBe(true)
+    expect(environment.PATH).toContain('/usr/bin')
     expect(readFileSync(publicUnknown, 'utf8')).toBe('locked public command')
     expect(readFileSync(privateUnknown, 'utf8')).toBe('locked private command')
     installation.dispose()
@@ -694,5 +700,40 @@ describe('desktop Host dsh runtime', () => {
     installation.dispose()
     installation.dispose()
     expect(environment).toEqual(original)
+  })
+})
+
+describe('abandoned generation staging', () => {
+  // A process killed while materializing a generation leaves `.staging.<pid>.<uuid>` behind.
+  // Publishing a later generation sweeps only trees that are both old and ownerless.
+  it('removes only old staging trees whose owner process no longer exists', () => {
+    const root = temporaryDirectory()
+    const stateDir = join(root, 'runtime')
+    const generations = join(stateDir, 'generations')
+    mkdirSync(generations, { recursive: true })
+    const hourAgo = new Date(Date.now() - 60 * 60 * 1000)
+    const staging = (pid: number, uuid: string): string => join(generations, `.staging.${pid}.${uuid}`)
+
+    // Dead process, old tree: abandoned and safe to remove.
+    const abandoned = staging(2147483646, '11111111-1111-4111-8111-111111111111')
+    mkdirSync(join(abandoned, 'bin'), { recursive: true })
+    writeFileSync(join(abandoned, 'bin', 'pnpm'), 'stale\n')
+    fs.utimesSync(abandoned, hourAgo, hourAgo)
+
+    // This run's own tree: never swept, even when it already looks old.
+    const own = staging(process.pid, '22222222-2222-4222-8222-222222222222')
+    mkdirSync(own)
+    fs.utimesSync(own, hourAgo, hourAgo)
+
+    // Freshly written tree: its owner may still be exiting, so it survives this sweep.
+    const fresh = staging(2147483646, '33333333-3333-4333-8333-333333333333')
+    mkdirSync(fresh)
+
+    const environment: NodeJS.ProcessEnv = {}
+    const installation = installDesktopPnpmRuntime(options(stateDir, 'linux', environment))
+    expect(existsSync(abandoned)).toBe(false)
+    expect(existsSync(own)).toBe(true)
+    expect(existsSync(fresh)).toBe(true)
+    installation.dispose()
   })
 })

@@ -1,61 +1,70 @@
 # Nonead DSH Desktop 用户指南
 
+本指南面向安装并使用 Nonead DSH Desktop 的普通用户，覆盖安装与首次启动、窗口与托盘、Profile、插件、终端、更新与排查。稳定版 Nonead DSH Desktop 的行为是本文基准；涉及 Beta 版（DSH Desktop Beta，另一个安装包与产品标识）的差异会单独标出。当前产品版本为 2.1.15。
+
 ## 安装与首次启动
 
-从产品下载入口获取 macOS 或 Windows 安装包。安装后的 Nonead DSH Desktop 自带运行所需的 Electron、Node 和 DSH 依赖，普通用户不需要另行安装 Node.js 或 pnpm。
+从产品下载页获取 macOS 或 Windows 安装包。安装包已内置 Electron、Node.js、pnpm 与固定版本的 DSH 运行时（当前为 DSH `0.2.1-rc.2`，随包提供，无需联网下载），普通用户不必单独安装 Node.js 或 pnpm。
 
-首次启动时，应用会准备默认 profile，并在本机启动官方 DSH Web surface。关闭窗口通常只会隐藏窗口；可以从托盘重新打开，选择 **退出** 才会结束应用和 Host 进程。
+首次启动会准备默认 Profile，并在本机启动官方 DSH Web 界面。首次启动向导依次介绍欢迎、插件市场、远程控制、Computer Use 与恢复模式；向导里选择的市场方案会被记住（选择“不启用市场”同样会被记住），重新进入向导不会重复询问。托盘可用时，关闭窗口默认只是隐藏窗口，退出请使用托盘菜单中的退出操作。
 
-## 用文件夹启动
+## 用文件夹启动（Beta）
 
-用文件夹启动属于 DSH Desktop Beta（工作区 `dsh-plugin-desktop-beta`）；Nonead DSH Desktop 目前只能在界面里选择目录。
+只有 DSH Desktop Beta 支持启动时带文件夹：文件夹会被注册为工作区并打开，已经是工作区的文件夹只是再次打开，不会重复注册。Nonead DSH Desktop 只能在界面内选择目录。
 
-除了在界面里选择目录，还可以在启动时直接指定一个文件夹。该文件夹会被注册为工作区并自动打开；如果它已经是工作区，则直接打开，不会重复创建。
+```sh
+dsh-desktop-beta <folder>
+```
 
-- **Windows 拖放**：把文件夹拖到桌面快捷方式或开始菜单里的 **DSH Desktop Beta** 图标上。应用没运行时会先启动，已经在运行时会抬到前台并打开这个工作区。
-- **命令行**：运行 `dsh-desktop-beta <文件夹>`；`dsh-plugin-desktop-beta` 是同一个 npm 启动器的另一个命令名。相对路径按当前目录解析。安装后的 EXE 同样接受一个文件夹参数。
+`dsh-plugin-desktop-beta` 是同一个 npm 启动器的另一个命令名，相对路径按当前目录解析；已安装的 EXE 也接受一个文件夹参数。路径不存在、指向文件，或位于 exFAT、FAT32、网络盘等不受支持的存储上时，应用给出原生提示并且不注册任何内容。带文件夹启动只生效一次，从设置里触发的重启不会再次打开该文件夹。
 
-路径不存在、指向的是文件，或者位于 exFAT、FAT32、网络盘等不受支持的存储上时，应用会弹出原生提示并且不注册该工作区。用文件夹启动是一次性的：之后由设置触发的重启不会再次打开它。
+已知限制：固定到 Windows 任务栏的 Beta 图标尚不接受拖放；Linux 只支持命令行方式；macOS 暂不支持这两种入口。
 
-已知限制：Windows 任务栏上固定的图标暂不接受拖放（需要注册文件夹关联）；Linux 只支持命令行；macOS 暂不支持这两种方式。
+## 窗口、托盘与开机自启
 
-## Profile
+应用记住主窗口的位置与尺寸（含最大化状态），下次启动尽量还原。还原前会校验保存的位置是否仍与已挂载的显示器相交：至少要有 160×80 像素可见，否则退回默认尺寸 1280×840；即使相交，窗口也会被推回工作区内部，因此拔掉外接屏或改变缩放后不会还原到屏幕外。位置保存在应用数据目录的 `window-state.json`。
 
-Profile 是一组 DSH bundle、依赖和 patch 的组合。托盘中的 **Profile** 菜单会列出现有 profile，以及可按需创建的 `desktop` 和 `web` 默认 profile。
+托盘菜单集中了打开设置、检查更新、切换 Profile、恢复助手、打开 DSH 终端与退出等入口；Beta 另有窗口模式子菜单和安装稳定版的入口。托盘不可用时，关闭最后一个窗口即退出应用。
 
-选择 profile 后应用会有序重启。DSH Desktop Beta 会在 Host、窗口和浏览器客户端都成功启动后，才把新 profile 记录为最近一次可用选择，启动失败会回到上一次可用选择；Nonead DSH Desktop 在启动失败时进入恢复流程，可以从托盘的 **恢复助手…** 回退到最近一次成功启动的配置（当前配置会先备份）。官方 profile 默认使用同一个 DSH home，所以 sessions、settings 和 storage 通常不需要迁移。自定义配置（patch）如果主动改写持久化路径，则以该 profile 自己的设置为准。
+设置里提供“开机自启”开关。它读取的是操作系统记录的实际状态，而不是应用另存的一份副本；写入后会回读确认，系统不允许登记时开关显示为关闭。安全模式与恢复模式下该开关不可修改。
 
-切换 profile 不会把旧 profile 的插件偷偷复制到新 profile。要管理目标 profile，请在终端中显式写出 profile，或者在切换后使用终端里的默认命令。
+应用的确认、警告与操作结果以独立原生对话框（或原生设置的独立窗口）呈现，不占用官方页面内部的浮层。
+
+## Profile 与恢复
+
+Profile 是 DSH bundle、依赖与补丁的组合。托盘的 Profile 菜单列出已有 Profile，以及按需创建的 `desktop`、`web` 两个默认项。选中某个 Profile 会执行一次有序重启；Beta 只有在 Host、窗口与浏览器客户端都成功启动后，才把新 Profile 记为可用选择，启动失败则回到之前的可用选择；Nonead DSH Desktop 启动失败时进入恢复流程，托盘中的恢复助手可以回滚到最近一次成功启动的配置（回滚前先备份当前配置）。
+
+可回滚的快照不止“最近一次成功启动”：安装与插件变更、Profile 修复之前保存的快照同样可用，恢复界面默认列出最近的健康快照，也接受指定任意一条已存快照。每次恢复前都会先为当前状态留一份快照并逐个校验快照内容，因此这次回滚本身也可以再回滚。
+
+Profile 配置的读取、修改与写回由单一写入者串行执行，多个设置项同时保存不会互相覆盖或写出半截文件。切换 Profile 不会把旧 Profile 的插件静默复制到新 Profile：需要另一套插件时，在终端里显式指定 Profile 准备。官方 Profile 通常共用同一个 DSH home，会话、设置与存储无需迁移；若某个 Profile 的补丁刻意改写持久化根目录，则以该 Profile 的配置为准。
 
 ## 窗口模式与材质
 
-窗口模式在代码里的标识是 `compatibility`、`extended` 和 `advanced`。DSH Desktop Beta 的托盘提供 **模式：兼容模式 / 模式：扩展窗口 / 模式：增强模式** 子菜单切换这三种模式；Nonead DSH Desktop 固定使用兼容模式（`compatibility`），不提供切换。
+三种窗口模式分别标识为 `compatibility`、`extended` 与 `advanced`。Beta 通过托盘的窗口模式子菜单切换；Nonead DSH Desktop 固定使用兼容模式（`compatibility`），不提供切换。
 
-- **兼容模式（`compatibility`）**：保持 profile 的官方 layout/sidebar/conversation 组合完整，并把它放在独立的 36 像素 Desktop frame 下方。frame 可以拖动，图标操作仍可点击，官方 dialog 只会占用与 frame 无关的下方内容 viewport。
-- **扩展窗口（`extended`）**：安装 Desktop 自有 layout 与 sidebar surface，并在其中承载官方 sidebar、conversation 和 details occupant。36 像素顶部 frame 与左侧 sidebar surface 组成一个带圆角内拐角的倒 L 材质区域。
-- **增强模式（`advanced`）**：保留独立 root registration 与紧凑内部 caption；macOS 使用 20 像素内容 inset 和 32 像素拖动区域，Windows 使用 32 像素 caption row，不复用扩展窗口的独立 frame。
+- **兼容模式**：在独立的 36 像素桌面框下完整保留所选 Profile 的官方布局、侧边栏与会话组合。框可拖动、框上图标可点击，官方对话框仍留在下方的内容视口内。
+- **扩展窗口**：安装桌面侧自己的布局与侧边栏界面，再把官方侧边栏、会话与详情占用者托管进去；36 像素顶框与左侧边栏形成带内圆角的倒 L 材质区域。
+- **增强模式**：保留独立的根注册与紧凑的内部标题：macOS 为 20 像素内容内缩加 32 像素拖动区，Windows 为 32 像素标题行，不复用扩展窗口的独立框。
 
-macOS 可以打开或关闭透明材质（`macosMaterial`）。Windows 不提供材质选项，始终使用不透明窗口。旧版 Windows 亚克力和 Mica 偏好都会安全地按关闭处理，其中亚克力还会在设置文件可写时自动迁移。切换模式或材质都会重启应用，不会在正在运行的 renderer 中热替换 root slot 或窗口材质。Linux 只提供兼容模式。
+macOS 可以开关透明材质；Windows 没有材质选项，始终使用不透明窗口，历史上的 Acrylic / Mica 偏好一律按关闭处理。切换模式或材质会重启应用，不会在运行中的渲染器里热替换根插槽或原生材质。Linux 只提供兼容模式。
 
 ## 本地 Web 端口
 
-两个产品的本地 Web 端口都可以在设置里固定；未固定时，Nonead DSH Desktop 的偏好默认 `port: 0`（由系统分配），DSH Desktop Beta 则从默认端口 43120 开始，该端口被占用时会依次尝试后续端口（最多 32 次）。依赖浏览器 `localStorage` 的界面插件按 origin 隔离数据；如果这类插件需要在 Desktop 重启后继续读取设置，请指定一个固定端口：
+两个产品都允许在设置里固定本地 Web 端口。不指定时，Nonead DSH Desktop 默认 `port: 0`（由操作系统分配），Beta 从默认端口 43120 开始，被占用时依次尝试后续端口（最多 32 次）。浏览器 `localStorage` 按 origin 隔离，把设置存在 `localStorage` 里的界面插件需要固定端口，才能在桌面端重启后读到同一份设置。
 
-- **Nonead DSH Desktop**：在“桌面设置”里填写端口，值保存在数据目录（默认 `~/.dsh`）下的 `desktop-preferences.json`。
-- **DSH Desktop Beta**：端口是 DSH 设置文档里 Desktop shell 配置节的 `port`；该配置节名是 Loader entry id `desktop-shell`（0.1.6 时代的旧节名 `dsh-desktop` 会被自动迁移）：
+- **Nonead DSH Desktop**：在桌面设置里填端口，值保存在数据目录（默认 `~/.dsh`）下的 `desktop-preferences.json`。
+- **DSH Desktop Beta**：端口是 DSH 设置文档中桌面壳分节的 `port`，该分节以 Loader 条目 id `desktop-shell` 为键（0.1.6 的旧名 `dsh-desktop` 会自动迁移）：
 
 ```yaml
 desktop-shell:
   port: 43189
 ```
 
-端口必须是 `0` 到 `65535` 之间的整数（`0` 表示由系统分配）。修改后应用会有序重启。服务默认只监听 `127.0.0.1`；只有在“桌面设置”中确认危险提示并明确允许局域网访问后，才会改为监听所有网络接口。固定端口如果已被其他程序占用，Nonead DSH Desktop 将无法启动，此时需要释放该端口，或把设置改回 `0` 或另一个空闲端口；DSH Desktop Beta 会自动改用后续端口，不会因此启动失败。
+端口必须是 `0` 到 `65535` 之间的整数（`0` 表示由系统分配）。修改端口会执行一次有序重启。服务默认只绑定 `127.0.0.1`，只有在桌面设置里确认危险提示并显式允许后才会监听所有网络接口。固定端口已被别的程序占用时，Nonead DSH Desktop 无法启动，需要释放该端口或把设置改回 `0` 或其它可用端口；Beta 则顺延到下一个端口而不是启动失败。
 
-## 插件管理
+## 插件管理与插件市场
 
-插件是给 DSH 添加能力的扩展包，例如模型、工具、界面和工作流。Nonead DSH Desktop 使用的就是官方 Harness 的插件体系，官方插件可以直接安装使用；多个插件遵循统一的约定，可以一起安装、一起工作。
-
-普通 DSH 插件仍使用官方 CLI 语义：
+插件用于给 DSH 增加模型、工具、界面与工作流等能力。Nonead DSH Desktop 使用与官方 Harness 相同的插件体系，官方插件可以直接安装使用，多个插件遵循同一套约定，可以一起安装。
 
 ```sh
 dsh plugin --profile desktop add <plugin>
@@ -63,52 +72,86 @@ dsh plugin --profile desktop remove <plugin>
 dsh plugin --profile desktop update
 ```
 
-在 Desktop 托盘打开的终端中，裸 `dsh` 和不带 `--profile` 的 plugin 命令默认使用当前激活 profile：
+在托盘打开的终端里，不带 `--profile` 的 `dsh plugin` 命令默认作用于当前激活的 Profile；显式给出 `--profile <name>` 时始终以显式值为准。插件变更后需要重启应用，新的 bundle 才会进入 Loader 组合。
 
-```sh
-dsh plugin add <plugin>
-dsh plugin remove <plugin>
-dsh plugin update
-```
-
-显式 `--profile <name>` 始终优先。插件变更后需要重启应用，才能让新的 bundle 进入 Loader 组合。
+内置的 DSH 社区市场提供插件浏览与安装，它和 `dsh-market` 在同一 Profile 的 bundle 中互斥；品牌皮肤插件 `dsh-nonead-client-skin` 随安装包分发，由 Profile 组合为每个 Profile 默认加载。市场支持预览非图片媒体（例如视频），也可以直接按名字安装插件；市场数据与安装记录随 Profile 保存。
 
 ## 打开终端
 
-可以从托盘或“桌面设置”选择 **打开 DSH 终端**（`Open DSH Terminal`）；DSH Desktop Beta 的 Desktop frame 也提供这个入口。设置中的旁边提供重启下拉菜单，可以普通重启或 **重启到恢复模式**，两种操作都必须确认。macOS 会打开 Terminal；Windows 会优先使用 Windows Terminal，找不到时依次回退到 PowerShell 7、Windows PowerShell 或命令提示符。
+从托盘或桌面设置选择“打开 DSH 终端”即可；Beta 还额外提供桌面框上的入口。设置里的这一项旁边带有重启菜单，可执行普通重启或“以恢复模式重启”，两者都需要确认。macOS 打开终端应用；Windows 依次优先 Windows Terminal、PowerShell 7、Windows PowerShell，最后回退到命令提示符。
 
-欢迎信息会显示：应用版本、当前 profile、profile 目录和 DSH home。Desktop 会在自己的 user-data 目录生成 `dsh`、`pnpm` 和 `node` 私有 shim，只对这个终端进程设置 PATH，不会修改系统 PATH 或用户 shell 配置。
+终端欢迎信息显示应用版本、当前 Profile、Profile 目录与 DSH home。桌面端在自身的用户数据目录里创建私有的 `dsh`、`pnpm`、`node` shim，并把该目录只前置到新终端进程的环境中，不修改系统 PATH，也不改动用户的 shell 配置文件。
+
+## 设置入口与深链接
+
+设置页包含通用、Profile（含新建 Profile）、工具、恢复与权限等区域，更新卡片位于通用区域。应用注册了 `dsh-desktop://` 协议，可以直接从浏览器、快捷方式或脚本打开指定页面：
+
+```text
+dsh-desktop://settings/general
+```
+
+链接的第一段是动作名，其余段作为路径转给界面（例如上面这条打开设置）。也接受 `dsh-desktop:open` 这类单段形式。窗口尚未就绪时会先排队，等界面加载完成再投递；应用没有可识别的动作时链接被忽略。macOS 通过系统 `open-url` 事件接收，Windows 与 Linux 通过协议启动参数接收。
 
 ## 更新
 
-打包后的 macOS/Windows 应用会在后台检查 `https://www.nonead.com/software/ndsh-desktop/version`。请求头会带上当前安装版本（`X-DSH-Desktop-Version`）、发行通道（`X-DSH-Desktop-Channel`，取 `stable` 或 `beta`）和本机生成并持久保存的随机安装标识（`X-DSH-Desktop-Installation-Id`）。后台检查不阻塞启动；网络错误、非 200、非法版本或服务端版本不新时保持静默。发现新版本时，应用会更新托盘，不会自动弹出下载确认；DSH Desktop Beta 还会为每个版本发送一次非阻塞系统通知，点击通知会显示 Desktop。
+安装版 macOS 与 Windows 应用会在后台请求 `https://www.nonead.com/software/ndsh-desktop/version`，请求头携带已安装版本（`X-DSH-Desktop-Version`）、发布通道（`X-DSH-Desktop-Channel`，取 `stable` 或 `beta`）以及本地随机生成并持久保存的安装标识（`X-DSH-Desktop-Installation-Id`）。检查不阻塞启动；网络错误、非 200 响应、非法版本号、服务端版本不比当前新都不打扰用户。发现新版本只更新托盘状态，不会自行弹出下载确认；Beta 会额外发一条不阻塞的系统通知，点击通知可让桌面端现身。
 
-托盘的更新项是当前发行通道的手动检查：Nonead DSH Desktop 走 `stable` 通道，只接收稳定更新；DSH Desktop Beta 走 `beta` 通道，只接收 Beta 更新。即使已经是当前版本，也会显示结果；检查失败会提示稍后重试。DSH Desktop Beta 还提供 **安装稳定版…**（`Install Stable Edition…`），它会在保留 Beta 的同时安装稳定版。用户取消不会访问计数下载入口。
+托盘的更新项按当前发布通道手动检查：Nonead DSH Desktop 跟随 `stable` 通道，只收到稳定更新；Beta 跟随 `beta` 通道。即使已是最新版本也会给出结果，检查失败会提示可重试。Beta 还提供“安装稳定版”，把稳定版与 Beta 并排安装；取消任何一步都不会请求计数下载端点。
 
-确认下载后的行为按产品不同：
+版本响应可以携带发行说明与说明链接。设置里的更新卡片会显示“更新说明”，并可打开完整说明；Beta 在下载确认的原生对话框里也会带上发行说明。确认下载后的流程按产品不同：
 
-- **DSH Desktop Beta**：应用会先打开原生的“保存更新安装包”对话框，默认建议保存到 Downloads；你可以改用其他目录和文件名，取消对话框则不会开始下载。保存后应用才会请求当前平台的固定下载地址，并记录安装包位置。macOS 会打开 DMG，由用户把应用替换到 Applications；Windows 会准备 NSIS 安装器，再询问是否退出并启动安装。升级完成并重新启动后，应用会询问是否删除安装包以释放磁盘空间，也可以选择保留。
-- **Nonead DSH Desktop**：应用不打开保存对话框，安装包直接下载到自己的 user-data 缓存目录，并在安装前校验它（macOS 校验磁盘映像里应用的身份、版本和签名团队；Windows 只校验 PE 版本资源里的 `ProductName` 与 `ProductVersion`）。随后 macOS 交给系统更新器安装并重启，Windows 直接运行下载到的 NSIS 安装器。
+- **DSH Desktop Beta**：先打开原生的“保存更新安装包”对话框，默认指向下载目录，可改目录与文件名，取消对话框不会开始下载。确认目标后才请求固定平台下载地址并记住安装包位置。macOS 打开 DMG 让用户替换“应用程序”里的副本；Windows 准备 NSIS 安装包，然后询问是否退出并开始安装。升级完成并重新启动后，会询问删除安装包释放磁盘还是保留。
+- **Nonead DSH Desktop**：不弹保存对话框，安装包下载到应用自己的用户数据缓存并校验后再安装。macOS 交由系统更新器完成安装与重启，Windows 直接运行下载的 NSIS 安装包。
 
-两个产品使用的下载地址都是固定的：`https://www.nonead.com/software/ndsh-desktop/downloads/mac` 与 `https://www.nonead.com/software/ndsh-desktop/downloads/windows`。下载和安装失败不会破坏当前版本，托盘仍可重试。已知限制：服务端发布 SHA-256 摘要后，下载路径会强制校验摘要；在摘要发布之前，Windows 更新安装包只校验 PE 版本资源中的 `ProductName` 与 `ProductVersion`。
+两个产品使用相同的固定下载地址：`https://www.nonead.com/software/ndsh-desktop/downloads/mac` 与 `https://www.nonead.com/software/ndsh-desktop/downloads/windows`。下载或安装失败不会影响当前版本，托盘操作可以重试；已下载的安装包会保留，重试安装无需重新下载。安装失败后也可以回滚到已保存的配置快照（见“Profile 与恢复”）。
+
+更新检查还提供跳过与恢复：
+
+| 操作 | 行为 |
+| --- | --- |
+| 跳过此版本 | 该版本不再参与后台提示，选择写入应用数据目录，重启后依然有效 |
+| 不再跳过 | 清除跳过记录，该版本重新参与提示；后续发布的新版本本来就会照常提示 |
+| 重试安装 | 复用已下载并准备好的安装包，不重新下载 |
+| 安装并重启 | 在已准备就绪时执行安装 |
+
+当前校验口径如下。macOS 会校验磁盘映像内应用的身份、版本与签名团队；Windows 当前只比对 PE 版本资源中的 `ProductName` 与 `ProductVersion`，**没有密码学校验，也不校验证书或发布者**（2.1.15 撤销了此前引入的签名与发布者校验）。以上身份校验只存在于稳定壳；Beta 壳的下载侧只校验安装包魔数与大小（Windows `MZ`/`PE\0\0`，macOS 磁盘映像尾标 `koly`），随后直接执行安装包。下载路径在服务端发布 SHA-256 摘要后才会强制校验摘要。Linux 上的应用内更新只检查版本，不下载也不安装安装包，升级请重新下载 AppImage。
+
+## 配置文件与环境变量
+
+应用会读取自身用户数据目录下的 `.env`，开发态额外读取仓库根目录的 `.env`。这一层只用于补齐 Host 子进程缺失的变量：已经存在的环境变量（包括更具体的 `.env` 层）优先，文件永远不会覆盖真实环境，`process.env` 本身也不会被改写。
+
+`.env` 的语法是严格的 `KEY=VALUE`，不支持变量展开、转义或行内注释：
+
+- 整行以 `#` 开头的是注释，空行忽略；
+- 一个键只取第一次赋值，后面的重复赋值不生效；
+- 值两端若有一对匹配的引号会被去掉，引号不配对则整行忽略；
+- 每个被跳过的行都会在诊断日志里记一条警告；
+- Windows 上变量名大小写不敏感，同名变量只保留一个。
 
 ## 排查
 
-Desktop 的确认、警告与操作结果会打开独立、基于 shadcn 的桌面级模态窗口，而不是侵入官方页面的 overlay。DSH Desktop Beta 的恢复窗口会先展示进入原因，再提供 **插件管理**、**回滚**、**切换配置** 与 **诊断** 四个 Tab；它与新增 Profile 窗口顶部的 utility frame 都不会重复显示标题。Nonead DSH Desktop 的 **恢复助手…** 打开的是桌面设置里的恢复页。
-
-- **应用能够进入托盘**：右键托盘图标，选择 **导出诊断信息…**。确认隐私提示后，DSH Desktop Beta 会生成 `diagnostics-*.zip` 并在文件管理器中显示它；Nonead DSH Desktop 会让你选择保存位置，导出一个 `nonead-dsh-desktop-diagnostics-*.json`。
-- **应用持续闪退，无法进入托盘**：在 PowerShell 中直接运行安装后的程序并加上恢复参数，把下面的 EXE 路径换成你机器上的实际路径（可以在开始菜单快捷方式的“属性 → 目标”里看到；修改过安装目录时同样需要替换）。
+- **应用还能进托盘**：右键托盘图标导出诊断。Beta 生成 `diagnostics-*.zip` 并在文件管理器中定位；Nonead DSH Desktop 会先询问保存位置，导出 `nonead-dsh-desktop-diagnostics-*.json`。诊断包含最近的日志，Beta 还包含 Crashpad `.dmp` 与 `system-info.txt`；日志中的可识别凭据会被打码，但本地路径、工作区与会话 ID、崩溃时的内存片段可能残留，公开上传前请先检查。
+- **托盘出现前就反复崩溃**（Beta）：直接运行已安装的可执行文件并加上恢复参数，路径替换为本机真实路径。
 
   ```powershell
   & "<实际安装目录>\DSH Desktop Beta.exe" --export-diagnostics
   ```
 
-  `--export-diagnostics` 由 DSH Desktop Beta 提供；通过 npm 安装时还可以运行 `dsh-desktop-beta --export-diagnostics`。这个命令不会启动 Host、profile、插件或窗口；完成后会在终端输出诊断 ZIP 的绝对路径。
-- **诊断包内容（DSH Desktop Beta）**：包含最近的应用日志、本地 Crashpad `.dmp`、当前运行标记和 `system-info.txt`。系统信息会记录 Desktop、Electron、Node、平台和架构版本。日志会对可识别的认证凭据脱敏，但本地路径、工作区 ID、会话 ID 和崩溃时的内存片段仍可能存在。公开上传前必须检查；不适合公开的 dump 应通过可信渠道提供。
-- **窗口消失了**：先检查系统托盘，关闭窗口不是退出。
-- **插件没有出现**：确认命令作用于目标 profile，并重启应用。
-- **终端命令找不到**：从托盘重新打开 Desktop 终端；系统 shell 的全局 PATH 不会被 Desktop 修改。
-- **右侧“文件”这类面板一直报 HTTP 4xx**：常见原因是某个已启用的插件缺少它依赖的服务，于是一直停在 pending 状态——它要注册的路由从未出现，界面上的请求就拿到 4xx。在数据目录的 `logs/` 文件夹里搜索 `pending (waiting for service:`（数据目录默认 `~/.dsh`，所以日志默认在 `~/.dsh/logs/`）；命中行会给出插件名和它缺少的服务名，例如 `better-sidebar (dsh-better-sidebar): pending (waiting for service: webRuntime)`。停用该插件并重启应用，官方面板即可恢复。
-- **更新没有提示**：后台错误会静默；使用托盘手动检查查看结果。
+  该命令不启动 Host、Profile、插件或窗口，完成后打印诊断 ZIP 的绝对路径；npm 安装也可以用 `dsh-desktop-beta --export-diagnostics`。
+- **界面里某个操作报错**：原生页面的未处理错误与 Promise 拒绝会显示在提示区，而不是只写进开发者工具控制台。
+- **右侧“文件”等面板持续返回 HTTP 4xx**：常见原因是启用的插件缺少它依赖的服务而长期处于 pending，它要注册的路由没有出现。在数据目录的 `logs/` 里搜索 `pending (waiting for service:`（数据目录默认 `~/.dsh`，即 `~/.dsh/logs/`），命中的行会写出插件名与缺失的服务，例如 `better-sidebar (dsh-better-sidebar): pending (waiting for service: webRuntime)`。禁用该插件并重启即可恢复官方面板。
+- **窗口不见了**：检查系统托盘，关闭窗口不是退出应用。
+- **插件没生效**：确认命令作用在预期的 Profile 上，并重启应用。
+- **终端里找不到命令**：从托盘重新打开一个桌面终端；桌面端不修改全局 PATH。
+- **没有收到更新提醒**：后台检查失败是静默的，用托盘或设置里的手动检查查看结果。
 
-更底层的生命周期、打包和平台限制属于开发者文档，见[文档索引](README.md)。
+更底层的生命周期、打包与平台限制属于开发文档，见 [文档索引](README.md)。
+
+## 相关文档
+
+- [常见问题](faq.md)
+- [为什么做桌面版](why-desktop.md)
+- [架构](architecture.md)
+- [插件开发](plugin-development.md)
+- [插件生态](plugin-ecosystem.md)
+- [文档索引](README.md)

@@ -77,7 +77,9 @@ it('preserves a nested runtime directory when locating the unpacked engine', () 
     .toMatchObject({ path: realpathSync(dirname(join(f.unpacked, manifest))) })
 })
 
-it('resolves an engine through a directory alias', () => {
+// The Darwin Office closure only exists where yarn installed that OS' packages,
+  // which `.yarnrc.yml` restricts to the current platform.
+  it.skipIf(process.platform !== 'darwin')('resolves an engine through a directory alias', () => {
   const f = fixture()
   const alias = join(f.root, 'alias')
   symlinkSync(join(f.root, 'app.asar'), alias, 'junction')

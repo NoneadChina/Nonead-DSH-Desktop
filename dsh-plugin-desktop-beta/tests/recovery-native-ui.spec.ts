@@ -2,7 +2,7 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { RecoveryTerminalAction } from '../src/native-ui/recovery/App.tsx'
+import { CheckpointCard, RecoveryTerminalAction } from '../src/native-ui/recovery/App.tsx'
 import { RecoveryActionFooter, RecoveryActionLink } from '../src/native-ui/shared/RecoveryWindowPrimitives.tsx'
 import { desktopRecoveryCopy } from '../src/recovery-copy.ts'
 
@@ -130,5 +130,48 @@ describe('Recovery plugin row actions', () => {
     expect(source).toContain('action="preview-disable" icon={<PowerOff />} id={bundle.bundleId} variant="secondary"')
     expect(source).toContain('action="preview-enable" icon={<Power />} id={bundle.bundleId} variant="default"')
     expect(source).toContain('copy.disabledHint')
+  })
+})
+
+describe('Recovery checkpoint cards', () => {
+  const reason = 'dsh-plugin-desktop: checkpoint slot-1 is unreadable: manifest version 3 is not supported'
+
+  it('shows a damaged checkpoint with its reason but no restore or browse action', () => {
+    const copy = desktopRecoveryCopy('en')
+    const markup = renderToStaticMarkup(createElement(CheckpointCard, {
+      checkpoint: { slotId: 'slot-1', status: 'unreadable', reason },
+      copy,
+      locale: 'en',
+    }))
+
+    expect(markup).toContain(copy.unreadableSlot)
+    expect(markup).toContain(copy.unreadableSlotBody)
+    expect(markup).toContain(reason)
+    // 坏槽不可恢复，界面上不应出现任何会立刻失败的动作入口。
+    expect(markup).not.toContain('dsh-recovery://preview-checkpoint')
+    expect(markup).not.toContain('dsh-recovery://open-checkpoint')
+  })
+
+  it('leaves the available-slot rendering intact and covers both locales', () => {
+    const en = desktopRecoveryCopy('en')
+    const available = renderToStaticMarkup(createElement(CheckpointCard, {
+      checkpoint: { slotId: 'slot-2', status: 'available', capturedAt: '2026-08-21T00:00:00.000Z', appVersion: '2.0.3', fileCount: 1 },
+      copy: en,
+      locale: 'en',
+    }))
+    expect(available).toContain(en.availableSlot)
+    expect(available).toContain('dsh-recovery://preview-checkpoint')
+    expect(available).toContain('dsh-recovery://open-checkpoint')
+    expect(available).not.toContain(en.unreadableSlot)
+
+    const zh = desktopRecoveryCopy('zh')
+    const unreadableZh = renderToStaticMarkup(createElement(CheckpointCard, {
+      checkpoint: { slotId: 'slot-1', status: 'unreadable', reason },
+      copy: zh,
+      locale: 'zh',
+    }))
+    expect(zh.unreadableSlot).toBe('无法读取')
+    expect(unreadableZh).toContain('无法读取')
+    expect(unreadableZh).toContain(zh.unreadableSlotBody)
   })
 })

@@ -74,5 +74,5 @@ test('all root launch, build and packaging entry points prepare the market first
   const { scripts } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
   const entrypoints = Object.entries(scripts).filter(([name]) => /^(build$|dev(?::|$)|start(?::|$)|package:dir|dist:)/.test(name))
   assert.ok(entrypoints.length >= 14)
-  for (const [name, command] of entrypoints) assert.ok(command.startsWith('yarn market:prepare && '), name)
+  for (const [name, command] of entrypoints) assert.ok(command.startsWith('yarn market:check && '), name)
 })

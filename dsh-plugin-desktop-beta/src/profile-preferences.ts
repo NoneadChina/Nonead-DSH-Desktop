@@ -1,15 +1,11 @@
 /** Strict Desktop-owned preferences isolated to one DSH Profile. */
 
+import { isLinkedPath, readVerifiedPrivateFile } from './fs-links.ts'
 import { createHash } from 'node:crypto'
 import {
   chmodSync,
-  closeSync,
-  constants,
-  fstatSync,
   lstatSync,
   mkdirSync,
-  openSync,
-  readSync,
   unlinkSync,
 } from 'node:fs'
 import type { Stats } from 'node:fs'
@@ -218,7 +214,7 @@ function existingPathInfo(path: string): Stats | undefined {
 
 function assertPrivateDirectory(path: string): void {
   const info = lstatSync(path)
-  if (!info.isDirectory() || info.isSymbolicLink()) {
+  if (!info.isDirectory() || isLinkedPath(path)) {
     throw invalid(`state directory must be a real directory: ${path}`)
   }
   if (CHECK_POSIX_MODE && (info.mode & 0o777) !== STATE_DIRECTORY_MODE) {
@@ -229,7 +225,7 @@ function assertPrivateDirectory(path: string): void {
 function ensurePrivateDirectory(path: string): void {
   mkdirSync(path, { recursive: true, mode: STATE_DIRECTORY_MODE })
   const info = lstatSync(path)
-  if (!info.isDirectory() || info.isSymbolicLink()) {
+  if (!info.isDirectory() || isLinkedPath(path)) {
     throw invalid(`state directory must be a real directory: ${path}`)
   }
   if (CHECK_POSIX_MODE && (info.mode & 0o777) !== STATE_DIRECTORY_MODE) {
@@ -240,7 +236,7 @@ function ensurePrivateDirectory(path: string): void {
 function assertSafeStateTarget(path: string): void {
   const info = existingPathInfo(path)
   if (info === undefined) return
-  if (!info.isFile() || info.isSymbolicLink()) throw invalid('state must be a regular file')
+  if (!info.isFile() || isLinkedPath(path)) throw invalid('state must be a regular file')
   if (info.size > MAX_STATE_BYTES) throw invalid(`state exceeds ${String(MAX_STATE_BYTES)} bytes`)
   if (CHECK_POSIX_MODE && (info.mode & 0o777) !== STATE_FILE_MODE) {
     throw invalid(`state permissions must be ${STATE_FILE_MODE.toString(8)}`)
@@ -250,39 +246,26 @@ function assertSafeStateTarget(path: string): void {
 function readStateBytes(path: string): string | undefined {
   const pathInfo = existingPathInfo(path)
   if (pathInfo === undefined) return undefined
-  if (!pathInfo.isFile() || pathInfo.isSymbolicLink()) throw invalid('state must be a regular file')
+  if (!pathInfo.isFile() || isLinkedPath(path)) throw invalid('state must be a regular file')
   if (pathInfo.size > MAX_STATE_BYTES) throw invalid(`state exceeds ${String(MAX_STATE_BYTES)} bytes`)
   if (CHECK_POSIX_MODE && (pathInfo.mode & 0o777) !== STATE_FILE_MODE) {
     throw invalid(`state permissions must be ${STATE_FILE_MODE.toString(8)}`)
   }
 
-  const descriptor = openSync(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0))
+  const read = readVerifiedPrivateFile(path, pathInfo, MAX_STATE_BYTES)
+  if (read.status === 'type' || read.status === 'size') {
+    throw invalid(`state must be a regular file within ${String(MAX_STATE_BYTES)} bytes`)
+  }
+  if (read.status === 'changed' || read.status === 'missing') {
+    throw invalid('state changed while it was being opened')
+  }
+  if (CHECK_POSIX_MODE && (read.mode & 0o777) !== STATE_FILE_MODE) {
+    throw invalid(`state permissions must be ${STATE_FILE_MODE.toString(8)}`)
+  }
   try {
-    const descriptorInfo = fstatSync(descriptor)
-    if (!descriptorInfo.isFile() || descriptorInfo.size > MAX_STATE_BYTES) {
-      throw invalid(`state must be a regular file within ${String(MAX_STATE_BYTES)} bytes`)
-    }
-    if (descriptorInfo.dev !== pathInfo.dev || descriptorInfo.ino !== pathInfo.ino) {
-      throw invalid('state changed while it was being opened')
-    }
-    if (CHECK_POSIX_MODE && (descriptorInfo.mode & 0o777) !== STATE_FILE_MODE) {
-      throw invalid(`state permissions must be ${STATE_FILE_MODE.toString(8)}`)
-    }
-    const buffer = Buffer.alloc(MAX_STATE_BYTES + 1)
-    let bytesRead = 0
-    while (bytesRead < buffer.byteLength) {
-      const count = readSync(descriptor, buffer, bytesRead, buffer.byteLength - bytesRead, null)
-      if (count === 0) break
-      bytesRead += count
-    }
-    if (bytesRead > MAX_STATE_BYTES) throw invalid(`state exceeds ${String(MAX_STATE_BYTES)} bytes`)
-    try {
-      return new TextDecoder('utf-8', { fatal: true }).decode(buffer.subarray(0, bytesRead))
-    } catch {
-      throw invalid('state must contain valid UTF-8')
-    }
-  } finally {
-    closeSync(descriptor)
+    return new TextDecoder('utf-8', { fatal: true }).decode(read.bytes)
+  } catch {
+    throw invalid('state must contain valid UTF-8')
   }
 }
 

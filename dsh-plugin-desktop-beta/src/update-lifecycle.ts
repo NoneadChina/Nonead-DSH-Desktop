@@ -9,12 +9,14 @@ import type {
   DesktopTrayItemRegistration,
   DesktopUpdateAdapter,
 } from './runtime.ts'
-import { desktopTrayLabel } from './tray-locale.ts'
+import { desktopTrayLabel, desktopTrayUpdateLabel } from './tray-locale.ts'
+import { releaseNoteSummary } from './release-notes.ts'
 import {
   checkForDesktopUpdate,
   parseSemVer,
   type DesktopReleaseChannel,
   type UpdateCheckResult,
+  type UpdateReleaseNotes,
 } from './update-checker.ts'
 
 const MAX_STATE_BYTES = 4 * 1024
@@ -66,6 +68,8 @@ class DesktopUpdateLifecycleOwner implements DesktopUpdateLifecycle {
   private disposeTask: Promise<void> | undefined
   private checking = false
   private availableVersion: string | undefined
+  /** Release notes belonging to `availableVersion`; undefined whenever no version is offered. */
+  private availableNotes: UpdateReleaseNotes | undefined
   private downloadingVersion: string | undefined
   private state: UpdateStateV3 = EMPTY_STATE
   private pollTimer: ReturnType<typeof setTimeout> | undefined
@@ -128,7 +132,7 @@ class DesktopUpdateLifecycleOwner implements DesktopUpdateLifecycle {
       const result = await this.startCheck('stable', true)
       if (this.disposed) return
       if (result?.status === 'update-available') {
-        await this.startDownload(result.latestVersion, 'stable', true)
+        await this.startDownload(result.latestVersion, 'stable', true, releaseNotesOf(result))
         return
       }
       await this.options.adapter.showManualCheckResult(result)
@@ -161,12 +165,14 @@ class DesktopUpdateLifecycleOwner implements DesktopUpdateLifecycle {
     }
   }
 
-  private async announceBackgroundUpdate(version: string): Promise<void> {
+  private async announceBackgroundUpdate(version: string, summary: string | undefined): Promise<void> {
     await this.stateReady
     if (this.disposed || this.state.lastNotifiedVersion === version) return
     this.state = { version: 3, lastNotifiedVersion: version }
     await this.persistState()
-    if (!this.disposed) this.options.adapter.notify(updateAvailableNotification(this.options.locale(), version))
+    if (!this.disposed) {
+      this.options.adapter.notify(updateAvailableNotification(this.options.locale(), version, summary))
+    }
   }
 
   private startCheck(
@@ -220,6 +226,9 @@ class DesktopUpdateLifecycleOwner implements DesktopUpdateLifecycle {
     this.availableVersion = result.status === 'update-available' && this.options.adapter.canDownload
       ? result.latestVersion
       : undefined
+    // Notes describe one exact version, so they are replaced together with it: a response without
+    // notes must not leave the previous version's notes attached to the new one.
+    this.availableNotes = this.availableVersion === undefined ? undefined : releaseNotesOf(result)
     this.registration.refresh()
     return this.availableVersion
   }
@@ -228,14 +237,13 @@ class DesktopUpdateLifecycleOwner implements DesktopUpdateLifecycle {
     version: string,
     channel: DesktopReleaseChannel = this.options.adapter.releaseChannel ?? 'stable',
     allowDowngrade: boolean = false,
+    notes: UpdateReleaseNotes | undefined = this.releaseNotesFor(version),
   ): Promise<void> {
     if (this.downloadTask !== undefined) return this.downloadTask
     const task = (async () => {
       let confirmed: boolean
       try {
-        confirmed = this.options.adapter.releaseChannel === undefined && channel === 'stable'
-          ? await this.options.adapter.confirmDownload(version)
-          : await this.options.adapter.confirmDownload(version, channel)
+        confirmed = await this.confirmDownload(version, channel, notes)
       } catch {
         return
       }
@@ -280,6 +288,34 @@ class DesktopUpdateLifecycleOwner implements DesktopUpdateLifecycle {
     return task
   }
 
+  /** Notes of the version the tray currently offers, never notes for another version. */
+  private releaseNotesFor(version: string): UpdateReleaseNotes | undefined {
+    return this.availableVersion === version ? this.availableNotes : undefined
+  }
+
+  /**
+   * Ask the native adapter to confirm one download.
+   *
+   * Without notes the historical call shape is kept exactly — a legacy stable adapter gets one
+   * argument, a channel-aware adapter gets two, and the beta variant's spec pins both forms — so
+   * the third argument appears only when there are notes to show.
+   */
+  private async confirmDownload(
+    version: string,
+    channel: DesktopReleaseChannel,
+    notes: UpdateReleaseNotes | undefined,
+  ): Promise<boolean> {
+    const legacy = this.options.adapter.releaseChannel === undefined && channel === 'stable'
+    if (notes === undefined) {
+      return legacy
+        ? await this.options.adapter.confirmDownload(version)
+        : await this.options.adapter.confirmDownload(version, channel)
+    }
+    return legacy
+      ? await this.options.adapter.confirmDownload(version, undefined, notes)
+      : await this.options.adapter.confirmDownload(version, channel, notes)
+  }
+
   private async offerDownload(version: string): Promise<void> {
     if (this.disposed || !this.options.adapter.canDownload) return
     await this.startDownload(version)
@@ -309,7 +345,9 @@ class DesktopUpdateLifecycleOwner implements DesktopUpdateLifecycle {
     if (this.checkTask !== undefined || this.disposed) return
     try {
       const version = this.observeResult(await this.startCheck())
-      if (version !== undefined) await this.announceBackgroundUpdate(version)
+      if (version !== undefined) {
+        await this.announceBackgroundUpdate(version, releaseNoteSummary(this.availableNotes?.notes))
+      }
     } catch {
       // Scheduled checks never surface failures to the user or the application log.
     }
@@ -329,7 +367,11 @@ class DesktopUpdateLifecycleOwner implements DesktopUpdateLifecycle {
       return desktopTrayLabel(this.options.locale(), 'downloadingUpdate', this.downloadingVersion)
     }
     if (this.availableVersion !== undefined) {
-      return desktopTrayLabel(this.options.locale(), 'updateAvailable', this.availableVersion)
+      return desktopTrayUpdateLabel(
+        this.options.locale(),
+        this.availableVersion,
+        releaseNoteSummary(this.availableNotes?.notes),
+      )
     }
     return desktopTrayLabel(this.options.locale(), this.checking ? 'checkingForUpdates' : 'checkForUpdates')
   }
@@ -361,10 +403,34 @@ function parseState(text: string): ParsedUpdateState {
   throw new Error('invalid update state')
 }
 
-function updateAvailableNotification(locale: DesktopLocale, version: string): DesktopNotification {
-  return locale === 'zh'
+function updateAvailableNotification(
+  locale: DesktopLocale,
+  version: string,
+  summary: string | undefined,
+): DesktopNotification {
+  const notification = locale === 'zh'
     ? { title: 'DSH Desktop 有可用更新', body: `版本 ${version} 已可下载。打开 DSH Desktop 即可继续。` }
     : { title: 'DSH Desktop Update Available', body: `Version ${version} is ready to download. Open DSH Desktop to continue.` }
+  // The headline gets its own line so the version sentence stays readable; without it the body is
+  // exactly the historical text, byte for byte.
+  return summary === undefined
+    ? notification
+    : { ...notification, body: `${notification.body}\n${summary}` }
+}
+
+/**
+ * Keep the release notes of exactly the version a response reports as available.
+ *
+ * A response without notes must not inherit text from an earlier one, so the object is rebuilt
+ * from the two fields instead of being spread from the whole result.
+ */
+function releaseNotesOf(result: UpdateCheckResult | null): UpdateReleaseNotes | undefined {
+  if (result?.status !== 'update-available') return undefined
+  if (result.notes === undefined && result.notesUrl === undefined) return undefined
+  return {
+    ...(result.notes === undefined ? {} : { notes: result.notes }),
+    ...(result.notesUrl === undefined ? {} : { notesUrl: result.notesUrl }),
+  }
 }
 
 async function readState(filename: string): Promise<string> {
