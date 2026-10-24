@@ -43,7 +43,7 @@ Likewise, `docs/architecture.md` and `docs/plugin-development.md` describe the *
 
 ## The plugin market: make conventions the advantageous choice
 
-A market is not the judge of an ecosystem; it is the ecosystem's **cost structure**. `dshmarket` is pinned at `1.66.47` (the desktop patch is rebuilt against that version) and ships with Desktop as an ordinary DSH plugin — it declares `dsh.bundle.patch` and `dsh.client` itself, sits next to the built-in capabilities on the official Plugins page, and leaves install, enable, disable and uninstall to the official plugin manager.
+A market is not the judge of an ecosystem; it is the ecosystem's **cost structure**. `dshmarket` is pinned at `1.70.1` (the desktop patch is rebuilt against that version) and ships with Desktop as an ordinary DSH plugin — it declares `dsh.bundle.patch` and `dsh.client` itself, sits next to the built-in capabilities on the official Plugins page, and leaves install, enable, disable and uninstall to the official plugin manager.
 
 `dsh-community-market` (`0.1.0-dev.0`) is the community market's skeleton: four bilingual documents (catalog adapter guide, catalog provider contract, install and uninstall, market shell), JSON Schemas, examples, and two behaviours that already work — install by name and non-image media preview. It is not finished, but its boundary is written down.
 
