@@ -6,11 +6,11 @@ import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots
 import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
 import { Button, PluginArtworkDefault, Switch } from '@deepseek-ai/dsh-client-ui-primitives'
 import { Choice, MARKET_OPTIONS, marketBody, marketTitle } from '../../../dsh-plugin-desktop-beta/src/client/DesktopSettingsSection.tsx'
-import { en as desktopEn, zh as desktopZh, type DesktopSettingsLocaleKey } from '../../../dsh-plugin-desktop-beta/src/client/desktop-settings-locales.ts'
 import { ComputerUseSettings } from './computer-use.tsx'
 import { COMMUNITY_MARKET as COMMUNITY, DSH_MARKET as MARKET, marketToggleTargets, type MarketName } from './market-toggle.ts'
 import type { DesktopCommand } from '../desktop-contract.ts'
 import { desktopText as shellText } from '../desktop-i18n.ts'
+import { desktopSettingsText as settingsText } from '../i18n/settings.ts'
 
 const REMOTE = '@agents-anywhere/dsh-bridge-next'
 const COMPUTER_ITEM = 'nonead-dsh-desktop-computer-use'
@@ -40,8 +40,7 @@ function PluginControls({ context, t: translate, onOpenBundle, onOpenItem }: Pro
   const locale = translate('language')
   const zh = locale === 'zh'
   const t = (cn: string, en: string): string => shellText(locale, cn, en)
-  const desktopCopy = zh ? desktopZh : desktopEn
-  const desktopText = (key: string): string => Object.hasOwn(desktopCopy, key) ? desktopCopy[key as DesktopSettingsLocaleKey] : key
+  const desktopText = (key: string): string => settingsText(locale, key)
   const [bundles, setBundles] = useState<BundleInfo[]>([])
   const [revision, refresh] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -145,7 +144,7 @@ const computerDescription = (t: Translate): string => t(
 function ComputerUseItem({ context, t, view }: PropsLocale<'nonead-dsh-desktop'> & PropsRuntime<'plugins.item'> & { context: Context }) {
   const locale = t('language')
   const zh = locale === 'zh'
-  if (view === 'summary') return computerDescription((cn, en) => zh ? cn : en)
+  if (view === 'summary') return computerDescription((cn, en) => shellText(locale, cn, en))
   return <ComputerUseSettings context={context} zh={zh} locale={locale} mode="page" />
 }
 

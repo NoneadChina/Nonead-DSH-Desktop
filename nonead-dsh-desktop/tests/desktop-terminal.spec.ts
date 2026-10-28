@@ -279,7 +279,7 @@ describe('desktop terminal environment', () => {
           DSH_DESKTOP_PNPM_ENTRY: options.pnpmBinPath,
           DSH_DESKTOP_PROFILE_DIRECTORY: options.profileDir,
           DSH_DESKTOP_PRODUCT_VERSION: options.productVersion,
-          DSH_DESKTOP_TERMINAL_MODE: '正常环境 / Normal environment',
+          DSH_DESKTOP_TERMINAL_MODE: 'Normal environment',
           DSH_DESKTOP_SHIM_DIRECTORY: launch.shimDir,
           DSH_DESKTOP_POWERSHELL_WELCOME: launch.welcomePath,
           DSH_DESKTOP_CMD_WELCOME: join(stateDir, 'welcome.cmd'),
@@ -523,4 +523,12 @@ it.each(['safe', 'recovery'] as const)('labels the Windows %s terminal for both 
   expect(harness.calls[0]!.options.env?.DSH_HOME).toBe(options.homeDir)
   expect(readFileSync(launch.welcomePath, 'utf8')).toContain('Write-Host $env:DSH_DESKTOP_TERMINAL_MODE')
   expect(readFileSync(join(options.stateDir, 'welcome.cmd'), 'utf8')).toContain('echo(!DSH_DESKTOP_TERMINAL_MODE!')
+})
+
+it.each(['safe', 'recovery', 'normal'] as const)('labels the Windows %s terminal in the active shell language', mode => {
+  const harness = spawnHarness()
+  const options = { ...windowsOptions(join(temporaryDirectory(), 'cli'), harness.spawn), language: 'ja', ...(mode === 'normal' ? {} : { mode }) }
+  openDesktopTerminal(options)
+  const expected = mode === 'safe' ? 'セーフモード: 一時環境' : mode === 'recovery' ? '復旧ターミナル: 元のプロファイル' : '通常環境'
+  expect(harness.calls[0]!.options.env?.DSH_DESKTOP_TERMINAL_MODE).toBe(expected)
 })

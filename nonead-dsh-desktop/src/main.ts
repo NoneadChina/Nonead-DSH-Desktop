@@ -16,6 +16,7 @@ import { NEXT_PACKAGE, parseFeatures, profileName } from './profiles.ts'
 import { APP_URL, IPC, SHELL_URL } from './ipc.ts'
 import { WINDOWS_TITLEBAR_HEIGHT } from './windows-layout.ts'
 import { preferredDesktopLocale, resolveDesktopLocale } from './menu-locale.ts'
+import { desktopText } from './desktop-i18n.ts'
 import { NativeLocaleStore } from './native-locale.ts'
 import { NextDesktopRuntime } from './desktop-runtime.ts'
 import type { EnvLayer } from './env-file.ts'
@@ -129,7 +130,7 @@ const version = (JSON.parse(readFileSync(NEXT_PACKAGE, 'utf8')) as { version: st
 /** The dsh runtime beside this shell; a development tree may hoist it elsewhere, and the packaged check then reports it. */
 let dshVersion: string | undefined
 try { dshVersion = readInstalledPackageVersion(root, '@deepseek-ai/dsh') } catch { /* Not installed beside the shell; only diagnostics lose the field. */ }
-const t = (zh: string, en: string): string => windowsLanguage.toLowerCase().startsWith('zh') ? zh : en
+const t = (zh: string, en: string): string => desktopText(windowsLanguage, zh, en)
 /**
  * The bundled interpreter payload of this CPU: beside the archive when packaged, prepared by
  * `prepare:runtime` in development. The payload is pinned for win-x64 only, so an arm64 shell
@@ -654,7 +655,7 @@ async function performCommand(input: Record<string, unknown>, type: string, sour
     if (type === 'terminal') {
       const target = runtime.terminalTarget(source === 'shell')
       openDesktopTerminal({ platform: process.platform, appExecutable: process.execPath, dshBootstrapPath: join(root, 'lib', 'desktop-cli.js'),
-        pnpmBinPath: bundledPnpmEntry(NEXT_PACKAGE), electronVersion: process.versions.electron, ...target,
+        pnpmBinPath: bundledPnpmEntry(NEXT_PACKAGE), electronVersion: process.versions.electron, ...target, language: windowsLanguage,
         productVersion: version, stateDir: desktopTerminalStateDirectory(join(target.homeDir, 'electron-user-data'), target.profileName),
         spawn, onLaunchError: error => runtime.report(error) })
       return

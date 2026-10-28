@@ -56,7 +56,7 @@ export function ComputerUseSettings({ context, zh, mode = 'overview', locale }: 
   return <div className="dshNextComputerUse" data-next-computer-use>
     {mode !== 'page' && <>
       <div className="dshNextPluginActions">
-        <DesktopPermissionsButton service={window.desktopNext?.permissions} language={zh ? 'zh' : 'en'} label={t('权限设置', 'Permission settings')} />
+        <DesktopPermissionsButton service={window.desktopNext?.permissions} language={locale ?? (zh ? 'zh' : 'en')} label={t('权限设置', 'Permission settings')} />
         <Switch label={t('启用 Computer Use', 'Enable Computer Use')} checked={row?.enabled ?? false}
           disabled={loading || busy || !row || row.readOnlyReason !== undefined} onChange={enabled => { void change(enabled) }} />
       </div>
@@ -64,7 +64,7 @@ export function ComputerUseSettings({ context, zh, mode = 'overview', locale }: 
     {mode === 'page' && <>
       <p className="dshDesktopSettingsHint"><code>{PROVIDER}</code></p>
       <p role="status" className="dshNextPermissionStatus"><StateDot state={row?.enabled && row.fiberPhase === 'active' ? 'done' : row?.fiberPhase === 'failed' ? 'error' : 'idle'} />{status}</p>
-      {window.desktopNext?.permissions ? <PermissionDetails service={window.desktopNext.permissions} language={zh ? 'zh' : 'en'} />
+      {window.desktopNext?.permissions ? <PermissionDetails service={window.desktopNext.permissions} language={locale ?? (zh ? 'zh' : 'en')} />
         : <p>{t('请在运行 DSH 的桌面应用中管理系统权限。', 'Manage system permissions in the desktop app running DSH.')}</p>}
     </>}
     {notice && <Toast text={notice} onDone={() => { setNotice('') }} />}

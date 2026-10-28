@@ -5,7 +5,6 @@ import type { DesktopPermission, DesktopPermissionSnapshot, DesktopPermissions }
 import { desktopText } from '../desktop-i18n.ts'
 
 export function DesktopPermissionsSection({ service, language }: { service: DesktopPermissions; language: string }) {
-  const zh = language.startsWith('zh')
   return <section className="dshDesktopSettingsGroup" aria-label={desktopText(language, '系统权限', 'System permissions')}>
     <h3>{desktopText(language, '系统权限', 'System permissions')}</h3>
     <DesktopPermissionsButton service={service} language={language} />
@@ -14,7 +13,6 @@ export function DesktopPermissionsSection({ service, language }: { service: Desk
 
 export function DesktopPermissionsButton({ service, language, iconOnly = false, disabled = false, label: customLabel, permission }: { service?: DesktopPermissions | undefined; language: string; iconOnly?: boolean; disabled?: boolean; label?: string; permission?: DesktopPermission | undefined }) {
   const [open, setOpen] = useState(false)
-  const zh = language.startsWith('zh')
   const label = customLabel ?? (desktopText(language, '授权设置', 'Permissions'))
   return <>
     <Button variant={iconOnly ? 'ghost' : 'outline'} size="sm" aria-label={label} disabled={disabled}
@@ -25,7 +23,6 @@ export function DesktopPermissionsButton({ service, language, iconOnly = false, 
 }
 
 export function DesktopPermissionsDialog({ open, onClose, service, language, permission }: { open: boolean; onClose(): void; service?: DesktopPermissions | undefined; language: string; permission?: DesktopPermission | undefined }) {
-  const zh = language.startsWith('zh')
   const body = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const dialog = open ? body.current?.closest<HTMLElement>('[role="dialog"]') : null
@@ -54,7 +51,7 @@ export function DesktopPermissionsDialog({ open, onClose, service, language, per
 }
 
 export function PermissionDetails({ service, language, permission: onlyPermission }: { service: DesktopPermissions; language: string; permission?: DesktopPermission | undefined }) {
-  const t = (zh: string, en: string): string => language.startsWith('zh') ? zh : en
+  const t = (zh: string, en: string): string => desktopText(language, zh, en)
   const [snapshots, setSnapshots] = useState<DesktopPermissionSnapshot[]>([])
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState('')

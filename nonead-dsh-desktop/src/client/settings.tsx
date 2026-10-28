@@ -3,38 +3,41 @@ import { useState } from 'react'
 import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
 import { DesktopSettingsSection, DesktopSettingsToggleRow } from '../../../dsh-plugin-desktop-beta/src/client/DesktopSettingsSection.tsx'
 import { DesktopNativeActions } from '../../../dsh-plugin-desktop-beta/src/client/DesktopNativeActions.tsx'
-import { en, zh, type DesktopSettingsLocaleKey } from '../../../dsh-plugin-desktop-beta/src/client/desktop-settings-locales.ts'
 import type { DesktopCommand, DesktopState } from '../desktop-contract.ts'
 import { NextSettingsAdapter } from './settings-adapter.ts'
 import { DesktopPermissionsSection } from './permissions.tsx'
 import { useDesktopState } from './desktop-state.ts'
 import { NextUpdateSettings } from './updates.tsx'
 import { desktopText } from '../desktop-i18n.ts'
+import { desktopSettingsText } from '../i18n/settings.ts'
 
 export function desktopTranslate(language: string): (key: string) => string {
-  const copy = language.startsWith('zh') ? zh : en
+  // Five labels read differently on the Next shell than in the shared settings table; every
+  // other key resolves through the settings dictionaries for the active shell language.
+  const t = (zh: string, en: string): string => desktopText(language, zh, en)
   return key => {
-    if (key === 'presentationTitle') return language.startsWith('zh') ? '窗口外观' : 'Window appearance'
-    if (key === 'windowMaterialBody') return language.startsWith('zh') ? '设置窗口背景效果，更改后立即生效。' : 'Set the window background effect. Changes apply immediately.'
-    if (key === 'deleteProfileWarning') return language.startsWith('zh') ? '此 Profile 将移入恢复备份目录。共享的会话和设置会保留。' : 'Move this Profile to recovery backups. Shared sessions and settings are retained.'
-    if (key === 'presentationIntro') return language.startsWith('zh') ? '设置当前平台支持的窗口外观。' : 'Choose the window appearance supported on this platform.'
-    if (key === 'browserCompatibilityNotice') return language.startsWith('zh') ? '开关即时生效；关闭访问会断开已有的浏览器连接。' : 'Changes take effect immediately. Disabling access disconnects existing browser connections.'
-    return Object.hasOwn(copy, key) ? copy[key as DesktopSettingsLocaleKey] : key
+    if (key === 'presentationTitle') return t('窗口外观', 'Window appearance')
+    if (key === 'windowMaterialBody') return t('设置窗口背景效果，更改后立即生效。', 'Set the window background effect. Changes apply immediately.')
+    if (key === 'deleteProfileWarning') return t('此 Profile 将移入恢复备份目录。共享的会话和设置会保留。', 'Move this Profile to recovery backups. Shared sessions and settings are retained.')
+    if (key === 'presentationIntro') return t('设置当前平台支持的窗口外观。', 'Choose the window appearance supported on this platform.')
+    if (key === 'browserCompatibilityNotice') return t('开关即时生效；关闭访问会断开已有的浏览器连接。', 'Changes take effect immediately. Disabling access disconnects existing browser connections.')
+    return desktopSettingsText(language, key)
   }
 }
 
 export function NextDesktopSettings({ adapter, language, onOpenPlugins }: { adapter: NextSettingsAdapter; language: string; onOpenPlugins(): void }) {
   const state = useDesktopState(adapter)
-  const t = desktopTranslate(language)
+  const translate = desktopTranslate(language)
+  const t = (zh: string, en: string): string => desktopText(language, zh, en)
   return <div data-next-desktop-settings=""><DesktopSettingsSection
-    t={t} api={adapter.api} version={state?.version ?? ''} platform={state?.platform === 'darwin' || state?.platform === 'win32' ? state.platform : 'linux'}
+    t={translate} api={adapter.api} version={state?.version ?? ''} platform={state?.platform === 'darwin' || state?.platform === 'win32' ? state.platform : 'linux'}
     initialMode="compatibility"
     setMode={async () => { throw new Error('Window modes are not supported in Next') }}
     desktopSettings={adapter.desktopSettings} notificationSettings={adapter.notificationSettings}
     capabilities={{ logging: false, windowModes: false, pluginSelectors: false, updates: false, materialRequiresRestart: false, nativeLanConfirmation: true, jobNotifications: false }}
     introNotice={<div className="dshDesktopSettingsNotice dshNextPluginSettingsNotice" data-next-plugin-settings-notice>
-      <span>{language.startsWith('zh') ? '插件市场和远程控制设置已移至插件页面。' : 'Plugin market and remote control settings have moved to the Plugins page.'}</span>
-      <Button variant="outline" size="sm" onClick={onOpenPlugins}>{language.startsWith('zh') ? '前往插件页面' : 'Go to Plugins'}</Button>
+      <span>{t('插件市场和远程控制设置已移至插件页面。', 'Plugin market and remote control settings have moved to the Plugins page.')}</span>
+      <Button variant="outline" size="sm" onClick={onOpenPlugins}>{t('前往插件页面', 'Go to Plugins')}</Button>
     </div>}
     browserActions={state && <NextBrowserActions adapter={adapter} state={state} language={language} />}
     extraSections={<>
@@ -52,6 +55,7 @@ export function NextDesktopActions({ adapter, language }: { adapter: NextSetting
 function NextBrowserActions({ adapter, state, language }: { adapter: NextSettingsAdapter; state: DesktopState; language: string }) {
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState('')
+  const t = (zh: string, en: string): string => desktopText(language, zh, en)
   const run = async (): Promise<void> => {
     setBusy(true); setFailure('')
     try { await adapter.command({ type: 'export-ca' }) } catch (error) { setFailure(error instanceof Error ? error.message : String(error)) } finally { setBusy(false) }
@@ -60,7 +64,7 @@ function NextBrowserActions({ adapter, state, language }: { adapter: NextSetting
   return <>
     {failure && <p role="alert" className="dshDesktopSettingsError">{failure}</p>}
     <div className="dshDesktopSettingsDialogActions">
-      <button type="button" className="dshDesktopSettingsButton dshDesktopSettingsButtonSecondary" disabled={busy || state.busy} onClick={() => { void run() }}>{language.startsWith('zh') ? '导出 CA 证书' : 'Export CA certificate'}</button>
+      <button type="button" className="dshDesktopSettingsButton dshDesktopSettingsButtonSecondary" disabled={busy || state.busy} onClick={() => { void run() }}>{t('导出 CA 证书', 'Export CA certificate')}</button>
     </div>
   </>
 }
