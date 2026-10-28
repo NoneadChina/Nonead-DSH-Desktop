@@ -1382,7 +1382,7 @@ describe('published package surface', () => {
     expect(index).toContain('confined = policy.mode === "danger-full-access" ? void 0 : await this.ctx.sandbox.confine(')
     // Upstream also builds an env map without the Electron selector, so anchor on the block that
     // continues into `if (process.versions.electron …)` through comments only.
-    const block = /\t+const env = Object\.fromEntries\(Object\.keys\(process\.env\)[^\n]*\n(?:\s*\/\/[^\n]*\n)*\t+if \(process\.versions\.electron !== void 0\) env\.ELECTRON_RUN_AS_NODE = "1";\n\t+if \(packaged\) \{[\s\S]*?\n\t+\}\n(?=\t+handle = this\.ctx\.subprocess\.spawn\()/u.exec(index)?.[0]
+    const block = /\t+const env = Object\.fromEntries\(Object\.keys\(process\.env\)[^\n]*\n(?:\s*\/\/[^\n]*\n)*\t+if \(process\.versions\.electron !== void 0\) env\.ELECTRON_RUN_AS_NODE = "1";\n\t+if \(packaged\) \{[\s\S]*?\n\t+\}\n(?=\t+(?:const )?handle = this\.ctx\.subprocess\.spawn\()/u.exec(index)?.[0]
     if (block === undefined) throw new Error('Cannot find the PTC worker environment')
     const evaluate = (electron: string | undefined, parent: Record<string, string>, packaged = true) => runInNewContext(
       `${block}\nenv`,

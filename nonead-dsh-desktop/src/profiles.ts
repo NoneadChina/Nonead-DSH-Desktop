@@ -3,14 +3,15 @@ import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSy
 import { createRequire } from 'node:module'
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { initProfile, loadOverlayPatches, loadProfileDirectory, PROFILE_TEMPLATES, readProfilePatches, type Profile, type ProfileContext } from '@deepseek-ai/dsh-app-boot'
+import { initProfile, loadOverlayPatches, loadProfileDirectory, readProfilePatches, type Profile, type ProfileContext } from '@deepseek-ai/dsh-app-boot'
+import { PROFILE_TEMPLATES, RETIRED_BUNDLES } from '@deepseek-ai/dsh-official-bundles'
 import { withFileLock } from '@deepseek-ai/dsh-atomic-write'
 import { atomicJson, atomicText, isLinkedPath, linkedPathTarget, readPrivateFile, removeLinkedPath, sameResolvedPath } from './private-files.ts'
 import { existingPath, LEGACY, readPrivateFileWithLegacy } from './legacy-names.ts'
 import { NextRecovery } from './recovery.ts'
 import { DEFAULT_PROFILE } from './desktop-contract.ts'
 import { computerUsePatch } from './profile-computer-use.ts'
-import { RETIRED_SCHEDULE_BUNDLE, retiredSchedulePatch } from './profile-schedule.ts'
+import { retiredSchedulePatch } from './profile-schedule.ts'
 import { removeLinkProjectionsSafely } from '../../dsh-plugin-desktop-beta/src/link-projections.ts'
 import { insideArchive, unpackedPath } from './asar-archive-policy.ts'
 import { withProfileWriteLock } from './recovery-support.ts'
@@ -285,7 +286,9 @@ export class NextProfiles {
     let patch: string | undefined
     // A malformed patch is left for recovery to handle; retry on the next start.
     try { patch = retiredSchedulePatch(readPrivateFile(patchPath) ?? '[]\n') } catch { return }
-    const bundles = manifest.dsh.profile.bundles.filter(bundle => bundle !== RETIRED_SCHEDULE_BUNDLE)
+    // Upstream keeps the retired list in `@deepseek-ai/dsh-official-bundles`; following it
+    // means a bundle retired in a later DSH release is dropped here without another edit.
+    const bundles = manifest.dsh.profile.bundles.filter(bundle => !RETIRED_BUNDLES.has(bundle))
     if (patch !== undefined || bundles.length !== manifest.dsh.profile.bundles.length) {
       new NextRecovery(this).backup(name, 'before-schedule-bundle-retirement')
     }

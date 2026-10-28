@@ -2,7 +2,7 @@
 
 DSH Desktop 是围绕**未修改的 DeepSeek Harness 上游**构建的桌面产品：一个 Electron 桌面壳 + 一个跑官方 Web 应用的 Host 进程，前端仍是上游自己的渲染器。本仓库不改上游语义，只在进程边界、Profile 组合、打包与发行通道上补齐桌面形态需要的东西。
 
-本文描述当前代码（HEAD `f89d121`，产品版本 2.1.18，DSH Beta 运行时 `0.2.1-rc.3`）的真实结构。凡本文与代码冲突，以代码为准。
+本文描述当前代码（HEAD `f012a1a`，产品版本 2.2.2，DSH Beta 运行时 `0.2.2-alpha.2`）的真实结构。凡本文与代码冲突，以代码为准。
 
 ## 总览
 
@@ -29,7 +29,7 @@ flowchart LR
 | 控制通道 | 私有 RPC（`{ kind, id, method, args }`） | Node 命名 IPC 消息（`process.send`） |
 | 渲染器凭据 | 每代 32 字节 base64url，同款 HTTP 头 | 同款头，常量在 `src/desktop-contract.ts` |
 
-两壳版本同步为 2.1.18，功能集合大体相同，但 Host 生命周期实现完全不同——只读一篇文档时请先看清它讲的是哪个壳。
+两壳版本同步为 2.2.2，功能集合大体相同，但 Host 生命周期实现完全不同——只读一篇文档时请先看清它讲的是哪个壳。
 
 ## 启动顺序
 
@@ -185,7 +185,7 @@ Profile 的读-改-写必须在**同一把写者锁**下完成（`src/recovery-s
 | 通道 | vendored 运行时 | 上游 commit | workspace 包 |
 | --- | --- | --- | --- |
 | stable | `0.2.0-rc.2` | `639ed015` | `nonead-dsh-desktop` |
-| beta | `0.2.1-rc.3` | `1f81c047` | `dsh-plugin-desktop-beta` |
+| beta | `0.2.2-alpha.2` | `f3803c96974ad4a94195fb97e5c637e9c2a3afe3` | `dsh-plugin-desktop-beta` |
 
 边界说明：
 

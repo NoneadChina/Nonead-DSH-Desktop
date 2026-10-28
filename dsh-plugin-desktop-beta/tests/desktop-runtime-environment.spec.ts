@@ -14,9 +14,8 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { createRequire, syncBuiltinESMExports } from 'node:module'
-import { tmpdir } from 'node:os'
 import { basename, delimiter as pathDelimiter, dirname, join, resolve } from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   installDesktopDshRuntime,
@@ -27,7 +26,9 @@ import {
 const temporaryDirectories: string[] = []
 
 function temporaryDirectory(): string {
-  const directory = mkdtempSync(join(tmpdir(), 'dsh-desktop-pnpm-runtime-'))
+  /** Electron as a Node child cannot write under the system TEMP, so this fixture lives in the workspace. */
+const WORKSPACE_ROOT = fileURLToPath(new URL('..', import.meta.url))
+const directory = mkdtempSync(join(WORKSPACE_ROOT, '.pnpm-runtime-'))
   temporaryDirectories.push(directory)
   return directory
 }

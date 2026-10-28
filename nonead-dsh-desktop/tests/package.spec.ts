@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import { OPTIONAL_BUNDLES } from '@deepseek-ai/dsh-app-boot'
+import { OPTIONAL_BUNDLES } from '@deepseek-ai/dsh-official-bundles'
 import { expect, it } from 'vitest'
 const read = (path: string) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'))
 it('declares every official optional bundle as a discoverable, version-aligned installation dependency', () => {

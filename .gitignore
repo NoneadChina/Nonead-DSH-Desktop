@@ -56,6 +56,7 @@ vendor/dsh-runtime/0.2.1-alpha.4/
 vendor/dsh-runtime/0.2.1-alpha.5/
 vendor/dsh-runtime/0.2.1-rc.1/
 vendor/dsh-runtime/0.2.1-rc.2/
+vendor/dsh-runtime/0.2.1-rc.3/
 
 # Patches authored for superseded runtime versions. The consumed sets are
 # 0.2.0-rc.2 and 0.2.1-rc.2.

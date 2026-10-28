@@ -7,7 +7,7 @@ the other full Desktop implementation; the former Stable workspace `dsh-plugin-d
 there is no second variant to mirror.
 
 The reference is the pinned upstream submodule at `deepseek-harness/` — currently DSH
-`0.2.1-rc.3`, recorded in `upstream.json` and vendored under `vendor/dsh-runtime/`. Its
+`0.2.2-alpha.2`, recorded in `upstream.json` and vendored under `vendor/dsh-runtime/`. Its
 `apps/desktop` and `apps/desktop-host` inform this shell. Desktop development never edits the
 submodule, and the vendored runtime is the only packaged runtime.
 

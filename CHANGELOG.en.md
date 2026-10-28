@@ -13,6 +13,16 @@ Maintenance conventions:
 - Entries record only changes users can perceive and boundary changes maintainers must know about; pure refactors do not get their own entry.
 - Earlier history lives in the Git tags (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) and in the commit log.
 
+## 2.2.2 — 2026-10-28
+
+The runtime moves across to DSH `0.2.2-alpha.2` and the market to 1.73.1:
+
+- Runtime upgrade: the beta channel jumps from dsh `0.2.1-rc.3` to **`0.2.2-alpha.2`** (submodule pin `1f81c047` → `f3803c96`, upstream "release(dsh): 0.2.2-alpha.2") — the runtime is repacked and re-vendored (370 packages, up from 344), and all 24 version patches are rebased. Seven packages needed semantic re-anchoring because their packed output changed: the bundle file names in `dsh`, `dsh-sandbox-windows-acl` and `dsh-web-frontend` carry new hashes; `dsh-client-ui-plugin-manager` was refactored upstream to derive `available` from `listed` but never defines it (this patch restores the desktop slots and supplies that definition); `dsh-client-ui-settings-account` moved its onboarding back icon into a module variable; `dsh-client-ui-directory-picker-browse` grew to nine locale dictionaries; `dsh-client-ui-primitives` switched wide tables to a hover-only scrollbar, which this patch turns back into an always-visible thin bar. The rc.3 runtime snapshot and patches stay as history.
+- Dependency surface: `@deepseek-ai/cordis` moves to 4.0.6-alpha.1, `schemastery` to 3.18.6-alpha.1 and three cordis plugin packages each move one minor alpha, or the upstream 0.2.2-alpha.2 peer checks fail; `nonead-dsh-desktop` is aligned with the beta channel by hand because it belongs to the stable line and is outside the auto-synced workspace list.
+- Market: `dshmarket` 1.70.1 → **1.73.1**, with the desktop patch (self-update entry, host-provided versions, trial-run baseline diff) rebased onto 1.73.1; upstream moved the update cache to `recheckAt` semantics, so the `checkUpdates` hunk is rewritten against the new shape.
+- Agents Anywhere bridge: rebuilt for the new peer ranges (artifact `rd9c47cbc`, pin unchanged at `39b82d4`), connector patch untouched.
+- Version: the product moves from 2.1.18 to **2.2.2** in both desktop workspaces.
+
 ## 2.1.18 — 2026-10-24
 
 Upstream runtime upgrade, an Agents Anywhere source build and an experimental Windows ARM64 build (includes the 2.1.17 audit fix batch):

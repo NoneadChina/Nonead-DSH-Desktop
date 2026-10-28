@@ -13,6 +13,16 @@
 - 条目只写"用户能感知的变化"与"维护者必须知道的边界变化"；纯重构不单独成条。
 - 更早的历史见 Git 标签（`v1.7.3`、`v2.0.7`、`v2.0.8`、`v2.1.3`、`v2.1.4`、`v2.1.5`）与提交记录。
 
+## 2.2.2 — 2026-10-28
+
+上游运行时跨到 DSH `0.2.2-alpha.2`，市场升到 1.73.1：
+
+- 上游运行时升级：beta 通道从 dsh `0.2.1-rc.3` 升到 **`0.2.2-alpha.2`**（子模块 pin `1f81c047` → `f3803c96`，上游提交 "release(dsh): 0.2.2-alpha.2"）——运行时重新打包并 vendored（370 个包，上一版 344 个），24 个版本补丁全部重定基。其中 7 个包的上游产物结构变了、必须按语义重新落点：`dsh`、`dsh-sandbox-windows-acl`、`dsh-web-frontend` 的 bundle 文件名哈希改变；`dsh-client-ui-plugin-manager` 的上游重构把 `listed` 拆出 `available` 却没有定义它（本补丁在恢复桌面插槽的同时补齐该定义）；`dsh-client-ui-settings-account` 的 onboarding 返回图标改为模块变量；`dsh-client-ui-directory-picker-browse` 的语言字典扩到 9 种语言；`dsh-client-ui-primitives` 的宽表格滚动条改为悬停显示，桌面补丁改回常显细条。rc.3 运行时快照与补丁保留为历史。
+- 依赖面同步：`@deepseek-ai/cordis` 抬到 4.0.6-alpha.1、`schemastery` 抬到 3.18.6-alpha.1、三个 cordis 插件包各抬一个小版本，否则上游 0.2.2-alpha.2 的 peer 检查不通过；`nonead-dsh-desktop` 的 DSH 依赖与 beta 通道对齐（它属于 stable 通道，不在自动同步的工作区列表里，需手工跟随）。
+- 市场：`dshmarket` 1.70.1 → **1.73.1**，桌面补丁（自更新入口、宿主版本注入、试运行基线对比）按 1.73.1 重定基；上游把更新缓存改为 `recheckAt` 语义，`checkUpdates` 对应 hunk 按新结构重写。
+- Agents Anywhere bridge：按新 peer 范围重建（产物 `rd9c47cbc`，pin 仍为 `39b82d4`），connector 补丁不变。
+- 版本号：产品 2.1.18 → **2.2.2**（两个桌面工作区同步）。
+
 ## 2.1.18 — 2026-10-24
 
 上游运行时升级、Agents Anywhere 源码构建与 Windows ARM64 实验性构建（包含 2.1.17 的审查修复批次）：

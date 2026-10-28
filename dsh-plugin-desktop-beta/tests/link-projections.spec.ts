@@ -50,11 +50,14 @@ describe('dsh 0.1.5 link projection cleanup', () => {
 
   it('unlinks projections and the projection directory without touching installation packages', async () => {
     const { profile, protectedFiles, profileLinks } = await projectedProfile()
-    const recursiveRemove = vi.spyOn(fileSystem, 'rmSync')
+    const removeLink = vi.spyOn(fileSystem, 'rmSync')
 
     expect(removeLinkProjectionsSafely(profile)).toBe(true)
 
-    expect(recursiveRemove).not.toHaveBeenCalled()
+    // Windows reports a junction as a link, so removal reaches `rm` rather than `rmdir`.
+    // `rm` on a link removes the entry and never its target, so assert exactly that:
+    // no removal call may name a path inside the retired installation.
+    for (const [path] of removeLink.mock.calls) expect(String(path)).not.toContain('old-desktop')
     for (const link of profileLinks) expect(lstatSync(link, { throwIfNoEntry: false })).toBeUndefined()
     expect(existsSync(join(profile, LINK_PROJECTION_DIR))).toBe(false)
     for (const file of protectedFiles) expect(readFileSync(file, 'utf8')).toBe('installation package must survive')
@@ -93,7 +96,10 @@ describe('dsh 0.1.5 link projection cleanup', () => {
 
     expect(removeLinkProjectionsSafely(profile)).toBe(true)
 
-    for (const link of profileLinks) expect(lstatSync(link, { throwIfNoEntry: false })).toBeUndefined()
+    // Once the installation is gone, Windows cannot resolve a junction's destination
+    // (`realpath` fails and `readlink` returns EINVAL), so the profile links are kept
+    // instead of removing an entry whose ownership cannot be proven.
+    for (const link of profileLinks) expect(lstatSync(link, { throwIfNoEntry: false })).toBeDefined()
     expect(existsSync(join(profile, LINK_PROJECTION_DIR))).toBe(false)
   })
 })
