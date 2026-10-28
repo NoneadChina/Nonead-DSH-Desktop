@@ -22,7 +22,7 @@ export function NextUpdateSettings({ state, language, run }: { state: DesktopSta
     {update.phase === 'downloading' && <progress style={{ width: '100%' }} aria-label={t('更新下载进度', 'Update download progress')} max={update.total ?? 1} value={update.total ? update.received ?? 0 : undefined} />}
     {(notes !== undefined || notesUrl !== undefined) && <div data-release-notes>
       <p className="dshDesktopSettingsHint">{t('更新说明', 'Release notes')}</p>
-      {notes !== undefined && <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{notes}</p>}
+      {notes !== undefined && <p className="dshDesktopSettingsHint" style={{ whiteSpace: 'pre-wrap', margin: 0, color: 'inherit' }}>{notes}</p>}
       {/* Only an absolute https URL survives parsing; the OS browser owns the page, so the shell
           opener never gains a navigation-capable window handle. */}
       {notesUrl !== undefined && <div className="dshDesktopSettingsDialogActions">
