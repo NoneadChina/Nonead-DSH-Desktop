@@ -1,5 +1,5 @@
 /** Verify every final Next executable: fuses, the sealed archive, a RunAsNode import smoke and a real Host boot. */
-import { existsSync } from 'node:fs'
+import { closeSync, existsSync, mkdirSync, openSync, readSync, rmSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -10,6 +10,9 @@ import { archivedPayload, nextPackagingTarget, PAYLOAD_DIR, universalMergeRewrit
 import { expectedNextVersion, verifyNextRuntimeTree } from './prepare-runtime.ts'
 
 const desktopRoot = fileURLToPath(new URL('..', import.meta.url))
+
+/** COFF machine identifiers of the CPUs the Windows payload can target. */
+const PE_MACHINES = { x64: 0x8664, arm64: 0xaa64 } as const
 
 function runPackagedNode(path: string, args: readonly string[], timeout: number, failure: string): void {
   const result = spawnSync(path, args, {
@@ -22,35 +25,57 @@ function runPackagedNode(path: string, args: readonly string[], timeout: number,
   }
 }
 
-export default async function afterAllArtifactBuild(result: { outDir: string }): Promise<string[]> {
-  const paths = ['mac/Nonead DSH Desktop.app/Contents/MacOS/Nonead DSH Desktop', 'mac-arm64/Nonead DSH Desktop.app/Contents/MacOS/Nonead DSH Desktop',
-    'mac-universal/Nonead DSH Desktop.app/Contents/MacOS/Nonead DSH Desktop', 'win-unpacked/Nonead DSH Desktop.exe', 'linux-unpacked/nonead-dsh-desktop']
-  const executables = paths.map(path => join(result.outDir, path)).filter(existsSync)
-  if (!executables.length) throw new Error('No packaged Next executable to verify')
-  const expectedVersion = expectedNextVersion(desktopRoot)
-  for (const path of executables) {
-    // The stable shell ships an archive: assert the hardened fuse table, including the archive
-    // fuse that keeps Electron from loading a replaced physical `app/` tree beside `app.asar`.
-    await verifyElectronExecutableFuses(path, undefined, true)
-    const darwin = path.includes('.app/')
-    const resources = darwin ? join(dirname(path), '../Resources') : join(dirname(path), 'resources')
-    const root = join(resources, 'app.asar')
-    // electron-builder signs unpacked Mach-O files and nested bundles after afterPack cross-checked
-    // the archive, so the final tree is checked against the descriptor it carries with code-signing
-    // tolerance; verify-mac-release.ts validates the signatures themselves.
-    const target = nextPackagingTarget(darwin ? 'darwin' : path.endsWith('.exe') ? 'win32' : 'linux')
-    const merge = universalMergeRewrite(join(desktopRoot, ...PAYLOAD_DIR.split('/')))
-    const descriptor = verifyNextRuntime(resources, expectedVersion, target, { afterCodeSigning: true, acceptRewrite: merge.accept })
-    console.log(`Verified ${root} against its sealed descriptor: ${String(descriptor.files.length)} files, dsh ${descriptor.release.dshVersion}`
-      + (merge.accepted.length === 0 ? '' : `; the universal merge rewrote ${merge.accepted.join(', ')}`))
-    // The manifest copy for the updaters of earlier releases must have come through signing and the merge unchanged.
-    const archived = archivedPayload(resources)
-    try { verifyUpdaterManifestShim(resources, archived, target.platform, expectedVersion) } finally { archived.close() }
-    // The interpreter payloads are pre-signed resources; code signing must have left them as prepared.
-    const runtimes = verifyNextRuntimeTree(join(resources, 'runtime'), target.platform, expectedVersion)
-    if (runtimes.length > 0) console.log(`Verified the bundled primary runtimes: ${runtimes.map(runtime => runtime.arch).join(', ')}`)
-    // Electron's Node mode reads the archive like a directory, as the Host and CLI will.
-    runPackagedNode(path, ['--input-type=module', '-e', `
+/** Read the COFF machine type of one Windows executable without loading it. */
+function peMachine(path: string): number {
+  const descriptor = openSync(path, 'r')
+  try {
+    const dos = Buffer.alloc(64)
+    if (readSync(descriptor, dos, 0, dos.byteLength, 0) !== dos.byteLength || dos.subarray(0, 2).toString('ascii') !== 'MZ') {
+      throw new Error(`No Windows PE header in ${path}`)
+    }
+    const offset = dos.readUInt32LE(0x3c)
+    const coff = Buffer.alloc(6)
+    if (readSync(descriptor, coff, 0, coff.byteLength, offset) !== coff.byteLength
+      || !coff.subarray(0, 4).equals(Buffer.from([0x50, 0x45, 0x00, 0x00]))) {
+      throw new Error(`No Windows PE signature in ${path}`)
+    }
+    return coff.readUInt16LE(4)
+  } finally {
+    closeSync(descriptor)
+  }
+}
+
+/** Verify one packaged executable end to end. */
+async function verifyExecutable(path: string, expectedVersion: string): Promise<void> {
+  // The stable shell ships an archive: assert the hardened fuse table, including the archive
+  // fuse that keeps Electron from loading a replaced physical `app/` tree beside `app.asar`.
+  await verifyElectronExecutableFuses(path, undefined, true)
+  const darwin = path.includes('.app/')
+  const resources = darwin ? join(dirname(path), '../Resources') : join(dirname(path), 'resources')
+  const root = join(resources, 'app.asar')
+  // electron-builder signs unpacked Mach-O files and nested bundles after afterPack cross-checked
+  // the archive, so the final tree is checked against the descriptor it carries with code-signing
+  // tolerance; verify-mac-release.ts validates the signatures themselves.
+  const target = nextPackagingTarget(darwin ? 'darwin' : path.endsWith('.exe') ? 'win32' : 'linux')
+  const merge = universalMergeRewrite(join(desktopRoot, ...PAYLOAD_DIR.split('/')))
+  const descriptor = verifyNextRuntime(resources, expectedVersion, target, { afterCodeSigning: true, acceptRewrite: merge.accept })
+  console.log(`Verified ${root} against its sealed descriptor: ${String(descriptor.files.length)} files, dsh ${descriptor.release.dshVersion}`
+    + (merge.accepted.length === 0 ? '' : `; the universal merge rewrote ${merge.accepted.join(', ')}`))
+  // The manifest copy for the updaters of earlier releases must have come through signing and the merge unchanged.
+  const archived = archivedPayload(resources)
+  try { verifyUpdaterManifestShim(resources, archived, target.platform, expectedVersion) } finally { archived.close() }
+  // The interpreter payloads are pre-signed resources; code signing must have left them as prepared.
+  const runtimes = verifyNextRuntimeTree(join(resources, 'runtime'), target.platform, expectedVersion)
+  if (runtimes.length > 0) console.log(`Verified the bundled primary runtimes: ${runtimes.map(runtime => runtime.arch).join(', ')}`)
+  // A cross-arch artifact (an arm64 installer built on this x64 host) is inspected but never run:
+  // this host cannot execute it, and the failure would say nothing about the payload itself.
+  const hostMachine = process.arch === 'arm64' ? PE_MACHINES.arm64 : PE_MACHINES.x64
+  if (path.endsWith('.exe') && peMachine(path) !== hostMachine) {
+    console.log(`Skipped the packaged runtime smokes for ${path}: it does not run on this ${process.arch} host`)
+    return
+  }
+  // Electron's Node mode reads the archive like a directory, as the Host and CLI will.
+  runPackagedNode(path, ['--input-type=module', '-e', `
       import { createRequire } from 'node:module';
       import { pathToFileURL } from 'node:url';
       const root = process.argv[1];
@@ -60,12 +85,32 @@ export default async function afterAllArtifactBuild(result: { outDir: string }):
       await import(pathToFileURL(root + '/lib/desktop-runtime.js'));
       require.resolve('@deepseek-ai/dsh-web-frontend/dist/index.html');
     `, root], 30_000, 'Packaged Next runtime failed')
-    // The native computer-use driver opens its library with the system loader; the Host's resolver must answer with the unpacked copy.
-    runPackagedNode(path, [join(desktopRoot, 'scripts', 'packaged-driver-smoke.mjs'), root], 120_000, 'Packaged computer-use driver smoke failed')
-    // The badge skill announces its asset directory to the model; the Host's resolver must make it physical.
-    runPackagedNode(path, [join(desktopRoot, 'scripts', 'packaged-skill-badge-smoke.mjs'), root], 120_000, 'Packaged badge skill smoke failed')
-    // The same Electron, in Node mode, starts the real Host from the archive with a private home.
-    runPackagedNode(path, ['--expose-internals', join(desktopRoot, 'scripts', 'packaged-host-smoke.mjs'), root], 300_000, 'Packaged Next Host smoke failed')
+  // The native computer-use driver opens its library with the system loader; the Host's resolver must answer with the unpacked copy.
+  runPackagedNode(path, [join(desktopRoot, 'scripts', 'packaged-driver-smoke.mjs'), root], 120_000, 'Packaged computer-use driver smoke failed')
+  // The badge skill announces its asset directory to the model; the Host's resolver must make it physical.
+  runPackagedNode(path, [join(desktopRoot, 'scripts', 'packaged-skill-badge-smoke.mjs'), root], 120_000, 'Packaged badge skill smoke failed')
+  // The same Electron, in Node mode, starts the real Host from the archive with a private home.
+  runPackagedNode(path, ['--expose-internals', join(desktopRoot, 'scripts', 'packaged-host-smoke.mjs'), root], 300_000, 'Packaged Next Host smoke failed')
+}
+
+export default async function afterAllArtifactBuild(result: { outDir: string }): Promise<string[]> {
+  const paths = ['mac/Nonead DSH Desktop.app/Contents/MacOS/Nonead DSH Desktop', 'mac-arm64/Nonead DSH Desktop.app/Contents/MacOS/Nonead DSH Desktop',
+    'mac-universal/Nonead DSH Desktop.app/Contents/MacOS/Nonead DSH Desktop', 'win-unpacked/Nonead DSH Desktop.exe',
+    'win-arm64-unpacked/Nonead DSH Desktop.exe', 'linux-unpacked/nonead-dsh-desktop']
+  const executables = paths.map(path => join(result.outDir, path)).filter(existsSync)
+  if (!executables.length) throw new Error('No packaged Next executable to verify')
+  const expectedVersion = expectedNextVersion(desktopRoot)
+  // Electron's packaged Node cannot create directories under %TEMP% on this host: `mkdtemp` and
+  // `mkdir` both fail with EPERM from inside the Electron process while plain Node succeeds.
+  // Hand the packaged Host smoke a workspace scratch root instead of weakening the check.
+  const scratch = join(desktopRoot, `.tmp-packaged-smoke-${String(process.pid)}-${String(Date.now())}`)
+  mkdirSync(scratch, { recursive: true })
+  process.env.DSH_PACKAGED_SMOKE_SCRATCH = scratch
+  try {
+    for (const path of executables) await verifyExecutable(path, expectedVersion)
+  } finally {
+    delete process.env.DSH_PACKAGED_SMOKE_SCRATCH
+    rmSync(scratch, { recursive: true, force: true })
   }
   return []
 }

@@ -54,6 +54,7 @@ function bundle(name: string, overrides: Partial<BundleInfo> = {}): BundleInfo {
     installed: true,
     optional: false,
     removable: true,
+    updatable: false,
     rows: [],
     overrides: [],
     ...overrides,

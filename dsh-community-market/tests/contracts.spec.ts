@@ -29,9 +29,10 @@ const providerFixture = () => readJson('../docs/examples/catalog-provider-page.e
 const snapshotFixture = () => readJson('../docs/examples/catalog-snapshot.example.json')
 
 describe('package integration contract', () => {
-  // Single source for the asserted host channel range: a host version bump
-  // becomes a one-line edit instead of eight.
-  const peerRange = '0.2.0-rc.2 || 0.2.1-rc.2'
+  // Single source for the asserted host channel range: it follows upstream.json, so a channel
+  // bump never leaves a stale literal behind in this file.
+  const upstream = readJson('../../upstream.json') as { channels: Record<string, { sourceVersion: string }> }
+  const peerRange = [...new Set(['stable', 'beta'].map(name => upstream.channels[name]!.sourceVersion))].join(' || ')
 
   it('loads the Client through the official settings, sidebar, and shell features', () => {
     const manifest = readJson('../package.json') as {

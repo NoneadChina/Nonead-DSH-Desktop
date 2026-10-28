@@ -17,6 +17,8 @@ const nodes = (value: unknown): Node[] => Array.isArray(value) ? value.flatMap(n
     ? [value as Node, ...nodes((value as Node).props.children)] : []
 const component = (tree: Node, name: string): Node | undefined => nodes(tree).find(node => typeof node.type === 'function' && node.type.name === name)
 const render = (node: Node): Node => (node.type as (props: Node['props']) => Node)(node.props)
+  /** 0.2.2-alpha.2 的 EnableSwitch 渲染成 span，真正的开关是内部带 onChange 的节点。 */
+  const switchOf = (node: Node): Node => nodes(render(node)).find(child => typeof child.props.onChange === 'function')!
 /** Group ids on the list page; dsh 0.2.1-alpha.2 splits official cards into basic and extensions. */
 const groups = (tree: Node): string[] => nodes(tree).filter(node => node.props['data-plugin-group']).map(node => node.props['data-plugin-group'])
 /** Cards on the list page; the official count badge is gone since 0.2.1-alpha.2. */
@@ -44,18 +46,30 @@ function fixture() {
     if (id === '@deepseek-ai/dsh-client-ui-primitives') return new Proxy({}, { get: (_, name) => (props: Node['props']) => jsx(String(name), props) })
     if (id === '@deepseek-ai/dsh-client-ui-slots') return { resolveSlotLabel: (label: unknown) => label }
     if (id === '@deepseek-ai/dsh-client-store') return {
-      createSnapshotStore: (state: unknown) => ({ getSnapshot: () => state }),
+      createSnapshotStore: (state: unknown) => ({ getSnapshot: () => state, subscribe: () => () => {}, set: () => {} }),
       defineStore: ({ init, actions }: any) => ({ create: () => {
-        const state = init()
-        return { getSnapshot: () => state, actions: Object.fromEntries(Object.entries(actions).map(([name, action]) =>
-          [name, (...args: unknown[]) => (action as any)(state, ...args)])) }
+        let state = init()
+        return {
+          getSnapshot: () => state,
+          subscribe: () => () => {},
+          set: (next: unknown) => { state = next },
+          actions: Object.fromEntries(Object.entries(actions).map(([name, action]) =>
+            [name, (...args: unknown[]) => (action as any)(state, ...args)]))
+        }
       } }),
     }
     throw new Error(`Unexpected browser dependency: ${id}`)
   }
+  // 0.2.2-alpha.2 的官方客户端会通过 require.asset 解析资源引用（真实 loader 默认原样返回）。
+  Object.assign(require, { asset: (reference: string) => reference })
   runInNewContext(source, { window: { __ModuleLoader__: { load: (entry: { factory: (require: unknown) => { apply: typeof apply } }) => { apply = entry.factory(require).apply } } } })
   const noop = () => () => {}
-  apply!({ effect: (effect: () => void) => effect(), on: noop,
+  apply!({ effect: (effect: () => void) => effect(), provide: noop, on: noop,
+    // 0.2.2-alpha.2 的官方 client 通过 remoteAccess.whenAccess 注册远程入口，产出是 disposer。
+    remoteAccess: { whenAccess: (_name: string, generator: () => Generator<unknown>) => {
+      for (const step of generator()) void step
+      return () => {}
+    } },
     locale: { register: noop, bind: () => (key: string) => key }, remote: { $on: noop },
     layout: { panelInfo: { subscribe: noop }, selectPanel: vi.fn() }, reflect: { provide: noop },
     configForms: { describe: () => ({ getSnapshot: () => ({}), subscribe: noop }), get: () => undefined },
@@ -71,6 +85,9 @@ function fixture() {
     version: '0.1.0', description: 'Remote connection', rows: [{ entryId: undefined as string | undefined, rowId: 'bridge', moduleName: 'bridge', enabled: true, phase: 'active' }] }
   const official = { ...remote, name: 'official-team', rows: [] }
   const state = { status: 'ready', packages: [official, remote], busy: [] as string[], notice: null, highlight: null, confirm: null,
+    // 0.2.2-alpha.2 的卡片从 state.versions 读每包的可更新版本。
+    versions: {},
+    update: null,
     install: { open: false } }
   const item = { id: 'nonead-dsh-desktop-computer-use', label: 'Computer Use' }
   const ledger = { items: [item], bundles: new Set([remote.name]), rows: new Set(),
@@ -84,6 +101,10 @@ function fixture() {
     useConfigurations: () => [], usePluginManager: () => state, useConfigLedger: () => ledger, setEnabled, setRowEnabled,
     // 0.2.1-alpha.5 binds the contributed plugin tabs as usePluginTabs; this fixture contributes none.
     usePluginTabs: () => [],
+    // 0.2.2-alpha.2 通过 useBundleDetails 取 bundle 详情快照；测试替身给空快照。
+    useBundleDetails: (select: (snapshot: unknown) => unknown) => select({}),
+    // 0.2.2-alpha.2 的页面还通过 useLocale 读当前语言快照。
+    useLocale: (select: (snapshot: unknown) => unknown) => select({ active: "en", available: [] }),
     renderSlot: (name: string, owner: Record<string, unknown>, options?: unknown) => {
       if (name === 'plugins.overview') overview = owner as typeof overview
       return jsx('slot', { name, owner, options })
@@ -109,7 +130,7 @@ it('opens an overview-owned bundle through the official detail with native heade
   const header = render(top)
   expect(nodes(header).some(node => Array.isArray(node.props.children) && node.props.children.includes(top.props.actions))).toBe(true)
   expect(nodes(top.props.actions).some(node => node.props.name === 'plugins.detail.actions')).toBe(true)
-  const toggle = render(component(top.props.actions, 'EnableSwitch')!)
+  const toggle = switchOf(component(top.props.actions, 'EnableSwitch')!)
   toggle.props.onChange(false)
   expect(app.setEnabled).toHaveBeenCalledWith(app.remote.name, false)
   expect(nodes(body).some(node => node.props.name === 'plugins.bundle.config')).toBe(true)
@@ -185,27 +206,34 @@ it('keeps an official optional bundle in the extensions group with its artwork, 
     rows: [{ rowId: 'session-inspector', moduleName: '@deepseek-ai/dsh-experimental-session-inspector', entryId: 'include:session-inspector', enabled: false, phase: 'disabled' }] }
   app.state.packages.push(inspector)
   const findCard = () => nodes(app.page()).find(node => typeof node.type === 'function' && node.type.name === 'PackageCard' && node.props.pkg.name === name)!
+  /** 0.2.2-alpha.2 把 inspector 收进 MORE_BUNDLES：主列表只给「更多」入口，卡片在 more 视图。 */
+  const openMore = () => {
+    const button = nodes(app.page()).find(node => Array.isArray(node.props.children) && node.props.children.includes('moreAction'))
+    if (button === undefined) throw new Error('未找到扩展组的更多入口')
+    button.props.onClick()
+  }
+  expect(groups(app.page())).toEqual(['extensions'])
+  expect(cardCount(app.page())).toBe(1)
+  openMore()
   const card = findCard()
   expect(card).toBeDefined()
-  expect(groups(app.page())).toEqual(['extensions'])
-  expect(cardCount(app.page())).toBe(2)
   const head = component(render(card), 'CardHead')!
   expect(head.props.title).toBe('开发者工具')
   expect(head.props.description).toBe(meta.description)
   expect(head.props.icon.props.src).toBe('/inspector/icon.svg')
   expect(nodes(head.props.tags).some(node => node.props.children === 'statusBeta')).toBe(true)
-  const toggle = render(component(head.props.end, 'EnableSwitch')!)
+  const toggle = switchOf(component(head.props.end, 'EnableSwitch')!)
   expect(toggle.props.checked).toBe(false)
   toggle.props.onChange(true)
   expect(app.setEnabled).toHaveBeenCalledExactlyOnceWith(name, true)
   inspector.enabled = true
   const activeHead = component(render(findCard()), 'CardHead')!
-  expect(render(component(activeHead.props.end, 'EnableSwitch')!).props.checked).toBe(true)
+  expect(switchOf(component(activeHead.props.end, 'EnableSwitch')!).props.checked).toBe(true)
   card.props.onOpen()
   const detail = render(component(app.page(), 'PackageDetail')!)
   expect(component(detail, 'RowsSection')?.props.rows).toEqual(inspector.rows)
   const top = component(detail, 'DetailTop')!
-  render(component(top.props.actions, 'EnableSwitch')!).props.onChange(false)
+  switchOf(component(top.props.actions, 'EnableSwitch')!).props.onChange(false)
   expect(app.setEnabled).toHaveBeenLastCalledWith(name, false)
 })
 
@@ -218,7 +246,8 @@ it('lets composite item details reuse the official component list, live state an
   app.page()
   app.overview().onOpenItem(app.item.id)
   const body = render(component(app.page(), 'ItemDetail')!)
-  const pageSlot = nodes(body).find(node => node.props.name === 'plugins.item' && node.props.owner.view === 'page')!
+  // ItemDetail 渲染两个 plugins.item 插槽：summary（无 renderComponents）与 page（带组件清单）。
+  const pageSlot = nodes(body).filter(node => node.props.name === 'plugins.item').find(node => typeof node.props.owner?.renderComponents === 'function')!
   const rows = pageSlot.props.owner.renderComponents(['@deepseek-ai/dsh-schedule']) as Node
   expect(typeof rows.type === 'function' && rows.type.name).toBe('RowsSection')
   expect(rows.props.rows).toEqual([schedule])

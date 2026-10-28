@@ -340,7 +340,7 @@ yarn workspace dsh-plugin-desktop-beta verify:profile
 
 内置 `dshmarket` runtime 使用 `runPlugin()` 执行普通插件命令，并使用 `runExternalMarketPluginInstall()` 执行精确 npm add。后者会在跨越 service 前解析版本，并拒绝非精确或多 target 请求。两种操作都会使用当前 Desktop Profile 与已打包 DSH CLI；都不会创建安装 transaction、快照、receipt、自动回滚或恢复提示。
 
-内置市场是一个固定版本的 dependency，而不是任意第三方安装：已提交的 manifest 固定版本（当前为 `1.66.47`），根 manifest 带有与之匹配的 `dshmarket@npm:<version>` resolution 以应用 `.yarn/patches/dshmarket-desktop.patch`。`corepack yarn market:prepare` 会把该 pin 更新到 npm `latest` 并重新安装，`corepack yarn market:check` 则是构建时跑的离线一致性校验 —— 不联网、不写入，只确认已提交的版本、lockfile 与补丁彼此相符；加 `--latest` 才会联网比对最新版。每个 Desktop generation 只从机器级状态组合一个 Market provider —— `dsh-market`、`community-market` 或 `disabled`；profile 组合会拒绝携带 launcher 未选中 provider 的 Loader 图。
+内置市场是一个固定版本的 dependency，而不是任意第三方安装：已提交的 manifest 固定版本（当前为 `1.70.1`），根 manifest 带有与之匹配的 `dshmarket@npm:<version>` resolution 以应用 `.yarn/patches/dshmarket-desktop.patch`。`corepack yarn market:prepare` 会把该 pin 更新到 npm `latest` 并重新安装，`corepack yarn market:check` 则是构建时跑的离线一致性校验 —— 不联网、不写入，只确认已提交的版本、lockfile 与补丁彼此相符；加 `--latest` 才会联网比对最新版。每个 Desktop generation 只从机器级状态组合一个 Market provider —— `dsh-market`、`community-market` 或 `disabled`；profile 组合会拒绝携带 launcher 未选中 provider 的 Loader 图。
 
 ## 稳定性边界
 

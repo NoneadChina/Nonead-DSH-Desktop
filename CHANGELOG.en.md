@@ -13,9 +13,28 @@ Maintenance conventions:
 - Entries record only changes users can perceive and boundary changes maintainers must know about; pure refactors do not get their own entry.
 - Earlier history lives in the Git tags (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) and in the commit log.
 
+## 2.2.2 — 2026-10-28
+
+The runtime moves across to DSH `0.2.2-alpha.2` and the market to 1.73.1:
+
+- Runtime upgrade: the beta channel jumps from dsh `0.2.1-rc.3` to **`0.2.2-alpha.2`** (submodule pin `1f81c047` → `f3803c96`, upstream "release(dsh): 0.2.2-alpha.2") — the runtime is repacked and re-vendored (370 packages, up from 344), and all 24 version patches are rebased. Seven packages needed semantic re-anchoring because their packed output changed: the bundle file names in `dsh`, `dsh-sandbox-windows-acl` and `dsh-web-frontend` carry new hashes; `dsh-client-ui-plugin-manager` was refactored upstream to derive `available` from `listed` but never defines it (this patch restores the desktop slots and supplies that definition); `dsh-client-ui-settings-account` moved its onboarding back icon into a module variable; `dsh-client-ui-directory-picker-browse` grew to nine locale dictionaries; `dsh-client-ui-primitives` switched wide tables to a hover-only scrollbar, which this patch turns back into an always-visible thin bar. The rc.3 runtime snapshot and patches stay as history.
+- Dependency surface: `@deepseek-ai/cordis` moves to 4.0.6-alpha.1, `schemastery` to 3.18.6-alpha.1 and three cordis plugin packages each move one minor alpha, or the upstream 0.2.2-alpha.2 peer checks fail; `nonead-dsh-desktop` is aligned with the beta channel by hand because it belongs to the stable line and is outside the auto-synced workspace list.
+- Market: `dshmarket` 1.70.1 → **1.73.1**, with the desktop patch (self-update entry, host-provided versions, trial-run baseline diff) rebased onto 1.73.1; upstream moved the update cache to `recheckAt` semantics, so the `checkUpdates` hunk is rewritten against the new shape.
+- Agents Anywhere bridge: rebuilt for the new peer ranges (artifact `rd9c47cbc`, pin unchanged at `39b82d4`), connector patch untouched.
+- Version: the product moves from 2.1.18 to **2.2.2** in both desktop workspaces.
+
+## 2.1.18 — 2026-10-24
+
+Upstream runtime upgrade, an Agents Anywhere source build and an experimental Windows ARM64 build (includes the 2.1.17 audit fix batch):
+
+- Upstream runtime upgrade: the beta channel moved from dsh `0.2.1-rc.2` to **`0.2.1-rc.3`** (submodule pin `687f282e` → `1f81c047`): 24 versioned patches were rebased onto rc.3, `vendor/dsh-runtime/0.2.1-rc.3/` was vendored anew (344 packages), and the root manifests, both desktop workspaces and the Agents Anywhere bridge peer ranges follow; the superseded rc.2 runtime snapshot and patches are no longer tracked.
+- Agents Anywhere bridge: now **built from source** (`39b82d4`, previously a reused artifact) with the connector patch rebased onto the new artifact — health reporting no longer blocks notification publishing, the `NO_PROXY` bare-IPv6 rewrite and the runtime-ready report are kept, and the answer-provider change superseded by upstream's `interactionPeer(connection)` refactor is dropped; Python files in the artifact are normalized to LF so the patch applies reproducibly.
+- Windows ARM64 (experimental): a new `DSH_PACKAGE_ARCH=arm64` build path ships a native arm64 main process while the bundled Python / Node / Office runtimes reuse the x64 payload under Windows emulation; cross-architecture packaging skips the smokes that can only run on the host, the x64 build and its checks are unaffected, and this artifact is not yet wired into the download links or the update channel.
+- Settings update card: the service-failure message now reads "Nonead-DSH-Desktop updates are temporarily unavailable. Try again later." instead of naming the retired Next product; the download progress bar moved between the "Downloading update x%" label and the release notes.
+
 ## 2.1.17 — 2026-10-24
 
-Audit fix batch (runtime and dependency pins unchanged; DSH runtime stays at `0.2.1-rc.2`):
+Audit fix batch (26 fixes, itemized below):
 
 - Recovery assistant: when the automatic diagnostics export and a user action refreshed the same document concurrently, the first navigation failed with `ERR_ABORTED`; on the non-action path that failure could be escalated by fail-loud into a full application exit. Refreshes are now serialized, a navigation aborted by window destruction is treated as a normal end, and action-path failures are only logged as diagnostics.
 - Checkpoint reads and degradation: manifest and backup files are opened and then re-checked by inode (`O_NOFOLLOW` + `fstat`), so a path swapped between `lstat` and the read is no longer trusted; a damaged slot no longer fails the whole snapshot list — it is marked unreadable, stays visible but not restorable in the recovery page, and rotation reuses it as the next overwrite target.

@@ -100,6 +100,11 @@ class MemoryKvUnit implements KvUnit {
     this.medium.documents.delete(this.recordPath(table, key))
   }
 
+  async deleteRecords(table: string, keys: readonly string[]): Promise<void> {
+    this.assertOpen()
+    for (const key of keys) this.medium.documents.delete(this.recordPath(table, key))
+  }
+
   async backupRecord(table: string, key: string): Promise<string> {
     this.assertOpen()
     const path = this.recordPath(table, key)
