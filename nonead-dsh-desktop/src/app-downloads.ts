@@ -7,6 +7,7 @@ import { pipeline } from 'node:stream/promises'
 import type { ReadableStream as NodeReadableStream } from 'node:stream/web'
 import { dialog, type BrowserWindow, type Session } from 'electron'
 import { APP_URL } from './ipc.ts'
+import { desktopText } from './desktop-i18n.ts'
 
 /**
  * Whether a download targets a Host route behind the application protocol.
@@ -59,9 +60,8 @@ export function installAppDownloads(session: Pick<Session, 'on'>, options: {
   const fail = (owner: BrowserWindow, error: unknown): void => {
     options.warn(error)
     if (owner.isDestroyed()) return
-    const zh = options.language().startsWith('zh')
     void dialog.showMessageBox(owner, {
-      type: 'error', title: 'Nonead DSH Desktop', message: zh ? '下载失败' : 'Download failed',
+      type: 'error', title: 'Nonead DSH Desktop', message: desktopText(options.language(), '下载失败', 'Download failed'),
       detail: error instanceof Error ? error.message : String(error),
     }).catch(options.warn)
   }

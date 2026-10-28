@@ -13,6 +13,7 @@ import { NextSettingsAdapter } from '../client/settings-adapter.ts'
 import type { DesktopCommand } from '../desktop-contract.ts'
 import { recoverySupport } from '../recovery-support.ts'
 import './theme.css'
+import { desktopText } from '../desktop-i18n.ts'
 
 function App() {
   const adapter = useMemo(() => window.desktopNext ? new NextSettingsAdapter(window.desktopNext) : undefined, [])
@@ -22,8 +23,11 @@ function App() {
 
 function NativePages({ adapter }: { adapter: NextSettingsAdapter }) {
   const state = useDesktopState(adapter)
-  const locale = new URLSearchParams(location.search).get('locale') === 'zh' ? 'zh' : 'en'
-  const t = (cn: string, en: string) => locale === 'zh' ? cn : en
+  // The recovery and Profile screens come from the shared workspace and still take `zh`/`en`;
+  // this shell's own copy resolves the full tag so every supported language reads correctly.
+  const requestedLocale = new URLSearchParams(location.search).get('locale') ?? 'en'
+  const locale: 'zh' | 'en' = requestedLocale.startsWith('zh') ? 'zh' : 'en'
+  const t = (cn: string, en: string) => desktopText(requestedLocale, cn, en)
   const [page, setPage] = useState(location.hash.slice(1) || 'recovery')
   const [failure, setFailure] = useState('')
   const [busy, setBusy] = useState(false)

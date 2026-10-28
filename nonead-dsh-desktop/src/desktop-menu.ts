@@ -2,9 +2,10 @@
 import type { MenuItemConstructorOptions } from 'electron'
 import type { DesktopCommand, DesktopState } from './desktop-contract.ts'
 import { updateAction, updateLabel } from './update-state.ts'
+import { desktopText } from './desktop-i18n.ts'
 
 export function desktopMenu(state: DesktopState, language: string, show: () => void, run: (command: DesktopCommand) => void): MenuItemConstructorOptions[] {
-  const t = (zh: string, en: string): string => language.toLowerCase().startsWith('zh') ? zh : en
+  const t = (zh: string, en: string): string => desktopText(language, zh, en)
   const action = (label: string, type: DesktopCommand['type'], enabled = true): MenuItemConstructorOptions => ({
     label, enabled: enabled && (!state.busy || type === 'controls'), click: () => run({ type } as DesktopCommand),
     ...(type === 'controls' ? { accelerator: 'CmdOrCtrl+,' } : {}),

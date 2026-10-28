@@ -9,6 +9,7 @@ import { NextSettingsAdapter } from './settings-adapter.ts'
 import { DesktopPermissionsSection } from './permissions.tsx'
 import { useDesktopState } from './desktop-state.ts'
 import { NextUpdateSettings } from './updates.tsx'
+import { desktopText } from '../desktop-i18n.ts'
 
 export function desktopTranslate(language: string): (key: string) => string {
   const copy = language.startsWith('zh') ? zh : en
@@ -66,7 +67,7 @@ function NextBrowserActions({ adapter, state, language }: { adapter: NextSetting
 
 /** Next-only preferences use the existing Desktop form and switch components. */
 function NextDesktopOptions({ adapter, state, language }: { adapter: NextSettingsAdapter; state: DesktopState; language: string }) {
-  const t = (cn: string, en: string): string => language.startsWith('zh') ? cn : en
+  const t = (cn: string, en: string): string => desktopText(language, cn, en)
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState('')
   const run = async (operation: () => Promise<void>): Promise<void> => {

@@ -10,6 +10,7 @@ import { en as desktopEn, zh as desktopZh, type DesktopSettingsLocaleKey } from 
 import { ComputerUseSettings } from './computer-use.tsx'
 import { COMMUNITY_MARKET as COMMUNITY, DSH_MARKET as MARKET, marketToggleTargets, type MarketName } from './market-toggle.ts'
 import type { DesktopCommand } from '../desktop-contract.ts'
+import { desktopText as shellText } from '../desktop-i18n.ts'
 
 const REMOTE = '@agents-anywhere/dsh-bridge-next'
 const COMPUTER_ITEM = 'nonead-dsh-desktop-computer-use'
@@ -36,8 +37,9 @@ export function registerPluginControls(ctx: Context): void {
 }
 
 function PluginControls({ context, t: translate, onOpenBundle, onOpenItem }: PropsLocale<'nonead-dsh-desktop'> & PropsRuntime<'plugins.overview'> & { context: Context }) {
-  const zh = translate('language') === 'zh'
-  const t = (cn: string, en: string): string => zh ? cn : en
+  const locale = translate('language')
+  const zh = locale === 'zh'
+  const t = (cn: string, en: string): string => shellText(locale, cn, en)
   const desktopCopy = zh ? desktopZh : desktopEn
   const desktopText = (key: string): string => Object.hasOwn(desktopCopy, key) ? desktopCopy[key as DesktopSettingsLocaleKey] : key
   const [bundles, setBundles] = useState<BundleInfo[]>([])
@@ -122,7 +124,7 @@ function PluginControls({ context, t: translate, onOpenBundle, onOpenItem }: Pro
       </PluginCard>
       <PluginCard title="Computer Use" description={computerDescription(t)}
         icon={<PluginArtworkDefault size={36} />} onOpen={() => { onOpenItem(COMPUTER_ITEM) }}>
-        <ComputerUseSettings context={context} zh={zh} />
+        <ComputerUseSettings context={context} zh={zh} locale={locale} />
       </PluginCard>
     </div>
     {notice && <p role="status" className="dshDesktopSettingsHint">{notice}</p>}
@@ -141,14 +143,15 @@ const computerDescription = (t: Translate): string => t(
 )
 
 function ComputerUseItem({ context, t, view }: PropsLocale<'nonead-dsh-desktop'> & PropsRuntime<'plugins.item'> & { context: Context }) {
-  const zh = t('language') === 'zh'
+  const locale = t('language')
+  const zh = locale === 'zh'
   if (view === 'summary') return computerDescription((cn, en) => zh ? cn : en)
-  return <ComputerUseSettings context={context} zh={zh} mode="page" />
+  return <ComputerUseSettings context={context} zh={zh} locale={locale} mode="page" />
 }
 
 function ComputerUseActions({ context, t, subject }: PropsLocale<'nonead-dsh-desktop'> & PropsRuntime<'plugins.detail.actions'> & { context: Context }) {
   if (subject.kind !== 'item' || subject.id !== COMPUTER_ITEM) return null
-  return <ComputerUseSettings context={context} zh={t('language') === 'zh'} mode="actions" />
+  return <ComputerUseSettings context={context} zh={t('language') === 'zh'} locale={t('language')} mode="actions" />
 }
 
 function PluginCard({ title, description, icon, onOpen, children }: {

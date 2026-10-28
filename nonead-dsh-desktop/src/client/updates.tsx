@@ -1,11 +1,12 @@
 import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { DesktopCommand, DesktopState } from '../desktop-contract.ts'
 import { updateAction, updateLabel } from '../update-state.ts'
+import { desktopText } from '../desktop-i18n.ts'
 
 export function NextUpdateSettings({ state, language, run }: { state: DesktopState; language: string; run(command: DesktopCommand): void }) {
   const update = state.updates
   if (!update) return null
-  const t = (zh: string, en: string) => language.startsWith('zh') ? zh : en
+  const t = (zh: string, en: string) => desktopText(language, zh, en)
   const action = updateAction(update)
   // Recheck and skip only make sense while a release waits for the user; a running update
   // operation owns the state machine until it settles.

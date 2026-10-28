@@ -4,11 +4,12 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { PluginInfo } from '@deepseek-ai/dsh-api-remotes/client'
 import { Button, StateDot, Switch, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
 import { DesktopPermissionsButton, PermissionDetails } from './permissions.tsx'
+import { desktopText } from '../desktop-i18n.ts'
 
 const PROVIDER = '@deepseek-ai/dsh-experimental-computer-use-cua-driver-native'
 
-export function ComputerUseSettings({ context, zh, mode = 'overview' }: { context: Context; zh: boolean; mode?: 'overview' | 'actions' | 'page' }) {
-  const t = (chinese: string, english: string): string => zh ? chinese : english
+export function ComputerUseSettings({ context, zh, mode = 'overview', locale }: { context: Context; zh: boolean; mode?: 'overview' | 'actions' | 'page'; locale?: string }) {
+  const t = (chinese: string, english: string): string => desktopText(locale ?? (zh ? 'zh' : 'en'), chinese, english)
   const [revision, refresh] = useState(0)
   const [row, setRow] = useState<PluginInfo>()
   const [loading, setLoading] = useState(true)

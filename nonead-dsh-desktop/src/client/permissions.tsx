@@ -2,11 +2,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button, IconSettingsOutlineRegular, Modal, StateDot } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { DesktopPermission, DesktopPermissionSnapshot, DesktopPermissions } from '../permissions.ts'
+import { desktopText } from '../desktop-i18n.ts'
 
 export function DesktopPermissionsSection({ service, language }: { service: DesktopPermissions; language: string }) {
   const zh = language.startsWith('zh')
-  return <section className="dshDesktopSettingsGroup" aria-label={zh ? '系统权限' : 'System permissions'}>
-    <h3>{zh ? '系统权限' : 'System permissions'}</h3>
+  return <section className="dshDesktopSettingsGroup" aria-label={desktopText(language, '系统权限', 'System permissions')}>
+    <h3>{desktopText(language, '系统权限', 'System permissions')}</h3>
     <DesktopPermissionsButton service={service} language={language} />
   </section>
 }
@@ -14,7 +15,7 @@ export function DesktopPermissionsSection({ service, language }: { service: Desk
 export function DesktopPermissionsButton({ service, language, iconOnly = false, disabled = false, label: customLabel, permission }: { service?: DesktopPermissions | undefined; language: string; iconOnly?: boolean; disabled?: boolean; label?: string; permission?: DesktopPermission | undefined }) {
   const [open, setOpen] = useState(false)
   const zh = language.startsWith('zh')
-  const label = customLabel ?? (zh ? '授权设置' : 'Permissions')
+  const label = customLabel ?? (desktopText(language, '授权设置', 'Permissions'))
   return <>
     <Button variant={iconOnly ? 'ghost' : 'outline'} size="sm" aria-label={label} disabled={disabled}
       className={iconOnly ? 'dshNextSettingsGear' : undefined} icon={iconOnly ? <IconSettingsOutlineRegular /> : undefined}
@@ -43,11 +44,11 @@ export function DesktopPermissionsDialog({ open, onClose, service, language, per
     document.addEventListener('keydown', trapTab)
     return () => { document.removeEventListener('keydown', trapTab); previous?.focus({ preventScroll: true }) }
   }, [open])
-  return <Modal open={open} onClose={onClose} title={permission === 'microphone' ? (zh ? '麦克风权限' : 'Microphone permission') : (zh ? '系统权限' : 'System permissions')}
-      closeLabel={zh ? '关闭' : 'Close'} className="dshNextPermissionsDialog"
-      description={zh ? '按需授权。更改系统权限后，可能需要重启应用。' : 'Grant access when needed. You may need to restart the app after changing system permissions.'}>
+  return <Modal open={open} onClose={onClose} title={permission === 'microphone' ? (desktopText(language, '麦克风权限', 'Microphone permission')) : (desktopText(language, '系统权限', 'System permissions'))}
+      closeLabel={desktopText(language, '关闭', 'Close')} className="dshNextPermissionsDialog"
+      description={desktopText(language, '按需授权。更改系统权限后，可能需要重启应用。', 'Grant access when needed. You may need to restart the app after changing system permissions.')}>
       <div ref={body}>{open && (service ? <PermissionDetails service={service} language={language} permission={permission} />
-        : <p role="status">{zh ? '请在运行 DSH 的桌面应用中管理系统权限。' : 'Manage system permissions in the desktop app running DSH.'}</p>)}
+        : <p role="status">{desktopText(language, '请在运行 DSH 的桌面应用中管理系统权限。', 'Manage system permissions in the desktop app running DSH.')}</p>)}
       </div>
     </Modal>
 }

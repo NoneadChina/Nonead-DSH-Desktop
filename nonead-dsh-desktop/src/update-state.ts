@@ -1,4 +1,5 @@
 /** Serializable update progress shared by settings, recovery and the tray. */
+import { desktopText } from './desktop-i18n.ts'
 export interface NextUpdateState {
   phase: 'idle' | 'checking' | 'current' | 'available' | 'skipped' | 'downloading' | 'preparing' | 'ready' | 'installing' | 'error'
   version?: string
@@ -21,7 +22,7 @@ export interface NextUpdateState {
 }
 
 export function updateLabel(state: NextUpdateState, language: string): string {
-  const t = (zh: string, en: string) => language.toLowerCase().startsWith('zh') ? zh : en
+  const t = (zh: string, en: string) => desktopText(language, zh, en)
   switch (state.phase) {
     case 'checking': return t('正在检查更新…', 'Checking for updates…')
     case 'current': return t('已是最新版本', 'Up to date')

@@ -12,6 +12,7 @@ import { installPluginControlsStyles } from '../client/plugin-controls-styles.ts
 import { initialOnboardingComputerUse } from '../onboarding-defaults.ts'
 import './onboarding.css'
 import brandLogo from '../../build/app-icon.png'
+import { desktopText } from '../desktop-i18n.ts'
 // Reuse the portable device family artwork and composition from the AA landing page.
 import phoneArtwork from './assets/agents-anywhere-phone.webp'
 import tabletArtwork from './assets/agents-anywhere-tablet.webp'
@@ -20,7 +21,7 @@ type Market = 'none' | 'community' | 'dsh'
 const DesktopPermissionsButton = lazy(() => import('../client/permissions.tsx').then(module => ({ default: module.DesktopPermissionsButton })))
 
 export function Onboarding({ state, locale, bridge, renderNavigation, embedded = false }: { state: Pick<DesktopState, 'selected' | 'features' | 'onboardingComputerUse'>; locale: 'zh' | 'en'; bridge: Pick<DesktopBridge, 'command' | 'permissions'>; renderNavigation: SetupNavigation; embedded?: boolean }) {
-  const t = (zh: string, en: string) => locale === 'zh' ? zh : en
+  const t = (zh: string, en: string) => desktopText(locale, zh, en)
   const [page, setPage] = useState(0)
   const [direction, setDirection] = useState(1)
   const [transitioning, setTransitioning] = useState(false)
