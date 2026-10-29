@@ -1,5 +1,5 @@
 /** Serializable update progress shared by settings, recovery and the tray. */
-import { desktopText } from './desktop-i18n.ts'
+import { desktopTemplate, desktopText } from './desktop-i18n.ts'
 export interface NextUpdateState {
   phase: 'idle' | 'checking' | 'current' | 'available' | 'skipped' | 'downloading' | 'preparing' | 'ready' | 'installing' | 'error'
   version?: string
@@ -22,19 +22,20 @@ export interface NextUpdateState {
 }
 
 export function updateLabel(state: NextUpdateState, language: string): string {
-  const t = (zh: string, en: string) => desktopText(language, zh, en)
+  const t = (zh: string, en: string, values?: Readonly<Record<string, string>>): string =>
+    values === undefined ? desktopText(language, zh, en) : desktopTemplate(language, zh, en, values)
   switch (state.phase) {
     case 'checking': return t('正在检查更新…', 'Checking for updates…')
     case 'current': return t('已是最新版本', 'Up to date')
-    case 'available': return t(`发现新版本 ${state.version}`, `Update available: ${state.version}`)
+    case 'available': return t('发现新版本 {version}', 'Update available: {version}', { version: String(state.version) })
     // The user dismissed this exact release; a newer one is offered again.
-    case 'skipped': return t(`已跳过版本 ${state.version}`, `Version ${state.version} skipped`)
+    case 'skipped': return t('已跳过版本 {version}', 'Version {version} skipped', { version: String(state.version) })
     case 'downloading': {
       const progress = state.total ? `${Math.min(100, Math.floor((state.received ?? 0) / state.total * 100))}%` : `${Math.floor((state.received ?? 0) / 1048576)} MB`
-      return t(`正在下载更新 ${progress}`, `Downloading update ${progress}`)
+      return t('正在下载更新 {progress}', 'Downloading update {progress}', { progress })
     }
     case 'preparing': return t('正在准备安装…', 'Preparing update…')
-    case 'ready': return t(`${state.version} 已下载，安装并重启`, `${state.version} downloaded — Install and restart`)
+    case 'ready': return t('{version} 已下载，安装并重启', '{version} downloaded — Install and restart', { version: String(state.version) })
     case 'installing': return t('正在安装并重启…', 'Installing and restarting…')
     case 'error':
       if (state.error === 'development') return t('开发环境可检查更新，请使用安装版进行更新。', 'Updates can be checked in development. Install a packaged build to update.')

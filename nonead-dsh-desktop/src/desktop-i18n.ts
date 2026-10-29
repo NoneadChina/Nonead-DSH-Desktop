@@ -6,6 +6,8 @@
  * recovery, permissions, onboarding, tray menus and dialog copy - are translated to that
  * same set here. English copy doubles as the dictionary key: every shell string is written
  * as a `(zh, en)` pair, so the English half identifies the entry without inventing keys.
+ * Interpolated copy keeps `{name}` placeholders in both halves, so one entry serves every
+ * dialog variant and the values are substituted after the lookup.
  */
 
 import { dictionaries } from './i18n/index.ts'
@@ -67,4 +69,20 @@ export function desktopText(language: string, zh: string, en: string): string {
   if (locale === 'zh') return zh
   if (locale === 'en') return en
   return dictionaries[locale]?.[en] ?? en
+}
+
+/**
+ * Resolve one shell string with `{name}` placeholders.
+ *
+ * Interpolated copy cannot be keyed by its finished text, so the authored pair keeps the
+ * placeholders and the dictionary stores the same template. Values replace only placeholders
+ * present in the resolved copy; an unknown placeholder is left untouched.
+ * @param language - the active locale tag.
+ * @param zh - Simplified Chinese template, also carrying the placeholders.
+ * @param en - English template, also the dictionary key.
+ * @param values - placeholder values by name.
+ * @returns the copy for the active language with placeholders substituted.
+ */
+export function desktopTemplate(language: string, zh: string, en: string, values: Readonly<Record<string, string>>): string {
+  return desktopText(language, zh, en).replace(/\{(\w+)\}/gu, (placeholder: string, key: string) => values[key] ?? placeholder)
 }

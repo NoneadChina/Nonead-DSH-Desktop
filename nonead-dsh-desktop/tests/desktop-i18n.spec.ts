@@ -1,6 +1,6 @@
 import { readFileSync, globSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { DESKTOP_LOCALES, desktopText, normalizeDesktopLocale, preferredDesktopLocale } from '../src/desktop-i18n.ts'
+import { DESKTOP_LOCALES, desktopTemplate, desktopText, normalizeDesktopLocale, preferredDesktopLocale } from '../src/desktop-i18n.ts'
 import { dictionaries } from '../src/i18n/index.ts'
 import { en as settingsEn, zh as settingsZh } from '../../dsh-plugin-desktop-beta/src/client/desktop-settings-locales.ts'
 import { desktopSettingsText, settingsDictionaries } from '../src/i18n/settings.ts'
@@ -8,17 +8,17 @@ import { desktopSettingsText, settingsDictionaries } from '../src/i18n/settings.
 /**
  * Every English half of an authored `(zh, en)` pair in the shell sources.
  *
- * Both call shapes are collected - the `t('zh', 'en')` helpers and the converted
- * `desktopText(locale, 'zh', 'en')` sites - and escapes are decoded so the key matches the
- * string the code produces at runtime.
+ * All three call shapes are collected - the `t('zh', 'en')` helpers, the converted
+ * `desktopText(locale, 'zh', 'en')` sites and the `t('zh', 'en', { ... })` placeholder
+ * templates - and escapes are decoded so the key matches the string the code produces at runtime.
  */
 function authoredEnglishCopy(): Set<string> {
   const root = new URL('../src/', import.meta.url).pathname.replace(/^\/(?=[A-Za-z]:)/u, '')
   const keys = new Set<string>()
-  // `t('zh', 'en')` helpers and the `desktopText(locale, 'zh', 'en')` sites they resolve to.
   const shapes = [
     /\bt\('((?:[^'\\]|\\.)*)',\s*'((?:[^'\\]|\\.)*)'\)/gu,
     /\bdesktopText\([^,\n]*,\s*'((?:[^'\\]|\\.)*)'\s*,\s*'((?:[^'\\]|\\.)*)'\)/gu,
+    /\bt\('((?:[^'\\]|\\.)*)',\s*'((?:[^'\\]|\\.)*)'\s*,\s*\{/gu,
   ]
   const decode = (value: string): string => value.replaceAll("\\'", "'").replaceAll('\\"', '"').replaceAll('\\n', '\n')
   for (const relative of globSync('**/*.{ts,tsx}', { cwd: root })) {
@@ -67,6 +67,17 @@ describe('desktop copy lookup', () => {
     }
     expect(desktopText('ko-KR', '应用更新', 'App updates')).toBe('App updates')
   })
+
+  it('substitutes placeholder values after the template is translated', () => {
+    const zh = '启用插件「{name}」？'
+    const en = 'Enable “{name}”?'
+    expect(desktopTemplate('ja', zh, en, { name: 'demo' })).toBe('プラグイン「demo」を有効にしますか？')
+    expect(desktopTemplate('zh-CN', zh, en, { name: 'demo' })).toBe('启用插件「demo」？')
+    expect(desktopTemplate('en-GB', zh, en, { name: 'demo' })).toBe('Enable “demo”?')
+    // A missing value leaves the placeholder intact instead of printing "undefined".
+    expect(desktopTemplate('de', zh, en, {})).toBe('Plugin „{name}“ aktivieren?')
+    expect(desktopTemplate('ko-KR', zh, en, { name: 'demo' })).toBe('Enable “demo”?')
+  })
 })
 
 describe('dictionary registration', () => {
@@ -94,6 +105,16 @@ describe('dictionary coverage', () => {
     for (const [language, dictionary] of Object.entries(dictionaries)) {
       const orphans = Object.keys(dictionary ?? {}).filter(key => !authored.has(key))
       expect(orphans, `${language} has orphans: ${orphans.slice(0, 5).join(' | ')}`).toEqual([])
+    }
+  })
+
+  it('keeps every placeholder of the English key in each translation', () => {
+    for (const [language, dictionary] of Object.entries(dictionaries)) {
+      for (const [key, value] of Object.entries(dictionary ?? {})) {
+        const expected = [...key.matchAll(/\{(\w+)\}/gu)].map(match => match[1]).sort()
+        const actual = [...value.matchAll(/\{(\w+)\}/gu)].map(match => match[1]).sort()
+        expect(actual, `${language}: ${key}`).toEqual(expected)
+      }
     }
   })
 })

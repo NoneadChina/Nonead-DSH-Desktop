@@ -11,7 +11,7 @@ import { desktopRecoveryCopy } from '../../../dsh-plugin-desktop-beta/src/recove
 import { useDesktopState } from '../client/desktop-state.ts'
 import { NextSettingsAdapter } from '../client/settings-adapter.ts'
 import type { DesktopCommand } from '../desktop-contract.ts'
-import { recoverySupport } from '../recovery-support.ts'
+import { recoverySupport } from '../recovery-support-copy.ts'
 import './theme.css'
 import { desktopText } from '../desktop-i18n.ts'
 

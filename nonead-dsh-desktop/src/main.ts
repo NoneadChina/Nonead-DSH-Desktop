@@ -16,7 +16,7 @@ import { NEXT_PACKAGE, parseFeatures, profileName } from './profiles.ts'
 import { APP_URL, IPC, SHELL_URL } from './ipc.ts'
 import { WINDOWS_TITLEBAR_HEIGHT } from './windows-layout.ts'
 import { preferredDesktopLocale, resolveDesktopLocale } from './menu-locale.ts'
-import { desktopText } from './desktop-i18n.ts'
+import { desktopTemplate, desktopText } from './desktop-i18n.ts'
 import { NativeLocaleStore } from './native-locale.ts'
 import { NextDesktopRuntime } from './desktop-runtime.ts'
 import type { EnvLayer } from './env-file.ts'
@@ -130,7 +130,8 @@ const version = (JSON.parse(readFileSync(NEXT_PACKAGE, 'utf8')) as { version: st
 /** The dsh runtime beside this shell; a development tree may hoist it elsewhere, and the packaged check then reports it. */
 let dshVersion: string | undefined
 try { dshVersion = readInstalledPackageVersion(root, '@deepseek-ai/dsh') } catch { /* Not installed beside the shell; only diagnostics lose the field. */ }
-const t = (zh: string, en: string): string => desktopText(windowsLanguage, zh, en)
+const t = (zh: string, en: string, values?: Readonly<Record<string, string>>): string =>
+  values === undefined ? desktopText(windowsLanguage, zh, en) : desktopTemplate(windowsLanguage, zh, en, values)
 /**
  * The bundled interpreter payload of this CPU: beside the archive when packaged, prepared by
  * `prepare:runtime` in development. The payload is pinned for win-x64 only, so an arm64 shell
@@ -640,7 +641,7 @@ async function performCommand(input: Record<string, unknown>, type: string, sour
     if (type === 'delete') {
       const name = profileName(input.name)
       if (name === runtime.selected || name === DEFAULT_PROFILE) throw new Error(t('不能移除当前或默认 Profile。', 'Cannot remove the active or default Profile.'))
-      if (await confirmed(t(`移除 Profile「${name}」？`, `Remove Profile “${name}”?`), t('其文件将移入恢复备份目录。共享的会话和设置会保留。', 'Its files move to recovery backups. Shared sessions and settings are retained.'))) runtime.recovery.removeProfile(name, runtime.selected)
+      if (await confirmed(t('移除 Profile「{name}」？', 'Remove Profile “{name}”?', { name }), t('其文件将移入恢复备份目录。共享的会话和设置会保留。', 'Its files move to recovery backups. Shared sessions and settings are retained.'))) runtime.recovery.removeProfile(name, runtime.selected)
       return
     }
     if (type === 'reload') {
@@ -713,7 +714,7 @@ async function performCommand(input: Record<string, unknown>, type: string, sour
     const features = type === 'features' ? parseFeatures(input.features) : undefined
     if (type === 'rollback' && !runtime.recovery.latest(next)) throw new Error(t('尚无成功启动的配置备份。', 'No successful-start configuration is available.'))
     const messages: Record<string, string> = {
-      switch: t(`切换到 Profile「${next}」并重启应用？`, `Switch to Profile “${next}” and restart the application?`),
+      switch: t('切换到 Profile「{next}」并重启应用？', 'Switch to Profile “{next}” and restart the application?', { next }),
       recover: t('备份并修复当前 Profile？将禁用第三方插件、远控和市场。', 'Back up and repair this Profile? Third-party plugins, remote control and Market will be disabled.'),
       'repair-global': t('备份并停用全局补丁？这会影响所有 Next Profile。', 'Back up and disable the global patch? This affects every Next Profile.'),
       rollback: t('恢复最近成功启动的 Profile 配置？当前配置会先备份。', 'Restore the last successful-start Profile configuration? The current configuration will be backed up first.'),
@@ -826,7 +827,7 @@ async function recoveryAction(input: Record<string, unknown>): Promise<void> {
     if (!checkpoint) throw new Error('Recovery checkpoint is no longer available')
     if (action === 'open-checkpoint') { await openPath(checkpoint.directory); return }
     if (!await confirmed(t('还原所选配置备份？', 'Restore the selected configuration backup?'),
-      t(`备份时间：${checkpoint.created}。当前配置会先备份，然后恢复配置并安装所需插件依赖。共享数据不会回滚。`, `Saved: ${checkpoint.created}. Current configuration will be backed up, then the saved configuration and required plugin dependencies will be restored. Shared data is not rolled back.`))) return
+      t('备份时间：{saved}。当前配置会先备份，然后恢复配置并安装所需插件依赖。共享数据不会回滚。', 'Saved: {saved}. Current configuration will be backed up, then the saved configuration and required plugin dependencies will be restored. Shared data is not rolled back.', { saved: checkpoint.created }))) return
     await recoveryStopping
     if (!runtime.safeMode) await runtime.backend.stop()
     await restoreCheckpoint(checkpoint.id)
@@ -838,8 +839,8 @@ async function recoveryAction(input: Record<string, unknown>): Promise<void> {
     if (!bundle || bundle.toggle !== (enable ? 'enable' : 'disable')
       || !/^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/u.test(bundle.packageName)) throw new Error('This plugin cannot be changed')
     if (!await confirmed(
-      enable ? t(`启用插件「${bundle.packageName}」？`, `Enable “${bundle.packageName}”?`)
-        : t(`禁用插件「${bundle.packageName}」？`, `Disable “${bundle.packageName}”?`),
+      enable ? t('启用插件「{name}」？', 'Enable “{name}”?', { name: bundle.packageName })
+        : t('禁用插件「{name}」？', 'Disable “{name}”?', { name: bundle.packageName }),
       enable ? t('下次启动时会重新加载此插件。', 'The plugin will load again on the next start.')
         : t('不会删除任何内容：插件、版本声明和配置都会保留，只是下次启动时不再加载。随时可以重新启用。',
           'Nothing is deleted: the plugin, its version declaration and its configuration all stay. It simply will not load on the next start, and you can enable it again at any time.'))) return
@@ -855,7 +856,7 @@ async function recoveryAction(input: Record<string, unknown>): Promise<void> {
   if (action === 'preview-uninstall') {
     const bundle = runtime.recovery.bundles(runtime.selected).find(item => item.bundleId === input.id)
     if (!bundle || bundle.action !== 'uninstall' || !/^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/u.test(bundle.packageName)) throw new Error('This bundle cannot be uninstalled')
-    if (!await confirmed(t(`卸载插件「${bundle.packageName}」？`, `Uninstall “${bundle.packageName}”?`),
+    if (!await confirmed(t('卸载插件「{name}」？', 'Uninstall “{name}”?', { name: bundle.packageName }),
       t('先备份当前 Profile 配置，然后卸载所选插件。', 'Back up the Profile configuration, then uninstall the selected plugin.'))) return
     await recoveryStopping
     if (!runtime.safeMode) await runtime.backend.stop()
@@ -875,7 +876,7 @@ async function recoveryAction(input: Record<string, unknown>): Promise<void> {
     const destination = validateDataDirectory(target, home, defaultHome)
     if (destination === home) return
     if (!await confirmed(t('切换数据目录并重启？', 'Change data directory and restart?'),
-      t(`新目录：${destination}。原目录的数据会保留，不会自动迁移。`, `New directory: ${destination}. Existing data remains in its original directory and is not moved.`))) return
+      t('新目录：{directory}。原目录的数据会保留，不会自动迁移。', 'New directory: {directory}. Existing data remains in its original directory and is not moved.', { directory: destination }))) return
     atomicJson(locationFile, { home: destination })
     relaunch = relaunchArguments(process.argv.slice(1), false, false)
     app.quit(); return
