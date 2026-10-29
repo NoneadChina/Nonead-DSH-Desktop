@@ -26,6 +26,7 @@ const ALLOWED_LICENSES = new Set([
   'BSD-3-Clause',
   'ISC',
   '0BSD',
+  'BlueOak-1.0.0',
   'Unlicense',
   'MPL-2.0',
   'CC0-1.0',

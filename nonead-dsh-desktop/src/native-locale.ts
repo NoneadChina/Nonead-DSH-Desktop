@@ -3,11 +3,11 @@ import { join } from 'node:path'
 import { parseDocument } from 'yaml'
 import { atomicJson, readPrivateFile } from './private-files.ts'
 import { preferredDesktopLocale } from './menu-locale.ts'
+import { normalizeDesktopLocale, type DesktopLocale } from './desktop-i18n.ts'
 
-type Locale = 'zh' | 'en'
+type Locale = DesktopLocale
 function supported(value: unknown): Locale | undefined {
-  if (typeof value !== 'string' || !/^(zh|en)(?:[-_][a-zA-Z0-9]+)*$/iu.test(value)) return undefined
-  return preferredDesktopLocale([value])
+  return typeof value === 'string' ? normalizeDesktopLocale(value) : undefined
 }
 
 export class NativeLocaleStore {

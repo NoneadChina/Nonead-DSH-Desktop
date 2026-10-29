@@ -4,11 +4,12 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { PluginInfo } from '@deepseek-ai/dsh-api-remotes/client'
 import { Button, StateDot, Switch, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
 import { DesktopPermissionsButton, PermissionDetails } from './permissions.tsx'
+import { desktopText } from '../desktop-i18n.ts'
 
 const PROVIDER = '@deepseek-ai/dsh-experimental-computer-use-cua-driver-native'
 
-export function ComputerUseSettings({ context, zh, mode = 'overview' }: { context: Context; zh: boolean; mode?: 'overview' | 'actions' | 'page' }) {
-  const t = (chinese: string, english: string): string => zh ? chinese : english
+export function ComputerUseSettings({ context, zh, mode = 'overview', locale }: { context: Context; zh: boolean; mode?: 'overview' | 'actions' | 'page'; locale?: string }) {
+  const t = (chinese: string, english: string): string => desktopText(locale ?? (zh ? 'zh' : 'en'), chinese, english)
   const [revision, refresh] = useState(0)
   const [row, setRow] = useState<PluginInfo>()
   const [loading, setLoading] = useState(true)
@@ -55,7 +56,7 @@ export function ComputerUseSettings({ context, zh, mode = 'overview' }: { contex
   return <div className="dshNextComputerUse" data-next-computer-use>
     {mode !== 'page' && <>
       <div className="dshNextPluginActions">
-        <DesktopPermissionsButton service={window.desktopNext?.permissions} language={zh ? 'zh' : 'en'} label={t('权限设置', 'Permission settings')} />
+        <DesktopPermissionsButton service={window.desktopNext?.permissions} language={locale ?? (zh ? 'zh' : 'en')} label={t('权限设置', 'Permission settings')} />
         <Switch label={t('启用 Computer Use', 'Enable Computer Use')} checked={row?.enabled ?? false}
           disabled={loading || busy || !row || row.readOnlyReason !== undefined} onChange={enabled => { void change(enabled) }} />
       </div>
@@ -63,7 +64,7 @@ export function ComputerUseSettings({ context, zh, mode = 'overview' }: { contex
     {mode === 'page' && <>
       <p className="dshDesktopSettingsHint"><code>{PROVIDER}</code></p>
       <p role="status" className="dshNextPermissionStatus"><StateDot state={row?.enabled && row.fiberPhase === 'active' ? 'done' : row?.fiberPhase === 'failed' ? 'error' : 'idle'} />{status}</p>
-      {window.desktopNext?.permissions ? <PermissionDetails service={window.desktopNext.permissions} language={zh ? 'zh' : 'en'} />
+      {window.desktopNext?.permissions ? <PermissionDetails service={window.desktopNext.permissions} language={locale ?? (zh ? 'zh' : 'en')} />
         : <p>{t('请在运行 DSH 的桌面应用中管理系统权限。', 'Manage system permissions in the desktop app running DSH.')}</p>}
     </>}
     {notice && <Toast text={notice} onDone={() => { setNotice('') }} />}

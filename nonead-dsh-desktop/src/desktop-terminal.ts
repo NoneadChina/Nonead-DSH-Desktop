@@ -14,6 +14,7 @@ import { createHash, randomUUID } from 'node:crypto'
 import { basename, dirname, join, win32 } from 'node:path'
 import { profileName as assertDesktopProfileName } from './profiles.ts'
 import { PNPM_IGNORE_MINIMUM_RELEASE_AGE } from './pnpm-policy.ts'
+import { desktopText } from './desktop-i18n.ts'
 
 const RUN_AS_NODE = 'ELECTRON_RUN_AS_NODE'
 const DEFAULT_PROFILE = 'DSH_DESKTOP_DEFAULT_PROFILE'
@@ -96,6 +97,8 @@ export interface DesktopTerminalOptions {
   productVersion: string
   /** Explain whether commands modify the temporary runtime or the original Profile. */
   mode?: 'normal' | 'safe' | 'recovery'
+  /** Shell language used for the mode label; English when omitted. */
+  language?: string
   /** Absolute working directory of the selected profile. */
   profileDir: string
   /** Harness home exported as `DSH_HOME` inside the terminal. */
@@ -327,10 +330,10 @@ function macBashRc(options: DesktopTerminalOptions, shimDir: string): string {
   ].join('\n')
 }
 
-function terminalModeLabel(mode: DesktopTerminalOptions['mode']): string {
-  if (mode === 'safe') return '安全模式临时环境 / Safe mode: temporary environment'
-  if (mode === 'recovery') return '恢复修复终端：原 Profile / Recovery terminal: original Profile'
-  return '正常环境 / Normal environment'
+function terminalModeLabel(mode: DesktopTerminalOptions['mode'], language = 'en'): string {
+  if (mode === 'safe') return desktopText(language, '安全模式临时环境', 'Safe mode: temporary environment')
+  if (mode === 'recovery') return desktopText(language, '恢复修复终端：原 Profile', 'Recovery terminal: original Profile')
+  return desktopText(language, '正常环境', 'Normal environment')
 }
 
 /** Build the macOS script opened by LaunchServices in the user's terminal. */
@@ -351,7 +354,7 @@ function macWelcome(
     `cd ${quoteSh(options.profileDir)}`,
     "printf '\\033[2J\\033[3J\\033[H'",
     `printf '%s\\n' ${quoteSh(`DSH Desktop ${options.productVersion} terminal`)}`,
-    `printf '%s\\n' ${quoteSh(terminalModeLabel(options.mode))}`,
+    `printf '%s\\n' ${quoteSh(terminalModeLabel(options.mode, options.language))}`,
     `printf '%s\\n' ${quoteSh(`Profile: ${options.profileName}`)}`,
     `printf '%s\\n' ${quoteSh(`Profile directory: ${options.profileDir}`)}`,
     `printf '%s\\n' ${quoteSh(`Harness home: ${options.homeDir}`)}`,
@@ -526,7 +529,7 @@ function terminalEnvironment(options: DesktopTerminalOptions, files: DesktopTerm
     env[WINDOWS_PNPM_ENTRY] = options.pnpmBinPath
     env[WINDOWS_PROFILE_DIRECTORY] = options.profileDir
     env[WINDOWS_PRODUCT_VERSION] = options.productVersion
-    env[WINDOWS_TERMINAL_MODE] = terminalModeLabel(options.mode)
+    env[WINDOWS_TERMINAL_MODE] = terminalModeLabel(options.mode, options.language)
     env[WINDOWS_SHIM_DIRECTORY] = files.shimDir
     env[WINDOWS_POWERSHELL_WELCOME] = files.welcomePath
     if (files.windowsCmdWelcomePath !== undefined) env[WINDOWS_CMD_WELCOME] = files.windowsCmdWelcomePath

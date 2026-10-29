@@ -1,11 +1,12 @@
 import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { DesktopCommand, DesktopState } from '../desktop-contract.ts'
 import { updateAction, updateLabel } from '../update-state.ts'
+import { desktopText } from '../desktop-i18n.ts'
 
 export function NextUpdateSettings({ state, language, run }: { state: DesktopState; language: string; run(command: DesktopCommand): void }) {
   const update = state.updates
   if (!update) return null
-  const t = (zh: string, en: string) => language.startsWith('zh') ? zh : en
+  const t = (zh: string, en: string) => desktopText(language, zh, en)
   const action = updateAction(update)
   // Recheck and skip only make sense while a release waits for the user; a running update
   // operation owns the state machine until it settles.
@@ -22,7 +23,7 @@ export function NextUpdateSettings({ state, language, run }: { state: DesktopSta
     {update.phase === 'downloading' && <progress style={{ width: '100%' }} aria-label={t('更新下载进度', 'Update download progress')} max={update.total ?? 1} value={update.total ? update.received ?? 0 : undefined} />}
     {(notes !== undefined || notesUrl !== undefined) && <div data-release-notes>
       <p className="dshDesktopSettingsHint">{t('更新说明', 'Release notes')}</p>
-      {notes !== undefined && <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{notes}</p>}
+      {notes !== undefined && <p className="dshDesktopSettingsHint" style={{ whiteSpace: 'pre-wrap', margin: 0, color: 'inherit' }}>{notes}</p>}
       {/* Only an absolute https URL survives parsing; the OS browser owns the page, so the shell
           opener never gains a navigation-capable window handle. */}
       {notesUrl !== undefined && <div className="dshDesktopSettingsDialogActions">

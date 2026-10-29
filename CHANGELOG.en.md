@@ -1,6 +1,6 @@
 <p align="center">
   <strong>Nonead DSH Desktop · Changelog</strong><br>
-  <sub><a href="CHANGELOG.md">中文</a> · English</sub>
+  <sub><a href="CHANGELOG.md">中文</a> · English · <a href="CHANGELOG.ja.md">日本語</a> · <a href="CHANGELOG.es.md">Español</a> · <a href="CHANGELOG.fr.md">Français</a> · <a href="CHANGELOG.de.md">Deutsch</a> · <a href="CHANGELOG.ru.md">Русский</a> · <a href="CHANGELOG.pt.md">Português</a></sub>
 </p>
 
 # Changelog
@@ -9,9 +9,32 @@ This file records user-facing changes to Nonead DSH Desktop. Every release raise
 
 Maintenance conventions:
 
-- Every release adds one entry to both files (`CHANGELOG.md`, `CHANGELOG.en.md`) and refreshes the Git blob hashes recorded in `CHANGELOG.i18n.yaml`, otherwise `corepack yarn check:bilingual-docs` fails.
+- Every release adds one entry per language (`CHANGELOG.md`, `CHANGELOG.en.md` and the ja/es/fr/de/ru/pt versions) and refreshes the Git blob hashes recorded in `CHANGELOG.i18n.yaml`, otherwise `corepack yarn check:bilingual-docs` fails.
 - Entries record only changes users can perceive and boundary changes maintainers must know about; pure refactors do not get their own entry.
 - Earlier history lives in the Git tags (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) and in the commit log.
+
+## 2.2.3 — 2026-10-29
+
+The desktop shell is localized into eight languages (Simplified Chinese, English, Japanese, Spanish, French, German, Russian, Brazilian Portuguese):
+
+- Shell copy: Spanish, French, German, Russian and Brazilian Portuguese dictionaries are added, 209 entries each alongside the existing languages; native dialogs, the permissions panel, Computer Use, the settings page, plugin controls and the terminal mode label all resolve through `desktopText`, and the native menus and stored interface language follow the same eight-language set.
+- Settings page: settings dictionaries in six languages (125 entries each) cover the plugin market, remote control, window, browser and local-network, and notification sections instead of falling back to English.
+- Interpolated copy: eleven dialogs (Profile removal and switching, plugin enable/disable/uninstall, data directory and update state) now look up `{name}` templates and substitute the value, so they no longer fall back to English in six languages.
+- Renderer: recovery feedback copy moved out of the module that imports Node built-ins, so the native-ui build no longer reports `node:fs`/`node:path`/`node:crypto` externalization warnings.
+- Boundary: the recovery assistant and Profile selector live in the shared `dsh-plugin-desktop-beta` workspace and remain Chinese/English only.
+- Version: the product moves from 2.2.2 to **2.2.3** in both desktop workspaces.
+- Docs: README and CHANGELOG are now published in Japanese, Spanish, French, German, Russian and Brazilian Portuguese as well; the bilingual gate now accepts multi-language records (at least two documents per record).
+
+
+## 2.2.2 — 2026-10-28
+
+The runtime moves across to DSH `0.2.2-alpha.2` and the market to 1.73.1:
+
+- Runtime upgrade: the beta channel jumps from dsh `0.2.1-rc.3` to **`0.2.2-alpha.2`** (submodule pin `1f81c047` → `f3803c96`, upstream "release(dsh): 0.2.2-alpha.2") — the runtime is repacked and re-vendored (370 packages, up from 344), and all 24 version patches are rebased. Seven packages needed semantic re-anchoring because their packed output changed: the bundle file names in `dsh`, `dsh-sandbox-windows-acl` and `dsh-web-frontend` carry new hashes; `dsh-client-ui-plugin-manager` was refactored upstream to derive `available` from `listed` but never defines it (this patch restores the desktop slots and supplies that definition); `dsh-client-ui-settings-account` moved its onboarding back icon into a module variable; `dsh-client-ui-directory-picker-browse` grew to nine locale dictionaries; `dsh-client-ui-primitives` switched wide tables to a hover-only scrollbar, which this patch turns back into an always-visible thin bar. The rc.3 runtime snapshot and patches stay as history.
+- Dependency surface: `@deepseek-ai/cordis` moves to 4.0.6-alpha.1, `schemastery` to 3.18.6-alpha.1 and three cordis plugin packages each move one minor alpha, or the upstream 0.2.2-alpha.2 peer checks fail; `nonead-dsh-desktop` is aligned with the beta channel by hand because it belongs to the stable line and is outside the auto-synced workspace list.
+- Market: `dshmarket` 1.70.1 → **1.73.1**, with the desktop patch (self-update entry, host-provided versions, trial-run baseline diff) rebased onto 1.73.1; upstream moved the update cache to `recheckAt` semantics, so the `checkUpdates` hunk is rewritten against the new shape.
+- Agents Anywhere bridge: rebuilt for the new peer ranges (artifact `rd9c47cbc`, pin unchanged at `39b82d4`), connector patch untouched.
+- Version: the product moves from 2.1.18 to **2.2.2** in both desktop workspaces.
 
 ## 2.1.18 — 2026-10-24
 

@@ -7,6 +7,7 @@ import { loadLayeredEnv } from '@deepseek-ai/dsh-app-boot'
 import { runProfile } from '@deepseek-ai/dsh/profile-boot'
 import type {} from '@deepseek-ai/dsh-client-connection'
 import type {} from '@deepseek-ai/dsh-host-webserver'
+import type { PeerId, PeerScope } from '@deepseek-ai/dsh-typert-protocol'
 import { loadNextProfile, NEXT_PACKAGE, readNextProfilePatches } from '../profiles.ts'
 import { bundledPnpmEntry } from '../extensions.ts'
 import { withDesktopPnpmPolicy } from '../pnpm-policy.ts'
@@ -76,6 +77,16 @@ export async function main(): Promise<void> {
   const { environment, resolution: proxy } = withSystemProxy(loadLayeredEnv('nonead-dsh-desktop'), systemProxy, trustedHosts as string[])
   // One line on every start, direct included: a connectivity report cannot be answered without it.
   for (const line of [proxy.summary, ...proxy.diagnostics]) process.stderr.write(`nonead-dsh-desktop: ${maskSecrets(line)}\n`)
+  // The Web server renders its injection table per Peer; the Host's startup snapshot speaks for the owner.
+  const hostPeerSignal = new AbortController().signal
+  const hostPeer = (ctx: Parameters<typeof auditHostPlugins>[0]): PeerScope => ({
+    id: 'desktop-host' as PeerId,
+    ctx,
+    principal: { kind: 'owner' },
+    signal: hostPeerSignal,
+    interactions: 'none',
+    dispose: async () => {},
+  })
   const application = runProfile({
     environment, profile: basename(projectDir),
     resolvedProfile: { profile, installAnchor: NEXT_PACKAGE,
@@ -123,7 +134,7 @@ export async function main(): Promise<void> {
       if (!Number.isSafeInteger(query.requestId)) return
       void application.then(async ({ ctx }) => {
         if (stopping) throw new Error('Next Host is stopping')
-        await send({ type: 'injections', requestId: query.requestId, injections: ctx.webServer.collectIndexInjections() })
+        await send({ type: 'injections', requestId: query.requestId, injections: ctx.webServer.collectIndexInjections(hostPeer(ctx)) })
       }).catch(async () => { await send({ type: 'injections', requestId: query.requestId, error: 'Could not collect Web boot injections' }) }).catch(fatal)
       return
     }
@@ -149,7 +160,7 @@ export async function main(): Promise<void> {
   }
   hostLog({ source: 'host', event: 'process.ready' })
   await send({ type: 'ready', url: ctx.connection.authenticatedUrl(`http://127.0.0.1:${ctx.webServer.port}`),
-    injections: ctx.webServer.collectIndexInjections() })
+    injections: ctx.webServer.collectIndexInjections(hostPeer(ctx)) })
   const account = ctx.get('deepseekAccount') as PlatformLoginAccount | undefined
   if (account !== undefined && !stopping) {
     // A broken watcher only loses the automatic browser hand-off; the dialog still offers the link.

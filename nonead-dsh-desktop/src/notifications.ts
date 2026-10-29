@@ -8,6 +8,7 @@ import { gfmFromMarkdown } from 'mdast-util-gfm'
 import { toString } from 'mdast-util-to-string'
 import { gfm } from 'micromark-extension-gfm'
 import type { DesktopNotification, DesktopPreferences, NotificationOutcome } from './desktop-contract.ts'
+import { desktopText } from './desktop-i18n.ts'
 
 const TITLE_LIMIT = 160
 const BODY_LIMIT = 1000
@@ -43,21 +44,20 @@ export function isDesktopNotification(value: unknown): value is DesktopNotificat
 }
 
 export function notificationCopy(notification: DesktopNotification, language: string): { title: string; body: string } {
-  const zh = language.startsWith('zh')
   if (notification.outcome === 'schedule-completed') return {
-    title: zh ? '自动化任务完成' : 'Automation task completed',
-    body: zh ? '一个自动化任务已完成。' : 'An automation task has finished.',
+    title: desktopText(language, '自动化任务完成', 'Automation task completed'),
+    body: desktopText(language, '一个自动化任务已完成。', 'An automation task has finished.'),
   }
   if (notification.outcome === 'schedule-failed') return {
-    title: zh ? '自动化任务失败' : 'Automation task failed',
-    body: zh ? '打开 Nonead DSH Desktop 查看详情。' : 'Open Nonead DSH Desktop for details.',
+    title: desktopText(language, '自动化任务失败', 'Automation task failed'),
+    body: desktopText(language, '打开 Nonead DSH Desktop 查看详情。', 'Open Nonead DSH Desktop for details.'),
   }
   return notification.outcome === 'turn-completed' ? {
-    title: notification.userMessage || (zh ? '回合已完成' : 'Turn completed'),
-    body: notification.assistantMessage || (zh ? '你发起的回合已完成。' : 'A turn you started has finished.'),
+    title: notification.userMessage || (desktopText(language, '回合已完成', 'Turn completed')),
+    body: notification.assistantMessage || (desktopText(language, '你发起的回合已完成。', 'A turn you started has finished.')),
   } : {
-    title: zh ? '回合未能完成' : 'Turn could not finish',
-    body: zh ? '打开 Nonead DSH Desktop 查看详情。' : 'Open Nonead DSH Desktop for details.',
+    title: desktopText(language, '回合未能完成', 'Turn could not finish'),
+    body: desktopText(language, '打开 Nonead DSH Desktop 查看详情。', 'Open Nonead DSH Desktop for details.'),
   }
 }
 

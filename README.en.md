@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  Product <code>2.1.18</code> · DSH runtime <code>0.2.1-rc.3</code> · Electron 44 · MIT License
+  Product <code>2.2.3</code> · DSH runtime <code>0.2.2-alpha.2</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">One-click download, ready to use out of the box.</a></h3>
@@ -18,7 +18,7 @@
   Everything is a plugin — including the desktop itself.
 </p>
 
-<p align="center"><sub>An independent community open-source project. It is not affiliated with, partnered with, licensed by, or endorsed by DeepSeek.<br>No DeepSeek employees or DeepSeek Harness upstream team members currently take part in this repository; upstream contributors shown on GitHub Contributors come from forked and synchronized commit history.<br><a href="README.md">中文</a> · English</sub></p>
+<p align="center"><sub>An independent community open-source project. It is not affiliated with, partnered with, licensed by, or endorsed by DeepSeek.<br>No DeepSeek employees or DeepSeek Harness upstream team members currently take part in this repository; upstream contributors shown on GitHub Contributors come from forked and synchronized commit history.<br><a href="README.md">中文</a> · English · <a href="README.ja.md">日本語</a> · <a href="README.es.md">Español</a> · <a href="README.fr.md">Français</a> · <a href="README.de.md">Deutsch</a> · <a href="README.ru.md">Русский</a> · <a href="README.pt.md">Português</a></sub></p>
 
 <a id="toc"></a>
 
@@ -66,19 +66,19 @@ Shell and Host communicate over exactly one child-process IPC channel. Switching
 
 | Item | Value |
 | --- | --- |
-| Product version | `2.1.18` (`nonead-dsh-desktop` and `dsh-plugin-desktop-beta` in lockstep) |
+| Product version | `2.2.3` (`nonead-dsh-desktop` and `dsh-plugin-desktop-beta` in lockstep) |
 | Stable-channel workspace | `nonead-dsh-desktop` (root scripts use the `:stable` suffix) |
 | Beta-channel workspace | `dsh-plugin-desktop-beta` (root scripts use the `:beta` suffix) |
-| DSH runtime | `0.2.1-rc.3`, every `@deepseek-ai/dsh*` dependency pinned exactly, runtime vendored |
-| Vendored runtime | `vendor/dsh-runtime/0.2.1-rc.3/` (several historical version directories are kept) |
-| Upstream pin | `1f81c047fc48fa190a683e469daa699857e9afe8` (`channels.beta` in `upstream.json`, mirrored in `nonead-dsh-desktop/upstream-reference.json`) |
+| DSH runtime | `0.2.2-alpha.2`, every `@deepseek-ai/dsh*` dependency pinned exactly, runtime vendored |
+| Vendored runtime | `vendor/dsh-runtime/0.2.2-alpha.2/` (several historical version directories are kept) |
+| Upstream pin | `f3803c96974ad4a94195fb97e5c637e9c2a3afe3fc48fa190a683e469daa699857e9afe8` (`channels.beta` in `upstream.json`, mirrored in `nonead-dsh-desktop/upstream-reference.json`) |
 | Electron / packager | Electron `44.0.0` / electron-builder `26.15.7` (patched `app-builder-lib`) |
 | Node / Yarn | Node `^22.19.0` or `>=24.0.0`; Yarn `4.18.0` via Corepack (`nodeLinker: node-modules`) |
 | Plugin market | `dshmarket` `1.70.1`, plus this repository's `dsh-community-market` `0.1.0-dev.0` |
 | Remote-control bridge | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop` (upstream commit `39b82d4`) |
 | Brand skin | `dsh-nonead-client-skin` (shipped in the installer, mounted per profile) |
 
-`upstream.json` records two vendored runtime lines: `stable` maps to upstream `0.2.0-rc.2` and `beta` to upstream `0.2.1-rc.3`. What actually ships inside an installer is the line a workspace pins exactly — currently both desktop workspaces pin `0.2.1-rc.3`. **Channel names describe runtime lines, not the release channel a workspace queries.**
+`upstream.json` records two vendored runtime lines: `stable` maps to upstream `0.2.0-rc.2` and `beta` to upstream `0.2.2-alpha.2`. What actually ships inside an installer is the line a workspace pins exactly — currently both desktop workspaces pin `0.2.2-alpha.2`. **Channel names describe runtime lines, not the release channel a workspace queries.**
 
 <a id="download"></a>
 
@@ -94,7 +94,7 @@ Official installers cover Windows x64, macOS (Universal, Intel and Apple Silicon
 
 Linux notes: some distributions need FUSE installed, or you can run with `--appimage-extract-and-run`. In-app update on Linux **only checks the version and never downloads an installer**; upgrade by downloading a fresh AppImage. Use the Beta channel when you need a Linux installer — the stable channel only produces a runnable directory on Linux.
 
-Windows ARM64 is available as an **experimental build only** and is not served by the download links or in-app updates above: the shell is native arm64, but the bundled Python / Node / Office runtime is still the x64 payload (executed through Windows emulation), and the artifact has not been run on ARM hardware yet. Build it yourself with the command under [Common commands](#building-from-source).
+Windows ARM64 is available as an **experimental build only** and is not served by the download links or in-app updates above: the shell is native arm64, but the bundled Python / Node / Office runtime is still the x64 payload (executed through Windows emulation), and the artifact has not been run on ARM hardware yet. Build it yourself with the command under [Common commands](#dev).
 
 Step-by-step usage, profiles and plugin commands are in the [user guide](docs/user-guide.en.md); platform and scope questions are answered in the [FAQ](docs/faq.en.md).
 
@@ -231,7 +231,7 @@ Conventions:
 
 - Root `build`, `dev:*` and `dist:*` run `corepack yarn market:check` first: it verifies offline that the committed `dshmarket` version, lockfile and compatibility patch agree, without reaching the network or rewriting manifests. Moving the pin requires a human to run `corepack yarn market:prepare` and commit the version, lockfile and patch together.
 - `nonead-dsh-desktop` and `dsh-plugin-desktop-beta` are **separate workspaces**: shared changes must land in both while preserving their declared differences; run `corepack yarn check` and each workspace check before release.
-- After editing bilingual files such as `README.md`, `README.en.md` or `CHANGELOG.md`, refresh the Git blob hashes in the matching `*.i18n.yaml` (take them with `git hash-object`), otherwise `check:bilingual-docs` fails.
+- After editing `README*.md` or `CHANGELOG*.md` in any language, refresh the Git blob hashes in the matching `*.i18n.yaml` (take them with `git hash-object`), otherwise `check:bilingual-docs` fails.
 - `corepack yarn check:layout` needs an initialised submodule; in a purely headless environment, validate business code with `typecheck` / `test` / per-workspace `check` instead.
 - **CI must not let the code under review decide what runs**: the `changes` job restores `scripts/` from the **pull request base** before running the classifier and the documentation/market gates (documents still come from the working tree); `workflow_dispatch` has no base, so it falls back to the head copy with a warning. CI runs `corepack yarn check:ci` (= local `check` without `verify:aa`) instead of rewriting `dsh-plugin-desktop-beta/package.json` at run time.
 - **Version parity is part of the gate**: `scripts/verify-layout.mjs` requires both workspaces' `version` to equal the newest `## <version> — <date>` heading in `CHANGELOG.md`, so missing either side on a release fails.
@@ -280,12 +280,14 @@ If you only want to use DeepSeek Harness from the command line, or want to work 
 
 ## Changelog
 
-The full history is in the [changelog](CHANGELOG.en.md) ([中文](CHANGELOG.md)). The latest three releases:
+The full history is in the [changelog](CHANGELOG.en.md) ([中文](CHANGELOG.md)). Recent releases:
 
 | Version | Date | Highlights |
 | --- | --- | --- |
 | `2.1.15` | 2026-10-22 | Release notes in the update card, tray and native dialogs, skip-a-version, install retry and snapshot rollback; remembered window state, layered `.env`, `dsh-desktop://` deep links and launch at login; market media preview and install-by-name; `dshmarket` `1.66.45` |
-| `2.1.18` | 2026-10-24 | Runtime moved to DSH `0.2.1-rc.3` (344 packages re-vendored, 24 patches rebased), the Agents Anywhere bridge is built from source with a rebased connector patch, an experimental Windows ARM64 build lands, and the update card copy and progress placement are fixed; includes the 2.1.17 audit fix batch |
+| `2.2.3` | 2026-10-29 | The desktop shell is fully localized into eight languages (Chinese, English, Japanese, Spanish, French, German, Russian, Brazilian Portuguese): five new shell dictionaries plus settings-page dictionaries in six languages, template-based lookups for interpolated dialogs, and the client locale namespace and native menus follow the same set |
+| `2.2.2` | 2026-10-28 | Runtime moved to DSH `0.2.2-alpha.2` (370 packages re-vendored, 24 version patches and the market patch rebased), dshmarket moves to 1.73.1, and the Agents Anywhere bridge is rebuilt for the new peer ranges |
+| `2.1.18` | 2026-10-24 | Runtime moved to DSH `0.2.2-alpha.2` (344 packages re-vendored, 24 patches rebased), the Agents Anywhere bridge is built from source with a rebased connector patch, an experimental Windows ARM64 build lands, and the update card copy and progress placement are fixed; includes the 2.1.17 audit fix batch |
 | `2.1.17` | 2026-10-24 | Audit fix batch: recovery refresh race, checkpoint inode re-checks and single-slot degradation, atomic settings writes, update failure-path release, plugin state and staging cleanup, tray dialog ownership, market paging and skin declaration, CI gate fixes |
 | `2.1.16` | 2026-10-22 | Security and gate fixes: CI gates run the base-side classifier, Electron fuses tightened (`NODE_OPTIONS`/`--inspect` closed, Stable loads only from `app.asar`; `runAsNode` kept because the Host/CLI/pnpm shims need it, and now pinned by layout-derived assertions), renderer credential injected over a private pipe, web gate fails closed, deep-link action allowlist, base64url secret masking; the Stable-shell `asarUnpack` / `files[].from` coupling is now pinned by a prefix-deriving test (the existing patterns verified correct), added Stable packaging CI, and `verify-layout` now enforces version parity |
 | `2.1.13` | 2026-10-21 | Runtime moved to DSH `0.2.1-rc.2`, `dshmarket` `1.66.44`, AA bridge `39b82d4`, new boot wordmark and onboarding API-key guidance, AA queue overflow drops events instead of crashing |

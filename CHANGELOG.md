@@ -1,6 +1,6 @@
 <p align="center">
   <strong>Nonead DSH Desktop · 更新日志</strong><br>
-  <sub>中文 · <a href="CHANGELOG.en.md">English</a></sub>
+  <sub>中文 · <a href="CHANGELOG.en.md">English</a> · <a href="CHANGELOG.ja.md">日本語</a> · <a href="CHANGELOG.es.md">Español</a> · <a href="CHANGELOG.fr.md">Français</a> · <a href="CHANGELOG.de.md">Deutsch</a> · <a href="CHANGELOG.ru.md">Русский</a> · <a href="CHANGELOG.pt.md">Português</a></sub>
 </p>
 
 # 更新日志
@@ -9,9 +9,32 @@
 
 维护约定：
 
-- 每次发布在两份文件里各加一条（`CHANGELOG.md`、`CHANGELOG.en.md`），并刷新 `CHANGELOG.i18n.yaml` 记录的 Git blob 哈希，否则 `corepack yarn check:bilingual-docs` 会失败。
+- 每次发布为每种语言各加一条（`CHANGELOG.md`、`CHANGELOG.en.md` 及 ja/es/fr/de/ru/pt 版本），并刷新 `CHANGELOG.i18n.yaml` 记录的 Git blob 哈希，否则 `corepack yarn check:bilingual-docs` 会失败。
 - 条目只写"用户能感知的变化"与"维护者必须知道的边界变化"；纯重构不单独成条。
 - 更早的历史见 Git 标签（`v1.7.3`、`v2.0.7`、`v2.0.8`、`v2.1.3`、`v2.1.4`、`v2.1.5`）与提交记录。
+
+## 2.2.3 — 2026-10-29
+
+桌面外壳完成八种语言本地化（简体中文、英文、日语、西班牙语、法语、德语、俄语、巴西葡萄牙语）：
+
+- 外壳文案：新增西班牙语、法语、德语、俄语与巴西葡萄牙语字典，六种非中英文语言各 209 条；原生对话框、权限面板、Computer Use、设置页、插件控制与终端模式标注统一走 `desktopText`，原生菜单与界面语言存储同步八语言。
+- 设置页：新增六种语言的设置字典（各 125 条），插件市场、远程控制、窗口、浏览器与局域网、通知等共享设置区块不再回退英文。
+- 插值文案：Profile 删除/切换、插件启用/禁用/卸载、数据目录与更新状态等 11 处插值对话框改为 `{name}` 模板查表，六种语言下不再回退英文。
+- 渲染进程：恢复反馈文案移出带 Node 依赖的模块，native-ui 构建不再出现 `node:fs`/`node:path`/`node:crypto` 外部化警告。
+- 边界：恢复助手与 Profile 选择页来自共享工作区 `dsh-plugin-desktop-beta`，仍只有中英双语。
+- 版本号：产品 2.2.2 → **2.2.3**（两个桌面工作区同步）。
+- 文档：README 与 CHANGELOG 新增日语、西班牙语、法语、德语、俄语与巴西葡萄牙语版本；双语门禁扩展为多语言记录（每条记录至少两份文档）。
+
+
+## 2.2.2 — 2026-10-28
+
+上游运行时跨到 DSH `0.2.2-alpha.2`，市场升到 1.73.1：
+
+- 上游运行时升级：beta 通道从 dsh `0.2.1-rc.3` 升到 **`0.2.2-alpha.2`**（子模块 pin `1f81c047` → `f3803c96`，上游提交 "release(dsh): 0.2.2-alpha.2"）——运行时重新打包并 vendored（370 个包，上一版 344 个），24 个版本补丁全部重定基。其中 7 个包的上游产物结构变了、必须按语义重新落点：`dsh`、`dsh-sandbox-windows-acl`、`dsh-web-frontend` 的 bundle 文件名哈希改变；`dsh-client-ui-plugin-manager` 的上游重构把 `listed` 拆出 `available` 却没有定义它（本补丁在恢复桌面插槽的同时补齐该定义）；`dsh-client-ui-settings-account` 的 onboarding 返回图标改为模块变量；`dsh-client-ui-directory-picker-browse` 的语言字典扩到 9 种语言；`dsh-client-ui-primitives` 的宽表格滚动条改为悬停显示，桌面补丁改回常显细条。rc.3 运行时快照与补丁保留为历史。
+- 依赖面同步：`@deepseek-ai/cordis` 抬到 4.0.6-alpha.1、`schemastery` 抬到 3.18.6-alpha.1、三个 cordis 插件包各抬一个小版本，否则上游 0.2.2-alpha.2 的 peer 检查不通过；`nonead-dsh-desktop` 的 DSH 依赖与 beta 通道对齐（它属于 stable 通道，不在自动同步的工作区列表里，需手工跟随）。
+- 市场：`dshmarket` 1.70.1 → **1.73.1**，桌面补丁（自更新入口、宿主版本注入、试运行基线对比）按 1.73.1 重定基；上游把更新缓存改为 `recheckAt` 语义，`checkUpdates` 对应 hunk 按新结构重写。
+- Agents Anywhere bridge：按新 peer 范围重建（产物 `rd9c47cbc`，pin 仍为 `39b82d4`），connector 补丁不变。
+- 版本号：产品 2.1.18 → **2.2.2**（两个桌面工作区同步）。
 
 ## 2.1.18 — 2026-10-24
 

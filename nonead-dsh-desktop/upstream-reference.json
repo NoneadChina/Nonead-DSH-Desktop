@@ -1,12 +1,12 @@
 {
   "repository": "https://github.com/deepseek-ai/deepseek-harness",
-  "commit": "1f81c047fc48fa190a683e469daa699857e9afe8",
-  "version": "0.2.1-rc.3",
+  "commit": "f3803c96974ad4a94195fb97e5c637e9c2a3afe3",
+  "version": "0.2.2-alpha.2",
   "files": [
     {
       "upstream": "apps/desktop/src/host-process.ts",
       "local": "src/host-process.ts",
-      "upstreamSha256": "6b9d3e558f526b7832020fb43d6682a07a68bf2d5657f26951f50a4f3eabfa28"
+      "upstreamSha256": "802d87760d921a7d87592a3107b404a825ebe6ad6e1387a9cfceec8fd99ce2dc"
     },
     {
       "upstream": "apps/desktop/src/browser-guests.ts",
@@ -46,7 +46,7 @@
     {
       "upstream": "apps/desktop/tests/host-process.spec.ts",
       "local": "tests/host-process.spec.ts",
-      "upstreamSha256": "b539b90d064ba2b52f2a5a2faf3a83d08911cc69f8644bc4783f17dbc98fcb86"
+      "upstreamSha256": "a1b7178cc5e6e017298aefc795966f7ffb5a51e7efc06f6c2b39f7bb1f8438ab"
     },
     {
       "upstream": "apps/desktop/tests/node-environment.spec.ts",
@@ -111,7 +111,7 @@
     {
       "upstream": "apps/desktop/src/runtime-tree.ts",
       "local": "src/runtime-tree.ts",
-      "upstreamSha256": "aaef471a94c1bb295c7aecd080f2bf9f4fa037a8fc3f2d76c63db9b367c80778"
+      "upstreamSha256": "0178c8bf156b85a0f5107f7f29a277c91f434ef345cb81550ce759f10fb3a7fb"
     },
     {
       "upstream": "apps/desktop/scripts/runtime-file-policy.ts",
@@ -121,7 +121,7 @@
     {
       "upstream": "apps/desktop/tests/runtime-tree.spec.ts",
       "local": "tests/runtime-tree.spec.ts",
-      "upstreamSha256": "b72793f4458b6ce36629fe4c26c17ac320051c75e2ac9a7a2493ec55ad959873"
+      "upstreamSha256": "4dfc31feb34b8e89cdead37cd8825da70de59549d7e8707427a5f405175b736b"
     },
     {
       "upstream": "apps/desktop/tests/runtime-file-policy.spec.ts",
@@ -151,17 +151,17 @@
     {
       "upstream": "apps/desktop-host/tests/office.spec.ts",
       "local": "tests/host-office.spec.ts",
-      "upstreamSha256": "b3e0270a535e299cf97c60e7f098626bb6ec99c58d5a61f71ec1b9d82a04885e"
+      "upstreamSha256": "ca07309c2e6affa2aa494d12dde1bbc868477a9ea80d1809f556ac4ee9ad2e85"
     },
     {
       "upstream": "scripts/primary-runtime/prepare.ts",
       "local": "scripts/primary-runtime.ts",
-      "upstreamSha256": "31f631ebcc2937f813ccf37ac82168ba6c410406cb6f9a17304211d2528de3ee"
+      "upstreamSha256": "8b45452906fc5f62b877b5a2f6601781e79a14e076419f54e4b18ac26fea8387"
     },
     {
       "upstream": "scripts/primary-runtime/prepare.spec.ts",
       "local": "tests/primary-runtime.spec.ts",
-      "upstreamSha256": "7b048237bda543a9cb598dc77acfcd0055c34f2aa1a0031022ea3ed05b43d56d"
+      "upstreamSha256": "f349e6dd1a749c49f5677a222592495c5540760c047302c0ff6dcda178f18787"
     },
     {
       "upstream": "scripts/primary-runtime/prune-python-tests.ts",

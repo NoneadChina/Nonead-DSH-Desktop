@@ -1,6 +1,6 @@
 /** Keep upstream HTTP routing while requiring Host credentials for browser-reachable routes. */
 import { hostLog, hostOperation } from './host/logging.ts'
-import WebServer, { type WebRoute, type WebUpgradeRoute } from '@deepseek-ai/dsh-host-webserver'
+import WebServer, { type WebResourceRoute, type WebRoute, type WebUpgradeRoute } from '@deepseek-ai/dsh-host-webserver'
 import type {} from '@deepseek-ai/dsh-client-connection'
 import { decideDesktopBrowserAccess, nextBrowserAccess } from './desktop-browser-access.ts'
 import type { Duplex } from 'node:stream'
@@ -123,11 +123,30 @@ export default class NextWebServer extends WebServer {
     }
   }
 
-  override registerFallback(handler: WebRoute['handler']): () => void {
+  /**
+   * Apply the browser gates to the fallback too.
+   *
+   * `dsh 0.2.2-alpha.2` registers the frontend fallback as `{ resource }` instead of a plain
+   * handler, and upstream's own `serveResource` resolves the requesting peer before calling it.
+   * Passing that object through unchanged answered every frontend request with `handler is not a
+   * function` (400); wrapping it as a function skipped the browser gate and answered 401 where the
+   * shell promises 403. This reproduces the same peer resolution so both gates still apply.
+   */
+  override registerFallback(fallback: WebRoute['handler'] | Pick<WebResourceRoute, 'resource'>): () => void {
+    const resource = typeof fallback === 'function' ? undefined : fallback.resource
     return super.registerFallback(this.observeHttp('fallback', async (request, response) => {
       if (!this.permits(request)) { response.writeHead(403, { 'cache-control': 'no-store' }); response.end('Browser access is disabled'); return }
       if (this.fence(requestPath(request), request, response)) return
-      await handler(request, response)
+      if (resource === undefined) { await (fallback as WebRoute['handler'])(request, response); return }
+      // Upstream hands the resource an absolute URL and the admitted peer; reproduce both so the
+      // static responder sees the same request shape it gets inside `serveResource`.
+      const absolute = new URL(request.url ?? '/', `http://${request.headers.host ?? '127.0.0.1'}`)
+      const connection = this.ctx.get('connection') as { admit?: (request: unknown) => unknown } | undefined
+      const admission = connection?.admit?.(request) as { peer?: unknown } | undefined
+      const served = await resource({ url: absolute.href, method: request.method, headers: request.headers } as never, admission?.peer as never) as Response | undefined
+      if (served === undefined) { response.writeHead(404, { 'cache-control': 'no-store' }); response.end(); return }
+      response.writeHead(served.status, Object.fromEntries(served.headers as unknown as Iterable<[string, string]>))
+      response.end(request.method === 'HEAD' ? undefined : Buffer.from(await served.arrayBuffer()))
     }))
   }
 

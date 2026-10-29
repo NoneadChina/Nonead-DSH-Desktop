@@ -2,6 +2,7 @@
 import { desktopCapturer, Menu, shell, systemPreferences, type BrowserWindow, type DesktopCapturerSource, type Session } from 'electron'
 import { NativePermissions } from './native-permissions.ts'
 import { APP_URL } from './ipc.ts'
+import { desktopText } from './desktop-i18n.ts'
 
 export function createNativePermissions(): NativePermissions {
   return new NativePermissions({
@@ -23,12 +24,11 @@ export function createNativePermissions(): NativePermissions {
 async function chooseScreen(window: BrowserWindow, language: string): Promise<DesktopCapturerSource | undefined> {
   const sources = await desktopCapturer.getSources({ types: ['screen', 'window'], thumbnailSize: { width: 0, height: 0 } })
   if (window.isDestroyed() || sources.length === 0) return undefined
-  const zh = language.startsWith('zh')
   return new Promise(resolve => {
     const menu = Menu.buildFromTemplate([
-      { label: zh ? '选择共享的屏幕或窗口' : 'Choose a screen or window to share', enabled: false },
+      { label: desktopText(language, '选择共享的屏幕或窗口', 'Choose a screen or window to share'), enabled: false },
       ...sources.map(source => ({ label: source.name, click: () => resolve(source) })),
-      { type: 'separator' as const }, { label: zh ? '取消' : 'Cancel', click: () => resolve(undefined) },
+      { type: 'separator' as const }, { label: desktopText(language, '取消', 'Cancel'), click: () => resolve(undefined) },
     ])
     const closed = (): void => { menu.closePopup(window); resolve(undefined) }
     window.once('closed', closed)

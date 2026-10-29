@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  产品版本 <code>2.1.18</code> · DSH 运行时 <code>0.2.1-rc.3</code> · Electron 44 · MIT License
+  产品版本 <code>2.2.3</code> · DSH 运行时 <code>0.2.2-alpha.2</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">一键下载，开箱即用。</a></h3>
@@ -18,7 +18,7 @@
   万物皆「插件」，桌面本身也是「插件」。
 </p>
 
-<p align="center"><sub>独立的社区开源项目，与深度求索不存在隶属、合作、授权或背书关系。<br>本仓库目前无深度求索员工或 DeepSeek Harness 上游官方团队成员参与；GitHub Contributors 中显示的上游贡献者来自 fork 继承和同步的提交历史。<br>中文 · <a href="README.en.md">English</a></sub></p>
+<p align="center"><sub>独立的社区开源项目，与深度求索不存在隶属、合作、授权或背书关系。<br>本仓库目前无深度求索员工或 DeepSeek Harness 上游官方团队成员参与；GitHub Contributors 中显示的上游贡献者来自 fork 继承和同步的提交历史。<br>中文 · <a href="README.en.md">English</a> · <a href="README.ja.md">日本語</a> · <a href="README.es.md">Español</a> · <a href="README.fr.md">Français</a> · <a href="README.de.md">Deutsch</a> · <a href="README.ru.md">Русский</a> · <a href="README.pt.md">Português</a></sub></p>
 
 <a id="toc"></a>
 
@@ -66,19 +66,19 @@ Nonead DSH Desktop 把 [DeepSeek Harness](https://github.com/deepseek-ai/deepsee
 
 | 项 | 值 |
 | --- | --- |
-| 产品版本 | `2.1.18`（`nonead-dsh-desktop` 与 `dsh-plugin-desktop-beta` 同步） |
+| 产品版本 | `2.2.3`（`nonead-dsh-desktop` 与 `dsh-plugin-desktop-beta` 同步） |
 | 稳定通道工作区 | `nonead-dsh-desktop`（根脚本 `:stable` 后缀） |
 | Beta 通道工作区 | `dsh-plugin-desktop-beta`（根脚本 `:beta` 后缀） |
-| DSH 运行时 | `0.2.1-rc.3`，所有 `@deepseek-ai/dsh*` 依赖精确 pin，运行时就地 vendored |
-| 已 vendored 运行时 | `vendor/dsh-runtime/0.2.1-rc.3/`（另有若干历史版本目录保留） |
-| 上游 pin | `1f81c047fc48fa190a683e469daa699857e9afe8`（`upstream.json` 的 `channels.beta`，同时记在 `nonead-dsh-desktop/upstream-reference.json`） |
+| DSH 运行时 | `0.2.2-alpha.2`，所有 `@deepseek-ai/dsh*` 依赖精确 pin，运行时就地 vendored |
+| 已 vendored 运行时 | `vendor/dsh-runtime/0.2.2-alpha.2/`（另有若干历史版本目录保留） |
+| 上游 pin | `f3803c96974ad4a94195fb97e5c637e9c2a3afe3fc48fa190a683e469daa699857e9afe8`（`upstream.json` 的 `channels.beta`，同时记在 `nonead-dsh-desktop/upstream-reference.json`） |
 | Electron / 打包器 | Electron `44.0.0` / electron-builder `26.15.7`（`app-builder-lib` 带补丁） |
 | Node / Yarn | Node `^22.19.0` 或 `>=24.0.0`；Yarn `4.18.0`（经 Corepack，`nodeLinker: node-modules`） |
 | 插件市场 | `dshmarket` `1.70.1`，另有本仓库的 `dsh-community-market` `0.1.0-dev.0` |
 | 手机远控桥 | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop`（上游提交 `39b82d4`） |
 | 品牌皮肤 | `dsh-nonead-client-skin`（随安装包分发，按 profile 组合加载） |
 
-`upstream.json` 记录两条 vendored 运行时线：`stable` 对应上游 `0.2.0-rc.2`，`beta` 对应上游 `0.2.1-rc.3`；真正打进安装包的是工作区精确 pin 的那一条，当前两个桌面工作区都 pin 在 `0.2.1-rc.3`。**通道名描述的是"运行时线"，不是工作区查询的发布通道。**
+`upstream.json` 记录两条 vendored 运行时线：`stable` 对应上游 `0.2.0-rc.2`，`beta` 对应上游 `0.2.2-alpha.2`；真正打进安装包的是工作区精确 pin 的那一条，当前两个桌面工作区都 pin 在 `0.2.2-alpha.2`。**通道名描述的是"运行时线"，不是工作区查询的发布通道。**
 
 <a id="download"></a>
 
@@ -94,7 +94,7 @@ Nonead DSH Desktop 把 [DeepSeek Harness](https://github.com/deepseek-ai/deepsee
 
 Linux 说明：部分发行版需要先安装 FUSE，或改用 `--appimage-extract-and-run` 运行；应用内更新在 Linux 上**只检查版本、不下载安装包**，升级请重新下载 AppImage。需要 Linux 安装包时请使用 Beta 通道（稳定通道在 Linux 上只产出可运行的目录产物）。
 
-Windows ARM64 目前只提供**实验性构建**，不进入上面的下载链接与自动更新：主程序是原生 arm64，但内置的 Python / Node / Office 运行时仍是 x64 载荷（由 Windows 的仿真层执行），且尚未在 ARM 设备上完成运行验证。需要时按下文[常用命令](#从源码开发)自行构建。
+Windows ARM64 目前只提供**实验性构建**，不进入上面的下载链接与自动更新：主程序是原生 arm64，但内置的 Python / Node / Office 运行时仍是 x64 载荷（由 Windows 的仿真层执行），且尚未在 ARM 设备上完成运行验证。需要时按下文[常用命令](#dev)自行构建。
 
 详细步骤、profile 与插件命令见[用户指南](docs/user-guide.md)，平台与使用边界问题见[常见问题](docs/faq.md)。
 
@@ -231,7 +231,7 @@ git submodule update --init --recursive
 
 - 根 `build`、`dev:*`、`dist:*` 会先运行 `corepack yarn market:check`：它离线校验已提交的 `dshmarket` 版本、lockfile 与兼容性补丁是否一致，既不联网也不改写 manifest。移动该 pin 必须由人工执行 `corepack yarn market:prepare`，并一起提交版本、lockfile 与补丁。
 - `nonead-dsh-desktop` 与 `dsh-plugin-desktop-beta` 是**两个独立工作区**：共享改动需要在两边分别落地，并保持各自声明的差异；发布前跑 `corepack yarn check` 与两边各自的 check。
-- 修改 `README.md`、`README.en.md` 或 `CHANGELOG.md` 等双语文件后，必须同步 `*.i18n.yaml` 里的 Git blob 哈希（用 `git hash-object` 取），否则 `check:bilingual-docs` 会失败。
+- 修改任一语言的 `README*.md` 或 `CHANGELOG*.md` 后，必须同步对应 `*.i18n.yaml` 里的 Git blob 哈希（用 `git hash-object` 取），否则 `check:bilingual-docs` 会失败。
 - `corepack yarn check:layout` 需要已初始化的子模块；纯 headless 环境里若只验证业务代码，可单独跑 `typecheck` / `test` / 工作区 `check`。
 - **CI 不能由被审代码自己决定跑什么**：`changes` 作业先把 `scripts/` 恢复成 **PR 基线**那版再跑分类器与文档/市场门禁（文档仍取工作树），`workflow_dispatch` 没有基线时回退 head 并打一条 warning。CI 跑的是 `corepack yarn check:ci`（= 本地 `check` 去掉 `verify:aa`），不再在运行时改写 `dsh-plugin-desktop-beta/package.json`。
 - **版本一致性是门禁的一部分**：`scripts/verify-layout.mjs` 要求两个工作区的 `version` 都等于 `CHANGELOG.md` 最新的 `## <版本> — <日期>` 标题，发版时漏改任一侧都会失败。
@@ -280,12 +280,14 @@ Nonead DSH Desktop 是基于 [DeepSeek Harness](https://github.com/deepseek-ai/d
 
 ## 更新日志
 
-完整版本记录见[更新日志](CHANGELOG.md)（[English](CHANGELOG.en.md)）。最近三个版本摘要：
+完整版本记录见[更新日志](CHANGELOG.md)（[English](CHANGELOG.en.md)）。最近版本摘要：
 
 | 版本 | 日期 | 要点 |
 | --- | --- | --- |
 | `2.1.15` | 2026-10-22 | 更新卡片/托盘/原生对话框展示发行说明，可跳过版本、安装失败重试与快照回滚；记住窗口位置、`.env` 分层、`dsh-desktop://` 深链接与开机自启；市场支持非图片媒体预览与按名字安装；`dshmarket` `1.66.45` |
-| `2.1.18` | 2026-10-24 | 运行时升到 DSH `0.2.1-rc.3`（344 包重新 vendored、24 个补丁重定基），Agents Anywhere bridge 改为源码构建并重定基 connector 补丁，新增 Windows ARM64 实验性构建，更新卡片文案与进度条位置修正；包含 2.1.17 的审查修复批次 |
+| `2.2.3` | 2026-10-29 | 桌面外壳完成八语言本地化（中/英/日/西/法/德/俄/巴葡）：新增五种语言外壳字典与六种语言设置页字典，插值对话框改用模板查表，客户端语言命名空间与原生菜单同步八语言 |
+| `2.2.2` | 2026-10-28 | 运行时升到 DSH `0.2.2-alpha.2`（370 包重新 vendored、24 个版本补丁与市场补丁重定基），dshmarket 升到 1.73.1，Agents Anywhere bridge 按新 peer 范围重建，产品版本号跨到 2.2.2 |
+| `2.1.18` | 2026-10-24 | 运行时升到 DSH `0.2.2-alpha.2`（344 包重新 vendored、24 个补丁重定基），Agents Anywhere bridge 改为源码构建并重定基 connector 补丁，新增 Windows ARM64 实验性构建，更新卡片文案与进度条位置修正；包含 2.1.17 的审查修复批次 |
 | `2.1.17` | 2026-10-24 | 审查修复批次：恢复助手刷新竞态、检查点 inode 复核与单槽降级、设置原子写入、更新失败路径释放、插件状态与 staging 清理、托盘对话框归属、市场分页与皮肤声明、CI 门禁修复 |
 | `2.1.16` | 2026-10-22 | 安全与门禁修复：CI 门禁用 PR 基线侧脚本执行、Electron fuses 收紧（关 `NODE_OPTIONS`/`--inspect`，稳定壳改为只从 `app.asar` 加载，`runAsNode` 因 Host/CLI/pnpm shim 依赖而保留，验证脚本按布局逐项断言）、渲染器凭据改用私有管道注入、Web 门禁改为失败即拒绝、深链接动作白名单、密钥遮盖补 base64url；稳定壳 `asarUnpack` 与 `files[].from` 的耦合改由测试按前缀推导锁定（实测确认现有 pattern 正确）、补稳定壳打包 CI、版本一致性纳入 `verify-layout` |
 | `2.1.13` | 2026-10-21 | 运行时切到 DSH `0.2.1-rc.2`，`dshmarket` `1.66.44`，AA bridge `39b82d4`，新的 boot 字标与 onboarding 取 API Key 引导，队列满时丢弃 AA 事件而非崩溃 |

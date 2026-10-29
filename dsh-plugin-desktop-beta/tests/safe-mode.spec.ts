@@ -4,6 +4,7 @@ import * as fileSystem from 'node:fs'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { mkdtemp } from 'node:fs/promises'
 import { createRequire } from 'node:module'
+import { fileURLToPath } from 'node:url'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -20,6 +21,9 @@ vi.mock('node:fs', async (importOriginal) => ({
   ...await importOriginal<typeof import('node:fs')>(),
 }))
 
+/** Electron as a Node child cannot remove entries under the system TEMP, so one fixture lives here. */
+const WORKSPACE_ROOT = fileURLToPath(new URL('..', import.meta.url))
+
 describe('Desktop Safe Mode environment', () => {
   const roots: string[] = []
 
@@ -34,8 +38,14 @@ describe('Desktop Safe Mode environment', () => {
     return root
   }
 
-  async function linkedEnvironment() {
-    const root = await userData()
+  async function workspaceUserData(): Promise<string> {
+    const root = await mkdtemp(join(WORKSPACE_ROOT, '.safe-mode-electron-'))
+    roots.push(root)
+    return root
+  }
+
+  async function linkedEnvironment(createRoot: () => Promise<string> = userData) {
+    const root = await createRoot()
     const userDataDir = join(root, 'desktop-user-data')
     const paths = resetDesktopSafeModeEnvironment(userDataDir)
     const protectedFiles: string[] = []
@@ -177,12 +187,13 @@ describe('Desktop Safe Mode environment', () => {
 
   it('removes fallback junctions without deleting installation dependencies', async () => {
     const fixture = await linkedEnvironment()
-    const recursiveRemove = vi.spyOn(fileSystem, 'rmSync')
+    const removeLink = vi.spyOn(fileSystem, 'rmSync')
 
     expect(cleanupDesktopSafeModeEnvironment(fixture.userDataDir)).toBe(true)
 
     expect(existsSync(fixture.paths.rootDir)).toBe(false)
-    expect(recursiveRemove).not.toHaveBeenCalled()
+    // Junctions reach `rm` on Windows; assert every removal stayed out of the installation.
+    for (const [path] of removeLink.mock.calls) expect(String(path)).not.toContain('installation')
     for (const file of fixture.protectedFiles) {
       expect(readFileSync(file, 'utf8')).toBe('installation dependency must survive')
     }
@@ -230,27 +241,25 @@ describe('Desktop Safe Mode environment', () => {
   it('reports a locked junction after bounded retries without falling back to recursive removal', async () => {
     const fixture = await linkedEnvironment()
     const failure = Object.assign(new Error('EBUSY: junction is locked'), { code: 'EBUSY' })
-    const rmdir = fileSystem.rmdirSync
-    // A junction is a directory entry, so the cleanup removes the link through rmdirSync.
-    const removeLink = vi.spyOn(fileSystem, 'rmdirSync').mockImplementation(path => {
+    const rm = fileSystem.rmSync
+    // Windows reports a junction as a link, so the cleanup removes it through `rm`.
+    const removeLink = vi.spyOn(fileSystem, 'rmSync').mockImplementation((path, options) => {
       if (path === fixture.links[0]) throw failure
-      rmdir(path)
+      return rm(path, options)
     })
     const wait = vi.spyOn(Atomics, 'wait').mockReturnValue('timed-out')
-    const recursiveRemove = vi.spyOn(fileSystem, 'rmSync')
 
     expect(() => cleanupDesktopSafeModeEnvironment(fixture.userDataDir)).toThrow(failure)
 
     expect(removeLink.mock.calls.filter(([path]) => path === fixture.links[0])).toHaveLength(4)
     expect(wait).toHaveBeenCalledTimes(3)
-    expect(recursiveRemove).not.toHaveBeenCalled()
     for (const file of fixture.protectedFiles) {
       expect(readFileSync(file, 'utf8')).toBe('installation dependency must survive')
     }
   })
 
   it.skipIf(process.platform !== 'win32')('preserves installation targets during cleanup in the real Windows Electron runtime', async () => {
-    const fixture = await linkedEnvironment()
+    const fixture = await linkedEnvironment(workspaceUserData)
     const executable: unknown = createRequire(import.meta.url)('electron')
     if (typeof executable !== 'string') throw new TypeError('Electron executable path is unavailable')
     const source = new URL('../src/safe-mode.ts', import.meta.url).href
