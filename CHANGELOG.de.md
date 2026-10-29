@@ -23,7 +23,7 @@ Die Desktop-Shell ist in acht Sprachen lokalisiert (vereinfachtes Chinesisch, En
 - Renderer: Die Rückmeldungstexte der Wiederherstellung wurden aus dem Modul herausgelöst, das Node-Built-ins importiert; der native-ui-Build meldet keine Externalisierungswarnungen für `node:fs`/`node:path`/`node:crypto` mehr.
 - Abgrenzung: Der Wiederherstellungsassistent und die Profilauswahl stammen aus dem gemeinsamen Workspace `dsh-plugin-desktop-beta` und bleiben ausschließlich chinesisch/englisch.
 - Version: Das Produkt wechselt in beiden Desktop-Workspaces von 2.2.2 auf **2.2.3**.
-- Dokumentation: README und CHANGELOG erscheinen jetzt auch auf Japanisch, Spanisch, Französisch, Deutsch, Russisch und brasilianischem Portugiesisch; das Bilingual-Gate akzeptiert nun mehrsprachige Aufzeichnungen (mindestens zwei Dokumente pro Aufzeichnung).
+- Dokumentation: README und CHANGELOG erscheinen jetzt auch auf Japanisch, Spanisch, Französisch, Deutsch, Russisch und brasilianischem Portugiesisch; das Bilingual-Gate akzeptiert jetzt mehrsprachige Datensätze (mindestens zwei Dokumente pro Datensatz).
 
 
 ## 2.2.2 — 2026-10-28

@@ -65,15 +65,15 @@ Durcissement de la sécurité et corrections des portes (résultat d’un audit 
 
 - La CI exécute désormais la classification des changements et les portes documentation/marché depuis **le côté base de la pull request**, si bien que le code en cours de revue ne peut plus affaiblir son propre classificateur pour sauter toutes les portes produit.
 - Fuses Electron resserrés : les deux coques ferment la surface d’injection `NODE_OPTIONS` / `--inspect` ; la coque stable (`asar: true`) ne charge plus que depuis `app.asar`, tandis que le canal Beta laisse ce bit désactivé parce qu’il distribue un répertoire physique (`asar: false`). `runAsNode` doit rester activé : sous Windows, le Host, la CLI et les shims pnpm lancent tous le binaire Electron avec `ELECTRON_RUN_AS_NODE`. Les deux scripts `verify-fuses` dérivent désormais la valeur attendue de la disposition réelle et vérifient l’ensemble des bits, si bien qu’un relâchement échoue ; la coque stable appelait auparavant `verifyElectronExecutableFuses(path, undefined, false)`, ce qui ne contrôlait jamais le bit d’archive.
-- L’identifiant du renderer ne circule plus dans l’environnement du processus enfant Host ; il est injecté une seule fois au démarrage via un tuyau privé, si bien qu’un processus du même utilisateur ne peut plus le lire dans l’environnement du processus ou dans un vidage de crash pour usurper le renderer.
-- La porte d’accès Web **échoue en refusant** lorsque l’identifiant manque (elle laissait passer auparavant), et les requêtes de la classe navigateur ne sont plus autorisées silencieusement.
+- L’identifiant du renderer ne circule plus dans l’environnement du processus enfant Host ; il est injecté une seule fois au démarrage via un canal privé, si bien qu’un processus du même utilisateur ne peut plus le lire dans l’environnement du processus ou dans un vidage de crash pour usurper le renderer.
+- La porte d’accès Web **refuse par défaut** lorsque l’identifiant manque (elle laissait passer auparavant), et les requêtes de la classe navigateur ne sont plus autorisées silencieusement.
 - Les liens profonds `dsh-desktop://` sont distribués via une liste blanche d’actions ; les actions inconnues sont rejetées avec une seule ligne de journal.
 - Le masquage des secrets pour les diagnostics et les journaux couvre désormais les formes base64url, si bien que l’identifiant du renderer ne peut plus être exporté.
 - La route du sélecteur de répertoire partage le contrôle d’origine identique en loopback utilisé par la route des paramètres, au lieu de faire confiance à un `Origin` fourni par le client.
 
 Empaquetage et publication :
 
-- Le contrat `asarUnpack` de la coque stable a été vérifié à nouveau face à app-builder-lib 26.15.7 : les correspondances sont résolues par rapport au **chemin du projet d’empaquetage**, si bien que les trois motifs doivent conserver le préfixe `.desktop-build/payload/` de `files[].from` pour correspondre (`scripts/node-bin`, `assets` et `build` sont bien déballés à côté de `app.asar`). Les motifs restent tels quels ; un nouveau test dérive le préfixe attendu de `files[].from` et le vérifie, échouant si l’un des deux côtés dérive — ce couplage n’était couvert par aucune assertion auparavant.
+- Le contrat `asarUnpack` de la coque stable a été revérifié face à app-builder-lib 26.15.7 : les correspondances sont résolues par rapport au **chemin du projet d’empaquetage**, si bien que les trois motifs doivent conserver le préfixe `.desktop-build/payload/` de `files[].from` pour correspondre (`scripts/node-bin`, `assets` et `build` sont bien déballés à côté de `app.asar`). Les motifs restent tels quels ; un nouveau test dérive le préfixe attendu de `files[].from` et le vérifie, échouant si l’un des deux côtés dérive — ce couplage n’était couvert par aucune assertion auparavant.
 - La CI couvre désormais l’empaquetage de la coque stable, et `verify-layout` impose la parité de version : le champ `version` des deux espaces de travail doit correspondre au plus récent titre de `CHANGELOG`.
 - La CI ne réécrit plus `dsh-plugin-desktop-beta/package.json` sur place pour sauter le smoke AA ; un script `check:ci` explicite remplace cette mutation, si bien que la CI et les exécutions locales concordent.
 
@@ -82,14 +82,14 @@ Hygiène du dépôt et chaîne d’approvisionnement :
 - Chaque Action tierce utilisée par la CI est épinglée à un SHA de commit (`actions/checkout`, `actions/setup-node`, `actions/cache`), l’étiquette n’étant conservée qu’en commentaire de fin pour la lisibilité, afin qu’une étiquette amont déplacée ne puisse pas modifier silencieusement ce que les portes exécutent.
 - Le classificateur de changements ne traite plus chaque fichier de `docs/` comme de la documentation : les extensions non documentaires dans `docs/` (`.js`/`.mjs`/`.json`/`.ts` et assimilées) déclenchent désormais les portes produit, seuls les vrais formats de documentation et `docs/schemas/*.schema.json` étant exemptés.
 - Six fichiers tgz historiques non référencés (~1,7 Mo) ont été retirés de `vendor/agents-anywhere/`, seul l’épinglé étant conservé ; le README de ce répertoire n’enseigne plus le chemin `DSH_AA_SOURCE_REF=pinned` supprimé et épingle désormais via `provenance.pinnedCommit`.
-- Les fichiers `nonead-dsh-desktop/README.md` et `README.zh.md` ne codent plus en dur la version du produit (ils indiquaient `2.1.3`) ; ils renvoient au `version` de `package.json` et à l’entrée la plus récente du `CHANGELOG` racine.
+- Les fichiers `nonead-dsh-desktop/README.md` et `README.zh.md` ne codent plus en dur la version du produit (ils indiquaient `2.1.3`) ; ils renvoient à la propriété `version` de `package.json` et à l’entrée la plus récente du `CHANGELOG` racine.
 - La documentation précise désormais que l’AppImage et le deb Linux x64 ne sont construits que par le canal Beta et que le canal stable ne livre sous Linux qu’un répertoire exécutable ; le premier contrôle réel des fuses et de `onlyLoadAppFromAsar` est la tâche CI `desktop-windows-stable` (`package:dir:stable`), puisque localement seuls des tests unitaires les couvrent.
 
 ### Complément du 2026-10-23 (même numéro de version, inclus dans les compilations ultérieures)
 
 Chaîne d’empaquetage :
 
-- Correction de trois portes d’empaquetage Windows qui s’étaient écartées du comportement réel du produit : les jonctions créées par pnpm dans un Profil ne pouvaient pas être supprimées récursivement ; `verify:host` ne transmettait jamais l’identifiant du renderer (32 octets base64url, et il doit être le même que celui reçu par le Host) ; et ce script usurpait le renderer avec une chaîne fixe, que la porte Web à échec par refus rejette.
+- Correction de trois portes d’empaquetage Windows qui s’étaient écartées du comportement réel du produit : les jonctions créées par pnpm dans un Profil ne pouvaient pas être supprimées récursivement ; `verify:host` ne transmettait jamais l’identifiant du renderer (32 octets base64url, et il doit être le même que celui reçu par le Host) ; et ce script usurpait le renderer avec une chaîne fixe, que la porte Web à refus par défaut rejette.
 - `dsh-plugin-desktop-beta` déclare désormais `@deepseek-ai/dsh-plugin-manager` (un peer obligatoire de `dsh-plugin-market`), ce qui rétablit la fermeture de runtime de 318 nœuds.
 
 ## 2.1.15 — 2026-10-22
@@ -106,14 +106,14 @@ Runtime et dépendances :
 Mises à jour et récupération :
 
 - La carte de mise à jour peut afficher les **notes de version** fournies par la réponse de version ; le menu de la zone de notification et les boîtes de dialogue natives du canal Beta offrent en plus une entrée « Afficher les notes de version complètes » (les libellés de la zone de notification et le corps des notifications sont tronqués selon les règles de la plateforme), tandis que la boîte de dialogue native de mise à jour du canal stable ne porte toujours qu’un texte fixe.
-- **Ignorer cette version** est nouveau : la décision est persistée, si bien que le contrôle planifié sans surveillance ne repropose plus une version ignorée.
+- La fonction **Ignorer cette version** est nouvelle : la décision est persistée, si bien que le contrôle planifié sans surveillance ne repropose plus une version ignorée.
 - Une installation échouée peut être relancée, et la récupération peut revenir à **n’importe quel instantané enregistré**, pas seulement au plus récent.
 - Le lancement de l’installateur natif commence désormais **avant** la séquence de fermeture, si bien que quitter ne peut plus entraîner l’installateur avec lui.
 - La signature des installateurs Windows et la vérification de l’éditeur ont été introduites puis **entièrement annulées** dans `c5896ac` ; les installateurs Windows ne comparent toujours que `ProductName` / `ProductVersion` de la ressource de version PE.
 
 Coque de bureau :
 
-- La position et la taille de la fenêtre sont mémorisées ; la restauration n’a lieu que si la fenêtre chevauche encore un écran monté, si bien que débrancher un moniteur ne peut pas la placer hors écran.
+- La position et la taille de la fenêtre sont mémorisées ; la restauration n’a lieu que si la fenêtre chevauche encore un écran raccordé, si bien que débrancher un moniteur ne peut pas la placer hors écran.
 - La prise en charge stricte et étagée des fichiers `.env` complète les variables manquantes du processus enfant Host sans écraser l’environnement existant.
 - Les liens profonds `dsh-desktop://` sont pris en charge (par exemple `dsh-desktop://settings/general`).
 - Un commutateur de lancement à l’ouverture de session lit l’état réel du système d’exploitation.
@@ -124,7 +124,7 @@ Coque de bureau :
 Marché de plugins et habillage :
 
 - Le marché prévisualise les **médias non image** et peut **installer un plugin par son nom**.
-- L’ignorance du marché de plugins pendant l’onboarding est mémorisée, et rouvrir l’assistant conserve le réglage de marché enregistré.
+- Le fait d’ignorer le marché de plugins pendant l’onboarding est mémorisé, et rouvrir l’assistant conserve le réglage de marché enregistré.
 - Le remplacement du titre héros de l’habillage est limité au sous-arbre héros et ne touche plus les autres textes.
 
 Corrections :
