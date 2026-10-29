@@ -1,4 +1,10 @@
-# Bilingual-pair consistency record. Both languages carry equal authority.
-# Update both files and record their Git blob hashes after editing either side.
-README.md: 349d89abc88230babdfe34071e924c2cd2cf83cf
-README.en.md: 92ee780e5ea7ae1ddfd3060073332b2639018e6c
+# Multi-language document consistency record. Every language carries equal authority.
+# Update every file and record their Git blob hashes after editing any side.
+README.md: 08c5f86d62270da6d3edcd2d9e3b82b11d1c17d4
+README.en.md: 420135a5d697333273b641dacb071cf4fe662b91
+README.ja.md: 923a534557e2506649299a0afce24d03a97bd067
+README.es.md: fe01265bba911d8be1d57d5ab5b3c19218fef778
+README.fr.md: 74713fe467dcefa4e23b735c628df430f908bb31
+README.de.md: 7a3c2fbf49963de993fae0339bc13e0c2bbe219d
+README.ru.md: 9ef7fc02f2151615e7d516d1ba3c6a77807ac242
+README.pt.md: 583a984d046df8195519af5339a73de214063675

@@ -1,6 +1,6 @@
 <p align="center">
   <strong>Nonead DSH Desktop · Changelog</strong><br>
-  <sub><a href="CHANGELOG.md">中文</a> · English</sub>
+  <sub><a href="CHANGELOG.md">中文</a> · English · <a href="CHANGELOG.ja.md">日本語</a> · <a href="CHANGELOG.es.md">Español</a> · <a href="CHANGELOG.fr.md">Français</a> · <a href="CHANGELOG.de.md">Deutsch</a> · <a href="CHANGELOG.ru.md">Русский</a> · <a href="CHANGELOG.pt.md">Português</a></sub>
 </p>
 
 # Changelog
@@ -9,7 +9,7 @@ This file records user-facing changes to Nonead DSH Desktop. Every release raise
 
 Maintenance conventions:
 
-- Every release adds one entry to both files (`CHANGELOG.md`, `CHANGELOG.en.md`) and refreshes the Git blob hashes recorded in `CHANGELOG.i18n.yaml`, otherwise `corepack yarn check:bilingual-docs` fails.
+- Every release adds one entry per language (`CHANGELOG.md`, `CHANGELOG.en.md` and the ja/es/fr/de/ru/pt versions) and refreshes the Git blob hashes recorded in `CHANGELOG.i18n.yaml`, otherwise `corepack yarn check:bilingual-docs` fails.
 - Entries record only changes users can perceive and boundary changes maintainers must know about; pure refactors do not get their own entry.
 - Earlier history lives in the Git tags (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) and in the commit log.
 
@@ -23,6 +23,8 @@ The desktop shell is localized into eight languages (Simplified Chinese, English
 - Renderer: recovery feedback copy moved out of the module that imports Node built-ins, so the native-ui build no longer reports `node:fs`/`node:path`/`node:crypto` externalization warnings.
 - Boundary: the recovery assistant and Profile selector live in the shared `dsh-plugin-desktop-beta` workspace and remain Chinese/English only.
 - Version: the product moves from 2.2.2 to **2.2.3** in both desktop workspaces.
+- Docs: README and CHANGELOG are now published in Japanese, Spanish, French, German, Russian and Brazilian Portuguese as well; the bilingual gate now accepts multi-language records (at least two documents per record).
+
 
 ## 2.2.2 — 2026-10-28
 

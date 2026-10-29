@@ -36,10 +36,10 @@ export function parseBilingualRecord(recordPath, content) {
     }
     entries.push({ filename, hash })
   }
-  if (entries.length !== 2) {
-    throw new Error(`${recordPath} must contain exactly two bilingual document records`)
+  if (entries.length < 2) {
+    throw new Error(`${recordPath} must contain at least two bilingual document records`)
   }
-  if (entries[0]?.filename === entries[1]?.filename) {
+  if (new Set(entries.map(entry => entry.filename)).size !== entries.length) {
     throw new Error(`${recordPath} must reference two distinct bilingual documents`)
   }
   return entries

@@ -6,7 +6,7 @@ import {
   verifyBilingualRecords,
 } from './bilingual-docs.mjs'
 
-test('parses exactly two Markdown blob records', () => {
+test('parses two or more Markdown blob records', () => {
   assert.deepEqual(parseBilingualRecord('docs/topic.i18n.yaml', [
     '# Both languages carry equal authority.',
     `topic.md: ${'a'.repeat(40)}`,
@@ -18,10 +18,25 @@ test('parses exactly two Markdown blob records', () => {
   ])
 })
 
-test('rejects malformed, incomplete, and escaping bilingual records', () => {
+test('parses a multi-language record beyond the original pair', () => {
+  const entries = parseBilingualRecord('README.i18n.yaml', [
+    `README.md: ${'a'.repeat(40)}`,
+    `README.en.md: ${'b'.repeat(40)}`,
+    `README.ja.md: ${'c'.repeat(40)}`,
+    `README.pt.md: ${'d'.repeat(40)}`,
+    '',
+  ].join('\n'))
+  assert.deepEqual(entries.map(entry => entry.filename), ['README.md', 'README.en.md', 'README.ja.md', 'README.pt.md'])
+})
+
+test('rejects malformed, incomplete, duplicated, and escaping bilingual records', () => {
   assert.throws(
     () => parseBilingualRecord('docs/topic.i18n.yaml', `topic.md: ${'a'.repeat(40)}\n`),
-    /exactly two/u,
+    /at least two/u,
+  )
+  assert.throws(
+    () => parseBilingualRecord('docs/topic.i18n.yaml', `topic.md: ${'a'.repeat(40)}\ntopic.md: ${'b'.repeat(40)}\n`),
+    /distinct/u,
   )
   assert.throws(
     () => parseBilingualRecord('docs/topic.i18n.yaml', `topic.md = ${'a'.repeat(40)}\ntopic.zh.md: ${'b'.repeat(40)}\n`),

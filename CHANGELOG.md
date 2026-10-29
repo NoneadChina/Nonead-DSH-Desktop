@@ -1,6 +1,6 @@
 <p align="center">
   <strong>Nonead DSH Desktop · 更新日志</strong><br>
-  <sub>中文 · <a href="CHANGELOG.en.md">English</a></sub>
+  <sub>中文 · <a href="CHANGELOG.en.md">English</a> · <a href="CHANGELOG.ja.md">日本語</a> · <a href="CHANGELOG.es.md">Español</a> · <a href="CHANGELOG.fr.md">Français</a> · <a href="CHANGELOG.de.md">Deutsch</a> · <a href="CHANGELOG.ru.md">Русский</a> · <a href="CHANGELOG.pt.md">Português</a></sub>
 </p>
 
 # 更新日志
@@ -9,7 +9,7 @@
 
 维护约定：
 
-- 每次发布在两份文件里各加一条（`CHANGELOG.md`、`CHANGELOG.en.md`），并刷新 `CHANGELOG.i18n.yaml` 记录的 Git blob 哈希，否则 `corepack yarn check:bilingual-docs` 会失败。
+- 每次发布为每种语言各加一条（`CHANGELOG.md`、`CHANGELOG.en.md` 及 ja/es/fr/de/ru/pt 版本），并刷新 `CHANGELOG.i18n.yaml` 记录的 Git blob 哈希，否则 `corepack yarn check:bilingual-docs` 会失败。
 - 条目只写"用户能感知的变化"与"维护者必须知道的边界变化"；纯重构不单独成条。
 - 更早的历史见 Git 标签（`v1.7.3`、`v2.0.7`、`v2.0.8`、`v2.1.3`、`v2.1.4`、`v2.1.5`）与提交记录。
 
@@ -23,6 +23,8 @@
 - 渲染进程：恢复反馈文案移出带 Node 依赖的模块，native-ui 构建不再出现 `node:fs`/`node:path`/`node:crypto` 外部化警告。
 - 边界：恢复助手与 Profile 选择页来自共享工作区 `dsh-plugin-desktop-beta`，仍只有中英双语。
 - 版本号：产品 2.2.2 → **2.2.3**（两个桌面工作区同步）。
+- 文档：README 与 CHANGELOG 新增日语、西班牙语、法语、德语、俄语与巴西葡萄牙语版本；双语门禁扩展为多语言记录（每条记录至少两份文档）。
+
 
 ## 2.2.2 — 2026-10-28
 

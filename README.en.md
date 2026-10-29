@@ -18,7 +18,7 @@
   Everything is a plugin — including the desktop itself.
 </p>
 
-<p align="center"><sub>An independent community open-source project. It is not affiliated with, partnered with, licensed by, or endorsed by DeepSeek.<br>No DeepSeek employees or DeepSeek Harness upstream team members currently take part in this repository; upstream contributors shown on GitHub Contributors come from forked and synchronized commit history.<br><a href="README.md">中文</a> · English</sub></p>
+<p align="center"><sub>An independent community open-source project. It is not affiliated with, partnered with, licensed by, or endorsed by DeepSeek.<br>No DeepSeek employees or DeepSeek Harness upstream team members currently take part in this repository; upstream contributors shown on GitHub Contributors come from forked and synchronized commit history.<br><a href="README.md">中文</a> · English · <a href="README.ja.md">日本語</a> · <a href="README.es.md">Español</a> · <a href="README.fr.md">Français</a> · <a href="README.de.md">Deutsch</a> · <a href="README.ru.md">Русский</a> · <a href="README.pt.md">Português</a></sub></p>
 
 <a id="toc"></a>
 
@@ -94,7 +94,7 @@ Official installers cover Windows x64, macOS (Universal, Intel and Apple Silicon
 
 Linux notes: some distributions need FUSE installed, or you can run with `--appimage-extract-and-run`. In-app update on Linux **only checks the version and never downloads an installer**; upgrade by downloading a fresh AppImage. Use the Beta channel when you need a Linux installer — the stable channel only produces a runnable directory on Linux.
 
-Windows ARM64 is available as an **experimental build only** and is not served by the download links or in-app updates above: the shell is native arm64, but the bundled Python / Node / Office runtime is still the x64 payload (executed through Windows emulation), and the artifact has not been run on ARM hardware yet. Build it yourself with the command under [Common commands](#building-from-source).
+Windows ARM64 is available as an **experimental build only** and is not served by the download links or in-app updates above: the shell is native arm64, but the bundled Python / Node / Office runtime is still the x64 payload (executed through Windows emulation), and the artifact has not been run on ARM hardware yet. Build it yourself with the command under [Common commands](#dev).
 
 Step-by-step usage, profiles and plugin commands are in the [user guide](docs/user-guide.en.md); platform and scope questions are answered in the [FAQ](docs/faq.en.md).
 
@@ -231,7 +231,7 @@ Conventions:
 
 - Root `build`, `dev:*` and `dist:*` run `corepack yarn market:check` first: it verifies offline that the committed `dshmarket` version, lockfile and compatibility patch agree, without reaching the network or rewriting manifests. Moving the pin requires a human to run `corepack yarn market:prepare` and commit the version, lockfile and patch together.
 - `nonead-dsh-desktop` and `dsh-plugin-desktop-beta` are **separate workspaces**: shared changes must land in both while preserving their declared differences; run `corepack yarn check` and each workspace check before release.
-- After editing bilingual files such as `README.md`, `README.en.md` or `CHANGELOG.md`, refresh the Git blob hashes in the matching `*.i18n.yaml` (take them with `git hash-object`), otherwise `check:bilingual-docs` fails.
+- After editing `README*.md` or `CHANGELOG*.md` in any language, refresh the Git blob hashes in the matching `*.i18n.yaml` (take them with `git hash-object`), otherwise `check:bilingual-docs` fails.
 - `corepack yarn check:layout` needs an initialised submodule; in a purely headless environment, validate business code with `typecheck` / `test` / per-workspace `check` instead.
 - **CI must not let the code under review decide what runs**: the `changes` job restores `scripts/` from the **pull request base** before running the classifier and the documentation/market gates (documents still come from the working tree); `workflow_dispatch` has no base, so it falls back to the head copy with a warning. CI runs `corepack yarn check:ci` (= local `check` without `verify:aa`) instead of rewriting `dsh-plugin-desktop-beta/package.json` at run time.
 - **Version parity is part of the gate**: `scripts/verify-layout.mjs` requires both workspaces' `version` to equal the newest `## <version> — <date>` heading in `CHANGELOG.md`, so missing either side on a release fails.
