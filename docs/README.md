@@ -2,7 +2,7 @@
 
 [English documentation](README.en.md)
 
-这里是 Nonead DSH Desktop 的产品与开发文档入口，对应产品版本 **2.2.2**。根目录的 [`README.md`](../README.md) 负责"这是什么、能做什么、怎么装"；本目录解释项目为什么存在、怎么用得更顺，以及如何为 Desktop 编写插件。版本变更见[更新日志](../CHANGELOG.md)。
+这里是 Nonead DSH Desktop 的产品与开发文档入口，对应产品版本 **2.2.3**。根目录的 [`README.md`](../README.md) 负责"这是什么、能做什么、怎么装"；本目录解释项目为什么存在、怎么用得更顺，以及如何为 Desktop 编写插件。版本变更见[更新日志](../CHANGELOG.md)。
 
 ## 按目标阅读
 

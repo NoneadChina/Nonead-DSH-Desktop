@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  产品版本 <code>2.2.2</code> · DSH 运行时 <code>0.2.2-alpha.2</code> · Electron 44 · MIT License
+  产品版本 <code>2.2.3</code> · DSH 运行时 <code>0.2.2-alpha.2</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">一键下载，开箱即用。</a></h3>
@@ -66,7 +66,7 @@ Nonead DSH Desktop 把 [DeepSeek Harness](https://github.com/deepseek-ai/deepsee
 
 | 项 | 值 |
 | --- | --- |
-| 产品版本 | `2.2.2`（`nonead-dsh-desktop` 与 `dsh-plugin-desktop-beta` 同步） |
+| 产品版本 | `2.2.3`（`nonead-dsh-desktop` 与 `dsh-plugin-desktop-beta` 同步） |
 | 稳定通道工作区 | `nonead-dsh-desktop`（根脚本 `:stable` 后缀） |
 | Beta 通道工作区 | `dsh-plugin-desktop-beta`（根脚本 `:beta` 后缀） |
 | DSH 运行时 | `0.2.2-alpha.2`，所有 `@deepseek-ai/dsh*` 依赖精确 pin，运行时就地 vendored |
@@ -280,13 +280,14 @@ Nonead DSH Desktop 是基于 [DeepSeek Harness](https://github.com/deepseek-ai/d
 
 ## 更新日志
 
-完整版本记录见[更新日志](CHANGELOG.md)（[English](CHANGELOG.en.md)）。最近三个版本摘要：
+完整版本记录见[更新日志](CHANGELOG.md)（[English](CHANGELOG.en.md)）。最近版本摘要：
 
 | 版本 | 日期 | 要点 |
 | --- | --- | --- |
 | `2.1.15` | 2026-10-22 | 更新卡片/托盘/原生对话框展示发行说明，可跳过版本、安装失败重试与快照回滚；记住窗口位置、`.env` 分层、`dsh-desktop://` 深链接与开机自启；市场支持非图片媒体预览与按名字安装；`dshmarket` `1.66.45` |
+| `2.2.3` | 2026-10-29 | 桌面外壳完成八语言本地化（中/英/日/西/法/德/俄/巴葡）：新增五种语言外壳字典与六种语言设置页字典，插值对话框改用模板查表，客户端语言命名空间与原生菜单同步八语言 |
 | `2.2.2` | 2026-10-28 | 运行时升到 DSH `0.2.2-alpha.2`（370 包重新 vendored、24 个版本补丁与市场补丁重定基），dshmarket 升到 1.73.1，Agents Anywhere bridge 按新 peer 范围重建，产品版本号跨到 2.2.2 |
-| `2.2.2` | 2026-10-24 | 运行时升到 DSH `0.2.2-alpha.2`（344 包重新 vendored、24 个补丁重定基），Agents Anywhere bridge 改为源码构建并重定基 connector 补丁，新增 Windows ARM64 实验性构建，更新卡片文案与进度条位置修正；包含 2.1.17 的审查修复批次 |
+| `2.1.18` | 2026-10-24 | 运行时升到 DSH `0.2.2-alpha.2`（344 包重新 vendored、24 个补丁重定基），Agents Anywhere bridge 改为源码构建并重定基 connector 补丁，新增 Windows ARM64 实验性构建，更新卡片文案与进度条位置修正；包含 2.1.17 的审查修复批次 |
 | `2.1.17` | 2026-10-24 | 审查修复批次：恢复助手刷新竞态、检查点 inode 复核与单槽降级、设置原子写入、更新失败路径释放、插件状态与 staging 清理、托盘对话框归属、市场分页与皮肤声明、CI 门禁修复 |
 | `2.1.16` | 2026-10-22 | 安全与门禁修复：CI 门禁用 PR 基线侧脚本执行、Electron fuses 收紧（关 `NODE_OPTIONS`/`--inspect`，稳定壳改为只从 `app.asar` 加载，`runAsNode` 因 Host/CLI/pnpm shim 依赖而保留，验证脚本按布局逐项断言）、渲染器凭据改用私有管道注入、Web 门禁改为失败即拒绝、深链接动作白名单、密钥遮盖补 base64url；稳定壳 `asarUnpack` 与 `files[].from` 的耦合改由测试按前缀推导锁定（实测确认现有 pattern 正确）、补稳定壳打包 CI、版本一致性纳入 `verify-layout` |
 | `2.1.13` | 2026-10-21 | 运行时切到 DSH `0.2.1-rc.2`，`dshmarket` `1.66.44`，AA bridge `39b82d4`，新的 boot 字标与 onboarding 取 API Key 引导，队列满时丢弃 AA 事件而非崩溃 |

@@ -1,4 +1,4 @@
 # Bilingual-pair consistency record. Both languages carry equal authority.
 # Update both files and record their Git blob hashes after editing either side.
-architecture.md: 09f7bdd49bd09da0f7bf4517af6093da0979cdd4
-architecture.en.md: 1b292a6380bb0e36ba63abb5fadb9ef56ab9655e
+architecture.md: 5e263a707f98e9050521cabdacbd3d2c0177a4c0
+architecture.en.md: 929a7a5a5e126819f67ad48f67b2c083ec0634a8

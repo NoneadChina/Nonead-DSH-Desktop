@@ -13,6 +13,17 @@ Maintenance conventions:
 - Entries record only changes users can perceive and boundary changes maintainers must know about; pure refactors do not get their own entry.
 - Earlier history lives in the Git tags (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) and in the commit log.
 
+## 2.2.3 — 2026-10-29
+
+The desktop shell is localized into eight languages (Simplified Chinese, English, Japanese, Spanish, French, German, Russian, Brazilian Portuguese):
+
+- Shell copy: Spanish, French, German, Russian and Brazilian Portuguese dictionaries are added, 209 entries each alongside the existing languages; native dialogs, the permissions panel, Computer Use, the settings page, plugin controls and the terminal mode label all resolve through `desktopText`, and the native menus and stored interface language follow the same eight-language set.
+- Settings page: settings dictionaries in six languages (125 entries each) cover the plugin market, remote control, window, browser and local-network, and notification sections instead of falling back to English.
+- Interpolated copy: eleven dialogs (Profile removal and switching, plugin enable/disable/uninstall, data directory and update state) now look up `{name}` templates and substitute the value, so they no longer fall back to English in six languages.
+- Renderer: recovery feedback copy moved out of the module that imports Node built-ins, so the native-ui build no longer reports `node:fs`/`node:path`/`node:crypto` externalization warnings.
+- Boundary: the recovery assistant and Profile selector live in the shared `dsh-plugin-desktop-beta` workspace and remain Chinese/English only.
+- Version: the product moves from 2.2.2 to **2.2.3** in both desktop workspaces.
+
 ## 2.2.2 — 2026-10-28
 
 The runtime moves across to DSH `0.2.2-alpha.2` and the market to 1.73.1:

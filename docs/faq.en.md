@@ -1,6 +1,6 @@
 # Nonead DSH Desktop FAQ
 
-This page answers common questions about installation, platforms, runtime requirements, plugins, updates, and networking for the current version 2.2.2. The feature scope follows the [latest GitHub Release](https://github.com/anywhere-labs/deepseek-harness-desktop/releases/latest) and the [user guide](user-guide.en.md); the user guide describes the interface flows and limits in more detail.
+This page answers common questions about installation, platforms, runtime requirements, plugins, updates, and networking for the current version 2.2.3. The feature scope follows the [latest GitHub Release](https://github.com/anywhere-labs/deepseek-harness-desktop/releases/latest) and the [user guide](user-guide.en.md); the user guide describes the interface flows and limits in more detail.
 
 ## What is Nonead DSH Desktop?
 

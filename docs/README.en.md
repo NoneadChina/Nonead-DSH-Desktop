@@ -2,7 +2,7 @@
 
 [中文文档](README.md)
 
-This directory is the product and developer documentation index for Nonead DSH Desktop, version **2.2.2**. The root [`README.en.md`](../README.en.md) covers what the product is, what it can do and how to install it; these pages explain why the project exists, how to get more out of it, and how to build plugins for it. Version history lives in the [changelog](../CHANGELOG.en.md).
+This directory is the product and developer documentation index for Nonead DSH Desktop, version **2.2.3**. The root [`README.en.md`](../README.en.md) covers what the product is, what it can do and how to install it; these pages explain why the project exists, how to get more out of it, and how to build plugins for it. Version history lives in the [changelog](../CHANGELOG.en.md).
 
 ## Read by goal
 

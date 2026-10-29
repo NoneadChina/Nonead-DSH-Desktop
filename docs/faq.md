@@ -1,6 +1,6 @@
 # Nonead DSH Desktop 常见问题
 
-本页回答安装、平台、运行环境、插件、更新与网络相关的常见疑问，针对当前版本 2.2.2。功能范围以[最新 GitHub Release](https://github.com/anywhere-labs/deepseek-harness-desktop/releases/latest)和[用户指南](user-guide.md)为准；具体的界面操作与限制在用户指南里写得更细。
+本页回答安装、平台、运行环境、插件、更新与网络相关的常见疑问，针对当前版本 2.2.3。功能范围以[最新 GitHub Release](https://github.com/anywhere-labs/deepseek-harness-desktop/releases/latest)和[用户指南](user-guide.md)为准；具体的界面操作与限制在用户指南里写得更细。
 
 ## Nonead DSH Desktop 是什么？
 

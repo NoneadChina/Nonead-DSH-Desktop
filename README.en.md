@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  Product <code>2.2.2</code> · DSH runtime <code>0.2.2-alpha.2</code> · Electron 44 · MIT License
+  Product <code>2.2.3</code> · DSH runtime <code>0.2.2-alpha.2</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">One-click download, ready to use out of the box.</a></h3>
@@ -66,7 +66,7 @@ Shell and Host communicate over exactly one child-process IPC channel. Switching
 
 | Item | Value |
 | --- | --- |
-| Product version | `2.2.2` (`nonead-dsh-desktop` and `dsh-plugin-desktop-beta` in lockstep) |
+| Product version | `2.2.3` (`nonead-dsh-desktop` and `dsh-plugin-desktop-beta` in lockstep) |
 | Stable-channel workspace | `nonead-dsh-desktop` (root scripts use the `:stable` suffix) |
 | Beta-channel workspace | `dsh-plugin-desktop-beta` (root scripts use the `:beta` suffix) |
 | DSH runtime | `0.2.2-alpha.2`, every `@deepseek-ai/dsh*` dependency pinned exactly, runtime vendored |
@@ -280,13 +280,14 @@ If you only want to use DeepSeek Harness from the command line, or want to work 
 
 ## Changelog
 
-The full history is in the [changelog](CHANGELOG.en.md) ([中文](CHANGELOG.md)). The latest three releases:
+The full history is in the [changelog](CHANGELOG.en.md) ([中文](CHANGELOG.md)). Recent releases:
 
 | Version | Date | Highlights |
 | --- | --- | --- |
 | `2.1.15` | 2026-10-22 | Release notes in the update card, tray and native dialogs, skip-a-version, install retry and snapshot rollback; remembered window state, layered `.env`, `dsh-desktop://` deep links and launch at login; market media preview and install-by-name; `dshmarket` `1.66.45` |
+| `2.2.3` | 2026-10-29 | The desktop shell is fully localized into eight languages (Chinese, English, Japanese, Spanish, French, German, Russian, Brazilian Portuguese): five new shell dictionaries plus settings-page dictionaries in six languages, template-based lookups for interpolated dialogs, and the client locale namespace and native menus follow the same set |
 | `2.2.2` | 2026-10-28 | Runtime moved to DSH `0.2.2-alpha.2` (370 packages re-vendored, 24 version patches and the market patch rebased), dshmarket moves to 1.73.1, and the Agents Anywhere bridge is rebuilt for the new peer ranges |
-| `2.2.2` | 2026-10-24 | Runtime moved to DSH `0.2.2-alpha.2` (344 packages re-vendored, 24 patches rebased), the Agents Anywhere bridge is built from source with a rebased connector patch, an experimental Windows ARM64 build lands, and the update card copy and progress placement are fixed; includes the 2.1.17 audit fix batch |
+| `2.1.18` | 2026-10-24 | Runtime moved to DSH `0.2.2-alpha.2` (344 packages re-vendored, 24 patches rebased), the Agents Anywhere bridge is built from source with a rebased connector patch, an experimental Windows ARM64 build lands, and the update card copy and progress placement are fixed; includes the 2.1.17 audit fix batch |
 | `2.1.17` | 2026-10-24 | Audit fix batch: recovery refresh race, checkpoint inode re-checks and single-slot degradation, atomic settings writes, update failure-path release, plugin state and staging cleanup, tray dialog ownership, market paging and skin declaration, CI gate fixes |
 | `2.1.16` | 2026-10-22 | Security and gate fixes: CI gates run the base-side classifier, Electron fuses tightened (`NODE_OPTIONS`/`--inspect` closed, Stable loads only from `app.asar`; `runAsNode` kept because the Host/CLI/pnpm shims need it, and now pinned by layout-derived assertions), renderer credential injected over a private pipe, web gate fails closed, deep-link action allowlist, base64url secret masking; the Stable-shell `asarUnpack` / `files[].from` coupling is now pinned by a prefix-deriving test (the existing patterns verified correct), added Stable packaging CI, and `verify-layout` now enforces version parity |
 | `2.1.13` | 2026-10-21 | Runtime moved to DSH `0.2.1-rc.2`, `dshmarket` `1.66.44`, AA bridge `39b82d4`, new boot wordmark and onboarding API-key guidance, AA queue overflow drops events instead of crashing |
