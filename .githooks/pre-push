@@ -1,0 +1,45 @@
+#!/bin/sh
+# Content leaves this checkout only for the internal mirror.
+# Any push whose destination is not git.corp.nonead.com:<allowed_path> is refused
+# before a single object is packed.
+
+set -u
+
+allowed_host='git.corp.nonead.com'
+allowed_path='tonyke/nonead-dsh-desktop-essentials'
+
+remote_url=${2:-}
+
+refuse() {
+  printf 'pre-push: refused: %s\n' "$1" >&2
+  printf 'pre-push: this checkout synchronises only with git@%s:%s.git\n' "$allowed_host" "$allowed_path" >&2
+  exit 1
+}
+
+[ -n "$remote_url" ] || refuse 'the push destination is empty'
+
+case $remote_url in
+  ssh://*|git+ssh://*|http://*|https://*|git://*)
+    authority=${remote_url#*://}
+    authority=${authority%%/*}
+    ;;
+  *@*)
+    authority=${remote_url#*@}
+    authority=${authority%%[:/]*}
+    ;;
+  *)
+    refuse "unsupported push destination: $remote_url"
+    ;;
+esac
+case $authority in
+  *@*) authority=${authority#*@} ;;
+esac
+authority=${authority%%:*}
+
+[ "$authority" = "$allowed_host" ] || refuse "foreign host: $authority"
+case $remote_url in
+  *"$allowed_path"*) ;;
+  *) refuse "foreign repository: $remote_url" ;;
+esac
+
+exit 0

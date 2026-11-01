@@ -1,0 +1,28 @@
+- id: ui-sidebar-browser
+  # Desktop capability does not depend on the user's Profile name. The later
+  # user patch can still disable the Browser explicitly.
+  disabled: false
+- insert:
+    - id: nonead-dsh-desktop-capabilities
+      name: nonead-dsh-desktop
+    - id: computer-use
+      name: '@deepseek-ai/dsh-computer-use'
+    - id: computer-use-cua-driver-native
+      name: '@deepseek-ai/dsh-experimental-computer-use-cua-driver-native'
+      disabled: true
+# Upstream mounts its Desktop product analytics for every Profile named
+# `desktop` and reports to DeepSeek's collector by default. DSH Desktop does
+# not take part in that collection. Its exporter also requires the upstream
+# Electron shell's DSH_CLIENT_VERSION, which Next never provides.
+- id: desktop-product-telemetry
+  disabled: true
+- id: product-analytics
+  disabled: true
+# The "…" command menu keeps the shipped session-log download. The feedback
+# command is not part of this product's menu.
+- id: command-feedback
+  disabled: true
+# Brand skin ships inside the installer and loads for every Profile.
+- insert:
+    - id: nonead-client-skin
+      name: dsh-nonead-client-skin

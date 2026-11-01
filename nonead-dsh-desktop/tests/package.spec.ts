@@ -1,0 +1,93 @@
+import { existsSync, readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
+import { OPTIONAL_BUNDLES } from '@deepseek-ai/dsh-official-bundles'
+import { expect, it } from 'vitest'
+const read = (path: string) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'))
+it('declares every official optional bundle as a discoverable, version-aligned installation dependency', () => {
+  const next = read('../package.json')
+  const require = createRequire(new URL('../package.json', import.meta.url))
+  // app-boot still names the experimental plugin-market bundle even though this product ships the
+  // official plugin manager instead, so the version-aligned declaration check exempts it by name.
+  const retired = new Set(['@deepseek-ai/dsh-experimental-plugin-market-bundle'])
+  for (const name of OPTIONAL_BUNDLES) {
+    if (retired.has(name)) continue
+    expect(next.dependencies[name], name).toBe(next.dependencies['@deepseek-ai/dsh-app-boot'])
+    const installed = JSON.parse(readFileSync(require.resolve(`${name}/package.json`), 'utf8'))
+    expect(installed.version, name).toBe(next.dependencies[name])
+    expect(installed.dsh?.bundle?.patch, name).toBeTruthy()
+  }
+})
+
+it('archives the application like upstream Desktop while keeping fuses and native inventory aligned with Beta', () => {
+  const next = read('../package.json'); const beta = read('../../dsh-plugin-desktop-beta/package.json')
+  // Both Desktop workspaces ship as one product, so the two manifests must agree instead of each
+  // restating a literal that has to be edited twice on every release.
+  expect(next.version).toBe(beta.version)
+  expect(next.build.appId).toBe('ai.deepseek.dsh.desktop')
+  expect(next.build.asar).toBe(true)
+  for (const platform of ['mac', 'win', 'linux']) expect(next.build[platform].asar, platform).toBeUndefined()
+  // Both CPU builds archive identical bytes, so the universal build keeps one archive. Merging would
+  // rebuild it with one unpack glob per unpacked file and overflow minimatch, as 9ecf5ce32b found.
+  expect(next.build.mac.mergeASARs).toBe(false)
+  // Electron's own fs and dlopen read the archive; child processes, shells and nativeImage need these physically.
+  expect(next.build.asarUnpack).toEqual(expect.arrayContaining(['**/*.{node,dylib,dll,so,exe}', '**/*.so.*', '**/spawn-helper',
+    '**/@vscode/ripgrep-*/bin/rg', '**/@dataiku/uv-*/bin/uv', '**/node_modules/@deepseek-ai/libreoffice-kit-*/**/*', '**/node_modules/pnpm/**/*',
+    '**/node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/**/*', '**/node_modules/@deepseek-ai/dsh-agent-preset/**/*',
+    '**/node_modules/@deepseek-ai/dsh-skill-badge/**/*']))
+  // The prepared tree is archived verbatim, as upstream archives its prepared dsh tree: one file set for the
+  // shell files and one for the dependency tree, because electron-builder leaves out a file set's root node_modules.
+  expect(next.build.files).toEqual([{ from: '.desktop-build/payload', filter: ['**/*'] },
+    { from: '.desktop-build/payload/node_modules', to: 'node_modules', filter: ['**/*'] }])
+  for (const platform of ['mac', 'win', 'linux']) expect(next.build[platform].files, platform).toBeUndefined()
+  // electron-builder collects node_modules itself unless beforeBuild declines, and npmRebuild: false would skip that hook.
+  expect(next.build.beforeBuild).toBe('./scripts/before-build.ts')
+  expect(next.build.npmRebuild).toBeUndefined()
+  // beforePack only adds the Office closure of the prepared payload to the unpack patterns.
+  expect(next.build.beforePack).toBe('./scripts/prepare-pack.ts')
+  // electron-builder resolves `asarUnpack` with `defaultSrc: appDir` — this workspace directory,
+  // because `directories.app` is unset and neither `app/` nor `www/` exists — and matches *source*
+  // paths, not the archived layout: a payload file reaches the matcher as
+  // `.desktop-build/payload/<path>`. The patterns must therefore carry the file set's `from` prefix;
+  // stripping it would pack `assets/` and `build/` (read by path through `nativeImage`) and the
+  // extension-less POSIX `scripts/node-bin/node` binary the shims exec.
+  const payloadPrefix = `${next.build.files[0].from}/`
+  expect(next.build.asarUnpack).toEqual(expect.arrayContaining(
+    ['scripts/node-bin/**/*', 'assets/**/*', 'build/**/*'].map(pattern => `${payloadPrefix}${pattern}`)))
+  expect(next.build.asarUnpack.every((pattern: string) => pattern.startsWith('**/') || pattern.startsWith(payloadPrefix))).toBe(true)
+  expect(next.build.afterPack).toBe('./scripts/verify-packaged.ts')
+  expect(next.build.afterAllArtifactBuild).toBe('./scripts/verify-fuses.ts')
+  // Both shells close the NODE_OPTIONS / --inspect surface and keep RunAsNode (the Host, CLI and pnpm
+  // shims exec the Electron binary with ELECTRON_RUN_AS_NODE). The archive bit follows the layout:
+  // this shell ships app.asar, so it loads only from there; Beta ships a physical app/ directory.
+  const { onlyLoadAppFromAsar: nextArchiveOnly, ...nextHardenedFuses } = next.build.electronFuses
+  const { onlyLoadAppFromAsar: betaArchiveOnly, ...betaHardenedFuses } = beta.build.electronFuses
+  expect(nextHardenedFuses).toEqual(betaHardenedFuses)
+  expect(nextArchiveOnly).toBe(true)
+  expect(betaArchiveOnly).toBe(false)
+  expect(next.build.electronFuses.runAsNode).toBe(true)
+  expect(next.build.electronFuses.enableNodeOptionsEnvironmentVariable).toBe(false)
+  expect(next.build.electronFuses.enableNodeCliInspectArguments).toBe(false)
+  expect(next.build.electronFuses.enableEmbeddedAsarIntegrityValidation).toBe(false)
+  // Beta's rule already keeps the interpreter payloads, identical across the two CPU builds. Next adds its own
+  // per-CPU native packages, pnpm's reflink addons from its bundled dist/node_modules, and the wheels' .dylibs
+  // directories, which @electron/universal misses because it matches without the dot option.
+  expect(next.build.mac.x64ArchFiles).toBe(beta.build.mac.x64ArchFiles
+    .replace('sherpa-onnx-darwin-*/**}', 'sherpa-onnx-darwin-*/**,@trycua/cua-driver-darwin-*/**,@ubjs/node-darwin-*/**,@reflink/reflink-darwin-*/**}')
+    .replace('Contents/Resources/runtime/**}', 'Contents/Resources/runtime/**,Contents/Resources/runtime/**/.*/**}'))
+  // Both CPU payloads ride beside the archive as extra resources; electron-builder must not re-sign the pre-signed payloads.
+  // macOS also carries the manifest copy the updaters shipped in 2.0.14-next through 2.0.17-next read beside the archive.
+  expect(next.build.mac.extraResources).toEqual([{ from: '.desktop-build/runtime', to: 'runtime' }, { from: '.desktop-build/payload/package.json', to: 'app/package.json' }])
+  expect(next.build.win.extraResources).toEqual([{ from: '.desktop-build/runtime', to: 'runtime' }])
+  expect(next.build.extraResources).toBeUndefined()
+  expect(next.build.linux.extraResources).toBeUndefined()
+  expect(next.build.mac.signIgnore).toContain('/Contents/Resources/runtime/(?:arm64|x64)/primary-runtime(?:/|$)')
+  expect(next.scripts['prepare:runtime']).toBe('node scripts/prepare-runtime.ts')
+  // Like upstream Desktop's dev launcher, every development launch prepares the payload before the shell starts.
+  expect(next.scripts.dev).toBe('yarn build && yarn prepare:runtime && node scripts/start.mjs')
+  expect(next.scripts.start).toBe('yarn prepare:runtime && node scripts/start.mjs')
+  for (const name of ['@deepseek-ai/dsh-skill-office', '@deepseek-ai/dsh-tool-workspace-dependencies']) expect(next.dependencies[name], name).toBe(next.dependencies['@deepseek-ai/dsh'])
+  expect(next.build.mac.icon).toBe('build/app-icon.icon')
+  expect(existsSync(new URL('../build/app-icon.icon/icon.json', import.meta.url))).toBe(true)
+  expect(next.build.nsis).toMatchObject({ oneClick: false, perMachine: false, allowElevation: true, allowToChangeInstallationDirectory: true })
+  expect(next.build.mac.notarize).toBe(true)
+})

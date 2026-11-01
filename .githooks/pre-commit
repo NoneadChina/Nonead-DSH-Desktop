@@ -1,0 +1,52 @@
+#!/bin/sh
+# A remote that would upload outside the internal mirror is refused at commit
+# time, so a stray `git remote add upstream <elsewhere>` does not survive the
+# next commit. CI checkouts are exempt because their remote layout is owned by
+# the runner.
+
+set -u
+
+[ "${CI:-}" = 'true' ] && exit 0
+[ -n "${DSH_SKIP_REMOTE_GUARD:-}" ] && exit 0
+
+allowed_host='git.corp.nonead.com'
+allowed_path='tonyke/nonead-dsh-desktop-essentials'
+
+violations=$(git remote | while IFS= read -r name; do
+  url=$(git remote get-url --all "$name" 2>/dev/null | head -n 1)
+  [ -n "$url" ] || continue
+  case $url in
+    ssh://*|git+ssh://*|http://*|https://*|git://*)
+      authority=${url#*://}
+      authority=${authority%%/*}
+      ;;
+    *@*)
+      authority=${url#*@}
+      authority=${authority%%[:/]*}
+      ;;
+    *)
+      printf '%s %s\n' "$name" "$url"
+      continue
+      ;;
+  esac
+  case $authority in
+    *@*) authority=${authority#*@} ;;
+  esac
+  authority=${authority%%:*}
+  if [ "$authority" != "$allowed_host" ]; then
+    printf '%s %s\n' "$name" "$url"
+    continue
+  fi
+  case $url in
+    *"$allowed_path"*) ;;
+    *) printf '%s %s\n' "$name" "$url" ;;
+  esac
+done)
+
+if [ -n "$violations" ]; then
+  printf 'pre-commit: remote outside the internal mirror:\n%s\n' "$violations" >&2
+  printf 'pre-commit: remove it (git remote remove <name>) or set DSH_SKIP_REMOTE_GUARD=1 to bypass\n' >&2
+  exit 1
+fi
+
+exit 0

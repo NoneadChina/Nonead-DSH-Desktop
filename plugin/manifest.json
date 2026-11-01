@@ -1,0 +1,186 @@
+{
+  "schema": "nonead-dsh-desktop/plugin-bundle/v3",
+  "count": 30,
+  "plugins": [
+    {
+      "name": "@a9i5k4/dsh-auto-memory",
+      "version": "3.3.17",
+      "file": "a9i5k4-dsh-auto-memory-3.3.17.tgz",
+      "description": "自动记忆：无需提示即可在开工前注入相关历史，跨会话积累上下文。"
+    },
+    {
+      "name": "@feng0531/dsh-code-review",
+      "version": "0.86.1",
+      "file": "feng0531-dsh-code-review-0.86.1.tgz",
+      "description": "Git/SVN 只读代码审查：按范围挑选改动并给出意见。"
+    },
+    {
+      "name": "@kenz1117/dsh-ui-usage-billing",
+      "version": "1.8.1",
+      "file": "kenz1117-dsh-ui-usage-billing-1.8.1.tgz",
+      "description": "用量与费用看板：侧边栏展示开销指标与用量明细。"
+    },
+    {
+      "name": "@linxin666/dsh-client-ui-git-graph",
+      "version": "0.4.13",
+      "file": "linxin666-dsh-client-ui-git-graph-0.4.13.tgz",
+      "description": "Git 分支图谱：在空白会话中切换分支、查看提交图。"
+    },
+    {
+      "name": "@linxin666/dsh-client-ui-skill-explorer",
+      "version": "0.4.13",
+      "file": "linxin666-dsh-client-ui-skill-explorer-0.4.13.tgz",
+      "description": "技能中心：按来源浏览已加载的技能。"
+    },
+    {
+      "name": "@michengai/dsh-agency-agents",
+      "version": "1.2.20",
+      "file": "michengai-dsh-agency-agents-1.2.20.tgz",
+      "description": "专家库：331 位可召唤的专业智能体。"
+    },
+    {
+      "name": "@michengai/dsh-archive-manager",
+      "version": "1.1.22",
+      "file": "michengai-dsh-archive-manager-1.1.22.tgz",
+      "description": "会话归档：归档、恢复、收藏、永久删除，并诊断损坏的会话日志。"
+    },
+    {
+      "name": "@michengai/dsh-code-review",
+      "version": "1.0.5",
+      "file": "michengai-dsh-code-review-1.0.5.tgz",
+      "description": "代码审查：Codex 风格，原生独立子 Agent，可灵活选择审查范围。"
+    },
+    {
+      "name": "@michengai/dsh-skills-manager",
+      "version": "1.2.25",
+      "file": "michengai-dsh-skills-manager-1.2.25.tgz",
+      "description": "技能管理：统一加载并安全管理本机的 Agent 技能。"
+    },
+    {
+      "name": "@tt-a1i/archify-dsh",
+      "version": "1.0.0",
+      "file": "tt-a1i-archify-dsh-1.0.0.tgz",
+      "description": "架构图：生成可交互的架构、流程、时序、数据流与状态图。"
+    },
+    {
+      "name": "@wenaixi/dsh-superpower",
+      "version": "8.0.0",
+      "file": "wenaixi-dsh-superpower-8.0.0.tgz",
+      "description": "工程技能包：15 个 superpowers 工程技能，中英双语。"
+    },
+    {
+      "name": "@yolk_vat-y/dsh-project-memory",
+      "version": "0.6.8",
+      "file": "yolk_vat-y-dsh-project-memory-0.6.8.tgz",
+      "description": "项目记忆：索引文档（PDF/Markdown）与代码符号，支持检索。"
+    },
+    {
+      "name": "dsh-api-client",
+      "version": "0.2.0",
+      "file": "dsh-api-client-0.2.0.tgz",
+      "description": "API 调试：发起 HTTP 请求并查看响应。"
+    },
+    {
+      "name": "dsh-config-manager",
+      "version": "0.2.3",
+      "file": "dsh-config-manager-0.2.3.tgz",
+      "description": "配置管理：备份、恢复、导出、导入、迁移与同步 DSH 配置。"
+    },
+    {
+      "name": "dsh-context",
+      "version": "0.78.2",
+      "file": "dsh-context-0.78.2.tgz",
+      "description": "上下文洞察与管理：查看上下文占用并进行压缩。"
+    },
+    {
+      "name": "dsh-db-connector",
+      "version": "0.1.0",
+      "file": "dsh-db-connector-0.1.0.tgz",
+      "description": "数据库连接：连接数据库并执行查询。"
+    },
+    {
+      "name": "dsh-design-skills",
+      "version": "0.1.0",
+      "file": "dsh-design-skills-0.1.0.tgz",
+      "description": "设计风格技能包：内置 6 种设计风格。"
+    },
+    {
+      "name": "dsh-doc-reader",
+      "version": "0.2.0",
+      "file": "dsh-doc-reader-0.2.0.tgz",
+      "description": "文档读取：解析 PDF、Word 等文件的正文内容。"
+    },
+    {
+      "name": "dsh-excel-chat",
+      "version": "0.43.0",
+      "file": "dsh-excel-chat-0.43.0.tgz",
+      "description": "表格对话：用自然语言操作 Excel 工作表。"
+    },
+    {
+      "name": "dsh-find-plugins",
+      "version": "0.3.0",
+      "file": "dsh-find-plugins-0.3.0.tgz",
+      "description": "插件搜索：跨五个社区目录以及 GitHub、npm 实时搜索插件。"
+    },
+    {
+      "name": "dsh-github-skills",
+      "version": "0.2.1",
+      "file": "dsh-github-skills-0.2.1.tgz",
+      "description": "GitHub 工作流技能：改编自 OpenAI Codex。"
+    },
+    {
+      "name": "dsh-image-gen",
+      "version": "0.10.0",
+      "file": "dsh-image-gen-0.10.0.tgz",
+      "description": "图片生成：接入 Gemini、OpenAI 等渠道画图与改图。"
+    },
+    {
+      "name": "dsh-mcp-connector",
+      "version": "0.2.88",
+      "file": "dsh-mcp-connector-0.2.88.tgz",
+      "description": "MCP 连接器：连接 MCP 服务并跨服务搜索工具。"
+    },
+    {
+      "name": "dsh-nonead-prompt-recall",
+      "version": "0.7.0",
+      "file": "dsh-nonead-prompt-recall-0.7.0.tgz",
+      "description": "输入历史：空输入框按 ↑ 召回上一条指令。"
+    },
+    {
+      "name": "dsh-nonead-universal-robots",
+      "version": "0.8.4",
+      "file": "dsh-nonead-universal-robots-0.8.4.tgz",
+      "description": "UR 机械臂：用自然语言直接控制 Universal Robots 机械臂。"
+    },
+    {
+      "name": "dsh-nonead-ursim",
+      "version": "0.3.12",
+      "file": "dsh-nonead-ursim-0.3.12.tgz",
+      "description": "UR 仿真：在离线仿真中编排机械臂动作。"
+    },
+    {
+      "name": "dsh-ppt-master",
+      "version": "1.0.8",
+      "file": "dsh-ppt-master-1.0.8.tgz",
+      "description": "PPT 生成：根据内容生成演示文稿。"
+    },
+    {
+      "name": "dsh-remotion",
+      "version": "0.10.3",
+      "file": "dsh-remotion-0.10.3.tgz",
+      "description": "视频制作：在 DSH 里用 React 工程渲染视频。"
+    },
+    {
+      "name": "dsh-rewind-plugin",
+      "version": "0.19.1",
+      "file": "dsh-rewind-plugin-0.19.1.tgz",
+      "description": "对话回退：在同一窗口内回退对话并恢复工作区文件。"
+    },
+    {
+      "name": "dsh-univer-office",
+      "version": "0.3.9",
+      "file": "dsh-univer-office-0.3.9.tgz",
+      "description": "Office 文档：DSH 与 Univer 集成，支持表格、文档与演示。"
+    }
+  ]
+}

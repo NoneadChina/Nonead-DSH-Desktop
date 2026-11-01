@@ -1,0 +1,178 @@
+/**
+ * 品牌皮肤插件：Nonead 侧边栏 logo 替换（其余外观与默认页面完全一致）。
+ *
+ * 原理：侧边栏的两个 logo 是 ui-sidebar 的 SidebarRoot 通过 slot 渲染的
+ * （`sidebar.brand.mark` / `sidebar.brand.name`），每个 slot 出口都带一个稳定的
+ * `[data-slot="<key>"]` 包装元素（ui-renderer 的 scoped-slots 约定：这是动态样式
+ * 定位的「可寻址接缝」），所以本插件用注入的 CSS 按 slot 定位、盖掉原内容，
+ * 改成用户提供的 PNG：
+ *
+ * - 展开态：导航栏上部的品牌区（brand 按钮，内含 mark + name 两个 slot）
+ *   → NONEAD_ai.png（1790×200 横版，按原 wordmark 高度 24px 渲染，宽自动等比）。
+ * - 收起态：rail 顶部的 toggle 按钮（只含 mark slot，无 name slot）
+ *   → nonead.ai_Logo.png（486×486 方形，按 24px 渲染）；hover 时保持原交互
+ *   （露出展开面板图标、隐藏背景图）。
+ *
+ * 选择器按 slot 键（`[data-slot="sidebar.brand.mark"]` /
+ * `[data-slot="sidebar.brand.name"]`）定位，不依赖 CSS-module 的哈希类名，也不依赖
+ * 具体 SVG 的 viewBox，跨构建稳定；且限定在 button 内，不会误伤
+ * EmptyHero（空会话页）等其它使用 FishLogo 的位置。
+ *
+ * 两张图片以 base64 data URL 内嵌（见同目录 assets.ts，构建期脚本生成），
+ * 不依赖任何静态文件路由。样式注入到 <head>，插件卸载时移除。
+ */
+import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import { EXPANDED_LOGO_DATA_URL, RAIL_LOGO_DATA_URL } from './assets.ts'
+
+export const name = 'dsh-nonead-client-skin'
+
+/** 注入的 <style> 标签标识（幂等 + 卸载清理用）。 */
+const STYLE_ID = 'dsh-skin-nonead-brand'
+
+/** 展开态品牌 logo 渲染高度：对齐原 wordmark（svg 高 24px）。 */
+const EXPANDED_HEIGHT_PX = 24
+/** 收起态 rail logo 渲染尺寸：对齐原 fish（svg 宽 24px）。 */
+const RAIL_SIZE_PX = 24
+
+/** 组装覆盖样式：只换 logo + hero slogan，其余全部保持页面默认外观。 */
+function buildCss(): string {
+  return [
+    /* ── 展开态：品牌区（含 mark + name 两个 slot）→ NONEAD_ai.png ── */
+    'button:has([data-slot="sidebar.brand.name"]) {',
+    `  background-image: url("${EXPANDED_LOGO_DATA_URL}") !important;`,
+    '  background-repeat: no-repeat !important;',
+    '  background-position: left center !important;',
+    `  background-size: auto ${EXPANDED_HEIGHT_PX}px !important;`,
+    '}',
+    /* 隐藏原品牌内容（鲸鱼 mark + wordmark/文本），只留背景图 */
+    'button:has([data-slot="sidebar.brand.name"]) [data-slot] {',
+    '  display: none !important;',
+    '}',
+    '',
+    /* ── 收起态：rail toggle（只有 mark slot，无 name slot）→ nonead.ai_Logo.png ── */
+    'button:has([data-slot="sidebar.brand.mark"]):not(:has([data-slot="sidebar.brand.name"])) {',
+    `  background-image: url("${RAIL_LOGO_DATA_URL}") !important;`,
+    '  background-repeat: no-repeat !important;',
+    '  background-position: center !important;',
+    `  background-size: ${RAIL_SIZE_PX}px ${RAIL_SIZE_PX}px !important;`,
+    '}',
+    'button:has([data-slot="sidebar.brand.mark"]):not(:has([data-slot="sidebar.brand.name"])) [data-slot] {',
+    '  display: none !important;',
+    '}',
+    /* hover 露出原展开面板图标时去掉背景图，避免图标与 logo 重叠 */
+    'button:has([data-slot="sidebar.brand.mark"]):not(:has([data-slot="sidebar.brand.name"])):hover {',
+    '  background-image: none !important;',
+    '}',
+    '',
+    /* ── 首页 Hero：输入框上方的 fish logo → nonead.ai_Logo.png ── */
+    '[data-slot="conversation.hero.brand.mark"] {',
+    `  background-image: url("${RAIL_LOGO_DATA_URL}") !important;`,
+    '  background-repeat: no-repeat !important;',
+    '  background-position: center !important;',
+    '  background-size: contain !important;',
+    '  display: inline-flex !important;',
+    '  align-items: center !important;',
+    '  justify-content: center !important;',
+    '  width: 34px !important;',
+    '  height: 34px !important;',
+    '}',
+    '[data-slot="conversation.hero.brand.mark"] svg {',
+    '  display: none !important;',
+    '}',
+  ].join('\n')
+}
+
+/**
+ * 将 hero headline "探索未至之境 / Into the Unknown" 替换为指定中文。
+ *
+ * 只改空会话 hero 的标题：定位锚点是 hero 内 `conversation.hero.brand.mark`
+ * 这个 slot 出口的祖父元素（即 `.headline` 行），到那里为止不再向下扩展。
+ * 全局 characterData 监听会误伤用户输入、代码块与会话标题（连这两个词都打不出来），
+ * 所以这里既不扫 `document.body`，也不订阅 characterData —— 只在 hero 子树挂载时替换一次。
+ */
+const HEADLINE_FROM_ZH = '探索未至之境'
+const HEADLINE_FROM_EN = 'Into the Unknown'
+const HEADLINE_TO = '创新改变世界'
+/** hero 标题行的定位锚点（ui-renderer 的稳定 slot 出口）。 */
+const HERO_SLOT_SELECTOR = '[data-slot="conversation.hero.brand.mark"]'
+
+/** 已替换过的元素做标记，避免反复触发。 */
+const REPLACED_FLAG = 'data-dsh-skin-nonead-headline-replaced'
+
+/** 递归扫描并替换匹配的文本节点。 */
+function replaceHeadlineIn(root: Node): void {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      if ((node.parentNode as Element | null)?.nodeType === 1) {
+        const host = node.parentNode as Element
+        if (host.getAttribute(REPLACED_FLAG) === '1') return NodeFilter.FILTER_REJECT
+      }
+      const t = node.nodeValue ?? ''
+      if (t === HEADLINE_FROM_ZH || t === HEADLINE_FROM_EN) return NodeFilter.FILTER_ACCEPT
+      return NodeFilter.FILTER_SKIP
+    },
+  })
+  const hits: Text[] = []
+  let cur: Node | null
+  while ((cur = walker.nextNode()) !== null) hits.push(cur as Text)
+  for (const t of hits) {
+    t.nodeValue = HEADLINE_TO
+    const host = t.parentNode as Element | null
+    if (host && host.nodeType === 1) host.setAttribute(REPLACED_FLAG, '1')
+  }
+}
+
+/**
+ * 由 brand slot 出口向上取 hero 标题行（`.headline`）：slot → fishHitbox(span) → headline(div)。
+ * 结构不符（上游改版）时返回 null，宁可不替换也不扩大到页面其它文本。
+ */
+function headlineRootOf(slot: Element): Element | null {
+  const hitbox = slot.parentElement
+  const root = hitbox?.parentElement ?? null
+  return root !== null && root.nodeName === 'DIV' ? root : null
+}
+
+/** 在给定范围内找出 hero 标题行并替换其文案。 */
+function replaceHeroHeadlines(scope: ParentNode): void {
+  for (const slot of scope.querySelectorAll(HERO_SLOT_SELECTOR)) {
+    const root = headlineRootOf(slot)
+    if (root !== null) replaceHeadlineIn(root)
+  }
+}
+
+export function apply(ctx: ClientContext): void {
+  if (typeof document === 'undefined') return
+  // 幂等：重复执行（HMR 重放 / 插件重启）时不再叠加第二个标签。
+  if (document.querySelector(`style[data-plugin-css="${STYLE_ID}"]`) !== null) return
+  const tag = document.createElement('style')
+  // 必须自己声明 data-plugin：客户端 loader 在 materialize 每个插件模块后会把
+  // 期间出现的 `style:not([data-plugin])` 认领给该模块（见 dsh-client-modules 的
+  // claimStyles），并在那个插件卸载/热替换时按 data-plugin 删除。apply() 发生在
+  // 本插件模块 materialize 之后，未标记的样式会被下一个 materialize 的插件认领，
+  // 于是品牌 logo 样式会在那个插件卸载时一起消失。
+  tag.dataset.plugin = name
+  tag.dataset.pluginCss = STYLE_ID
+  tag.textContent = buildCss()
+  document.head.appendChild(tag)
+  // 卸载时移除，保证皮肤完整还原。
+  ctx.effect(() => () => { tag.remove() }, 'dsh-skin-nonead: teardown')
+
+  // ── hero headline 文本替换：只在 hero 子树挂载/重挂载时触发 ──
+  replaceHeroHeadlines(document)
+  const headlineObserver = new MutationObserver((records) => {
+    for (const r of records) {
+      for (const n of r.addedNodes) {
+        if (n.nodeType !== 1) continue
+        const el = n as Element
+        if (el.matches(HERO_SLOT_SELECTOR)) {
+          const root = headlineRootOf(el)
+          if (root !== null) replaceHeadlineIn(root)
+        }
+        replaceHeroHeadlines(el)
+      }
+    }
+  })
+  // 只订阅 childList：characterData 会把用户输入、代码块与会话标题一起框进来。
+  headlineObserver.observe(document.body, { childList: true, subtree: true })
+  ctx.effect(() => () => { headlineObserver.disconnect() }, 'dsh-skin-nonead: headline observer teardown')
+}
