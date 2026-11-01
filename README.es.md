@@ -5,6 +5,20 @@
 <h1 align="center">Nonead DSH Desktop</h1>
 
 <p align="center">
+  <a href="https://github.com/NoneadChina/Nonead-DSH-Desktop/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/NoneadChina/Nonead-DSH-Desktop/ci.yml?branch=main&amp;label=CI&amp;logo=github" alt="CI"></a>
+  <a href="https://github.com/NoneadChina/Nonead-DSH-Desktop/tags"><img src="https://img.shields.io/github/v/tag/NoneadChina/Nonead-DSH-Desktop?label=tag&amp;logo=git&amp;logoColor=white" alt="latest tag"></a>
+  <a href="https://github.com/NoneadChina/Nonead-DSH-Desktop/stargazers"><img src="https://img.shields.io/github/stars/NoneadChina/Nonead-DSH-Desktop?logo=github" alt="stars"></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-orange" alt="license: MIT"></a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-0078D6" alt="Windows, macOS, Linux">
+  <img src="https://img.shields.io/badge/Electron-44-47848F?logo=electron&amp;logoColor=white" alt="Electron 44">
+  <img src="https://img.shields.io/badge/DSH%20runtime-0.2.2--alpha.2-4B32C3" alt="DSH runtime 0.2.2-alpha.2">
+  <img src="https://img.shields.io/badge/node-%5E22.19%20%7C%20%3E%3D24-339933?logo=node.js&amp;logoColor=white" alt="Node.js">
+</p>
+
+<p align="center">
   <strong>Un cliente de escritorio de código abierto para Windows, macOS y Linux, basado en DeepSeek Harness.</strong>
 </p>
 
