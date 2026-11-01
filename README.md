@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  产品版本 <code>2.2.3</code> · DSH 运行时 <code>0.2.2-alpha.2</code> · Electron 44 · MIT License
+  产品版本 <code>2.2.4</code> · DSH 运行时 <code>0.2.2-alpha.2</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">一键下载，开箱即用。</a></h3>
@@ -66,7 +66,7 @@ Nonead DSH Desktop 把 [DeepSeek Harness](https://github.com/deepseek-ai/deepsee
 
 | 项 | 值 |
 | --- | --- |
-| 产品版本 | `2.2.3`（`nonead-dsh-desktop` 与 `dsh-plugin-desktop-beta` 同步） |
+| 产品版本 | `2.2.4`（`nonead-dsh-desktop` 与 `dsh-plugin-desktop-beta` 同步） |
 | 稳定通道工作区 | `nonead-dsh-desktop`（根脚本 `:stable` 后缀） |
 | Beta 通道工作区 | `dsh-plugin-desktop-beta`（根脚本 `:beta` 后缀） |
 | DSH 运行时 | `0.2.2-alpha.2`，所有 `@deepseek-ai/dsh*` 依赖精确 pin，运行时就地 vendored |
@@ -74,7 +74,7 @@ Nonead DSH Desktop 把 [DeepSeek Harness](https://github.com/deepseek-ai/deepsee
 | 上游 pin | `f3803c96974ad4a94195fb97e5c637e9c2a3afe3fc48fa190a683e469daa699857e9afe8`（`upstream.json` 的 `channels.beta`，同时记在 `nonead-dsh-desktop/upstream-reference.json`） |
 | Electron / 打包器 | Electron `44.0.0` / electron-builder `26.15.7`（`app-builder-lib` 带补丁） |
 | Node / Yarn | Node `^22.19.0` 或 `>=24.0.0`；Yarn `4.18.0`（经 Corepack，`nodeLinker: node-modules`） |
-| 插件市场 | `dshmarket` `1.70.1`，另有本仓库的 `dsh-community-market` `0.1.0-dev.0` |
+| 插件市场 | `dshmarket` `1.73.6`，另有本仓库的 `dsh-community-market` `0.1.0-dev.0` |
 | 手机远控桥 | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop`（上游提交 `39b82d4`） |
 | 品牌皮肤 | `dsh-nonead-client-skin`（随安装包分发，按 profile 组合加载） |
 
@@ -94,7 +94,7 @@ Nonead DSH Desktop 把 [DeepSeek Harness](https://github.com/deepseek-ai/deepsee
 
 Linux 说明：部分发行版需要先安装 FUSE，或改用 `--appimage-extract-and-run` 运行；应用内更新在 Linux 上**只检查版本、不下载安装包**，升级请重新下载 AppImage。需要 Linux 安装包时请使用 Beta 通道（稳定通道在 Linux 上只产出可运行的目录产物）。
 
-Windows ARM64 目前只提供**实验性构建**，不进入上面的下载链接与自动更新：主程序是原生 arm64，但内置的 Python / Node / Office 运行时仍是 x64 载荷（由 Windows 的仿真层执行），且尚未在 ARM 设备上完成运行验证。需要时按下文[常用命令](#dev)自行构建。
+Windows ARM64 提供独立的 arm64 安装包（`Nonead-DSH-Desktop-<version>-arm64-Setup.exe`），与 x64 包共用同一份载荷：主程序为原生 arm64，内置的 Python / Node / Office 运行时仍是 x64 载荷（由 Windows 的仿真层执行）。该产物尚未在 ARM 设备上完成运行验证，因此暂不进入上面的下载链接与自动更新；构建命令见[常用命令](#dev)。
 
 详细步骤、profile 与插件命令见[用户指南](docs/user-guide.md)，平台与使用边界问题见[常见问题](docs/faq.md)。
 
@@ -110,6 +110,7 @@ Windows ARM64 目前只提供**实验性构建**，不进入上面的下载链�
 | Profile 与首次设置 | profile 目录为 `$DSH_HOME/profiles/<name>`；未初始化的 profile 首次启动会先显示 Desktop 自带的 Setup Wizard（窗口模式与材质、插件市场、通知、是否用系统默认浏览器打开、Web 访问范围），完成或跳过后才启动 Host |
 | 浏览器与局域网访问 | 「用浏览器打开」只影响是否自动唤起系统浏览器，不改变暴露范围；局域网访问是独立开关，开启后显示当前可用的局域网 URL |
 | 内置插件市场 | DSH Community Market 提供发现 / 可安装 / 已安装 / 来源四个视图，支持可扩展的目录来源与受审 adapter |
+| 内置插件预装 | 安装包携带 30 个插件，首次设置的最后一页列出清单；点「完成并开始」后逐个安装并显示进度，装好后可在插件市场的「已安装」里管理 |
 | 品牌皮肤 | `dsh-nonead-client-skin` 随安装包分发，由 Profile 组合为每个 Profile 默认加载，不需要单独安装 |
 | 自动更新 | 固定版本检查请求 `https://www.nonead.com/software/ndsh-desktop/version`，携带当前版本、通道与随机安装标识；Windows / macOS 下载并安装，Linux 仅检查 |
 | 更新体验 | 更新卡片展示服务端下发的发行说明，Beta 通道的托盘菜单与原生对话框还会附「查看完整说明」入口；支持"跳过此版本"（决策持久化，无人值守的定时检查不会重复提示）；安装失败可重试，并可回滚到任一已保存快照 |
@@ -285,7 +286,7 @@ Nonead DSH Desktop 是基于 [DeepSeek Harness](https://github.com/deepseek-ai/d
 | 版本 | 日期 | 要点 |
 | --- | --- | --- |
 | `2.1.15` | 2026-10-22 | 更新卡片/托盘/原生对话框展示发行说明，可跳过版本、安装失败重试与快照回滚；记住窗口位置、`.env` 分层、`dsh-desktop://` 深链接与开机自启；市场支持非图片媒体预览与按名字安装；`dshmarket` `1.66.45` |
-| `2.2.3` | 2026-10-29 | 桌面外壳完成八语言本地化（中/英/日/西/法/德/俄/巴葡）：新增五种语言外壳字典与六种语言设置页字典，插值对话框改用模板查表，客户端语言命名空间与原生菜单同步八语言 |
+| `2.2.4` | 2026-10-29 | 桌面外壳完成八语言本地化（中/英/日/西/法/德/俄/巴葡）：新增五种语言外壳字典与六种语言设置页字典，插值对话框改用模板查表，客户端语言命名空间与原生菜单同步八语言 |
 | `2.2.2` | 2026-10-28 | 运行时升到 DSH `0.2.2-alpha.2`（370 包重新 vendored、24 个版本补丁与市场补丁重定基），dshmarket 升到 1.73.1，Agents Anywhere bridge 按新 peer 范围重建，产品版本号跨到 2.2.2 |
 | `2.1.18` | 2026-10-24 | 运行时升到 DSH `0.2.2-alpha.2`（344 包重新 vendored、24 个补丁重定基），Agents Anywhere bridge 改为源码构建并重定基 connector 补丁，新增 Windows ARM64 实验性构建，更新卡片文案与进度条位置修正；包含 2.1.17 的审查修复批次 |
 | `2.1.17` | 2026-10-24 | 审查修复批次：恢复助手刷新竞态、检查点 inode 复核与单槽降级、设置原子写入、更新失败路径释放、插件状态与 staging 清理、托盘对话框归属、市场分页与皮肤声明、CI 门禁修复 |

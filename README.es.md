@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  Producto <code>2.2.3</code> · runtime de DSH <code>0.2.2-alpha.2</code> · Electron 44 · MIT License
+  Producto <code>2.2.4</code> · runtime de DSH <code>0.2.2-alpha.2</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">Descarga con un clic, listo para usar.</a></h3>
@@ -66,7 +66,7 @@ El shell y el Host se comunican por un único canal IPC de proceso hijo. Cambiar
 
 | Elemento | Valor |
 | --- | --- |
-| Versión del producto | `2.2.3` (`nonead-dsh-desktop` y `dsh-plugin-desktop-beta` sincronizados) |
+| Versión del producto | `2.2.4` (`nonead-dsh-desktop` y `dsh-plugin-desktop-beta` sincronizados) |
 | Espacio de trabajo del canal estable | `nonead-dsh-desktop` (los scripts de la raíz usan el sufijo `:stable`) |
 | Espacio de trabajo del canal Beta | `dsh-plugin-desktop-beta` (los scripts de la raíz usan el sufijo `:beta`) |
 | Runtime de DSH | `0.2.2-alpha.2`, todas las dependencias `@deepseek-ai/dsh*` fijadas con pin exacto y el runtime vendored en el repositorio |
@@ -74,7 +74,7 @@ El shell y el Host se comunican por un único canal IPC de proceso hijo. Cambiar
 | Pin upstream | `f3803c96974ad4a94195fb97e5c637e9c2a3afe3fc48fa190a683e469daa699857e9afe8` (`channels.beta` en `upstream.json`, replicado en `nonead-dsh-desktop/upstream-reference.json`) |
 | Electron / empaquetador | Electron `44.0.0` / electron-builder `26.15.7` (`app-builder-lib` con parche) |
 | Node / Yarn | Node `^22.19.0` o `>=24.0.0`; Yarn `4.18.0` mediante Corepack (`nodeLinker: node-modules`) |
-| Mercado de plugins | `dshmarket` `1.70.1`, más el `dsh-community-market` `0.1.0-dev.0` de este repositorio |
+| Mercado de plugins | `dshmarket` `1.73.6`, más el `dsh-community-market` `0.1.0-dev.0` de este repositorio |
 | Puente de control remoto | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop` (commit upstream `39b82d4`) |
 | Skin de marca | `dsh-nonead-client-skin` (se distribuye en el instalador y se monta por perfil) |
 
@@ -94,7 +94,7 @@ Los instaladores oficiales cubren Windows x64, macOS (Universal, con Intel y App
 
 Notas sobre Linux: algunas distribuciones necesitan FUSE instalado, o puedes ejecutarlo con `--appimage-extract-and-run`. La actualización desde la aplicación en Linux **solo comprueba la versión y nunca descarga un instalador**; para actualizar, descarga un AppImage nuevo. Usa el canal Beta cuando necesites un instalador de Linux: en Linux, el canal estable solo produce un directorio ejecutable.
 
-Windows ARM64 solo está disponible como **compilación experimental** y no se ofrece en los enlaces de descarga ni en las actualizaciones desde la aplicación anteriores: el shell es arm64 nativo, pero el runtime de Python / Node / Office incluido sigue siendo el paquete x64 (se ejecuta mediante la emulación de Windows) y el artefacto aún no se ha ejecutado en hardware ARM. Compílalo tú mismo con el comando de [comandos habituales](#dev).
+Windows ARM64 dispone de su propio instalador arm64 (`Nonead-DSH-Desktop-<version>-arm64-Setup.exe`), compilado a partir del mismo paquete que la versión x64: el shell es arm64 nativo, mientras que el runtime de Python / Node / Office incluido sigue siendo el paquete x64 ejecutado mediante la emulación de Windows. El artefacto aún no se ha validado en hardware ARM, por lo que no se ofrece en los enlaces de descarga ni en las actualizaciones desde la aplicación; consulta [comandos habituales](#dev) para compilarlo.
 
 Los pasos detallados de uso, los perfiles y los comandos de plugins están en la [guía de usuario](docs/user-guide.en.md); las dudas sobre plataformas y alcance se responden en las [preguntas frecuentes](docs/faq.en.md).
 
@@ -110,6 +110,7 @@ Los pasos detallados de uso, los perfiles y los comandos de plugins están en la
 | Perfiles y configuración inicial | Los directorios de perfil están en `$DSH_HOME/profiles/<name>`; un perfil sin inicializar muestra primero el asistente de configuración de Desktop (modo y material de ventana, mercado de plugins, notificaciones, apertura con el navegador predeterminado, alcance del acceso web) y solo después arranca el Host |
 | Acceso desde el navegador y la LAN | «Abrir en el navegador» solo decide si se lanza el navegador del sistema y no cambia la exposición; el acceso a la LAN es una opción independiente que además muestra la URL de LAN actual |
 | Mercado de plugins integrado | DSH Community Market ofrece las vistas de descubrimiento / instalables / instalados / fuentes, con fuentes de catálogo ampliables y adaptadores revisados |
+| Plugins incluidos | El instalador incorpora 30 plugins, listados en la última página de la configuración inicial; «Finalizar y empezar» los instala uno a uno mostrando el progreso, y se gestionan en «Instalados» del mercado de plugins |
 | Skin de marca | `dsh-nonead-client-skin` se distribuye con el instalador y el Perfil lo monta en todos los perfiles, sin instalación aparte |
 | Actualización automática | Comprobación de versión fija contra `https://www.nonead.com/software/ndsh-desktop/version` con la versión actual, el canal y un identificador de instalación aleatorio; Windows y macOS descargan e instalan, Linux solo comprueba |
 | Experiencia de actualización | La tarjeta de actualización muestra las notas de la versión que envía la respuesta de versión, y el menú de la bandeja y los diálogos nativos del canal Beta añaden una entrada «ver notas completas»; «omitir esta versión» se conserva, así que una comprobación programada sin supervisión no la vuelve a ofrecer; una instalación fallida se puede reintentar y revertir a cualquier instantánea guardada |
@@ -285,7 +286,7 @@ El historial completo está en el [registro de cambios](CHANGELOG.es.md) ([中�
 | Versión | Fecha | Aspectos destacados |
 | --- | --- | --- |
 | `2.1.15` | 2026-10-22 | Notas de la versión en la tarjeta de actualización, la bandeja y los diálogos nativos, omisión de una versión, reintento de instalación y reversión a instantáneas; estado de ventana recordado, `.env` por capas, enlaces profundos `dsh-desktop://` y abrir al iniciar sesión; previsualización de medios del mercado e instalación por nombre; `dshmarket` `1.66.45` |
-| `2.2.3` | 2026-10-29 | El shell de escritorio está totalmente localizado en ocho idiomas (chino, inglés, japonés, español, francés, alemán, ruso y portugués de Brasil): cinco diccionarios nuevos del shell más diccionarios de la página de ajustes en seis idiomas, búsquedas basadas en plantillas para los diálogos con interpolación, y el espacio de nombres de idioma del cliente y los menús nativos siguen el mismo conjunto |
+| `2.2.4` | 2026-10-29 | El shell de escritorio está totalmente localizado en ocho idiomas (chino, inglés, japonés, español, francés, alemán, ruso y portugués de Brasil): cinco diccionarios nuevos del shell más diccionarios de la página de ajustes en seis idiomas, búsquedas basadas en plantillas para los diálogos con interpolación, y el espacio de nombres de idioma del cliente y los menús nativos siguen el mismo conjunto |
 | `2.2.2` | 2026-10-28 | El runtime pasa a DSH `0.2.2-alpha.2` (370 paquetes re-vendored, 24 parches de versión y el parche del mercado rebasados), dshmarket pasa a 1.73.1 y el puente de Agents Anywhere se reconstruye para los nuevos rangos de peer |
 | `2.1.18` | 2026-10-24 | El runtime pasa a DSH `0.2.2-alpha.2` (344 paquetes re-vendored, 24 parches rebasados), el puente de Agents Anywhere se compila desde el código fuente con un parche de conector rebasado, llega una compilación experimental de Windows ARM64 y se corrigen el texto de la tarjeta de actualización y la posición del progreso; incluye el lote de correcciones de auditoría de la 2.1.17 |
 | `2.1.17` | 2026-10-24 | Lote de correcciones de auditoría: carrera al refrescar la recuperación, recomprobación de inodos de los puntos de control y degradación a una sola ranura, escritura atómica de ajustes, liberación en la ruta de fallo de actualización, limpieza del estado de plugins y del staging, propiedad de los diálogos de la bandeja, paginación del mercado y declaración del skin, correcciones de las puertas de CI |

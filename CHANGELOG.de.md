@@ -15,9 +15,52 @@ Konventionen für die Pflege:
 
 ## 2.2.4 — 2026-10-31
 
-Versionserhöhung ohne funktionale Änderungen:
+Mitgelieferte Plugins und Installationserlebnis:
 
-- Version: Produkt 2.2.3 → **2.2.4** (beide Desktop-Arbeitsbereiche synchron).
+- Mitgelieferte Plugins: Der Installer enthält 30 Plugins, die auf der letzten Seite der Ersteinrichtung aufgelistet werden; „Fertig stellen und starten“ installiert sie, danach lassen sie sich im Plugin-Markt unter „Installiert“ verwalten.
+- Installationsfortschritt: Während der Installation werden die Beschreibung des aktuellen Plugins und ein Fortschrittsbalken (n/30) angezeigt; ein fehlschlagendes Plugin wird übersprungen, die übrigen laufen weiter und am Ende folgt eine Zusammenfassung.
+- Plugin-Liste: kompaktes Vier-Spalten-Layout, das ohne Scrollbalken auf einen Bildschirm passt.
+- Ladegarantie: Nach der Installation werden Abhängigkeiten und Bundle-Liste des Profiles geprüft und Lücken gefüllt, sodass „installiert, aber deaktiviert“ nicht mehr auftritt.
+- Windows ARM64: Ein eigener arm64-Installer ist nun verfügbar und nutzt dieselbe Payload wie das x64-Paket; die mitgelieferte Python-/Node-/Office-Laufzeit bleibt die x64-Payload, die über die Windows-Emulation ausgeführt wird.
+
+Version: Produkt 2.2.3 → **2.2.4** (beide Desktop-Arbeitsbereiche synchron).
+
+### Liste der mitgelieferten Plugins
+
+Die Einträge sind nach Paketnamen sortiert; jede Beschreibung entspricht der Anzeige im Einrichtungsassistenten.
+
+| Plugin | Version | Zweck |
+| --- | --- | --- |
+| `@a9i5k4/dsh-auto-memory` | 3.3.17 | 自动记忆：无需提示即可在开工前注入相关历史，跨会话积累上下文。 |
+| `@feng0531/dsh-code-review` | 0.86.1 | Git/SVN 只读代码审查：按范围挑选改动并给出意见。 |
+| `@kenz1117/dsh-ui-usage-billing` | 1.8.1 | 用量与费用看板：侧边栏展示开销指标与用量明细。 |
+| `@linxin666/dsh-client-ui-git-graph` | 0.4.13 | Git 分支图谱：在空白会话中切换分支、查看提交图。 |
+| `@linxin666/dsh-client-ui-skill-explorer` | 0.4.13 | 技能中心：按来源浏览已加载的技能。 |
+| `@michengai/dsh-agency-agents` | 1.2.20 | 专家库：331 位可召唤的专业智能体。 |
+| `@michengai/dsh-archive-manager` | 1.1.22 | 会话归档：归档、恢复、收藏、永久删除，并诊断损坏的会话日志。 |
+| `@michengai/dsh-code-review` | 1.0.5 | 代码审查：Codex 风格，原生独立子 Agent，可灵活选择审查范围。 |
+| `@michengai/dsh-skills-manager` | 1.2.25 | 技能管理：统一加载并安全管理本机的 Agent 技能。 |
+| `@tt-a1i/archify-dsh` | 1.0.0 | 架构图：生成可交互的架构、流程、时序、数据流与状态图。 |
+| `@wenaixi/dsh-superpower` | 8.0.0 | 工程技能包：15 个 superpowers 工程技能，中英双语。 |
+| `@yolk_vat-y/dsh-project-memory` | 0.6.8 | 项目记忆：索引文档（PDF/Markdown）与代码符号，支持检索。 |
+| `dsh-api-client` | 0.2.0 | API 调试：发起 HTTP 请求并查看响应。 |
+| `dsh-config-manager` | 0.2.3 | 配置管理：备份、恢复、导出、导入、迁移与同步 DSH 配置。 |
+| `dsh-context` | 0.78.2 | 上下文洞察与管理：查看上下文占用并进行压缩。 |
+| `dsh-db-connector` | 0.1.0 | 数据库连接：连接数据库并执行查询。 |
+| `dsh-design-skills` | 0.1.0 | 设计风格技能包：内置 6 种设计风格。 |
+| `dsh-doc-reader` | 0.2.0 | 文档读取：解析 PDF、Word 等文件的正文内容。 |
+| `dsh-excel-chat` | 0.43.0 | 表格对话：用自然语言操作 Excel 工作表。 |
+| `dsh-find-plugins` | 0.3.0 | 插件搜索：跨五个社区目录以及 GitHub、npm 实时搜索插件。 |
+| `dsh-github-skills` | 0.2.1 | GitHub 工作流技能：改编自 OpenAI Codex。 |
+| `dsh-image-gen` | 0.10.0 | 图片生成：接入 Gemini、OpenAI 等渠道画图与改图。 |
+| `dsh-mcp-connector` | 0.2.88 | MCP 连接器：连接 MCP 服务并跨服务搜索工具。 |
+| `dsh-nonead-prompt-recall` | 0.7.0 | 输入历史：空输入框按 ↑ 召回上一条指令。 |
+| `dsh-nonead-universal-robots` | 0.8.4 | UR 机械臂：用自然语言直接控制 Universal Robots 机械臂。 |
+| `dsh-nonead-ursim` | 0.3.12 | UR 仿真：在离线仿真中编排机械臂动作。 |
+| `dsh-ppt-master` | 1.0.8 | PPT 生成：根据内容生成演示文稿。 |
+| `dsh-remotion` | 0.10.3 | 视频制作：在 DSH 里用 React 工程渲染视频。 |
+| `dsh-rewind-plugin` | 0.19.1 | 对话回退：在同一窗口内回退对话并恢复工作区文件。 |
+| `dsh-univer-office` | 0.3.9 | Office 文档：DSH 与 Univer 集成，支持表格、文档与演示。 |
 
 ## 2.2.3 — 2026-10-29
 

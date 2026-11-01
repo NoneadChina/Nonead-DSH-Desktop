@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  Version du produit <code>2.2.3</code> · Runtime DSH <code>0.2.2-alpha.2</code> · Electron 44 · Licence MIT
+  Version du produit <code>2.2.4</code> · Runtime DSH <code>0.2.2-alpha.2</code> · Electron 44 · Licence MIT
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">Téléchargement en un clic, prêt à l’emploi.</a></h3>
@@ -66,7 +66,7 @@ L’enveloppe et le Host ne communiquent que par un unique canal IPC de processu
 
 | Élément | Valeur |
 | --- | --- |
-| Version du produit | `2.2.3` (`nonead-dsh-desktop` et `dsh-plugin-desktop-beta` synchronisés) |
+| Version du produit | `2.2.4` (`nonead-dsh-desktop` et `dsh-plugin-desktop-beta` synchronisés) |
 | Espace de travail du canal stable | `nonead-dsh-desktop` (les scripts racine utilisent le suffixe `:stable`) |
 | Espace de travail du canal Beta | `dsh-plugin-desktop-beta` (les scripts racine utilisent le suffixe `:beta`) |
 | Runtime DSH | `0.2.2-alpha.2`, chaque dépendance `@deepseek-ai/dsh*` épinglée exactement, runtime vendored |
@@ -74,7 +74,7 @@ L’enveloppe et le Host ne communiquent que par un unique canal IPC de processu
 | Pin en amont | `f3803c96974ad4a94195fb97e5c637e9c2a3afe3fc48fa190a683e469daa699857e9afe8` (`channels.beta` dans `upstream.json`, également consigné dans `nonead-dsh-desktop/upstream-reference.json`) |
 | Electron / outil de packaging | Electron `44.0.0` / electron-builder `26.15.7` (`app-builder-lib` patché) |
 | Node / Yarn | Node `^22.19.0` ou `>=24.0.0` ; Yarn `4.18.0` via Corepack (`nodeLinker: node-modules`) |
-| Marché de plugins | `dshmarket` `1.70.1`, ainsi que `dsh-community-market` `0.1.0-dev.0` de ce dépôt |
+| Marché de plugins | `dshmarket` `1.73.6`, ainsi que `dsh-community-market` `0.1.0-dev.0` de ce dépôt |
 | Pont de contrôle à distance | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop` (commit en amont `39b82d4`) |
 | Habillage de marque | `dsh-nonead-client-skin` (fourni avec l’installateur, monté par profil) |
 
@@ -94,7 +94,7 @@ Les installateurs officiels couvrent Windows x64, macOS (Universal, Intel et App
 
 Remarques pour Linux : certaines distributions nécessitent l’installation de FUSE, ou vous pouvez lancer avec `--appimage-extract-and-run`. La mise à jour intégrée sous Linux **ne vérifie que la version et ne télécharge jamais d’installateur** ; pour mettre à niveau, téléchargez une nouvelle AppImage. Utilisez le canal Beta si vous avez besoin d’un installateur Linux — le canal stable ne produit sous Linux qu’un répertoire exécutable.
 
-Windows ARM64 n’est disponible que sous forme de **build expérimental** et n’est ni proposé par les liens de téléchargement ni par les mises à jour intégrées ci-dessus : l’enveloppe est native arm64, mais les runtimes Python / Node / Office embarqués restent des charges utiles x64 (exécutées via l’émulation Windows), et l’artefact n’a pas encore été exécuté sur du matériel ARM. Pour le construire vous-même, utilisez la commande de la section [Commandes courantes](#dev).
+Windows ARM64 dispose de son propre installateur arm64 (`Nonead-DSH-Desktop-<version>-arm64-Setup.exe`), construit à partir de la même charge utile que le paquet x64 : l’enveloppe est native arm64, tandis que les runtimes Python / Node / Office embarqués restent des charges utiles x64 exécutées via l’émulation Windows. L’artefact n’a pas encore été validé sur du matériel ARM ; il n’est donc ni proposé par les liens de téléchargement ni par les mises à jour intégrées. Voir [Commandes courantes](#dev) pour le construire.
 
 L’utilisation pas à pas, les profils et les commandes de plugins sont décrits dans le [guide utilisateur](docs/user-guide.en.md) ; les questions de plateforme et de périmètre trouvent réponse dans la [FAQ](docs/faq.en.md).
 
@@ -110,6 +110,7 @@ L’utilisation pas à pas, les profils et les commandes de plugins sont décrit
 | Profils et configuration initiale | Les répertoires de profil se trouvent dans `$DSH_HOME/profiles/<name>` ; un profil non initialisé affiche d’abord l’assistant de configuration Desktop (mode et matériau de fenêtre, marché de plugins, notifications, ouverture dans le navigateur par défaut, portée de l’accès Web) avant le démarrage du Host |
 | Accès navigateur et réseau local | « Ouvrir dans le navigateur » contrôle uniquement le lancement du navigateur système et ne modifie pas l’exposition ; l’accès réseau local est une option distincte qui affiche aussi l’URL actuelle du réseau local |
 | Marché de plugins intégré | DSH Community Market propose les vues découverte / installables / installés / sources, avec des sources de catalogue extensibles et des adaptateurs audités |
+| Extensions intégrées | L’installateur embarque 30 extensions, listées sur la dernière page de la configuration initiale ; « Terminer et démarrer » les installe une par une avec la progression, puis elles se gèrent dans « Installées » du marché des extensions |
 | Habillage de marque | `dsh-nonead-client-skin` est fourni avec l’installateur et monté par le profil, pour chaque profil, sans installation séparée |
 | Mise à jour automatique | Vérification de version sur une adresse fixe `https://www.nonead.com/software/ndsh-desktop/version`, avec version actuelle, canal et un identifiant d’installation aléatoire ; Windows et macOS téléchargent et installent, Linux se contente de vérifier |
 | Expérience de mise à jour | La carte de mise à jour affiche les notes de version fournies par la réponse de version, et le menu de la barre d’état système ainsi que les boîtes de dialogue natives du canal Beta ajoutent une entrée « afficher les notes complètes » ; « ignorer cette version » est mémorisé, de sorte qu’une vérification planifiée sans surveillance ne la propose plus ; une installation échouée peut être relancée et restaurée depuis n’importe quel instantané enregistré |
@@ -285,7 +286,7 @@ L’historique complet se trouve dans le [journal des modifications](CHANGELOG.f
 | Version | Date | Points clés |
 | --- | --- | --- |
 | `2.1.15` | 2026-10-22 | Notes de version dans la carte de mise à jour, la barre d’état système et les boîtes de dialogue natives, possibilité d’ignorer une version, nouvelle tentative d’installation et restauration d’instantané ; mémorisation de l’état de fenêtre, `.env` en couches, liens profonds `dsh-desktop://` et lancement à l’ouverture de session ; aperçu des médias du marché et installation par nom ; `dshmarket` `1.66.45` |
-| `2.2.3` | 2026-10-29 | L’enveloppe de bureau est entièrement localisée en huit langues (chinois, anglais, japonais, espagnol, français, allemand, russe, portugais du Brésil) : cinq nouveaux dictionnaires d’enveloppe et des dictionnaires de page de paramètres en six langues, recherche par modèle pour les dialogues interpolés, et l’espace de noms de locale du client ainsi que les menus natifs suivent le même ensemble |
+| `2.2.4` | 2026-10-29 | L’enveloppe de bureau est entièrement localisée en huit langues (chinois, anglais, japonais, espagnol, français, allemand, russe, portugais du Brésil) : cinq nouveaux dictionnaires d’enveloppe et des dictionnaires de page de paramètres en six langues, recherche par modèle pour les dialogues interpolés, et l’espace de noms de locale du client ainsi que les menus natifs suivent le même ensemble |
 | `2.2.2` | 2026-10-28 | Runtime passé à DSH `0.2.2-alpha.2` (370 paquets re-vendored, 24 correctifs de version et le correctif du marché rebasés), dshmarket passe à 1.73.1, et le pont Agents Anywhere est reconstruit pour les nouvelles plages de peer |
 | `2.1.18` | 2026-10-24 | Runtime passé à DSH `0.2.2-alpha.2` (344 paquets re-vendored, 24 correctifs rebasés), le pont Agents Anywhere est construit depuis les sources avec un correctif de connecteur rebasé, un build Windows ARM64 expérimental arrive, et le texte de la carte de mise à jour ainsi que l’emplacement de la progression sont corrigés ; inclut la série de correctifs d’audit 2.1.17 |
 | `2.1.17` | 2026-10-24 | Série de correctifs d’audit : course lors du rafraîchissement de la récupération, revérification des inodes de point de contrôle et dégradation à un seul emplacement, écritures atomiques des paramètres, libération du chemin d’échec de mise à jour, nettoyage de l’état des plugins et du staging, propriété des dialogues de la barre d’état système, pagination du marché et déclaration de l’habillage, correctifs des garde-fous CI |
