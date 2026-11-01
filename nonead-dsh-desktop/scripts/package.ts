@@ -9,6 +9,7 @@ import { releaseMac } from '../../dsh-plugin-desktop-beta/scripts/release-mac.ts
 import { adaptMacReleaseEnvironment, assertMacReleaseReady, withoutMacReleaseSecrets } from '../../dsh-plugin-desktop-beta/scripts/release-preflight.ts'
 import { packageMacSmoke } from '../../dsh-plugin-desktop-beta/scripts/package-mac.ts'
 import { createWindowsPackageOptions, packageWindowsInstaller } from '../../dsh-plugin-desktop-beta/scripts/package-win.ts'
+import { withoutLinuxSigningSecrets } from '../../dsh-plugin-desktop-beta/scripts/package-linux.ts'
 import { prepareNextMacRuntime } from './mac-runtime.ts'
 import { runNextPackagingCommand } from './packaging-command.ts'
 import { expectedNextVersion, nextRuntimeBuildPaths, nextRuntimeTargets, prepareNextRuntime, primaryRuntimeDirectory, smokeNextRuntime, verifyNextRuntimeTree } from './prepare-runtime.ts'
@@ -88,6 +89,53 @@ const prepareRuntime = (platform: NodeJS.Platform = process.platform): void => {
   verifyNextRuntimeTree(nextRuntimeBuildPaths(desktopRoot).runtime, platform, buildVersion)
   preparePayload(platform)
 }
+
+/** CPUs every Linux release ships. */
+const LINUX_ARCHES = ['x64', 'arm64'] as const
+
+/** Artifact families every Linux release publishes. */
+const LINUX_ARTIFACT_EXTENSIONS = ['AppImage', 'deb', 'rpm'] as const
+
+/** CPU spellings Electron Builder puts into a Linux artifact name. */
+const LINUX_ARTIFACT_ARCH = ['x86_64', 'amd64', 'arm64', 'aarch64'] as const
+
+/**
+ * Remove this version's Linux artifacts before packaging, so a failed run cannot be mistaken for
+ * the artifacts the verification step reads.
+ */
+function removeStaleLinuxArtifacts(): void {
+  for (const extension of LINUX_ARTIFACT_EXTENSIONS) {
+    for (const arch of LINUX_ARTIFACT_ARCH) {
+      rmSync(join(desktopRoot, 'dist', `Nonead-DSH-Desktop-${buildVersion}-${arch}.${extension}`), { force: true })
+    }
+  }
+}
+
+/**
+ * Package the prepared payload as AppImage, Debian and RPM artifacts for both Linux CPUs.
+ *
+ * One Electron Builder run builds x64 and arm64 from the same prepared tree: every architecture-
+ * specific dependency resolves to a `<platform>-<arch>` directory inside it, so both installers
+ * archive identical `app.asar` bytes while each carries its own Electron runtime and installer
+ * metadata. The flow is unsigned and disables certificate discovery; signing is a separate step.
+ */
+async function packageLinuxArtifacts(): Promise<void> {
+  if (process.platform !== 'linux') throw new Error('Linux artifacts must be built on a native Linux host')
+  if (process.arch !== 'x64' && process.arch !== 'arm64') {
+    throw new Error(`Linux artifacts require an x64 or arm64 build host; received ${process.arch}`)
+  }
+  const cleanEnvironment = withoutLinuxSigningSecrets(process.env)
+  console.log(`Building unsigned Linux ${LINUX_ARCHES.join('/')} AppImage, deb and rpm; signing is a separate release step.`)
+  if (cleanEnvironment.DSH_PACKAGE_CHECK_ALREADY_RAN !== '1') {
+    run('corepack', ['yarn', 'workspace', 'nonead-dsh-desktop', 'check:linux-package'], workspaceRoot, cleanEnvironment)
+  }
+  await prepareInterpreters()
+  prepareRuntime('linux')
+  removeStaleLinuxArtifacts()
+  run(process.execPath, [require.resolve('electron-builder/cli.js'), '--linux', ...LINUX_ARTIFACT_EXTENSIONS, '--x64', '--arm64', '--publish', 'never'],
+    desktopRoot, { ...cleanEnvironment, CSC_IDENTITY_AUTO_DISCOVERY: 'false' })
+  run(process.execPath, [join(desktopRoot, 'scripts', 'verify-linux-artifacts.ts'), '--version', buildVersion], desktopRoot, cleanEnvironment)
+}
 const mode = process.argv[2]
 const outputDir = join(desktopRoot, 'dist', mode === 'mac' ? 'mac-release' : 'mac-smoke')
 const shared = { env: process.env, platform: process.platform, desktopRoot, outputDir,
@@ -116,4 +164,6 @@ if (mode === 'dir') {
   await prepareInterpreters()
   packageWindowsInstaller({ ...createWindowsPackageOptions(), desktopRoot, workspaceRoot, run, prepareRuntime,
     verifier: join(desktopRoot, 'scripts/verify-win-installer.ts') })
-} else throw new Error('Expected dir, mac, mac-smoke or win')
+} else if (mode === 'linux') {
+  await packageLinuxArtifacts()
+} else throw new Error('Expected dir, mac, mac-smoke, win or linux')

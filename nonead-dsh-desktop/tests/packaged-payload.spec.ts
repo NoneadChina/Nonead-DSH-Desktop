@@ -51,7 +51,9 @@ async function assembled(extra: (app: string) => void = () => {}, seal = true): 
 it('describes the architectures each release target carries', () => {
   expect(nextPackagingTarget('darwin')).toEqual({ platform: 'darwin', archs: ['arm64', 'x64'] })
   expect(nextPackagingTarget('win32')).toEqual({ platform: 'win32', archs: ['x64'] })
-  expect(nextPackagingTarget('linux', 'arm64')).toEqual({ platform: 'linux', archs: ['arm64'] })
+  // Both Linux installers archive one prepared payload, whichever CPU built it.
+  expect(nextPackagingTarget('linux', 'arm64')).toEqual({ platform: 'linux', archs: ['arm64', 'x64'] })
+  expect(nextPackagingTarget('linux', 'x64')).toEqual({ platform: 'linux', archs: ['arm64', 'x64'] })
 })
 
 // @electron/asar 3.4.1 matches `unpack` globs against absolute paths, which on Windows use

@@ -25,14 +25,24 @@ export interface Config {
 export const PRIMARY_RUNTIME_INSTALL_NAME = 'nonead-dsh-desktop-primary-runtime'
 
 /**
+ * Platforms whose package carries a bundled primary runtime payload with the Office resources.
+ * Linux packages ship none: the shell still forwards a payload path, and the skill registry would
+ * then fail Host startup looking for `office-skills` beside a directory that is not there.
+ */
+const OFFICE_PLATFORMS: ReadonlySet<NodeJS.Platform> = new Set(['darwin', 'win32'])
+
+/**
  * Resolve the Office composition for one Host start.
  * @param runtimeDir - Application directory; the archive itself when packaged.
  * @param source - Bundled payload directory the shell selected for this CPU.
  * @param home - Next home receiving the installation.
- * @returns The configuration, or undefined for a development tree whose payload was not prepared.
+ * @param platform - Platform of the running package.
+ * @returns The configuration, or undefined for a development tree whose payload was not prepared
+ *   and for a platform that ships no payload.
  * @throws For a packaged Host started without a payload path.
  */
-export function resolveOfficeConfig(runtimeDir: string, source: string | undefined, home: string): Config | undefined {
+export function resolveOfficeConfig(runtimeDir: string, source: string | undefined, home: string, platform: NodeJS.Platform = process.platform): Config | undefined {
+  if (!OFFICE_PLATFORMS.has(platform)) return undefined
   const packaged = insideArchive(runtimeDir)
   if (source === undefined) {
     if (packaged) throw new Error('Next Host requires the bundled primary runtime path')

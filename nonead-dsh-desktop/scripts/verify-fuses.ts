@@ -14,6 +14,40 @@ const desktopRoot = fileURLToPath(new URL('..', import.meta.url))
 /** COFF machine identifiers of the CPUs the Windows payload can target. */
 const PE_MACHINES = { x64: 0x8664, arm64: 0xaa64 } as const
 
+/** ELF `e_machine` identifiers of the CPUs the Linux payload can target. */
+const ELF_MACHINES = { x64: 62, arm64: 183 } as const
+
+/**
+ * Read the ELF `e_machine` of one Linux executable without loading it.
+ * @param path - Packaged Linux executable.
+ * @returns The CPU identifier its header declares.
+ */
+function elfMachine(path: string): number {
+  const descriptor = openSync(path, 'r')
+  const header = Buffer.alloc(20)
+  try {
+    if (readSync(descriptor, header, 0, header.byteLength, 0) !== header.byteLength
+      || !header.subarray(0, 4).equals(Buffer.from([0x7f, 0x45, 0x4c, 0x46]))) {
+      throw new Error(`No Linux ELF header in ${path}`)
+    }
+    return header[5] === 2 ? header.readUInt16BE(18) : header.readUInt16LE(18)
+  } finally {
+    closeSync(descriptor)
+  }
+}
+
+/**
+ * Report whether this host cannot execute one packaged application, whichever platform built it.
+ * A cross-arch artifact (an arm64 installer built on this x64 host) is inspected but never run.
+ * @param path - Packaged executable.
+ * @returns True when the binary targets another CPU than the host.
+ */
+function isForeignArchitecture(path: string): boolean {
+  const host = process.arch === 'arm64' ? 'arm64' : 'x64'
+  if (path.endsWith('.exe')) return peMachine(path) !== PE_MACHINES[host]
+  return elfMachine(path) !== ELF_MACHINES[host]
+}
+
 function runPackagedNode(path: string, args: readonly string[], timeout: number, failure: string): void {
   const result = spawnSync(path, args, {
     env: { ...withoutWindowsSigningSecrets(withoutMacReleaseSecrets(process.env)), ELECTRON_RUN_AS_NODE: '1' },
@@ -69,8 +103,7 @@ async function verifyExecutable(path: string, expectedVersion: string): Promise<
   if (runtimes.length > 0) console.log(`Verified the bundled primary runtimes: ${runtimes.map(runtime => runtime.arch).join(', ')}`)
   // A cross-arch artifact (an arm64 installer built on this x64 host) is inspected but never run:
   // this host cannot execute it, and the failure would say nothing about the payload itself.
-  const hostMachine = process.arch === 'arm64' ? PE_MACHINES.arm64 : PE_MACHINES.x64
-  if (path.endsWith('.exe') && peMachine(path) !== hostMachine) {
+  if (isForeignArchitecture(path)) {
     console.log(`Skipped the packaged runtime smokes for ${path}: it does not run on this ${process.arch} host`)
     return
   }
@@ -96,7 +129,7 @@ async function verifyExecutable(path: string, expectedVersion: string): Promise<
 export default async function afterAllArtifactBuild(result: { outDir: string }): Promise<string[]> {
   const paths = ['mac/Nonead DSH Desktop.app/Contents/MacOS/Nonead DSH Desktop', 'mac-arm64/Nonead DSH Desktop.app/Contents/MacOS/Nonead DSH Desktop',
     'mac-universal/Nonead DSH Desktop.app/Contents/MacOS/Nonead DSH Desktop', 'win-unpacked/Nonead DSH Desktop.exe',
-    'win-arm64-unpacked/Nonead DSH Desktop.exe', 'linux-unpacked/nonead-dsh-desktop']
+    'win-arm64-unpacked/Nonead DSH Desktop.exe', 'linux-unpacked/nonead-dsh-desktop', 'linux-arm64-unpacked/nonead-dsh-desktop']
   const executables = paths.map(path => join(result.outDir, path)).filter(existsSync)
   if (!executables.length) throw new Error('No packaged Next executable to verify')
   const expectedVersion = expectedNextVersion(desktopRoot)

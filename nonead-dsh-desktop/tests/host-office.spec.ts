@@ -74,17 +74,34 @@ it('mounts Office only for a prepared development payload and always for a packa
   const root = await mkdtemp(join(tmpdir(), 'next-office-config-'))
   try {
     const home = join(root, 'home')
+    // macOS and Windows are the platforms whose package carries the payload this composition reads.
+    const platform = 'darwin'
     const source = join(root, '.desktop-build', 'runtime', 'arm64', 'primary-runtime')
-    expect(resolveOfficeConfig(root, undefined, home)).toBeUndefined()
-    expect(resolveOfficeConfig(root, source, home)).toBeUndefined()
+    expect(resolveOfficeConfig(root, undefined, home, platform)).toBeUndefined()
+    expect(resolveOfficeConfig(root, source, home, platform)).toBeUndefined()
     await mkdir(source, { recursive: true })
     await writeFile(join(source, 'runtime.json'), '{}')
-    expect(resolveOfficeConfig(root, source, home)).toEqual({ source, root: join(home, 'dsh-runtimes', PRIMARY_RUNTIME_INSTALL_NAME) })
+    expect(resolveOfficeConfig(root, source, home, platform)).toEqual({ source, root: join(home, 'dsh-runtimes', PRIMARY_RUNTIME_INSTALL_NAME) })
     const archive = join(root, 'Resources', 'app.asar')
     const packaged = join(root, 'Resources', 'runtime', 'x64', 'primary-runtime')
-    expect(() => resolveOfficeConfig(archive, undefined, home)).toThrow('requires the bundled primary runtime path')
-    expect(resolveOfficeConfig(archive, packaged, home)).toEqual({ source: packaged, root: join(home, 'dsh-runtimes', PRIMARY_RUNTIME_INSTALL_NAME) })
+    expect(() => resolveOfficeConfig(archive, undefined, home, platform)).toThrow('requires the bundled primary runtime path')
+    expect(resolveOfficeConfig(archive, packaged, home, platform)).toEqual({ source: packaged, root: join(home, 'dsh-runtimes', PRIMARY_RUNTIME_INSTALL_NAME) })
     expect(PRIMARY_RUNTIME_INSTALL_NAME).not.toBe('dsh-primary-runtime')
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+it('exposes no Office composition on a platform whose package ships no payload', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'next-office-config-linux-'))
+  try {
+    const home = join(root, 'home')
+    const source = join(root, 'Resources', 'runtime', 'x64', 'primary-runtime')
+    const archive = join(root, 'Resources', 'app.asar')
+    // A Linux package forwards the payload path unconditionally but ships no payload: configuring
+    // the skill registry from it would abort Host startup instead of leaving Office unavailable.
+    expect(resolveOfficeConfig(archive, source, home, 'linux')).toBeUndefined()
+    expect(resolveOfficeConfig(archive, undefined, home, 'linux')).toBeUndefined()
   } finally {
     await rm(root, { recursive: true, force: true })
   }

@@ -15,6 +15,13 @@ export const PAYLOAD_DIR = '.desktop-build/payload'
  * Architectures whose native dependencies one Next package carries.
  * macOS releases are universal and the Yarn tree installs both Darwin CPU variants, so even a
  * single-architecture directory build ships both; Windows releases are x64 only.
+ *
+ * Linux installers are built for both CPUs from one prepared payload: every architecture-specific
+ * dependency of the production closure either resolves to a `<platform>-<arch>` directory inside
+ * the same tree (`fs-ext/prebuilds`, `node-pty/prebuilds`, `@img/sharp-linux-<arch>`,
+ * `@vscode/ripgrep-linux-<arch>`, …) or carries both variants in one package, so the x64 and the
+ * arm64 AppImage/deb/rpm archive the same `app.asar`. The descriptor therefore records both CPUs
+ * and the runtime accepts either one (`verifyPackagedRuntimeIdentity` matches membership).
  * @param platform - Electron platform being packaged.
  * @param hostArch - Build host architecture, used for platforms without a release target.
  * @returns Platform and architectures recorded in the payload descriptor.
@@ -22,6 +29,7 @@ export const PAYLOAD_DIR = '.desktop-build/payload'
 export function nextPackagingTarget(platform: NodeJS.Platform, hostArch: string = process.arch): NextPackagingTarget {
   if (platform === 'darwin') return { platform, archs: ['arm64', 'x64'] }
   if (platform === 'win32') return { platform, archs: ['x64'] }
+  if (platform === 'linux') return { platform, archs: ['arm64', 'x64'] }
   return { platform, archs: [hostArch] }
 }
 

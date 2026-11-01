@@ -1,5 +1,8 @@
 /** Desktop-only omissions from the production dependency tree Electron Builder copies into the payload. */
 
+/** Platforms whose Office kit publishes a native engine; the others run the WASM engine. */
+const OFFICE_NATIVE_PLATFORMS: ReadonlySet<string> = new Set(['darwin', 'win32'])
+
 /** Platform and every CPU architecture whose native dependencies one Next package carries. */
 export interface NextPackagingTarget {
   readonly platform: NodeJS.Platform
@@ -35,7 +38,12 @@ export function nextRuntimeFileExclusion(path: string, target: NextPackagingTarg
   const entry = packageParts.slice(nameParts).join('/')
   const targets = target.archs.map(arch => `${target.platform}-${arch}`)
   if (name.startsWith('@deepseek-ai/libreoffice-kit-')) {
-    if (!targets.some(suffix => name === `@deepseek-ai/libreoffice-kit-${suffix}`)) return 'LibreOffice other platform'
+    if (targets.some(suffix => name === `@deepseek-ai/libreoffice-kit-${suffix}`)) return undefined
+    // The kit publishes native engines for macOS and Windows only; every other platform
+    // (Linux) selects the CPU- and OS-neutral WASM engine, which `selectOfficeEngine` also
+    // falls back to, so that one must stay in the payload of those platforms.
+    if (name === '@deepseek-ai/libreoffice-kit-wasm' && !OFFICE_NATIVE_PLATFORMS.has(target.platform)) return undefined
+    return 'LibreOffice other platform'
   }
   if (name === 'fs-ext' && /^build\/(?:Release|Debug)\/(?:obj(?:\/|$)|fs_ext\.(?:exp|lib|pdb|iobj|ipdb)$)/u.test(entry)) {
     return 'fs-ext compiler output'
