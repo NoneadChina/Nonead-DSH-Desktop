@@ -1,8 +1,17 @@
 ; Check the exact app process before launching the quit handoff. This preserves
 ; the #469 fix: unrelated helpers under $INSTDIR must never block an upgrade.
+; Only the install-time handoff uses this variable. Declaring it while building the throwaway
+; uninstaller stub would leave it unused, and NSIS warning 6001 is fatal in this build.
+!ifndef BUILD_UNINSTALLER
 Var pid
+!endif
 
 !macro customCheckAppRunning
+  ; electron-builder compiles this macro into a throwaway stub (BUILD_UNINSTALLER) and runs that
+  ; stub to extract the uninstaller, long before anyone installs. A release is normally built on
+  ; a machine where this very shell is running, so the check would find the application, fail to
+  ; close it, and abort the build with exit code 2 instead of producing an installer.
+  !ifndef BUILD_UNINSTALLER
   !insertmacro IS_POWERSHELL_AVAILABLE
   !insertmacro FIND_PROCESS "${APP_EXECUTABLE_FILENAME}" $R0
   ${if} $R0 != 0
@@ -61,4 +70,5 @@ Var pid
     Goto dsh_installer_wait_for_fallback
 
   dsh_installer_app_stopped:
+  !endif
 !macroend
