@@ -15,10 +15,25 @@ const NAMED_SECRET = new RegExp(
   'giu',
 )
 
+/**
+ * Base64/base64url material is a credential whenever it is long enough to be one.
+ *
+ * The alphabet has to include `+`, `/` and `=` (and base64url's `-`/`_` through the
+ * JWT rule below): a random 32-byte key encodes to 44 characters and contains a
+ * `+` or a `/` about three quarters of the time, which splits a word-boundary
+ * alphanumeric run into short fragments that no `[A-Za-z0-9]{32,}` match covers.
+ */
+const BASE64_RUN = /[A-Za-z0-9+/]{32,}={0,2}/gu
+
+/** A signed JWT: base64url header, payload and signature; `eyJ` decodes to `{"`. */
+const JWT = /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/gu
+
 /** Secret-shaped patterns applied in order to a rendered log line. */
 const SECRET_PATTERNS: readonly RegExp[] = [
   /\bsk-[A-Za-z0-9]{12,}/gu, // OpenAI/DeepSeek-style sk- keys
-  /\b[a-zA-Z0-9]{32,}\b/gu, // long hex/base64 tokens
+  JWT, // before BASE64_RUN so the whole token, dots included, is replaced once
+  BASE64_RUN, // long base64 blobs, including ones that carry +, / or padding
+  /\b[a-zA-Z0-9]{32,}\b/gu, // long hex/base64 tokens with word boundaries
   /Bearer\s+[A-Za-z0-9._-]+/giu, // Authorization bearer tokens
   /Basic\s+[A-Za-z0-9+/]+={0,2}/giu, // Authorization basic credentials
 ]

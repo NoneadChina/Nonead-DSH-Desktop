@@ -94,20 +94,30 @@ export async function startIsolatedDesktopHost(options: IsolatedHostOptions): Pr
   let stopTask: Promise<void> | undefined
   const stop = (): Promise<void> => stopTask ??= (async () => {
     stopping = true
-    if (!exited) {
-      const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 3_000)
-      try { await rpc.call('stop', [], controller.signal) } catch { /* terminate an unresponsive Host */ }
-      finally { clearTimeout(timeout) }
-      if (!exited) child.kill()
-      const timeoutExit = new Promise<never>((_resolve, reject) => {
-        const timer = setTimeout(() => reject(new Error('DSH Host termination was not confirmed')), 1_000)
-        void exit.then(() => clearTimeout(timer))
+    try {
+      if (!exited) {
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 3_000)
+        try { await rpc.call('stop', [], controller.signal) } catch { /* terminate an unresponsive Host */ }
+        finally { clearTimeout(timeout) }
+        if (!exited) child.kill()
+        const timeoutExit = new Promise<never>((_resolve, reject) => {
+          const timer = setTimeout(() => reject(new Error('DSH Host termination was not confirmed')), 1_000)
+          void exit.then(() => clearTimeout(timer))
+        })
+        await Promise.race([exit, timeoutExit])
+      }
+    } finally {
+      // An unconfirmed exit must not skip the teardown that is still owed: the native bindings and
+      // the child message listener belong to this process, and the Electron runtime keeps them until
+      // they are released. Both steps run before the termination error is rethrown.
+      await releaseNative().catch((cause: unknown) => {
+        process.stderr.write(
+          `dsh-plugin-desktop: failed to release native Host bindings: ${cause instanceof Error ? cause.message : String(cause)}\n`,
+        )
       })
-      await Promise.race([exit, timeoutExit])
+      rpc.close()
     }
-    await releaseNative()
-    rpc.close()
   })()
   options.bindHost({ fiber: { dispose: stop } })
   try {
@@ -115,7 +125,13 @@ export async function startIsolatedDesktopHost(options: IsolatedHostOptions): Pr
     await rpc.call('boot', [{ ...host, launchEnvironmentLayers: serializeHostEnvironment(desktopLaunchEnvironment) }, runtimeSnapshot(options.runtime), options.rendererToken])
     booted = true
   } catch (cause) {
-    await stop()
+    // The boot failure is the cause a report can act on; a Host that cannot confirm its own
+    // termination during this teardown must not replace it.
+    await stop().catch((stopCause: unknown) => {
+      process.stderr.write(
+        `dsh-plugin-desktop: failed to stop the Host after a boot failure: ${stopCause instanceof Error ? stopCause.message : String(stopCause)}\n`,
+      )
+    })
     throw cause
   }
 }

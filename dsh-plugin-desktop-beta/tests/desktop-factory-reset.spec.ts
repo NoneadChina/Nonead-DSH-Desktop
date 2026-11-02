@@ -138,6 +138,26 @@ describe('Desktop factory reset', () => {
     expect(existsSync(join(home, 'profiles'))).toBe(false)
   })
 
+  it('leaves a usable empty data directory when external preference cleanup fails', async () => {
+    const { root, home } = await fixture()
+    const userDataDir = join(root, 'desktop-state')
+    await selectDesktopMarketProvider(userDataDir, 'community-market')
+
+    await expect(resetDesktopDataDirectory({
+      homeDir: home,
+      userDataDir,
+      protectedPaths: [root],
+      trashItem: async path => { await rename(path, join(root, 'trashed-dsh')) },
+      clearProfileUsageHistory: () => { throw new Error('usage history is unavailable') },
+    })).rejects.toThrow('usage history is unavailable')
+
+    // The previous Home is already in the trash, so the reset must not also leave the
+    // installation without a data directory.
+    expect(existsSync(home)).toBe(true)
+    expect(existsSync(join(home, 'profiles'))).toBe(false)
+    expect(existsSync(join(root, 'trashed-dsh', 'session.jsonl'))).toBe(true)
+  })
+
   it('rejects roots, symlinks, uninitialized directories, and protected ancestors', async () => {
     const { root, home } = await fixture()
     expect(() => assertDesktopFactoryResetTarget('/', [root], 'darwin')).toThrow('filesystem root')
