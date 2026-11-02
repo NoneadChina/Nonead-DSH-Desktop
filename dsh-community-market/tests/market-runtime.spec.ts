@@ -685,6 +685,38 @@ describe('standard catalog adapter media boundary', () => {
     expect(getJson.mock.calls[1]?.[0]).toBe('https://plugins.example.org/v1/plugins')
   })
 
+  it('accepts a declared default limit above the discovery default, through the schema maximum', async () => {
+    // catalog-provider-contract（英文 206 行 / 中文 206 行，以及 385 行的验收表）规定
+    // 标准来源 page 按声明的 defaultLimit 走、Schema 安全上限为 200；manifest 也可以
+    // 在 101–200 之间声明 defaultLimit。此前实现把有效上限硬性限制在 100，导致这类
+    // schema 合法的 manifest 每次扫描都报 "invalid provider response"。
+    const manifest = contractFixture('catalog-source.example') as CatalogSourceManifest
+    manifest.query.supported = manifest.query.supported.filter(field => field !== 'limit')
+    manifest.query.defaultLimit = 150
+    manifest.query.maxLimit = 150
+    const page = contractFixture('catalog-provider-page.example') as CatalogProviderPage
+    page.items = Array.from({ length: 120 }, (_, index) => {
+      const item = structuredClone(page.items[0]!)
+      item.id = `declared-limit-plugin-${index}`
+      item.name = `declared-limit-plugin-${index}`
+      item.displayName = `Declared Limit Plugin ${index}`
+      return item
+    })
+    const getJson = vi.fn()
+      .mockResolvedValueOnce({ value: manifest, finalUrl: standardSource().manifestUrl! })
+      .mockResolvedValueOnce({ value: page, finalUrl: 'https://plugins.example.org/v1/plugins' })
+
+    const snapshot = await standardHttpAdapter.fetch({}, {
+      source: standardSource(),
+      signal: new AbortController().signal,
+      http: { getJson },
+      media: { register: () => standardAssetRef },
+    })
+
+    expect(snapshot.items).toHaveLength(120)
+    expect(getJson.mock.calls[1]?.[0]).toBe('https://plugins.example.org/v1/plugins')
+  })
+
   it('rejects a manifest whose provider identity drifts after registration', async () => {
     const manifest = contractFixture('catalog-source.example') as CatalogSourceManifest
     manifest.providerId = 'org.example.changed-catalog'

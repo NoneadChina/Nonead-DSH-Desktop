@@ -112,6 +112,23 @@ describe('catalog schemas and semantics', () => {
     }, 1)).toThrow(/effective query limit/u)
   })
 
+  it('accepts the documented effective limit range above the discovery default', () => {
+    // manifest 可声明 defaultLimit 到 200（catalog-source schema），provider page 也可
+    // 含 200 条（catalog-provider-page schema）；标准来源不支持 limit 时 Host 会把
+    // defaultLimit 当作有效上限传入，因此 101–200 的有效上限必须与契约一致。
+    const page = providerFixture() as CatalogProviderPage
+    const items = Array.from({ length: 101 }, (_, index) => ({
+      ...page.items[0]!,
+      id: `effective-limit-plugin-${index}`,
+      name: `effective-limit-plugin-${index}`,
+      displayName: `Effective Limit Plugin ${index}`,
+    }))
+    expect(() => parseCatalogProviderPage({ ...page, items }, 150)).not.toThrow()
+    expect(() => parseCatalogProviderPage({ ...page, items }, 200)).not.toThrow()
+    expect(() => parseCatalogProviderPage({ ...page, items }, 100))
+      .toThrow(/effective query limit of 100/u)
+  })
+
   it('rejects provider and normalized pages above the 200-item safety cap', () => {
     const provider = providerFixture() as CatalogProviderPage
     const providerItems = Array.from({ length: 201 }, (_, index) => ({
