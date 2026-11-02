@@ -1,10 +1,10 @@
 # Multi-language document consistency record. Every language carries equal authority.
 # Update every file and record their Git blob hashes after editing any side.
-CHANGELOG.md: ecf01d1590dcdb8f830799df71b3449421c43495
-CHANGELOG.en.md: 2b8a55a5f02fd0a2a1754c099a28287388e30189
-CHANGELOG.ja.md: c2f8e4e1bc02e263431ffb14698bb26f1b2502da
-CHANGELOG.es.md: dda21d754a498ae596349aa0dd14c431ec6dee84
-CHANGELOG.fr.md: 0a946de0c9d42a36adad1d265e6f5df9b0d69565
-CHANGELOG.de.md: 93148e1bda1c22b9e7030c9ee19d5fff07feb674
-CHANGELOG.ru.md: 05c1b210257e9aaf917da0e185841f52a9fd58f1
-CHANGELOG.pt.md: fd1bba6f85240d6980e11c9f4f760be0b77e4da2
+CHANGELOG.md: dc461ebbbbbc17dbcce20d1ec9318916efa6d8cd
+CHANGELOG.en.md: c1cbb6fd056b8ce3dec70c7af6cfa32caeafe4bb
+CHANGELOG.ja.md: e62c27c85a9c38016188bc8dc667ec1b8ac17080
+CHANGELOG.es.md: 1f6eb57731a34ee74134da9939815209a915e289
+CHANGELOG.fr.md: bbd78f463a7bf32b914a62c81d950c45966723cc
+CHANGELOG.de.md: 1a7158bdf9ee86cc8ff1a1d8d87966bae142b942
+CHANGELOG.ru.md: c904f63fc0aebc4a5417264e04db1b67dcf24306
+CHANGELOG.pt.md: 4b8f26ecb2da053be65796ff85394bb381ff8166

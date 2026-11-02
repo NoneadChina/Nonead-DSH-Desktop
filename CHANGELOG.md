@@ -25,6 +25,40 @@
 - 测试修复：`package.spec` 的 `extraResources` 期望补上插件目录；`main-lifecycle` 的 onboarding 完成分支不再真的安装插件；`verify-linux-artifacts` 不再在 Windows 上检查 POSIX 执行位。
 - 版本号：产品 2.2.4 → **2.2.5**（两个桌面工作区同步）。
 
+### 内置插件清单（29 个）
+
+以下 29 个插件随安装包一起分发，首次启动后可在「插件」页随时启用、停用或卸载；名称后的数字是随包版本。
+
+- `@a9i5k4/dsh-auto-memory` 3.3.17 — 自动记忆。开工前自动注入相关的历史工作记录与已定决策，不必手动提示；跨会话累积的上下文留在本机，随时可检索。
+- `@kenz1117/dsh-ui-usage-billing` 1.8.1 — 用量与费用看板。在侧边栏集中展示调用用量指标与开销明细，便于随时核对成本。
+- `@linxin666/dsh-client-ui-git-graph` 0.4.14 — Git 分支图谱。以图形展示提交历史与分支走向，并可在空白会话中直接切换分支，不必回到终端执行 git 命令。
+- `@linxin666/dsh-client-ui-skill-explorer` 0.4.14 — 技能中心。按来源浏览当前已加载的技能，查看每个技能的用途，判断某个能力由谁提供。
+- `@michengai/dsh-agency-agents` 1.2.21 — 专家库。内置 331 位可召唤的专业智能体，覆盖工程、设计、市场、法务等多个职能；需要某一领域的判断时直接召唤对应专家执行，而不是让主会话代为分析。
+- `@michengai/dsh-archive-manager` 1.1.22 — 会话归档。归档、恢复、收藏与永久删除会话，并能诊断损坏的会话日志；日常清理不必删掉还想留着的记录。
+- `@michengai/dsh-code-review` 1.0.5 — 代码审查。采用 Codex 风格的审查流程，由原生独立子 Agent 执行，审查范围可灵活选定（改动、提交区间或整个仓库）。
+- `@michengai/dsh-skills-manager` 1.2.26 — 技能管理。统一加载并安全管理本机的 Agent 技能，启停与来源一目了然。
+- `@tt-a1i/archify-dsh` 1.0.0 — 架构图。把系统结构或业务流程转成可交互的架构图、流程图、时序图、数据流图与状态图。
+- `@wenaixi/dsh-superpower` 8.0.0 — 工程技能包。包含 15 个 superpowers 工程技能，中英双语可用。
+- `@yolk_vat-y/dsh-project-memory` 0.6.9 — 项目记忆。为文档（PDF、Markdown）与代码符号建立索引，之后用检索代替反复通读。
+- `dsh-api-client` 0.2.0 — API 调试。在编辑器内发起 HTTP 请求并查看响应，用于接口联调。
+- `dsh-better-sidebar` 0.28.2 — 更好用的侧边栏。把文件树、编辑器、改动、任务与侧边聊天合成一栏，每个会话相互独立；同时向其他插件开放侧栏标签与文件查看器的注册服务。
+- `dsh-config-manager` 0.3.0 — 配置管理。备份、恢复、导出、导入、迁移与同步 DSH 配置，换机或重装后可整体搬回。
+- `dsh-context` 0.79.0 — 上下文洞察与管理。查看当前上下文占用，并在接近上限时进行压缩。
+- `dsh-design-skills` 0.1.0 — 设计风格技能包。内置 6 种设计风格，搭界面或出图时直接调用。
+- `dsh-doc-reader` 0.2.0 — 文档读取。解析 PDF、Word 等文件的正文内容，让模型直接读到文档文字，而不是只有文件名。
+- `dsh-excel-chat` 0.43.0 — 表格对话。用自然语言操作 Excel 工作表，不必记忆函数与单元格坐标。
+- `dsh-find-plugins` 0.3.0 — 插件搜索。跨五个社区目录检索插件，同时用 GitHub 与 npm 做实时搜索。
+- `dsh-github-skills` 0.2.1 — GitHub 工作流技能。改编自 OpenAI Codex 的 GitHub 相关技能。
+- `dsh-image-gen` 0.10.2 — 图片生成。接入 Gemini、OpenAI 等渠道，完成画图与改图。
+- `dsh-mcp-connector` 0.2.93 — MCP 连接器。连接 MCP 服务，并在多个服务之间统一搜索与调用工具。
+- `dsh-nonead-prompt-recall` 0.8.4 — 输入历史。输入框为空时按 ↑ 召回上一条指令。
+- `dsh-nonead-universal-robots` 0.8.5 — UR 机械臂。用自然语言直接控制 Universal Robots 机械臂，省去手写脚本。
+- `dsh-nonead-ursim` 0.3.13 — UR 仿真。在离线仿真中编排机械臂动作，不接真机也能先验证轨迹。
+- `dsh-ppt-master` 1.0.8 — PPT 生成。根据给定内容生成演示文稿。
+- `dsh-remotion` 0.10.3 — 视频制作。在 DSH 里用 React 工程渲染视频。
+- `dsh-rewind-plugin` 0.19.1 — 对话回退。在同一窗口内回退对话，并同步恢复工作区文件。
+- `dsh-univer-office` 0.3.9 — Office 文档。DSH 与 Univer 集成，支持表格、文档与演示。
+
 ## 2.2.4 — 2026-10-31
 
 版本号推进，无功能变更：

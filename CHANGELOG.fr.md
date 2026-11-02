@@ -25,6 +25,40 @@ Mise à jour de la liste des plugins fournis et corrections du chemin d'installa
 - Corrections de tests : `package.spec` attend désormais le répertoire des plugins dans `extraResources` ; le parcours d'achèvement de l'assistant dans `main-lifecycle` n'installe plus de plugins ; `verify-linux-artifacts` ne vérifie plus les bits d'exécution POSIX sous Windows.
 - Version : produit 2.2.4 → **2.2.5** (les deux espaces de travail de bureau avancent ensemble).
 
+### Liste des plugins fournis (29)
+
+Les 29 plugins ci-dessous sont livrés avec l'installateur. Après le premier démarrage, vous pouvez les activer, les désactiver ou les désinstaller depuis la page « Plugins » ; le nombre après chaque nom est la version fournie.
+
+- `@a9i5k4/dsh-auto-memory` 3.3.17 — Mémoire automatique. Injecte le travail passé pertinent et les décisions déjà arrêtées avant le début d'une tâche, sans avoir à le demander ; le contexte accumulé reste sur cette machine et demeure consultable d'une session à l'autre.
+- `@kenz1117/dsh-ui-usage-billing` 1.8.1 — Tableau de bord d'usage et de coût. Regroupe les indicateurs de consommation et le détail des dépenses dans la barre latérale pour vérifier le coût à tout moment.
+- `@linxin666/dsh-client-ui-git-graph` 0.4.14 — Graphe des branches Git. Affiche l'historique des commits et le flux des branches, et permet de changer de branche depuis une session vide sans revenir au terminal.
+- `@linxin666/dsh-client-ui-skill-explorer` 0.4.14 — Centre des compétences. Parcourt les compétences chargées par origine, indique ce que fait chacune et précise quel composant fournit une capacité donnée.
+- `@michengai/dsh-agency-agents` 1.2.21 — Bibliothèque d'experts. 331 agents spécialisés invocables en ingénierie, design, marketing, juridique et plus encore ; lorsqu'un jugement de domaine est nécessaire, l'expert adéquat est invoqué plutôt que de laisser la session principale l'approximer.
+- `@michengai/dsh-archive-manager` 1.1.22 — Archivage des sessions. Archive, restaure, met en favori et supprime définitivement des sessions, et diagnostique les journaux de session corrompus, afin que le nettoyage courant ne fasse pas perdre des enregistrements encore utiles.
+- `@michengai/dsh-code-review` 1.0.5 — Revue de code. Un flux de revue de style Codex exécuté par un sous-agent natif indépendant, avec un périmètre de revue librement choisi (modifications, plage de commits ou dépôt entier).
+- `@michengai/dsh-skills-manager` 1.2.26 — Gestionnaire de compétences. Charge en un seul endroit les compétences d'agent locales et les gère en sécurité, avec l'origine et l'état d'activation sous les yeux.
+- `@tt-a1i/archify-dsh` 1.0.0 — Diagrammes d'architecture. Transforme la structure d'un système ou un processus métier en diagrammes interactifs d'architecture, de flux, de séquence, de flux de données et d'états.
+- `@wenaixi/dsh-superpower` 8.0.0 — Paquet de compétences d'ingénierie. Quinze compétences d'ingénierie superpowers, utilisables en chinois et en anglais.
+- `@yolk_vat-y/dsh-project-memory` 0.6.9 — Mémoire de projet. Indexe les documents (PDF, Markdown) et les symboles de code pour que les questions ultérieures soient résolues par recherche plutôt que par relecture.
+- `dsh-api-client` 0.2.0 — Débogage d'API. Envoie des requêtes HTTP et affiche les réponses dans l'éditeur, pour le travail d'intégration d'interfaces.
+- `dsh-better-sidebar` 0.28.2 — Une meilleure barre latérale. Réunit arborescence, éditeur, modifications, tâches et discussion latérale en une seule colonne, indépendante par session ; elle expose aussi aux autres plugins un service d'enregistrement d'onglets latéraux et de visionneuses de fichiers.
+- `dsh-config-manager` 0.3.0 — Gestionnaire de configuration. Sauvegarde, restauration, export, import, migration et synchronisation de la configuration DSH, pour transférer l'environnement vers une autre machine ou après une réinstallation.
+- `dsh-context` 0.79.0 — Observation et gestion du contexte. Affiche l'occupation actuelle du contexte et compresse lorsqu'elle approche de la limite.
+- `dsh-design-skills` 0.1.0 — Paquet de styles de design. Six styles de design intégrés, prêts à l'emploi pour construire des interfaces ou générer des images.
+- `dsh-doc-reader` 0.2.0 — Lecteur de documents. Extrait le texte de PDF, Word et formats similaires afin que le modèle lise le document et non son seul nom de fichier.
+- `dsh-excel-chat` 0.43.0 — Discussion sur tableur. Manipule des feuilles Excel en langage naturel sans mémoriser de fonctions ni de coordonnées de cellules.
+- `dsh-find-plugins` 0.3.0 — Recherche de plugins. Cherche des plugins dans cinq catalogues communautaires et effectue des recherches en direct sur GitHub et npm.
+- `dsh-github-skills` 0.2.1 — Compétences de flux de travail GitHub. Adaptées des compétences GitHub d'OpenAI Codex.
+- `dsh-image-gen` 0.10.2 — Génération d'images. Se connecte à Gemini, OpenAI et fournisseurs similaires pour créer et retoucher des images.
+- `dsh-mcp-connector` 0.2.93 — Connecteur MCP. Connecte des services MCP et fournit une recherche et une invocation unifiées des outils entre eux.
+- `dsh-nonead-prompt-recall` 0.8.4 — Historique de saisie. Appuyez sur ↑ dans une zone de saisie vide pour rappeler l'instruction précédente.
+- `dsh-nonead-universal-robots` 0.8.5 — Bras robotiques UR. Pilote directement les bras Universal Robots en langage naturel, sans écrire de scripts à la main.
+- `dsh-nonead-ursim` 0.3.13 — Simulation UR. Programme le mouvement du bras dans un simulateur hors ligne, pour valider une trajectoire avant de toucher du matériel réel.
+- `dsh-ppt-master` 1.0.8 — Génération de présentations. Produit des diaporamas à partir du contenu fourni.
+- `dsh-remotion` 0.10.3 — Production vidéo. Rendu de vidéo depuis un projet React au sein de DSH.
+- `dsh-rewind-plugin` 0.19.1 — Retour arrière de la conversation. Remonte la conversation dans la même fenêtre et restaure avec elle les fichiers de l'espace de travail.
+- `dsh-univer-office` 0.3.9 — Documents Office. Intégration de DSH et Univer pour les tableurs, documents et présentations.
+
 ## 2.2.4 — 2026-10-31
 
 Mise à jour de version sans changement fonctionnel :

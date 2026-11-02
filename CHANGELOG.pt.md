@@ -25,6 +25,40 @@ Atualização da lista de plugins incluídos e correções no caminho de instala
 - Correções de testes: `package.spec` passa a esperar o diretório de plugins em `extraResources`; a conclusão do assistente em `main-lifecycle` já não instala plugins; `verify-linux-artifacts` já não verifica bits de execução POSIX no Windows.
 - Versão: produto 2.2.4 → **2.2.5** (os dois espaços de trabalho de ambiente de trabalho avançam em conjunto).
 
+### Lista de plugins incluídos (29)
+
+Os 29 plugins abaixo acompanham o instalador. Após a primeira execução, pode ativá-los, desativá-los ou desinstalá-los na página «Plugins»; o número após cada nome é a versão incluída.
+
+- `@a9i5k4/dsh-auto-memory` 3.3.17 — Memória automática. Injeta o trabalho anterior relevante e as decisões já tomadas antes de uma tarefa começar, sem que seja pedido; o contexto acumulado fica neste computador e continua pesquisável entre sessões.
+- `@kenz1117/dsh-ui-usage-billing` 1.8.1 — Painel de utilização e custo. Reúne métricas de consumo e o detalhe da despesa na barra lateral para conferir o custo a qualquer momento.
+- `@linxin666/dsh-client-ui-git-graph` 0.4.14 — Gráfico de ramos do Git. Desenha o histórico de commits e o percurso dos ramos, e permite mudar de ramo a partir de uma sessão vazia sem voltar ao terminal.
+- `@linxin666/dsh-client-ui-skill-explorer` 0.4.14 — Centro de competências. Percorre as competências carregadas por origem, mostra o que cada uma faz e indica que componente fornece uma dada capacidade.
+- `@michengai/dsh-agency-agents` 1.2.21 — Biblioteca de especialistas. Inclui 331 agentes especialistas invocáveis em engenharia, design, marketing, jurídico e mais; quando é preciso um juízo de domínio, invoca-se o especialista certo em vez de deixar a sessão principal aproximá-lo.
+- `@michengai/dsh-archive-manager` 1.1.22 — Arquivo de sessões. Arquiva, restaura, marca como favoritas e elimina definitivamente sessões, e diagnostica registos de sessão corrompidos, para que a limpeza corrente não obrigue a perder registos que ainda quer.
+- `@michengai/dsh-code-review` 1.0.5 — Revisão de código. Um fluxo de revisão ao estilo Codex executado por um subagente nativo independente, com âmbito de revisão escolhido livremente (alterações, intervalo de commits ou repositório inteiro).
+- `@michengai/dsh-skills-manager` 1.2.26 — Gestor de competências. Carrega num único local as competências do agente local e mantém-nas geridas em segurança, com origem e estado de ativação à vista.
+- `@tt-a1i/archify-dsh` 1.0.0 — Diagramas de arquitetura. Converte a estrutura de um sistema ou um processo de negócio em diagramas interativos de arquitetura, fluxo, sequência, fluxo de dados e estados.
+- `@wenaixi/dsh-superpower` 8.0.0 — Pacote de competências de engenharia. Quinze competências de engenharia superpowers, disponíveis em chinês e inglês.
+- `@yolk_vat-y/dsh-project-memory` 0.6.9 — Memória do projeto. Indexa documentos (PDF, Markdown) e símbolos de código para que as perguntas seguintes sejam respondidas por pesquisa em vez de releitura.
+- `dsh-api-client` 0.2.0 — Depuração de API. Envia pedidos HTTP e mostra as respostas dentro do editor, para trabalho de integração de interfaces.
+- `dsh-better-sidebar` 0.28.2 — Uma barra lateral melhor. Combina árvore de ficheiros, editor, alterações, tarefas e chat lateral numa única coluna, independente por sessão; expõe ainda aos outros plugins um serviço de registo de separadores laterais e visualizadores de ficheiros.
+- `dsh-config-manager` 0.3.0 — Gestor de configuração. Cópia de segurança, restauro, exportação, importação, migração e sincronização da configuração do DSH, para levar o ambiente a outra máquina ou após reinstalar.
+- `dsh-context` 0.79.0 — Visibilidade e gestão do contexto. Mostra a ocupação atual do contexto e comprime quando se aproxima do limite.
+- `dsh-design-skills` 0.1.0 — Pacote de estilos de design. Seis estilos de design integrados, prontos a usar ao construir interfaces ou gerar imagens.
+- `dsh-doc-reader` 0.2.0 — Leitor de documentos. Extrai o corpo de texto de PDF, Word e formatos semelhantes, para que o modelo leia o documento e não apenas o nome do ficheiro.
+- `dsh-excel-chat` 0.43.0 — Conversa em folhas de cálculo. Manipula folhas de Excel em linguagem natural sem memorizar funções nem coordenadas de células.
+- `dsh-find-plugins` 0.3.0 — Pesquisa de plugins. Pesquisa plugins em cinco catálogos da comunidade e faz pesquisas em tempo real no GitHub e no npm.
+- `dsh-github-skills` 0.2.1 — Competências de fluxo de trabalho do GitHub. Adaptadas das competências de GitHub do OpenAI Codex.
+- `dsh-image-gen` 0.10.2 — Geração de imagens. Liga-se ao Gemini, OpenAI e fornecedores semelhantes para criar e editar imagens.
+- `dsh-mcp-connector` 0.2.93 — Conector MCP. Liga serviços MCP e oferece pesquisa e invocação unificadas de ferramentas entre eles.
+- `dsh-nonead-prompt-recall` 0.8.4 — Histórico de entrada. Carregue em ↑ num compositor vazio para recordar a instrução anterior.
+- `dsh-nonead-universal-robots` 0.8.5 — Braços robóticos UR. Controla braços Universal Robots diretamente em linguagem natural, sem escrever scripts à mão.
+- `dsh-nonead-ursim` 0.3.13 — Simulação UR. Programa o movimento do braço num simulador offline, para validar uma trajetória antes de mexer em hardware real.
+- `dsh-ppt-master` 1.0.8 — Geração de apresentações. Produz diapositivos a partir do conteúdo fornecido.
+- `dsh-remotion` 0.10.3 — Produção de vídeo. Renderiza vídeo a partir de um projeto React dentro do DSH.
+- `dsh-rewind-plugin` 0.19.1 — Recuo da conversa. Recua a conversa na mesma janela e restaura com ela os ficheiros do espaço de trabalho.
+- `dsh-univer-office` 0.3.9 — Documentos Office. Integração do DSH com o Univer para folhas de cálculo, documentos e apresentações.
+
 ## 2.2.4 — 2026-10-31
 
 Atualização de versão sem mudanças funcionais:
