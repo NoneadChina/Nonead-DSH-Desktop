@@ -1,6 +1,9 @@
 import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { parseBilingualRecord } from './bilingual-docs.mjs'
+import { verifyLanguageReleaseParity, verifyUpstreamReference } from './release-pins.mjs'
 
 const root = resolve(import.meta.dirname, '..')
 const readJson = path => JSON.parse(readFileSync(resolve(root, path), 'utf8'))
@@ -30,6 +33,18 @@ for (const [name, manifest] of [
   ['nonead-dsh-desktop', nextDesktop],
 ]) {
   if (manifest.version !== released) fail(`${name} must ship the newest CHANGELOG.md release ${released}, not ${manifest.version}`)
+}
+// `.i18n.yaml` 是语言集合的真源：记录里声明的每个语言都必须带上当前发布版本。
+// 只刷新记录里的哈希发现不了「某个语言的 CHANGELOG 落后 / README 忘了改号」——
+// 哈希对所有语言一致刷新后门禁依然全绿。
+for (const [recordFile, headings] of [['CHANGELOG.i18n.yaml', true], ['README.i18n.yaml', false]]) {
+  verifyLanguageReleaseParity({
+    recordPath: recordFile,
+    entries: parseBilingualRecord(recordFile, readFileSync(resolve(root, recordFile), 'utf8')),
+    readDocument: filename => readFileSync(resolve(root, filename), 'utf8'),
+    version: released,
+    headings,
+  })
 }
 const upstreamPackage = readJson('deepseek-harness/package.json')
 
@@ -120,6 +135,19 @@ if (run('git', ['remote', 'get-url', 'origin'], upstreamDir) !== upstream.reposi
 if (upstreamPackage.version !== activeUpstream.sourceVersion) {
   fail('deepseek-harness package version differs from upstream.json')
 }
+// 溯源记录是 Next 外壳「这些文件取自哪个上游提交」的唯一凭据：必须与 pin 逐字段一致，
+// 并用上游 checkout 的实际字节复核每条 upstreamSha256。只比版本号、或只检查文件存在，
+// 都会让手工改动与上游漂移静默通过。
+verifyUpstreamReference({
+  reference: nextReference,
+  channel: activeUpstream,
+  repository: upstream.repository,
+  upstreamSha256: path => {
+    const candidate = resolve(root, 'deepseek-harness', path)
+    return existsSync(candidate) ? createHash('sha256').update(readFileSync(candidate)).digest('hex') : undefined
+  },
+  localExists: path => existsSync(resolve(root, 'nonead-dsh-desktop', path)),
+})
 // Every declared upstream channel that still has a Desktop workspace on disk
 // must load that channel's recorded DSH runtime family. A channel whose
 // workspace was removed keeps its vendored runtime, which
