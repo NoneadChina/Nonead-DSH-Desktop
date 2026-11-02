@@ -90,25 +90,25 @@
 .next-onboarding-recovery-title { display: flex; align-items: center; gap: 12px; margin: 0 0 24px; font-size: 20px; font-weight: 500; }
 .next-onboarding-recovery-title > svg { width: 32px; height: 32px; flex-shrink: 0; stroke-width: 1.4; }
 .next-onboarding-recovery ol { list-style: decimal; padding-left: 22px; }
-/* The bundled plugin list must fit on one screen: four columns, tight rows. */
+/* The bundled plugin list must fit on one screen: five columns, tight rows. */
 .next-onboarding-plugins {
-  columns: 4;
-  column-gap: 18px;
+  columns: 5;
+  column-gap: 14px;
   list-style: decimal;
-  padding-left: 20px;
+  padding-left: 18px;
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
 }
 .next-onboarding-plugins li {
   break-inside: avoid;
-  padding-left: 4px;
-  margin-bottom: 3px;
-  line-height: 1.35;
+  padding-left: 3px;
+  margin-bottom: 1.5px;
+  line-height: 1.25;
 }
 .next-onboarding-plugins li p {
   display: inline;
-  margin: 0 0 0 6px;
-  font-size: 11px;
+  margin: 0 0 0 5px;
+  font-size: 10px;
 }
 /* Progress of the bundled-plugin install that runs after "Finish and start". */
 .next-onboarding-installing {

@@ -69,7 +69,6 @@ const DESCRIPTION_ZH = {
   'dsh-better-sidebar': '更好用的侧边栏：文件树、编辑器、改动、任务与侧边聊天合成一栏，每个会话独立；并向其他插件开放侧栏标签与文件查看器注册服务。',
   'dsh-doc-reader': '文档读取：解析 PDF、Word 等文件的正文内容。',
   'dsh-excel-chat': '表格对话：用自然语言操作 Excel 工作表。',
-  'dsh-db-connector': '数据库连接：连接数据库并执行查询。',
   'dsh-nonead-universal-robots': 'UR 机械臂：用自然语言直接控制 Universal Robots 机械臂。',
   'dsh-nonead-ursim': 'UR 仿真：在离线仿真中编排机械臂动作。',
 }

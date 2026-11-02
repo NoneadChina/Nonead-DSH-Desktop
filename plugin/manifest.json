@@ -1,6 +1,6 @@
 {
   "schema": "nonead-dsh-desktop/plugin-bundle/v3",
-  "count": 30,
+  "count": 29,
   "plugins": [
     {
       "name": "@a9i5k4/dsh-auto-memory",
@@ -16,14 +16,14 @@
     },
     {
       "name": "@linxin666/dsh-client-ui-git-graph",
-      "version": "0.4.13",
-      "file": "linxin666-dsh-client-ui-git-graph-0.4.13.tgz",
+      "version": "0.4.14",
+      "file": "linxin666-dsh-client-ui-git-graph-0.4.14.tgz",
       "description": "Git 分支图谱：在空白会话中切换分支、查看提交图。"
     },
     {
       "name": "@linxin666/dsh-client-ui-skill-explorer",
-      "version": "0.4.13",
-      "file": "linxin666-dsh-client-ui-skill-explorer-0.4.13.tgz",
+      "version": "0.4.14",
+      "file": "linxin666-dsh-client-ui-skill-explorer-0.4.14.tgz",
       "description": "技能中心：按来源浏览已加载的技能。"
     },
     {
@@ -93,12 +93,6 @@
       "description": "上下文洞察与管理：查看上下文占用并进行压缩。"
     },
     {
-      "name": "dsh-db-connector",
-      "version": "0.1.0",
-      "file": "dsh-db-connector-0.1.0.tgz",
-      "description": "数据库连接：连接数据库并执行查询。"
-    },
-    {
       "name": "dsh-design-skills",
       "version": "0.1.0",
       "file": "dsh-design-skills-0.1.0.tgz",
@@ -130,20 +124,20 @@
     },
     {
       "name": "dsh-image-gen",
-      "version": "0.10.1",
-      "file": "dsh-image-gen-0.10.1.tgz",
+      "version": "0.10.2",
+      "file": "dsh-image-gen-0.10.2.tgz",
       "description": "图片生成：接入 Gemini、OpenAI 等渠道画图与改图。"
     },
     {
       "name": "dsh-mcp-connector",
-      "version": "0.2.92",
-      "file": "dsh-mcp-connector-0.2.92.tgz",
+      "version": "0.2.93",
+      "file": "dsh-mcp-connector-0.2.93.tgz",
       "description": "MCP 连接器：连接 MCP 服务并跨服务搜索工具。"
     },
     {
       "name": "dsh-nonead-prompt-recall",
-      "version": "0.8.3",
-      "file": "dsh-nonead-prompt-recall-0.8.3.tgz",
+      "version": "0.8.4",
+      "file": "dsh-nonead-prompt-recall-0.8.4.tgz",
       "description": "输入历史：空输入框按 ↑ 召回上一条指令。"
     },
     {
@@ -154,8 +148,8 @@
     },
     {
       "name": "dsh-nonead-ursim",
-      "version": "0.3.12",
-      "file": "dsh-nonead-ursim-0.3.12.tgz",
+      "version": "0.3.13",
+      "file": "dsh-nonead-ursim-0.3.13.tgz",
       "description": "UR 仿真：在离线仿真中编排机械臂动作。"
     },
     {
