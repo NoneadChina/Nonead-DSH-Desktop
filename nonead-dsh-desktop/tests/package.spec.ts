@@ -76,10 +76,18 @@ it('archives the application like upstream Desktop while keeping fuses and nativ
     .replace('Contents/Resources/runtime/**}', 'Contents/Resources/runtime/**,Contents/Resources/runtime/**/.*/**}'))
   // Both CPU payloads ride beside the archive as extra resources; electron-builder must not re-sign the pre-signed payloads.
   // macOS also carries the manifest copy the updaters shipped in 2.0.14-next through 2.0.17-next read beside the archive.
-  expect(next.build.mac.extraResources).toEqual([{ from: '.desktop-build/runtime', to: 'runtime' }, { from: '.desktop-build/payload/package.json', to: 'app/package.json' }])
-  expect(next.build.win.extraResources).toEqual([{ from: '.desktop-build/runtime', to: 'runtime' }])
+  // The bundled plugin archives ride beside them too: the setup wizard installs from this directory.
+  const bundledPluginsResource = {
+    from: '../plugin',
+    to: 'plugins',
+    filter: ['**/*', '!**/node_modules/**', '!**/.git/**', '!**/.git-ssh/**', '!**/.git.*/**', '!**/.venv/**',
+      '!**/.dsh-project-memory/**', '!**/.tmp/**', '!**/.github/**', '!**/docs/**', '!**/__pycache__/**', '!**/*.map', '!MANIFEST.md'],
+  }
+  expect(next.build.mac.extraResources).toEqual([{ from: '.desktop-build/runtime', to: 'runtime' }, { from: '.desktop-build/payload/package.json', to: 'app/package.json' }, bundledPluginsResource])
+  expect(next.build.win.extraResources).toEqual([{ from: '.desktop-build/runtime', to: 'runtime' }, bundledPluginsResource])
   expect(next.build.extraResources).toBeUndefined()
-  expect(next.build.linux.extraResources).toBeUndefined()
+  // Linux carries the plugin archives but no interpreter payload.
+  expect(next.build.linux.extraResources).toEqual([bundledPluginsResource])
   expect(next.build.mac.signIgnore).toContain('/Contents/Resources/runtime/(?:arm64|x64)/primary-runtime(?:/|$)')
   expect(next.scripts['prepare:runtime']).toBe('node scripts/prepare-runtime.ts')
   // Like upstream Desktop's dev launcher, every development launch prepares the payload before the shell starts.

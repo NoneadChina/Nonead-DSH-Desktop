@@ -13,6 +13,18 @@ Konventionen für die Pflege:
 - Einträge halten ausschließlich Änderungen fest, die Nutzer wahrnehmen können, sowie Grenzänderungen, die Maintainer kennen müssen; reine Refactorings erhalten keinen eigenen Eintrag.
 - Die frühere Historie findet sich in den Git-Tags (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) und in der Commit-Historie.
 
+## 2.2.5 — 2026-11-02
+
+Aktualisierung der mitgelieferten Plugin-Liste und Korrekturen am Installationspfad:
+
+- Plugin-Liste: `dsh-better-sidebar` 0.28.2 hinzugefügt (Dateibaum, Editor, Änderungen, Aufgaben und Seitenchat in einer Spalte sowie ein Dienst, den andere Plugins zum Registrieren von Seitenleisten-Registern nutzen); `@feng0531/dsh-code-review` entfernt; `dsh-nonead-prompt-recall` auf 0.8.3 und `dsh-nonead-universal-robots` auf 0.8.5 aktualisiert (beide aus den GitHub-Repositories der Autoren); sieben weitere Plugins folgen dem npm-Latest.
+- Herkunft: `dsh-design-skills` wurde nie auf npm veröffentlicht und wird aus dem GitHub-Repository des Autors neu gebaut; beide `dsh-nonead-*`-Pakete fehlen auf npm oder wurden zurückgezogen, daher ist GitHub die maßgebliche Quelle.
+- Gate-Korrektur: `check:layout` scheiterte in einem sauberen Klon ohne Upstream-Quellen, weil `deepseek-harness/package.json` gelesen wurde; Upstream-Prüfungen laufen jetzt nur, wenn dieses Verzeichnis existiert.
+- Artefakt-Korrektur: das von `package.json` referenzierte, im Repository fehlende Agents-Anywhere-Artefakt (`rd9c47cbc`) wurde wiederhergestellt, und die `.gitignore`-Positivliste zeigt auf diesen Namen statt auf das veraltete `r7504932a`.
+- Lokalisierung: die sechs fehlenden Assistententexte zu mitgelieferten Plugins in den sechs nicht-chinesischen/nicht-englischen Wörterbüchern ergänzt.
+- Test-Korrekturen: `package.spec` erwartet das Plugin-Verzeichnis nun in `extraResources`; der Abschluss-Pfad des Assistenten in `main-lifecycle` installiert keine Plugins mehr; `verify-linux-artifacts` prüft unter Windows keine POSIX-Ausführungsbits mehr.
+- Version: Produkt 2.2.4 → **2.2.5** (beide Desktop-Workspaces ziehen gemeinsam).
+
 ## 2.2.4 — 2026-10-31
 
 Versionserhöhung ohne funktionale Änderungen:

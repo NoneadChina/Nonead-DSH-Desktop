@@ -13,6 +13,18 @@ Convenções de manutenção:
 - As entradas registram apenas mudanças que os usuários percebem e mudanças de limite que os mantenedores precisam conhecer; refatorações puras não ganham entrada própria.
 - O histórico anterior está nas tags do Git (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) e no log de commits.
 
+## 2.2.5 — 2026-11-02
+
+Atualização da lista de plugins incluídos e correções no caminho de instalação:
+
+- Lista de plugins: adicionado `dsh-better-sidebar` 0.28.2 (árvore de ficheiros, editor, alterações, tarefas e chat lateral numa única coluna, além de um serviço que outros plugins usam para registar separadores laterais); removido `@feng0531/dsh-code-review`; `dsh-nonead-prompt-recall` passou a 0.8.3 e `dsh-nonead-universal-robots` a 0.8.5 (ambos dos repositórios GitHub dos autores); outros sete plugins seguem a versão mais recente do npm.
+- Origens: `dsh-design-skills` nunca foi publicado no npm e é reconstruído a partir do repositório GitHub do autor; os dois pacotes `dsh-nonead-*` estão ausentes ou foram retirados do npm, pelo que o GitHub é a fonte de referência.
+- Correção do portão: `check:layout` falhava num clone limpo sem o código-fonte upstream por ler `deepseek-harness/package.json`; as verificações upstream só correm quando esse diretório existe.
+- Correção do artefacto: restaurado o artefacto Agents Anywhere (`rd9c47cbc`) referido por `package.json` e ausente do repositório, e a lista de permissões do `.gitignore` aponta agora para esse nome em vez do antigo `r7504932a`.
+- Localização: adicionadas as seis cadeias do assistente sobre plugins incluídos que faltavam nos seis dicionários além do chinês e do inglês.
+- Correções de testes: `package.spec` passa a esperar o diretório de plugins em `extraResources`; a conclusão do assistente em `main-lifecycle` já não instala plugins; `verify-linux-artifacts` já não verifica bits de execução POSIX no Windows.
+- Versão: produto 2.2.4 → **2.2.5** (os dois espaços de trabalho de ambiente de trabalho avançam em conjunto).
+
 ## 2.2.4 — 2026-10-31
 
 Atualização de versão sem mudanças funcionais:

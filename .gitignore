@@ -79,7 +79,7 @@ patches/*@0.2.1-rc.2.patch
 # Agents Anywhere artifacts accumulate one file per release build; only the
 # bridge referenced by package.json and yarn.lock is consumed.
 vendor/agents-anywhere/*.tgz
-!vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c39b82d4fffb1.r7504932a.tgz
+!vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c39b82d4fffb1.rd9c47cbc.tgz
 
 # Local-only scratch that must never enter the repository: copied Profile data
 # (may carry credentials), build caches, and inspection output.
@@ -88,6 +88,8 @@ vendor/agents-anywhere/*.tgz
 /.market-upgrade-backup/
 /.aa-inspect/
 /.plugin-fetch/
+# Relocated Yarn cache (YARN_GLOBAL_FOLDER) for hosts that cannot write outside the checkout.
+/.yarn-global/
 
 # Plugin archives are build inputs (30 x ~13 MB). Only the manifest and its
 # human-readable summary belong in the repository; the wizard regenerates them.

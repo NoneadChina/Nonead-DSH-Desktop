@@ -13,6 +13,18 @@ Conventions de maintenance :
 - Les entrées ne décrivent que les changements perceptibles par l’utilisateur et les changements de limite que les responsables de maintenance doivent connaître ; les refactorisations pures ne font pas l’objet d’une entrée.
 - L’historique plus ancien se trouve dans les étiquettes Git (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) et dans le journal des commits.
 
+## 2.2.5 — 2026-11-02
+
+Mise à jour de la liste des plugins fournis et corrections du chemin d'installation :
+
+- Liste des plugins : ajout de `dsh-better-sidebar` 0.28.2 (arborescence, éditeur, modifications, tâches et discussions latérales dans une seule colonne, et un service que les autres plugins utilisent pour enregistrer des onglets latéraux) ; suppression de `@feng0531/dsh-code-review` ; `dsh-nonead-prompt-recall` passe à 0.8.3 et `dsh-nonead-universal-robots` à 0.8.5 (tous deux depuis les dépôts GitHub de leurs auteurs) ; sept autres plugins suivent la dernière version npm.
+- Origines : `dsh-design-skills` n'a jamais été publié sur npm et est reconstruit depuis le dépôt GitHub de l'auteur ; les deux paquets `dsh-nonead-*` sont absents ou retirés de npm, GitHub fait donc autorité.
+- Correction du garde-fou : `check:layout` échouait sur un clone propre sans les sources amont car il lisait `deepseek-harness/package.json` ; les vérifications amont ne s'exécutent désormais que si ce répertoire existe.
+- Correction de l'artefact : restauration de l'artefact Agents Anywhere (`rd9c47cbc`) référencé par `package.json` mais absent du dépôt, et la liste blanche de `.gitignore` pointe désormais vers ce nom au lieu de l'ancien `r7504932a`.
+- Localisation : ajout des six chaînes de l'assistant sur les plugins fournis, absentes des six dictionnaires autres que le chinois et l'anglais.
+- Corrections de tests : `package.spec` attend désormais le répertoire des plugins dans `extraResources` ; le parcours d'achèvement de l'assistant dans `main-lifecycle` n'installe plus de plugins ; `verify-linux-artifacts` ne vérifie plus les bits d'exécution POSIX sous Windows.
+- Version : produit 2.2.4 → **2.2.5** (les deux espaces de travail de bureau avancent ensemble).
+
 ## 2.2.4 — 2026-10-31
 
 Mise à jour de version sans changement fonctionnel :

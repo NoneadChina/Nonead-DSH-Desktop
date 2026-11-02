@@ -13,6 +13,18 @@ Convenciones de mantenimiento:
 - Las entradas solo recogen los cambios que el usuario puede percibir y los cambios de límites que los mantenedores deben conocer; las refactorizaciones puras no tienen entrada propia.
 - El historial anterior está en las etiquetas de Git (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) y en el registro de confirmaciones.
 
+## 2.2.5 — 2026-11-02
+
+Actualización de la lista de plugins incluidos y correcciones de la ruta de instalación:
+
+- Lista de plugins: se añade `dsh-better-sidebar` 0.28.2 (árbol de archivos, editor, cambios, tareas y chat lateral en una sola columna, y un servicio que otros plugins usan para registrar pestañas laterales); se elimina `@feng0531/dsh-code-review`; `dsh-nonead-prompt-recall` pasa a 0.8.3 y `dsh-nonead-universal-robots` a 0.8.5 (ambos desde los repositorios de GitHub de sus autores); otros siete plugins siguen la última versión de npm.
+- Orígenes: `dsh-design-skills` nunca se publicó en npm y se reconstruye desde el repositorio de GitHub del autor; los dos paquetes `dsh-nonead-*` faltan o están retirados en npm, así que GitHub es la fuente autoritativa.
+- Corrección de la compuerta: `check:layout` fallaba en un clon limpio sin el código fuente upstream porque leía `deepseek-harness/package.json`; ahora las comprobaciones upstream solo se ejecutan si ese directorio existe.
+- Corrección del artefacto: se restaura el artefacto de Agents Anywhere (`rd9c47cbc`) que `package.json` referencia y el repositorio no tenía, y la lista blanca de `.gitignore` apunta a ese nombre en lugar del obsoleto `r7504932a`.
+- Localización: se añaden las seis cadenas del asistente sobre plugins incluidos que faltaban en los seis diccionarios distintos del chino y el inglés.
+- Correcciones de pruebas: `package.spec` ahora espera el directorio de plugins en `extraResources`; la ruta de finalización del asistente en `main-lifecycle` ya no instala plugins; `verify-linux-artifacts` ya no comprueba los bits de ejecución POSIX en Windows.
+- Versión: producto 2.2.4 → **2.2.5** (los dos espacios de trabajo de escritorio avanzan juntos).
+
 ## 2.2.4 — 2026-10-31
 
 Actualización de versión sin cambios funcionales:

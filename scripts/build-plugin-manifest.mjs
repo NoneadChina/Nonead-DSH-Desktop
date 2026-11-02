@@ -66,6 +66,7 @@ const DESCRIPTION_ZH = {
   'dsh-rewind-plugin': '对话回退：在同一窗口内回退对话并恢复工作区文件。',
   'dsh-univer-office': 'Office 文档：DSH 与 Univer 集成，支持表格、文档与演示。',
   'dsh-api-client': 'API 调试：发起 HTTP 请求并查看响应。',
+  'dsh-better-sidebar': '更好用的侧边栏：文件树、编辑器、改动、任务与侧边聊天合成一栏，每个会话独立；并向其他插件开放侧栏标签与文件查看器注册服务。',
   'dsh-doc-reader': '文档读取：解析 PDF、Word 等文件的正文内容。',
   'dsh-excel-chat': '表格对话：用自然语言操作 Excel 工作表。',
   'dsh-db-connector': '数据库连接：连接数据库并执行查询。',

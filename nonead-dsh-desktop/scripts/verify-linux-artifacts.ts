@@ -127,7 +127,9 @@ export function readElfArch(path: string, label: string): LinuxArch {
 export function assertAppImage(path: string, arch: LinuxArch): void {
   requireFile(path, `${arch} AppImage`)
   const stat = statSync(path)
-  if ((stat.mode & 0o111) === 0) throw new Error(`${arch} AppImage is not executable: ${path}`)
+  // A Windows host reports no POSIX execute bits for any file, so this assertion only carries
+  // information where the artifact can actually be run and shipped from.
+  if (process.platform !== 'win32' && (stat.mode & 0o111) === 0) throw new Error(`${arch} AppImage is not executable: ${path}`)
   const descriptor = openSync(path, 'r')
   const magic = Buffer.alloc(APPIMAGE_MAGIC_BYTES)
   try {

@@ -62,6 +62,13 @@ vi.mock('../src/extensions.ts', async importOriginal => {
   }) }
 })
 vi.mock('../src/desktop-terminal.ts', async importOriginal => ({ ...await importOriginal<typeof import('../src/desktop-terminal.ts')>(), openDesktopTerminal: fixture.openTerminal }))
+// Completing setup installs the bundled plugins through pnpm. That work belongs to the wizard
+// flow, not to a lifecycle test that must stay offline and fast, so the operation is stubbed;
+// the manifest read stays real so the flow still sees the shipped plugin list.
+vi.mock('../src/preinstall-plugins.ts', async importOriginal => ({
+  ...await importOriginal<typeof import('../src/preinstall-plugins.ts')>(),
+  installBundledPlugins: vi.fn(async () => ({ installed: [], failed: [] })),
+}))
 vi.mock('electron', async () => {
   const { EventEmitter } = await import('node:events')
   const app = Object.assign(new EventEmitter(), {

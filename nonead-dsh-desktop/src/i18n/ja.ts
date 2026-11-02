@@ -211,4 +211,10 @@ export const ja: DesktopDictionary = {
   'Version {version} skipped': 'バージョン {version} をスキップしました',
   'Downloading update {progress}': 'アップデートをダウンロード中 {progress}',
   '{version} downloaded — Install and restart': '{version} をダウンロードしました — インストールして再起動',
+  'Bundled plugins': 'バンドル済みプラグイン',
+  'Bundled in,\nready to go.': 'バンドル済みですぐに使えます。',
+  'This installer carries no plugins.': 'このインストーラーにはプラグインが含まれていません。',
+  'Installing bundled plugins': 'バンドル済みプラグインをインストールしています',
+  'Once installed, find it under Plugins in the sidebar or the plugin market in Settings.': 'インストール後は、サイドバーの「プラグイン」または設定のプラグインマーケットから見つかります。',
+  'Preparing…': '準備中…',
 }

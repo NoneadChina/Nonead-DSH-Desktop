@@ -13,6 +13,18 @@
 - 条目只写"用户能感知的变化"与"维护者必须知道的边界变化"；纯重构不单独成条。
 - 更早的历史见 Git 标签（`v1.7.3`、`v2.0.7`、`v2.0.8`、`v2.1.3`、`v2.1.4`、`v2.1.5`）与提交记录。
 
+## 2.2.5 — 2026-11-02
+
+内置插件清单更新与安装链路修复：
+
+- 插件清单：新增 `dsh-better-sidebar` 0.28.2（文件树、编辑器、改动、任务与侧边聊天合成一栏，并向其他插件开放侧栏标签注册服务）；移除 `@feng0531/dsh-code-review`；`dsh-nonead-prompt-recall` 升到 0.8.3、`dsh-nonead-universal-robots` 升到 0.8.5（均取自作者 GitHub 仓库的最新提交）；另有 7 个插件跟随 npm latest 升级。
+- 插件来源：`dsh-design-skills` 从未发布到 npm，改由作者 GitHub 仓库重建；两个 `dsh-nonead-*` 包在 npm 上缺失或已撤销，以 GitHub 为权威来源。
+- 门禁修复：`check:layout` 在未检出上游源码的干净克隆里会因为读取 `deepseek-harness/package.json` 直接失败，现改为只在上游目录存在时执行上游校验。
+- 工件修复：补齐被 `package.json` 引用却在仓库缺失的 Agents Anywhere 工件（`rd9c47cbc`），并把 `.gitignore` 白名单从旧版 `r7504932a` 改到实际引用的文件名。
+- 国际化：补齐六种非中英语言缺失的 6 条「内置插件」向导文案。
+- 测试修复：`package.spec` 的 `extraResources` 期望补上插件目录；`main-lifecycle` 的 onboarding 完成分支不再真的安装插件；`verify-linux-artifacts` 不再在 Windows 上检查 POSIX 执行位。
+- 版本号：产品 2.2.4 → **2.2.5**（两个桌面工作区同步）。
+
 ## 2.2.4 — 2026-10-31
 
 版本号推进，无功能变更：

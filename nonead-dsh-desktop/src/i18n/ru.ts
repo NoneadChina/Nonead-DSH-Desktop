@@ -211,4 +211,10 @@ export const ru: DesktopDictionary = {
   'Version {version} skipped': 'Версия {version} пропущена',
   'Downloading update {progress}': 'Загрузка обновления: {progress}',
   '{version} downloaded — Install and restart': 'Версия {version} загружена — установить и перезапустить',
+  'Bundled plugins': 'Встроенные плагины',
+  'Bundled in,\nready to go.': 'Встроены и готовы к работе.',
+  'This installer carries no plugins.': 'В этом установщике нет плагинов.',
+  'Installing bundled plugins': 'Установка встроенных плагинов',
+  'Once installed, find it under Plugins in the sidebar or the plugin market in Settings.': 'После установки их можно найти в разделе «Плагины» на боковой панели или в магазине плагинов в настройках.',
+  'Preparing…': 'Подготовка…',
 }

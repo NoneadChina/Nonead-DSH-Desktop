@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { join, resolve } from 'node:path'
 
 const root = resolve(import.meta.dirname, '..')
 const readJson = path => JSON.parse(readFileSync(resolve(root, path), 'utf8'))
@@ -31,7 +31,13 @@ for (const [name, manifest] of [
 ]) {
   if (manifest.version !== released) fail(`${name} must ship the newest CHANGELOG.md release ${released}, not ${manifest.version}`)
 }
-const upstreamPackage = readJson('deepseek-harness/package.json')
+// The upstream source checkout is optional. README promises a clean clone leaves
+// `deepseek-harness/` empty and `check:layout` still passes, so the upstream-only checks run
+// when its `package.json` is present and are skipped otherwise (the vendored runtime keeps its
+// own gate in `check:vendored-runtime`).
+const upstreamDir = resolve(root, 'deepseek-harness')
+const upstreamCheckout = existsSync(join(upstreamDir, 'package.json'))
+const upstreamPackage = upstreamCheckout ? readJson('deepseek-harness/package.json') : undefined
 
 if (betaPlugin.name !== 'dsh-plugin-desktop-beta') fail('the Beta Desktop workspace must publish as dsh-plugin-desktop-beta')
 if (!['stable', 'beta'].includes(upstream.activeChannel)) fail('the pinned upstream checkout must follow a declared release channel')
@@ -75,14 +81,19 @@ for (const legacyFile of [
 ]) {
   if (existsSync(resolve(root, legacyFile))) fail(`${legacyFile} must not exist`)
 }
-if (run('git', ['config', '-f', '.gitmodules', '--get', 'submodule.deepseek-harness.path']) !== 'deepseek-harness') {
-  fail('the upstream submodule path must be deepseek-harness')
-}
-if (run('git', ['config', '-f', '.gitmodules', '--get', 'submodule.deepseek-harness.url']) !== upstream.repository) {
-  fail('the upstream submodule URL differs from upstream.json')
-}
-if (typeof upstreamPackage.packageManager !== 'string' || !upstreamPackage.packageManager.startsWith('pnpm@')) {
-  fail('the upstream checkout must retain its pnpm package manager')
+// A repository that still records the upstream as a submodule must point it at the recorded URL
+// and pin the recorded commit. A checkout without a `.gitmodules` entry carries the upstream as a
+// plain directory (what a clean clone has), so those index assertions do not apply.
+if (existsSync(resolve(root, '.gitmodules'))) {
+  if (run('git', ['config', '-f', '.gitmodules', '--get', 'submodule.deepseek-harness.path']) !== 'deepseek-harness') {
+    fail('the upstream submodule path must be deepseek-harness')
+  }
+  if (run('git', ['config', '-f', '.gitmodules', '--get', 'submodule.deepseek-harness.url']) !== upstream.repository) {
+    fail('the upstream submodule URL differs from upstream.json')
+  }
+  const [mode, object] = run('git', ['ls-files', '--stage', '--', 'deepseek-harness']).split(/\s+/u)
+  if (mode !== '160000') fail('deepseek-harness must be tracked as a Git submodule')
+  if (object !== activeUpstream.commit) fail(`submodule index is ${object}, expected ${activeUpstream.commit}`)
 }
 
 for (const [owner, manifest] of [
@@ -103,22 +114,22 @@ for (const [owner, manifest] of [
   }
 }
 
-const [mode, object] = run('git', ['ls-files', '--stage', '--', 'deepseek-harness']).split(/\s+/u)
-if (mode !== '160000') fail('deepseek-harness must be tracked as a Git submodule')
-if (object !== activeUpstream.commit) fail(`submodule index is ${object}, expected ${activeUpstream.commit}`)
-
-const upstreamDir = resolve(root, 'deepseek-harness')
-if (run('git', ['rev-parse', 'HEAD'], upstreamDir) !== activeUpstream.commit) {
-  fail('checked-out upstream commit differs from upstream.json')
-}
-if (run('git', ['status', '--porcelain'], upstreamDir) !== '') {
-  fail('deepseek-harness contains local changes')
-}
-if (run('git', ['remote', 'get-url', 'origin'], upstreamDir) !== upstream.repository) {
-  fail('deepseek-harness origin differs from upstream.json')
-}
-if (upstreamPackage.version !== activeUpstream.sourceVersion) {
-  fail('deepseek-harness package version differs from upstream.json')
+if (upstreamCheckout) {
+  if (typeof upstreamPackage.packageManager !== 'string' || !upstreamPackage.packageManager.startsWith('pnpm@')) {
+    fail('the upstream checkout must retain its pnpm package manager')
+  }
+  if (run('git', ['rev-parse', 'HEAD'], upstreamDir) !== activeUpstream.commit) {
+    fail('checked-out upstream commit differs from upstream.json')
+  }
+  if (run('git', ['status', '--porcelain'], upstreamDir) !== '') {
+    fail('deepseek-harness contains local changes')
+  }
+  if (run('git', ['remote', 'get-url', 'origin'], upstreamDir) !== upstream.repository) {
+    fail('deepseek-harness origin differs from upstream.json')
+  }
+  if (upstreamPackage.version !== activeUpstream.sourceVersion) {
+    fail('deepseek-harness package version differs from upstream.json')
+  }
 }
 // Every declared upstream channel that still has a Desktop workspace on disk
 // must load that channel's recorded DSH runtime family. A channel whose

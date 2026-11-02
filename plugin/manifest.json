@@ -9,12 +9,6 @@
       "description": "自动记忆：无需提示即可在开工前注入相关历史，跨会话积累上下文。"
     },
     {
-      "name": "@feng0531/dsh-code-review",
-      "version": "0.86.1",
-      "file": "feng0531-dsh-code-review-0.86.1.tgz",
-      "description": "Git/SVN 只读代码审查：按范围挑选改动并给出意见。"
-    },
-    {
       "name": "@kenz1117/dsh-ui-usage-billing",
       "version": "1.8.1",
       "file": "kenz1117-dsh-ui-usage-billing-1.8.1.tgz",
@@ -34,8 +28,8 @@
     },
     {
       "name": "@michengai/dsh-agency-agents",
-      "version": "1.2.20",
-      "file": "michengai-dsh-agency-agents-1.2.20.tgz",
+      "version": "1.2.21",
+      "file": "michengai-dsh-agency-agents-1.2.21.tgz",
       "description": "专家库：331 位可召唤的专业智能体。"
     },
     {
@@ -52,8 +46,8 @@
     },
     {
       "name": "@michengai/dsh-skills-manager",
-      "version": "1.2.25",
-      "file": "michengai-dsh-skills-manager-1.2.25.tgz",
+      "version": "1.2.26",
+      "file": "michengai-dsh-skills-manager-1.2.26.tgz",
       "description": "技能管理：统一加载并安全管理本机的 Agent 技能。"
     },
     {
@@ -70,8 +64,8 @@
     },
     {
       "name": "@yolk_vat-y/dsh-project-memory",
-      "version": "0.6.8",
-      "file": "yolk_vat-y-dsh-project-memory-0.6.8.tgz",
+      "version": "0.6.9",
+      "file": "yolk_vat-y-dsh-project-memory-0.6.9.tgz",
       "description": "项目记忆：索引文档（PDF/Markdown）与代码符号，支持检索。"
     },
     {
@@ -81,15 +75,21 @@
       "description": "API 调试：发起 HTTP 请求并查看响应。"
     },
     {
+      "name": "dsh-better-sidebar",
+      "version": "0.28.2",
+      "file": "dsh-better-sidebar-0.28.2.tgz",
+      "description": "更好用的侧边栏：文件树、编辑器、改动、任务与侧边聊天合成一栏，每个会话独立；并向其他插件开放侧栏标签与文件查看器注册服务。"
+    },
+    {
       "name": "dsh-config-manager",
-      "version": "0.2.3",
-      "file": "dsh-config-manager-0.2.3.tgz",
+      "version": "0.3.0",
+      "file": "dsh-config-manager-0.3.0.tgz",
       "description": "配置管理：备份、恢复、导出、导入、迁移与同步 DSH 配置。"
     },
     {
       "name": "dsh-context",
-      "version": "0.78.2",
-      "file": "dsh-context-0.78.2.tgz",
+      "version": "0.79.0",
+      "file": "dsh-context-0.79.0.tgz",
       "description": "上下文洞察与管理：查看上下文占用并进行压缩。"
     },
     {
@@ -130,26 +130,26 @@
     },
     {
       "name": "dsh-image-gen",
-      "version": "0.10.0",
-      "file": "dsh-image-gen-0.10.0.tgz",
+      "version": "0.10.1",
+      "file": "dsh-image-gen-0.10.1.tgz",
       "description": "图片生成：接入 Gemini、OpenAI 等渠道画图与改图。"
     },
     {
       "name": "dsh-mcp-connector",
-      "version": "0.2.88",
-      "file": "dsh-mcp-connector-0.2.88.tgz",
+      "version": "0.2.92",
+      "file": "dsh-mcp-connector-0.2.92.tgz",
       "description": "MCP 连接器：连接 MCP 服务并跨服务搜索工具。"
     },
     {
       "name": "dsh-nonead-prompt-recall",
-      "version": "0.7.0",
-      "file": "dsh-nonead-prompt-recall-0.7.0.tgz",
+      "version": "0.8.3",
+      "file": "dsh-nonead-prompt-recall-0.8.3.tgz",
       "description": "输入历史：空输入框按 ↑ 召回上一条指令。"
     },
     {
       "name": "dsh-nonead-universal-robots",
-      "version": "0.8.4",
-      "file": "dsh-nonead-universal-robots-0.8.4.tgz",
+      "version": "0.8.5",
+      "file": "dsh-nonead-universal-robots-0.8.5.tgz",
       "description": "UR 机械臂：用自然语言直接控制 Universal Robots 机械臂。"
     },
     {

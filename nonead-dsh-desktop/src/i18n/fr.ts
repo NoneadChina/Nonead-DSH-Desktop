@@ -211,4 +211,10 @@ export const fr: DesktopDictionary = {
   'Version {version} skipped': 'Version {version} ignorée',
   'Downloading update {progress}': 'Téléchargement de la mise à jour {progress}',
   '{version} downloaded — Install and restart': '{version} téléchargée — Installer et redémarrer',
+  'Bundled plugins': 'Plugins inclus',
+  'Bundled in,\nready to go.': 'Inclus et prêts à l’emploi.',
+  'This installer carries no plugins.': 'Cet installateur ne contient aucun plugin.',
+  'Installing bundled plugins': 'Installation des plugins inclus',
+  'Once installed, find it under Plugins in the sidebar or the plugin market in Settings.': 'Une fois installés, retrouvez-les dans « Plugins » de la barre latérale ou dans le marché de plugins des Réglages.',
+  'Preparing…': 'Préparation…',
 }

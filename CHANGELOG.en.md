@@ -13,6 +13,18 @@ Maintenance conventions:
 - Entries record only changes users can perceive and boundary changes maintainers must know about; pure refactors do not get their own entry.
 - Earlier history lives in the Git tags (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) and in the commit log.
 
+## 2.2.5 — 2026-11-02
+
+Bundled plugin list update plus install-path fixes:
+
+- Plugin list: added `dsh-better-sidebar` 0.28.2 (file tree, editor, changes, tasks and side chat in one column, and a service other plugins use to register sidebar tabs); removed `@feng0531/dsh-code-review`; `dsh-nonead-prompt-recall` moved to 0.8.3 and `dsh-nonead-universal-robots` to 0.8.5 (both from the authors' GitHub repositories); seven other plugins follow npm latest.
+- Plugin sources: `dsh-design-skills` has never been published to npm and is rebuilt from the author's GitHub repository; both `dsh-nonead-*` packages are missing or unpublished on npm, so GitHub is the authoritative source.
+- Gate fix: `check:layout` failed on a clean clone without the upstream source tree because it read `deepseek-harness/package.json`; upstream checks now run only when that directory exists.
+- Artifact fix: restored the Agents Anywhere artifact (`rd9c47cbc`) that `package.json` references but the repository lacked, and pointed the `.gitignore` allow-list at that name instead of the stale `r7504932a`.
+- Localization: added the six missing bundled-plugin wizard strings to the six non-Chinese/English dictionaries.
+- Test fixes: `package.spec` now expects the plugin directory in `extraResources`; the onboarding completion path in `main-lifecycle` no longer installs plugins; `verify-linux-artifacts` no longer checks POSIX execute bits on Windows.
+- Version: product 2.2.4 → **2.2.5** (both desktop workspaces move together).
+
 ## 2.2.4 — 2026-10-31
 
 Version bump with no functional changes:
