@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  Version du produit <code>2.2.3</code> · Runtime DSH <code>0.2.2-alpha.2</code> · Electron 44 · Licence MIT
+  Version du produit <code>2.2.6</code> · Runtime DSH <code>0.2.2-alpha.2</code> · Electron 44 · Licence MIT
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">Téléchargement en un clic, prêt à l’emploi.</a></h3>
@@ -67,6 +67,7 @@ Le produit n’est pas une réimplémentation du client — c’est un hôte Ele
 
 | Couche | Emplacement | Responsabilité |
 | --- | --- | --- |
+| `2.2.6` | 2026-11-02 | Maintenance de stabilité et de garde-fous : correction de l'arrêt des preuves de cycle de vie après une journée d'activité, de la sortie silencieuse du lanceur depuis un bin global npm/pnpm, de l'absence de vérification d'inode pour les fichiers privés et le verrou d'opérations de données, du redémarrage usine sans répertoire de données, de l'absence de gestion du focus dans la boîte LAN et de la limite de page du marché face à son schéma ; ajout de garde-fous sur les pins de version, la parité des huit langues et les mentions de tiers |
 | Enveloppe de bureau | Processus principal Electron | Verrou d’instance unique, fenêtres et matériaux, barre d’état système et menus, autorisations, terminal, mises à jour, répertoire de données, état des profils |
 | Host | Processus enfant en mode Node | Charge la couche de correctifs du profil, lance le boot de profil en amont, sert le Web carrier, héberge les plugins Host tiers |
 | Web carrier | HTTP en boucle locale + WebSocket | Sert l’interface Web officielle (port éphémère par défaut) |
@@ -80,7 +81,7 @@ L’enveloppe et le Host ne communiquent que par un unique canal IPC de processu
 
 | Élément | Valeur |
 | --- | --- |
-| Version du produit | `2.2.3` (`nonead-dsh-desktop` et `dsh-plugin-desktop-beta` synchronisés) |
+| Version du produit | `2.2.6` (`nonead-dsh-desktop` et `dsh-plugin-desktop-beta` synchronisés) |
 | Espace de travail du canal stable | `nonead-dsh-desktop` (les scripts racine utilisent le suffixe `:stable`) |
 | Espace de travail du canal Beta | `dsh-plugin-desktop-beta` (les scripts racine utilisent le suffixe `:beta`) |
 | Runtime DSH | `0.2.2-alpha.2`, chaque dépendance `@deepseek-ai/dsh*` épinglée exactement, runtime vendored |

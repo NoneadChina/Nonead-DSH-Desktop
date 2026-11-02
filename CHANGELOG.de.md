@@ -13,6 +13,21 @@ Konventionen für die Pflege:
 - Einträge halten ausschließlich Änderungen fest, die Nutzer wahrnehmen können, sowie Grenzänderungen, die Maintainer kennen müssen; reine Refactorings erhalten keinen eigenen Eintrag.
 - Die frühere Historie findet sich in den Git-Tags (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) und in der Commit-Historie.
 
+## 2.2.6 — 2026-11-02
+
+Wartungsversion mit Fokus auf Stabilität und Prüfungsstärke; der Funktionsumfang bleibt unverändert.
+
+- Langlaufende Sitzungen: Lebenszyklus-Nachweise prüften `monotonicMs` gegen eine 24-Stunden-Grenze, sodass ein über einen Tag geöffneter Desktop keine Ereignisse mehr schrieb (auch nicht den Host-Austritt); jetzt gilt die Host-Laufzeitgrenze, die Grenze für einzelne Startvorgänge bleibt.
+- Launcher: Die Erkennung des Einstiegspunkts wird über `realpath` normalisiert und unter Windows ohne Beachtung der Groß-/Kleinschreibung verglichen, sodass `dsh-plugin-desktop-beta` aus einem globalen npm/pnpm-Bin nicht mehr stillschweigend endet.
+- Ressourcenfreigabe: Ein nicht bestätigter Host-Austritt überspringt die Freigabe nativer Bindungen und des RPC-Listeners nicht mehr, und ein Startfehler behält seine ursprüngliche Ursache.
+- Sicherheit: Die Maskierung von Protokollen und Diagnosen deckt base64- und JWT-Anmeldedaten ab; private Dateien werden über den geprüften Inode gelesen (TOCTOU), und die Verschachtelungsprüfung des Datenverzeichnisses lässt sich nicht mehr über ein `..cache`-Kind umgehen.
+- Datensicherheit: Die Datenoperations-Sperre prüft den Inode des Eintrags und meldet einen verschwundenen Eintrag als bestehenden `busy`-Fehler; ein Werksreset legt das leere Datenverzeichnis an, bevor externe Einstellungen gelöscht werden.
+- Update-Prüfung: Antworten ungleich 200 geben ihren Body frei, statt die Verbindung dem Garbage Collector zu überlassen.
+- Einstellungen: Der LAN-Bestätigungsdialog erhält Anfangsfokus, Escape-Behandlung, Tab-Zyklus und Fokuswiederherstellung.
+- Markt: Das Sicherheitsmaximum der Provider-Seite entspricht wieder dem veröffentlichten Schema (200), sodass eine gültige Quelle mit `defaultLimit: 150` nicht dauerhaft unbrauchbar ist.
+- Prüfungen: neue Release-Pin-Prüfung (Commit, Repository und die 39 Upstream-Dateihashes gegen die tatsächlichen Bytes), Versionsgleichheit in acht Sprachen und Konsistenz der Dritt-Hinweise (`verify:notices:check` in check/CI und in allen fünf Paketierungseingängen); die Hinweise werden neu erzeugt (DSH `0.2.1-rc.2` → `0.2.2-alpha.2`, Markt 1.73.1) und die Blue-Oak-Lizenz wird akzeptiert.
+- Version: Das Produkt wechselt in beiden Desktop-Workspaces von 2.2.3 auf **2.2.6**.
+
 ## 2.2.3 — 2026-10-29
 
 Die Desktop-Shell ist in acht Sprachen lokalisiert (vereinfachtes Chinesisch, Englisch, Japanisch, Spanisch, Französisch, Deutsch, Russisch und brasilianisches Portugiesisch):

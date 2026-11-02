@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  Produkt <code>2.2.3</code> · DSH-Laufzeit <code>0.2.2-alpha.2</code> · Electron 44 · MIT License
+  Produkt <code>2.2.6</code> · DSH-Laufzeit <code>0.2.2-alpha.2</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">Mit einem Klick herunterladen, sofort einsatzbereit.</a></h3>
@@ -67,6 +67,7 @@ Das Produkt ist keine „Neuimplementierung des Clients“, sondern ein schlanke
 
 | Ebene | Ort | Zuständigkeit |
 | --- | --- | --- |
+| `2.2.6` | 2026-11-02 | Wartungsversion für Stabilität und Prüfungen: Lebenszyklus-Nachweise enden nicht mehr nach einem Tag Laufzeit, der Launcher beendet sich nicht mehr stillschweigend aus einem npm/pnpm-Global-Bin, private Dateien und die Datenoperations-Sperre prüfen den Inode, ein Werksreset kann die Installation nicht mehr ohne Datenverzeichnis zurücklassen, der LAN-Dialog erhält Fokusverwaltung, und das Markt-Seitenlimit entspricht wieder dem veröffentlichten Schema; neue Prüfungen für Release-Pins, Versionsgleichheit in acht Sprachen und Dritt-Hinweise |
 | Desktop-Shell | Electron-Hauptprozess | Einzelinstanz-Sperre, Fenster und Materialien, Tray und Menüs, Berechtigungen, Terminal, Updates, Datenverzeichnis, Profilzustand |
 | Host | Kindprozess im Node-Modus | Lädt die Patch-Ebene des Profils, startet den Upstream-Profil-Boot, stellt den Web-Carrier bereit und hostet Host-Plugins von Drittanbietern |
 | Web-Carrier | Loopback-HTTP + WebSocket | Stellt die offizielle Web UI bereit (standardmäßig ein flüchtiger Port) |
@@ -80,7 +81,7 @@ Shell und Host kommunizieren über genau einen IPC-Kanal zwischen Kindprozessen.
 
 | Punkt | Wert |
 | --- | --- |
-| Produktversion | `2.2.3` (`nonead-dsh-desktop` und `dsh-plugin-desktop-beta` im Gleichschritt) |
+| Produktversion | `2.2.6` (`nonead-dsh-desktop` und `dsh-plugin-desktop-beta` im Gleichschritt) |
 | Workspace des Stable-Kanals | `nonead-dsh-desktop` (Root-Skripte mit Suffix `:stable`) |
 | Workspace des Beta-Kanals | `dsh-plugin-desktop-beta` (Root-Skripte mit Suffix `:beta`) |
 | DSH-Laufzeit | `0.2.2-alpha.2`, jede Abhängigkeit von `@deepseek-ai/dsh*` exakt gepinnt, Laufzeit lokal vendored |

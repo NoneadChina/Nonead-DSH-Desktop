@@ -45,7 +45,7 @@ async function mount(): Promise<{
       }),
     },
     platform: 'darwin',
-    version: '2.2.3',
+    version: '2.2.6',
     initialMode: 'compatibility',
     setMode: async () => {},
     desktopSettings: scope({

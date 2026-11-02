@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  Produto <code>2.2.3</code> · runtime do DSH <code>0.2.2-alpha.2</code> · Electron 44 · Licença MIT
+  Produto <code>2.2.6</code> · runtime do DSH <code>0.2.2-alpha.2</code> · Electron 44 · Licença MIT
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">Download em um clique, pronto para usar.</a></h3>
@@ -67,6 +67,7 @@ O produto não é uma reimplementação do cliente — é um host Electron enxut
 
 | Camada | Local | Responsabilidade |
 | --- | --- | --- |
+| `2.2.6` | 2026-11-02 | Manutenção de estabilidade e validações: corrige a parada das evidências de ciclo de vida após um dia de execução, a saída silenciosa do iniciador a partir de um bin global do npm/pnpm, a ausência de verificação de inode em arquivos privados e no bloqueio de operações de dados, a redefinição de fábrica sem diretório de dados, a falta de gestão de foco no diálogo LAN e o limite de página do mercado frente ao esquema publicado; novos portões cobrem pins de versão, paridade de oito idiomas e avisos de terceiros |
 | Shell desktop | Processo principal do Electron | Bloqueio de instância única, janelas e materiais, bandeja e menus, permissões, terminal, atualizações, diretório de dados, estado do perfil |
 | Host | Processo filho em modo Node | Carrega a camada de patches do perfil, inicia o boot do perfil upstream, serve o carrier Web, hospeda plugins Host de terceiros |
 | Carrier Web | HTTP + WebSocket em loopback | Serve a interface Web oficial (porta efêmera por padrão) |
@@ -80,7 +81,7 @@ Shell e Host se comunicam por exatamente um canal IPC de processo filho. Trocar 
 
 | Item | Valor |
 | --- | --- |
-| Versão do produto | `2.2.3` (`nonead-dsh-desktop` e `dsh-plugin-desktop-beta` em sincronia) |
+| Versão do produto | `2.2.6` (`nonead-dsh-desktop` e `dsh-plugin-desktop-beta` em sincronia) |
 | Workspace do canal estável | `nonead-dsh-desktop` (os scripts da raiz usam o sufixo `:stable`) |
 | Workspace do canal Beta | `dsh-plugin-desktop-beta` (os scripts da raiz usam o sufixo `:beta`) |
 | Runtime do DSH | `0.2.2-alpha.2`, todas as dependências `@deepseek-ai/dsh*` com pin exato, runtime vendorizado |

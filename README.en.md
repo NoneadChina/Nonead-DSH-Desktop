@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  Product <code>2.2.3</code> · DSH runtime <code>0.2.2-alpha.2</code> · Electron 44 · MIT License
+  Product <code>2.2.6</code> · DSH runtime <code>0.2.2-alpha.2</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">One-click download, ready to use out of the box.</a></h3>
@@ -67,6 +67,7 @@ The product is not a reimplementation of the client — it is a thin Electron ho
 
 | Layer | Location | Responsibility |
 | --- | --- | --- |
+| `2.2.6` | 2026-11-02 | Stability and gate maintenance: lifecycle evidence no longer stops after a day of uptime, the launcher no longer exits silently from an npm/pnpm global bin, private files and the data-operation lock bind to the validated inode, factory reset cannot leave the installation without a data directory, the LAN dialog gains focus management, and the market page limit matches its published schema; new gates cover release pins, eight-language version parity and third-party notices |
 | Desktop shell | Electron main process | Single-instance lock, windows and materials, tray and menus, permissions, terminal, updates, data directory, profile state |
 | Host | Node-mode child process | Loads the profile patch layer, starts the upstream profile boot, serves the Web carrier, hosts third-party Host plugins |
 | Web carrier | Loopback HTTP + WebSocket | Serves the official Web UI (ephemeral port by default) |
@@ -80,7 +81,7 @@ Shell and Host communicate over exactly one child-process IPC channel. Switching
 
 | Item | Value |
 | --- | --- |
-| Product version | `2.2.3` (`nonead-dsh-desktop` and `dsh-plugin-desktop-beta` in lockstep) |
+| Product version | `2.2.6` (`nonead-dsh-desktop` and `dsh-plugin-desktop-beta` in lockstep) |
 | Stable-channel workspace | `nonead-dsh-desktop` (root scripts use the `:stable` suffix) |
 | Beta-channel workspace | `dsh-plugin-desktop-beta` (root scripts use the `:beta` suffix) |
 | DSH runtime | `0.2.2-alpha.2`, every `@deepseek-ai/dsh*` dependency pinned exactly, runtime vendored |

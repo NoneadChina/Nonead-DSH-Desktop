@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  Producto <code>2.2.3</code> · runtime de DSH <code>0.2.2-alpha.2</code> · Electron 44 · MIT License
+  Producto <code>2.2.6</code> · runtime de DSH <code>0.2.2-alpha.2</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">Descarga con un clic, listo para usar.</a></h3>
@@ -67,6 +67,7 @@ El producto no es una reimplementación del cliente, sino un host Electron liger
 
 | Capa | Ubicación | Responsabilidad |
 | --- | --- | --- |
+| `2.2.6` | 2026-11-02 | Mantenimiento de estabilidad y compuertas: se corrige la detención de la evidencia del ciclo de vida tras un día de actividad, la salida silenciosa del lanzador desde un bin global de npm/pnpm, la falta de verificación de inodo en archivos privados y en el bloqueo de operaciones de datos, el reinicio de fábrica sin directorio de datos, la falta de gestión de foco del diálogo LAN y el límite de página del mercado frente a su esquema; se añaden compuertas de pines de versión, paridad de ocho idiomas y avisos de terceros |
 | Shell de escritorio | Proceso principal de Electron | Bloqueo de instancia única, ventanas y materiales, bandeja y menús, permisos, terminal, actualizaciones, directorio de datos, estado de los perfiles |
 | Host | Proceso hijo en modo Node | Carga la capa de parches del perfil, arranca el boot del perfil upstream, sirve el transporte web y aloja los plugins Host de terceros |
 | Transporte web | HTTP + WebSocket en loopback | Sirve la interfaz web oficial (puerto efímero por defecto) |
@@ -80,7 +81,7 @@ El shell y el Host se comunican por un único canal IPC de proceso hijo. Cambiar
 
 | Elemento | Valor |
 | --- | --- |
-| Versión del producto | `2.2.3` (`nonead-dsh-desktop` y `dsh-plugin-desktop-beta` sincronizados) |
+| Versión del producto | `2.2.6` (`nonead-dsh-desktop` y `dsh-plugin-desktop-beta` sincronizados) |
 | Espacio de trabajo del canal estable | `nonead-dsh-desktop` (los scripts de la raíz usan el sufijo `:stable`) |
 | Espacio de trabajo del canal Beta | `dsh-plugin-desktop-beta` (los scripts de la raíz usan el sufijo `:beta`) |
 | Runtime de DSH | `0.2.2-alpha.2`, todas las dependencias `@deepseek-ai/dsh*` fijadas con pin exacto y el runtime vendored en el repositorio |

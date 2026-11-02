@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  产品版本 <code>2.2.3</code> · DSH 运行时 <code>0.2.2-alpha.2</code> · Electron 44 · MIT License
+  产品版本 <code>2.2.6</code> · DSH 运行时 <code>0.2.2-alpha.2</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">一键下载，开箱即用。</a></h3>
@@ -67,6 +67,7 @@ Nonead DSH Desktop 把 [DeepSeek Harness](https://github.com/deepseek-ai/deepsee
 
 | 层 | 位置 | 职责 |
 | --- | --- | --- |
+| `2.2.6` | 2026-11-02 | 稳定性与门禁维护：修复长期运行后生命周期证据停写、启动器在 npm/pnpm 全局 bin 下静默退出、私有文件与数据锁未绑定 inode、恢复出厂失败后没有数据目录、LAN 确认框无焦点管理、市场页上限与 schema 不一致；新增发布 pin、八语言版本一致性与第三方声明一致性门禁 |
 | 桌面壳 | Electron main 进程 | 单实例锁、窗口与材质、托盘与菜单、权限、终端、更新、数据目录、profile 状态 |
 | Host | Node 模式子进程 | 加载 profile 补丁层、启动上游 profile boot、承载 Web carrier、承载第三方 Host 插件 |
 | Web carrier | 回环地址 HTTP + WebSocket | 提供官方 Web UI（默认临时端口） |
@@ -80,7 +81,7 @@ Nonead DSH Desktop 把 [DeepSeek Harness](https://github.com/deepseek-ai/deepsee
 
 | 项 | 值 |
 | --- | --- |
-| 产品版本 | `2.2.3`（`nonead-dsh-desktop` 与 `dsh-plugin-desktop-beta` 同步） |
+| 产品版本 | `2.2.6`（`nonead-dsh-desktop` 与 `dsh-plugin-desktop-beta` 同步） |
 | 稳定通道工作区 | `nonead-dsh-desktop`（根脚本 `:stable` 后缀） |
 | Beta 通道工作区 | `dsh-plugin-desktop-beta`（根脚本 `:beta` 后缀） |
 | DSH 运行时 | `0.2.2-alpha.2`，所有 `@deepseek-ai/dsh*` 依赖精确 pin，运行时就地 vendored |

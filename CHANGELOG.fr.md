@@ -13,6 +13,21 @@ Conventions de maintenance :
 - Les entrées ne décrivent que les changements perceptibles par l’utilisateur et les changements de limite que les responsables de maintenance doivent connaître ; les refactorisations pures ne font pas l’objet d’une entrée.
 - L’historique plus ancien se trouve dans les étiquettes Git (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) et dans le journal des commits.
 
+## 2.2.6 — 2026-11-02
+
+Version de maintenance axée sur la stabilité et la solidité des garde-fous ; le périmètre fonctionnel est inchangé.
+
+- Exécution prolongée : les preuves de cycle de vie validaient `monotonicMs` avec un plafond de 24 heures, si bien qu'un bureau laissé ouvert plus d'un jour cessait d'écrire tous les événements (y compris la sortie de l'hôte) ; il utilise désormais la limite de disponibilité de l'hôte et ne garde le plafond que pour la durée d'un démarrage.
+- Lanceur : la détection du point d'entrée passe par `realpath` avec un repli insensible à la casse sous Windows, donc `dsh-plugin-desktop-beta` ne se termine plus silencieusement depuis un bin global npm/pnpm.
+- Libération des ressources : une sortie d'hôte non confirmée ne saute plus la libération des liaisons natives ni du listener RPC, et un échec de démarrage conserve sa cause d'origine.
+- Sécurité : le masquage des journaux et diagnostics couvre les identifiants base64 et JWT ; la lecture des fichiers privés ouvre l'inode validé (TOCTOU) et le garde-fou d'imbrication du répertoire de données n'est plus contourné par un enfant `..cache`.
+- Sécurité des données : le verrou d'opérations de données vérifie l'inode de l'enregistrement et traite un enregistrement disparu comme l'erreur `busy` existante ; la réinitialisation d'usine recrée le répertoire de données vide avant d'effacer les préférences externes.
+- Vérification des mises à jour : les réponses autres que 200 libèrent leur body au lieu de laisser la connexion au ramasse-miettes.
+- Paramètres : la boîte de confirmation LAN reçoit un focus initial, la gestion d'Échap, le cycle de tabulation et la restitution du focus.
+- Marché : la limite de page du provider est alignée sur le schéma publié (200), une source valide avec `defaultLimit: 150` n'étant plus définitivement inutilisable.
+- Garde-fous : nouvelle vérification des pins de version (commit, dépôt et les 39 empreintes de fichiers amont comparées aux octets réels), parité de version dans huit langues et cohérence des mentions de tiers (`verify:notices:check` dans check/CI et les cinq entrées d'empaquetage) ; les mentions sont régénérées (DSH `0.2.1-rc.2` → `0.2.2-alpha.2`, marché 1.73.1) et la licence Blue Oak est acceptée.
+- Version : le produit passe de 2.2.3 à **2.2.6** dans les deux espaces de travail.
+
 ## 2.2.3 — 2026-10-29
 
 La coque de bureau est désormais localisée en huit langues (chinois simplifié, anglais, japonais, espagnol, français, allemand, russe et portugais du Brésil) :
