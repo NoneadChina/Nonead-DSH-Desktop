@@ -1,10 +1,10 @@
 # Multi-language document consistency record. Every language carries equal authority.
 # Update every file and record their Git blob hashes after editing any side.
-README.md: 08c5f86d62270da6d3edcd2d9e3b82b11d1c17d4
-README.en.md: 420135a5d697333273b641dacb071cf4fe662b91
-README.ja.md: 923a534557e2506649299a0afce24d03a97bd067
-README.es.md: fe01265bba911d8be1d57d5ab5b3c19218fef778
-README.fr.md: 74713fe467dcefa4e23b735c628df430f908bb31
-README.de.md: 7a3c2fbf49963de993fae0339bc13e0c2bbe219d
-README.ru.md: 9ef7fc02f2151615e7d516d1ba3c6a77807ac242
-README.pt.md: 583a984d046df8195519af5339a73de214063675
+README.md: 6c84a5a6165fa1426d0c072d3dd124f1b63d0a83
+README.en.md: 25df57a57a6f0394b510dd8dd814f4935d0b5897
+README.ja.md: e23ebae6d591de982f5ddf1048bdca664d8e6651
+README.es.md: d364882819fbe04fe97cdf7aef7808169bc6001e
+README.fr.md: 10f4b9d51e772823465ae2fff6c205c42cca3ed5
+README.de.md: 59c6c9e1388f1d239575f6cad188bc5f0d4a34a6
+README.ru.md: fabe7765791d8f97901f810948b8558e95f9a882
+README.pt.md: 464f0196d762099bd996c14beff04257579b5a50
