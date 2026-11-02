@@ -55,7 +55,8 @@ const DESCRIPTION_ZH = {
   '@yolk_vat-y/dsh-project-memory': '项目记忆：索引文档（PDF/Markdown）与代码符号，支持检索。',
   'dsh-config-manager': '配置管理：备份、恢复、导出、导入、迁移与同步 DSH 配置。',
   'dsh-context': '上下文洞察与管理：查看上下文占用并进行压缩。',
-  'dsh-design-skills': '设计风格技能包：内置 6 种设计风格。',
+  // `dsh-design-skills` was unpublished from npm; the bundled design plugin is `dsh-design`.
+  'dsh-design': '设计系统技能：约束设计选择，并用 design_audit 实测渲染页面的字阶、对比度、间距与配色漂移。',
   'dsh-find-plugins': '插件搜索：跨五个社区目录以及 GitHub、npm 实时搜索插件。',
   'dsh-github-skills': 'GitHub 工作流技能：改编自 OpenAI Codex。',
   'dsh-image-gen': '图片生成：接入 Gemini、OpenAI 等渠道画图与改图。',

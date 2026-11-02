@@ -1,6 +1,6 @@
 {
   "schema": "nonead-dsh-desktop/plugin-bundle/v3",
-  "count": 28,
+  "count": 29,
   "plugins": [
     {
       "name": "@a9i5k4/dsh-auto-memory",
@@ -91,6 +91,12 @@
       "version": "0.79.0",
       "file": "dsh-context-0.79.0.tgz",
       "description": "上下文洞察与管理：查看上下文占用并进行压缩。"
+    },
+    {
+      "name": "dsh-design",
+      "version": "0.2.0",
+      "file": "dsh-design-0.2.0.tgz",
+      "description": "设计系统技能：约束设计选择，并用 design_audit 实测渲染页面的字阶、对比度、间距与配色漂移。"
     },
     {
       "name": "dsh-doc-reader",
