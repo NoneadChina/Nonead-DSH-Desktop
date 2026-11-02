@@ -33,6 +33,10 @@ it('accepts empty or Next directories, rejecting unrelated and nested data direc
   writeFileSync(join(target, 'unrelated.txt'), 'keep')
   expect(() => validateDataDirectory(target, original, original)).toThrow('empty directory')
   expect(() => validateDataDirectory(join(original, 'nested'), original, original)).toThrow('outside')
+  // A child whose name merely starts with two dots is still a child, not an outside branch.
+  expect(() => validateDataDirectory(join(original, '..cache'), original, original)).toThrow('outside')
+  // A sibling tree that happens to be dot-prefixed stays selectable.
+  expect(validateDataDirectory(join(original, '..', '..sibling'), original, original)).toBe(join(original, '..', '..sibling'))
   new NextProfiles(target).ensure('desktop')
   expect(validateDataDirectory(target, original, original)).toBe(target)
   expect(validateDataDirectory(original, target, original)).toBe(original)
