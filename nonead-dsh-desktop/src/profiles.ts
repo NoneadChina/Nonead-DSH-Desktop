@@ -372,41 +372,35 @@ export function loadNextProfile(projectDir: string, home: string, installAnchor 
   const profile = loadProfileDirectory('nonead-dsh-desktop', projectDir, installAnchor)
   profile.layers.push({ packageName: 'nonead-dsh-desktop', packageDir: target,
     patchPaths: [NEXT_BUNDLE_PATCH], patches: loadOverlayPatches('nonead-dsh-desktop', NEXT_BUNDLE_PATCH) })
-  // Only patch the AA row when this Profile bundles the bridge: an unconditional config patch
-  // produced `patch: entry "agents-anywhere-bridge-next" not found` on every AA-disabled start,
-  // burying real loader warnings.
-  const overlay = manager.features(basename(projectDir)).remoteControl
-    ? [
-        { id: 'agents-anywhere-bridge-next', config: {
-          dshHome: home,
-          ...archivedAgentsAnywhereConfig(installAnchor),
-        } },
-      ]
-    : []
-  // Leave AA stateRoot unset to share its default credentials and device binding with Stable/Beta.
-  // Rewriting the generated overlay also removes the former per-Profile stateRoot on upgrade.
-  // The official manager still owns per-Profile bundle/row enablement.
-  atomicJson(join(projectDir, 'nonead-dsh-desktop.cordis.patch.json'), overlay)
+  // The AA row belongs to its own bundle patch, and a Profile-level patch cannot reach an entry
+  // that patch mounted: patching it only produced
+  // `patch: entry "agents-anywhere-bridge-next" not found` on every start.
+  // The bridge reads `DSH_HOME` and `UV_PATH` from the environment instead, so this file stays
+  // empty. It must still exist: the Host passes it as an overlay and fails when it is missing.
+  atomicJson(join(projectDir, 'nonead-dsh-desktop.cordis.patch.json'), [])
+  applyAgentsAnywhereEnvironment(installAnchor, home)
   return profile
 }
 
 /**
- * Paths the AA bridge cannot derive once it runs from app.asar: it copies its bundled Connector
- * project with `fs.cp` and spawns uv, and both need the copies unpacked beside the archive.
+ * Deliver the AA bridge's environment-backed settings.
+ * The bridge resolves `dshHome` from `DSH_HOME` and `uvPath` from `UV_PATH`, and keeps its
+ * `connectorSourceDir` default beside the installed package, so none of it needs a config patch.
+ * Both assignments use `??=` so an operator-provided value always wins.
  * @param installAnchor - Next's package.json.
- * @returns Overrides for an archived installation; empty for a physical one.
+ * @param home - the Desktop harness home shared with this Profile.
  */
-function archivedAgentsAnywhereConfig(installAnchor: string): { connectorSourceDir?: string; uvPath?: string } {
-  if (!insideArchive(installAnchor)) return {}
-  let packageDir: string
-  try { packageDir = dirname(createRequire(installAnchor).resolve(`${AA_PACKAGE}/package.json`)) }
-  catch { return {} /* The bridge is optional; without it there is nothing to redirect. */ }
-  const config: { connectorSourceDir: string; uvPath?: string } = { connectorSourceDir: unpackedPath(join(packageDir, 'lib', 'bundled-connector')) }
+function applyAgentsAnywhereEnvironment(installAnchor: string, home: string): void {
+  process.env['DSH_HOME'] ??= home
+  if (!insideArchive(installAnchor)) return
+  // An archived installation must spawn uv from beside the archive: the binary inside app.asar
+  // cannot be executed, so point `UV_PATH` at the unpacked copy when the payload ships one.
   try {
+    const packageDir = dirname(createRequire(installAnchor).resolve(`${AA_PACKAGE}/package.json`))
     const uv = dirname(createRequire(join(packageDir, 'package.json')).resolve(`@dataiku/uv-${process.platform}-${process.arch}/package.json`))
-    config.uvPath = unpackedPath(join(uv, 'bin', process.platform === 'win32' ? 'uv.exe' : 'uv'))
+    const executable = unpackedPath(join(uv, 'bin', process.platform === 'win32' ? 'uv.exe' : 'uv'))
+    if (existsSync(executable)) process.env['UV_PATH'] ??= executable
   } catch { /* No bundled uv for this platform; the bridge searches PATH as before. */ }
-  return config
 }
 
 /** Recompose Next's own layer before user/global patches on every manager or HMR read. */
