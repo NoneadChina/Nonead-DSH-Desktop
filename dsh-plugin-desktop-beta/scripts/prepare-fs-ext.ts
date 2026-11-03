@@ -2,12 +2,15 @@
 
 import { spawnSync } from 'node:child_process'
 import {
+  closeSync,
   copyFileSync,
   cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
+  openSync,
   readFileSync,
+  readSync,
   renameSync,
   rmSync,
   statSync,
@@ -179,8 +182,42 @@ function readBuiltAbi(configPath: string, expectedArch: string): string {
   return abi
 }
 
-function runNativeBuild(invocation: NativeBuildInvocation): void {
-  const result = spawnSync(invocation.command, invocation.args, {
+const ELF_MACHINE_OFFSET = 18
+
+/**
+ * Read the CPU a compiled native binding targets from its object header.
+ *
+ * `node-gyp --arch` records the requested CPU in `config.gypi` even when the
+ * toolchain is still the host compiler, so the object header is the only proof
+ * that a cross-arch build actually produced target code.
+ * @param path - Compiled `.node` binding.
+ * @returns The declared CPU, or `undefined` when the header is not recognized.
+ */
+export function bindingArch(path: string): 'arm64' | 'x64' | undefined {
+  const descriptor = openSync(path, 'r')
+  const header = Buffer.alloc(64)
+  let read: number
+  try {
+    read = readSync(descriptor, header, 0, header.byteLength, 0)
+  } finally {
+    closeSync(descriptor)
+  }
+  if (read >= ELF_MACHINE_OFFSET + 2 && header[0] === 0x7f
+    && header.subarray(1, 4).toString('ascii') === 'ELF') {
+    const machine = header.readUInt16LE(ELF_MACHINE_OFFSET)
+    return machine === 0xb7 ? 'arm64' : machine === 0x3e ? 'x64' : undefined
+  }
+  if (read >= 8) {
+    const magic = header.readUInt32LE(0)
+    if (magic === 0xfeedfacf || magic === 0xfeedface) {
+      const cpu = header.readUInt32LE(4)
+      return cpu === 0x0100000c ? 'arm64' : cpu === 0x01000007 ? 'x64' : undefined
+    }
+  }
+  return undefined
+}
+
+function runNativeBuild(invocation: NativeBuildInvocation): void {  const result = spawnSync(invocation.command, invocation.args, {
     cwd: invocation.cwd,
     env: invocation.env,
     stdio: 'inherit',
@@ -249,6 +286,13 @@ export function prepareFsExtForElectron(
     assertRegularFile(builtBinary, 'compiled fs-ext binding')
     assertRegularFile(buildConfig, 'node-gyp configuration')
     const abi = readBuiltAbi(buildConfig, arch)
+    const compiledArch = bindingArch(builtBinary)
+    if (compiledArch !== arch) {
+      throw new Error(
+        `fs-ext compiled for ${compiledArch ?? 'an unknown CPU'}; expected ${arch}. `
+        + 'Cross-compilation requires a target toolchain (for arm64: aarch64-linux-gnu-gcc).',
+      )
+    }
 
     const destinationDirectory = join(
       installed.fsExtRoot,

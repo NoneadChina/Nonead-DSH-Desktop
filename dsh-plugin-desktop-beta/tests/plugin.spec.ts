@@ -153,7 +153,7 @@ function createHarness(
   let shell: DesktopShellSpec | undefined
   const fixture = configFixture({ openBrowser: ordinaryBrowserEnabled, ...overrides })
   const volatileUpdated = new Set<() => void | Promise<void>>()
-  const configWaterfall = new Set<(this: unknown, raw: unknown, next: () => unknown) => unknown>()
+  const configWaterfall = new Set<(fiber: unknown, next: () => unknown) => unknown>()
   const update = vi.fn(async (_namespace: unknown, _patch: object) => {})
   const restart = vi.fn(async () => {})
   const setLocalePreference = vi.fn<(locale: LocaleId | undefined) => void>()
@@ -290,7 +290,7 @@ function createHarness(
         return () => { volatileUpdated.delete(listener as () => void) }
       }
       if (event === 'internal/config') {
-        const waterfall = listener as unknown as (this: unknown, raw: unknown, next: () => unknown) => unknown
+        const waterfall = listener as unknown as (fiber: unknown, next: () => unknown) => unknown
         configWaterfall.add(waterfall)
         return () => { configWaterfall.delete(waterfall) }
       }
@@ -330,7 +330,7 @@ function createHarness(
       for (const listener of documentUpdated) listener('ui-theme', 1)
     },
     validate: (candidate) => {
-      for (const waterfall of configWaterfall) waterfall.call(fiber, candidate, () => candidate)
+      for (const waterfall of configWaterfall) waterfall(fiber, () => candidate)
     },
   }
 }

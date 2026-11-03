@@ -1,9 +1,10 @@
-/** Verify the unsigned Windows x64 portable ZIP archive. */
+/** Verify the unsigned Windows portable ZIP archive. */
 
 import { readFileSync, statSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import AdmZip from 'adm-zip'
+import type { WindowsTargetArch } from './package-win.ts'
 import { assertPortableExecutableBuffer } from './verify-win-installer.ts'
 
 export interface WindowsPortableVerificationOptions {
@@ -11,6 +12,8 @@ export interface WindowsPortableVerificationOptions {
   readonly desktopRoot: string
   /** Product version embedded in the expected artifact name. */
   readonly version: string
+  /** Windows CPU the archive was built for. */
+  readonly arch: WindowsTargetArch
 }
 
 function readVersion(desktopRoot: string): string {
@@ -25,7 +28,11 @@ function readVersion(desktopRoot: string): string {
 
 function defaultOptions(): WindowsPortableVerificationOptions {
   const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-  return { desktopRoot, version: readVersion(desktopRoot) }
+  const requested = process.env.DSH_PACKAGE_ARCH ?? 'x64'
+  if (requested !== 'x64' && requested !== 'arm64') {
+    throw new Error(`DSH_PACKAGE_ARCH must be x64 or arm64; received ${requested}`)
+  }
+  return { desktopRoot, version: readVersion(desktopRoot), arch: requested }
 }
 
 /** Verify the exact versioned portable archive and its application entry. */
@@ -35,7 +42,7 @@ export function verifyWindowsPortable(
   const portablePath = join(
     options.desktopRoot,
     'dist',
-    `DSH-Desktop-Beta-${options.version}-x64-Portable.zip`,
+    `DSH-Desktop-Beta-${options.version}-${options.arch}-Portable.zip`,
   )
   const stat = statSync(portablePath)
   if (!stat.isFile() || stat.size === 0) {

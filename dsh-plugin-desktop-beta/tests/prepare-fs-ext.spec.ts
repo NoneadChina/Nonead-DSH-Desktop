@@ -17,6 +17,15 @@ import {
 
 const roots: string[] = []
 
+/** A minimal ELF object header so the arch guard sees a real binding architecture. */
+function elfBinding(arch: 'x64' | 'arm64'): Buffer {
+  const buffer = Buffer.alloc(64)
+  buffer[0] = 0x7f
+  buffer.write('ELF', 1, 'ascii')
+  buffer.writeUInt16LE(arch === 'arm64' ? 0xb7 : 0x3e, 18)
+  return buffer
+}
+
 function fixture(): {
   readonly root: string
   readonly fsExtRoot: string
@@ -71,7 +80,7 @@ describe('fs-ext Electron binding preparation', () => {
         expect(readFileSync(join(invocation.cwd, 'node_modules', 'nan', 'nan.h'), 'utf8'))
           .toBe('// nan header')
         mkdirSync(join(invocation.cwd, 'build', 'Release'), { recursive: true })
-        writeFileSync(join(invocation.cwd, 'build', 'Release', 'fs_ext.node'), 'electron-binding')
+        writeFileSync(join(invocation.cwd, 'build', 'Release', 'fs_ext.node'), elfBinding('x64'))
         writeFileSync(
           join(invocation.cwd, 'build', 'config.gypi'),
           JSON.stringify({ variables: { node_module_version: 148, target_arch: 'x64' } }),
@@ -109,7 +118,7 @@ describe('fs-ext Electron binding preparation', () => {
     })
     expect(result.status).toBe('prepared')
     if (result.status !== 'prepared') throw new Error('expected a prepared POSIX binding')
-    expect(readFileSync(result.path, 'utf8')).toBe('electron-binding')
+    expect(readFileSync(result.path).subarray(1, 4).toString('ascii')).toBe('ELF')
     expect(readFileSync(value.nodeBinding, 'utf8')).toBe('node-abi-binding')
     expect(existsSync(temporarySource)).toBe(false)
     expect(readdirSync(join(value.fsExtRoot, 'prebuilds', 'linux-x64')))

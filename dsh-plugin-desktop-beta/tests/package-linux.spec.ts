@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
+  linuxTargetArch,
   packageLinuxArtifacts,
   withoutLinuxSigningSecrets,
   type LinuxPackageOptions,
@@ -10,6 +11,7 @@ function options(overrides: Partial<LinuxPackageOptions> = {}): LinuxPackageOpti
     env: {},
     platform: 'linux',
     arch: 'x64',
+    targetArch: 'x64',
     nodeVersion: '24.17.0',
     workspaceRoot: '/workspace',
     desktopRoot: '/workspace/dsh-plugin-desktop',
@@ -92,6 +94,27 @@ describe('Linux packaging orchestration', () => {
       .toThrow('require x64 Node')
     expect(() => packageLinuxArtifacts(options({ nodeVersion: '20.1.0' })))
       .toThrow('Node 22.19+ or Node 24.x')
+  })
+
+  it('selects the Linux CPU from a flag or the environment', () => {
+    expect(linuxTargetArch({}, [])).toBe('x64')
+    expect(linuxTargetArch({}, ['--arm64'])).toBe('arm64')
+    expect(linuxTargetArch({ DSH_PACKAGE_ARCH: 'arm64' }, [])).toBe('arm64')
+    // An explicit flag wins over a stale environment value.
+    expect(linuxTargetArch({ DSH_PACKAGE_ARCH: 'arm64' }, ['--x64'])).toBe('x64')
+    expect(() => linuxTargetArch({ DSH_PACKAGE_ARCH: 'riscv64' }, []))
+      .toThrow('Linux target CPU must be one of x64, arm64')
+  })
+
+  it('packages an arm64 payload and hands the same CPU to the verifier', () => {
+    const run = vi.fn()
+
+    packageLinuxArtifacts(options({ run, targetArch: 'arm64' }))
+
+    const builder = run.mock.calls[1]![1]!.join(' ')
+    expect(builder).toContain('--arm64')
+    expect(builder).not.toContain('--x64')
+    expect(run.mock.calls[2]![3]).toMatchObject({ DSH_PACKAGE_ARCH: 'arm64' })
   })
 
   it('strips signing secrets case-insensitively', () => {

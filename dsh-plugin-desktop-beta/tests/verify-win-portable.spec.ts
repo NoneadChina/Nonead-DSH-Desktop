@@ -36,13 +36,13 @@ describe('Windows portable artifact verification', () => {
   it('accepts the exact versioned portable ZIP archive', () => {
     const value = fixture()
 
-    expect(verifyWindowsPortable({ desktopRoot: value.root, version: '2.0.0' })).toBe(value.portable)
+    expect(verifyWindowsPortable({ desktopRoot: value.root, version: '2.0.0', arch: 'x64' })).toBe(value.portable)
   })
 
   it('rejects a stale portable archive from a different version', () => {
     const value = fixture('1.9.0')
 
-    expect(() => verifyWindowsPortable({ desktopRoot: value.root, version: '2.0.0' }))
+    expect(() => verifyWindowsPortable({ desktopRoot: value.root, version: '2.0.0', arch: 'x64' }))
       .toThrow('DSH-Desktop-Beta-2.0.0-x64-Portable.zip')
   })
 
@@ -55,7 +55,7 @@ describe('Windows portable artifact verification', () => {
     archive.addFile('resources/app/package.json', Buffer.from('{}'))
     archive.writeZip(value.portable)
 
-    expect(() => verifyWindowsPortable({ desktopRoot: value.root, version: '2.0.0' }))
+    expect(() => verifyWindowsPortable({ desktopRoot: value.root, version: '2.0.0', arch: 'x64' }))
       .toThrow('does not have a Windows PE header')
   })
 })

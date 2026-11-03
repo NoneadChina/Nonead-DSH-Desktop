@@ -65,6 +65,8 @@ const DESCRIPTION_ZH = {
   'dsh-ppt-master': 'PPT 生成：根据内容生成演示文稿。',
   'dsh-remotion': '视频制作：在 DSH 里用 React 工程渲染视频。',
   'dsh-rewind-plugin': '对话回退：在同一窗口内回退对话并恢复工作区文件。',
+  // Built from the published source of deepseek-ai/dsh-superagent-prototype; not on npm.
+  'dsh-superagent': '超级智能体原型：监听 GitHub 与飞书，把被授权的请求转成工单并在独立会话中执行，Web 面板汇总待人工处理项（DeepSeek 研究原型，非官方产品）。',
   'dsh-univer-office': 'Office 文档：DSH 与 Univer 集成，支持表格、文档与演示。',
   'dsh-api-client': 'API 调试：发起 HTTP 请求并查看响应。',
   'dsh-better-sidebar': '更好用的侧边栏：文件树、编辑器、改动、任务与侧边聊天合成一栏，每个会话独立；并向其他插件开放侧栏标签与文件查看器注册服务。',

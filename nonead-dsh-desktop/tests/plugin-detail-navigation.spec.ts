@@ -17,7 +17,7 @@ const nodes = (value: unknown): Node[] => Array.isArray(value) ? value.flatMap(n
     ? [value as Node, ...nodes((value as Node).props.children)] : []
 const component = (tree: Node, name: string): Node | undefined => nodes(tree).find(node => typeof node.type === 'function' && node.type.name === name)
 const render = (node: Node): Node => (node.type as (props: Node['props']) => Node)(node.props)
-  /** 0.2.2-alpha.2 的 EnableSwitch 渲染成 span，真正的开关是内部带 onChange 的节点。 */
+  /** 0.2.2-alpha.2 起的 EnableSwitch 渲染成 span，真正的开关是内部带 onChange 的节点。 */
   const switchOf = (node: Node): Node => nodes(render(node)).find(child => typeof child.props.onChange === 'function')!
 /** Group ids on the list page; dsh 0.2.1-alpha.2 splits official cards into basic and extensions. */
 const groups = (tree: Node): string[] => nodes(tree).filter(node => node.props['data-plugin-group']).map(node => node.props['data-plugin-group'])
@@ -60,12 +60,12 @@ function fixture() {
     }
     throw new Error(`Unexpected browser dependency: ${id}`)
   }
-  // 0.2.2-alpha.2 的官方客户端会通过 require.asset 解析资源引用（真实 loader 默认原样返回）。
+  // 0.2.2-alpha.2 起的官方客户端会通过 require.asset 解析资源引用（真实 loader 默认原样返回）。
   Object.assign(require, { asset: (reference: string) => reference })
   runInNewContext(source, { window: { __ModuleLoader__: { load: (entry: { factory: (require: unknown) => { apply: typeof apply } }) => { apply = entry.factory(require).apply } } } })
   const noop = () => () => {}
   apply!({ effect: (effect: () => void) => effect(), provide: noop, on: noop,
-    // 0.2.2-alpha.2 的官方 client 通过 remoteAccess.whenAccess 注册远程入口，产出是 disposer。
+    // 0.2.2-alpha.2 起的官方 client 通过 remoteAccess.whenAccess 注册远程入口，产出是 disposer。
     remoteAccess: { whenAccess: (_name: string, generator: () => Generator<unknown>) => {
       for (const step of generator()) void step
       return () => {}
@@ -85,7 +85,7 @@ function fixture() {
     version: '0.1.0', description: 'Remote connection', rows: [{ entryId: undefined as string | undefined, rowId: 'bridge', moduleName: 'bridge', enabled: true, phase: 'active' }] }
   const official = { ...remote, name: 'official-team', rows: [] }
   const state = { status: 'ready', packages: [official, remote], busy: [] as string[], notice: null, highlight: null, confirm: null,
-    // 0.2.2-alpha.2 的卡片从 state.versions 读每包的可更新版本。
+    // 0.2.2-alpha.2 起的卡片从 state.versions 读每包的可更新版本。
     versions: {},
     update: null,
     install: { open: false } }
@@ -103,7 +103,7 @@ function fixture() {
     usePluginTabs: () => [],
     // 0.2.2-alpha.2 通过 useBundleDetails 取 bundle 详情快照；测试替身给空快照。
     useBundleDetails: (select: (snapshot: unknown) => unknown) => select({}),
-    // 0.2.2-alpha.2 的页面还通过 useLocale 读当前语言快照。
+    // 0.2.2-alpha.2 起的页面还通过 useLocale 读当前语言快照。
     useLocale: (select: (snapshot: unknown) => unknown) => select({ active: "en", available: [] }),
     renderSlot: (name: string, owner: Record<string, unknown>, options?: unknown) => {
       if (name === 'plugins.overview') overview = owner as typeof overview

@@ -80,6 +80,7 @@ patches/*@0.2.1-rc.2.patch
 # bridge referenced by package.json and yarn.lock is consumed.
 vendor/agents-anywhere/*.tgz
 !vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c39b82d4fffb1.rd9c47cbc.tgz
+!vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c39b82d4fffb1.rbcb63731.tgz
 
 # Local-only scratch that must never enter the repository: copied Profile data
 # (may carry credentials), build caches, and inspection output.

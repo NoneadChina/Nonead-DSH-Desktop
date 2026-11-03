@@ -15,8 +15,8 @@ import { AA_WORKSPACES } from './agents-anywhere-release-policy.mjs'
 // Exercise the installed artifact: a patch file alone does not prove Yarn applied it.
 function loadConnector(workspace, environment) {
   const source = readFileSync(new URL(`../${workspace}/node_modules/@agents-anywhere/dsh-bridge-next/lib/index.js`, import.meta.url), 'utf8')
-  const start = source.indexOf('//#region src/host/connector/logs.ts')
-  const end = source.indexOf('//#region src/host/desktop/detect.ts', start)
+  const start = source.indexOf('// src/host/connector/logs.ts')
+  const end = source.indexOf('// src/host/desktop/detect.ts', start)
   assert.ok(start >= 0 && end > start)
   return runInNewContext(`${source.slice(start, end)}; SourceConnector`, {
     execFile, promisify, stripVTControlCharacters, join, relative, createHash, setTimeout, clearTimeout,
@@ -32,8 +32,9 @@ for (const workspace of AA_WORKSPACES) {
   test(`${workspace}: rc.2 tool results retain the same hash after JSON transport`, () => {
     const source = readFileSync(new URL(`../${workspace}/node_modules/@agents-anywhere/dsh-bridge-next/lib/index.js`, import.meta.url), 'utf8')
     const region = name => {
-      const start = source.indexOf(`//#region src/host/dsh-runtime/${name}.ts`)
-      const end = source.indexOf('//#endregion', start)
+      const start = source.indexOf(`// src/host/dsh-runtime/${name}.ts`)
+      const next = source.indexOf('// src/', start + 1)
+      const end = next < 0 ? source.length : next
       assert.ok(start >= 0 && end > start)
       return source.slice(start, end)
     }

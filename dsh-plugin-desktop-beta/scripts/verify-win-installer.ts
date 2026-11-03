@@ -3,6 +3,7 @@
 import { closeSync, openSync, readFileSync, readSync, statSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import type { WindowsTargetArch } from './package-win.ts'
 
 /** Verify a complete in-memory Windows PE image. */
 export function assertPortableExecutableBuffer(data: Buffer, label: string, source: string): void {
@@ -32,6 +33,14 @@ export interface WindowsInstallerVerificationOptions {
   readonly desktopRoot: string
   /** Product version embedded in the expected artifact name. */
   readonly version: string
+  /** Windows CPU the artifacts were built for. */
+  readonly arch: WindowsTargetArch
+}
+
+/** electron-builder's per-CPU artifact token and unpacked directory. */
+const ARCH_LAYOUT: Record<WindowsTargetArch, { readonly token: string, readonly unpacked: string }> = {
+  x64: { token: 'x64', unpacked: 'win-unpacked' },
+  arm64: { token: 'arm64', unpacked: 'win-arm64-unpacked' },
 }
 
 function readVersion(desktopRoot: string): string {
@@ -73,9 +82,14 @@ export function assertPortableExecutable(path: string, label: string): void {
 
 function defaultOptions(): WindowsInstallerVerificationOptions {
   const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+  const requested = process.env.DSH_PACKAGE_ARCH ?? 'x64'
+  if (requested !== 'x64' && requested !== 'arm64') {
+    throw new Error(`DSH_PACKAGE_ARCH must be x64 or arm64; received ${requested}`)
+  }
   return {
     desktopRoot,
     version: readVersion(desktopRoot),
+    arch: requested,
   }
 }
 
@@ -88,11 +102,12 @@ export function verifyWindowsInstaller(
   options: WindowsInstallerVerificationOptions = defaultOptions(),
 ): WindowsInstallerArtifacts {
   const distDir = join(options.desktopRoot, 'dist')
+  const layout = ARCH_LAYOUT[options.arch]
   const installerPath = join(
     distDir,
-    `DSH-Desktop-Beta-${options.version}-x64-Setup.exe`,
+    `DSH-Desktop-Beta-${options.version}-${layout.token}-Setup.exe`,
   )
-  const applicationPath = join(distDir, 'win-unpacked', 'DSH Desktop Beta.exe')
+  const applicationPath = join(distDir, layout.unpacked, 'DSH Desktop Beta.exe')
 
   assertPortableExecutable(installerPath, 'Windows NSIS installer')
   assertPortableExecutable(applicationPath, 'unpacked Windows application')

@@ -55,6 +55,7 @@ const manifest = JSON.parse(readFileSync(new URL('package.json', packageRoot), '
       asarUnpack?: unknown
       synopsis?: unknown
       syncDesktopName?: unknown
+      target?: unknown
     }
     deb?: Record<string, unknown>
   }
@@ -916,10 +917,10 @@ describe('published package surface', () => {
     expect(manifest.build?.mac?.signIgnore).toEqual(['\\.(?:pak|dat|wasm)$', '/Contents/Resources/runtime/(?:arm64|x64)/primary-runtime(?:/|$)'])
     expect(manifest.build?.win?.compression).toBe('normal')
     expect(manifest.build?.win?.icon).toBe('build/app-icon.ico')
-    expect(manifest.build?.win?.target).toEqual([{
-      target: 'nsis',
-      arch: ['x64'],
-    }])
+    // electron-builder's CLI selects the payload CPU (`--x64`/`--arm64`); pinning
+    // `arch` in the configuration would silently override an arm64 request.
+    expect(manifest.build?.win?.target).toEqual(['nsis'])
+    expect(manifest.build?.linux?.target).toEqual(['AppImage', 'deb'])
     expect(manifest.build?.win?.artifactName).toBe('DSH-Desktop-Beta-${version}-${arch}-Portable.${ext}')
     expect(manifest.build?.nsis).toEqual({
       include: 'installer.nsh',
@@ -1070,8 +1071,12 @@ describe('published package surface', () => {
     expect(windowsJob).toContain('run: yarn workspace ${{ matrix.workspace }} dist:win')
     expect(windowsJob).toContain('run: yarn workspace ${{ matrix.workspace }} dist:win-portable')
     expect(windowsJob).toContain('DSH_PACKAGE_CHECK_ALREADY_RAN: \'1\'')
-    // Smoke artifacts are never published, so CI skips their compression.
-    expect(windowsJob.match(/DSH_WINDOWS_PACKAGE_COMPRESSION: store/g)).toHaveLength(2)
+    // Smoke artifacts are never published, so CI skips their compression. Each
+    // CPU builds the installer and the portable archive, hence four steps.
+    expect(windowsJob.match(/DSH_WINDOWS_PACKAGE_COMPRESSION: store/g)).toHaveLength(4)
+    // arm64 is a separate payload: the x64 runner only inspects it.
+    expect(windowsJob).toContain('run: yarn workspace ${{ matrix.workspace }} dist:win:arm64')
+    expect(windowsJob).toContain('run: yarn workspace ${{ matrix.workspace }} dist:win-portable:arm64')
     expect(macosJob).not.toContain('- run: yarn check')
     expect(macosJob).toContain('workspace: [dsh-plugin-desktop-beta]')
     expect(macosJob).toContain('- run: yarn workspace ${{ matrix.workspace }} check:mac-package:platform')

@@ -39,7 +39,7 @@ describe('Windows installer artifact verification', () => {
   it('accepts the exact versioned NSIS installer and unpacked application', () => {
     const value = fixture()
 
-    expect(verifyWindowsInstaller({ desktopRoot: value.root, version: '2.0.0' })).toEqual({
+    expect(verifyWindowsInstaller({ desktopRoot: value.root, version: '2.0.0', arch: 'x64' })).toEqual({
       installerPath: value.installer,
       applicationPath: value.application,
     })
@@ -48,7 +48,7 @@ describe('Windows installer artifact verification', () => {
   it('rejects a stale installer from a different version', () => {
     const value = fixture('1.9.0')
 
-    expect(() => verifyWindowsInstaller({ desktopRoot: value.root, version: '2.0.0' }))
+    expect(() => verifyWindowsInstaller({ desktopRoot: value.root, version: '2.0.0', arch: 'x64' }))
       .toThrow('DSH-Desktop-Beta-2.0.0-x64-Setup.exe')
   })
 
@@ -58,7 +58,7 @@ describe('Windows installer artifact verification', () => {
     invalid.write('NO', 0, 'ascii')
     writeFileSync(value.installer, invalid)
 
-    expect(() => verifyWindowsInstaller({ desktopRoot: value.root, version: '2.0.0' }))
+    expect(() => verifyWindowsInstaller({ desktopRoot: value.root, version: '2.0.0', arch: 'x64' }))
       .toThrow('does not have a Windows PE header')
   })
 
@@ -68,7 +68,7 @@ describe('Windows installer artifact verification', () => {
     invalid.fill(0, 128, 132)
     writeFileSync(value.application, invalid)
 
-    expect(() => verifyWindowsInstaller({ desktopRoot: value.root, version: '2.0.0' }))
+    expect(() => verifyWindowsInstaller({ desktopRoot: value.root, version: '2.0.0', arch: 'x64' }))
       .toThrow('does not have a Windows PE signature')
   })
 })

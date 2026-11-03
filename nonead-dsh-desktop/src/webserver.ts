@@ -126,7 +126,7 @@ export default class NextWebServer extends WebServer {
   /**
    * Apply the browser gates to the fallback too.
    *
-   * `dsh 0.2.2-alpha.2` registers the frontend fallback as `{ resource }` instead of a plain
+   * `dsh 0.2.2-alpha.2` and later register the frontend fallback as `{ resource }` instead of a plain
    * handler, and upstream's own `serveResource` resolves the requesting peer before calling it.
    * Passing that object through unchanged answered every frontend request with `handler is not a
    * function` (400); wrapping it as a function skipped the browser gate and answered 401 where the

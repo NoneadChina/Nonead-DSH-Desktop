@@ -1,4 +1,4 @@
-/** Build an unsigned Linux x64 AppImage and Debian package on a native Linux host. */
+/** Build an unsigned Linux AppImage and Debian package on a native Linux host. */
 
 import { spawnSync } from 'node:child_process'
 import { createRequire } from 'node:module'
@@ -15,6 +15,35 @@ const LINUX_SIGNING_KEYS = [
   'CSC_NAME',
 ] as const
 
+/** Linux CPUs this packaging path can emit from one host run. */
+export const LINUX_TARGET_ARCHES = ['x64', 'arm64'] as const
+
+/** A Linux CPU electron-builder can package from an x64 Linux host. */
+export type LinuxTargetArch = (typeof LINUX_TARGET_ARCHES)[number]
+
+/**
+ * Read the Linux target CPU from `--x64`/`--arm64` or `DSH_PACKAGE_ARCH`.
+ *
+ * The build host must stay x64: the packaging chain executes the packaged binaries to verify them,
+ * and an x64 host cannot run arm64 code. `arm64` therefore produces an artifact this host can only
+ * inspect through its magic/ELF headers, never run.
+ * @param env - environment of the packaging process.
+ * @param argv - command-line arguments; an explicit CPU flag wins over the environment.
+ * @returns the requested CPU, `x64` when unset.
+ * @throws When the value is not a supported Linux CPU.
+ */
+export function linuxTargetArch(
+  env: NodeJS.ProcessEnv,
+  argv: readonly string[] = process.argv.slice(2),
+): LinuxTargetArch {
+  const flag = argv.find(argument => argument === '--x64' || argument === '--arm64')
+  const requested = flag === undefined ? env.DSH_PACKAGE_ARCH ?? 'x64' : flag.slice(2)
+  if (!(LINUX_TARGET_ARCHES as readonly string[]).includes(requested)) {
+    throw new Error(`Linux target CPU must be one of ${LINUX_TARGET_ARCHES.join(', ')}; received ${requested}`)
+  }
+  return requested as LinuxTargetArch
+}
+
 /** Injectable native Linux packaging boundary used by focused tests. */
 export interface LinuxPackageOptions {
   /** Environment inherited by the packaging command. */
@@ -23,6 +52,8 @@ export interface LinuxPackageOptions {
   readonly platform: NodeJS.Platform
   /** Node architecture executing the package build. */
   readonly arch: string
+  /** Linux CPU the artifact is built for; a cross-arch artifact cannot be executed here. */
+  readonly targetArch: LinuxTargetArch
   /** Node version executing the package build. */
   readonly nodeVersion: string
   /** Repository root containing the Yarn workspace. */
@@ -82,16 +113,22 @@ export function createLinuxPackageOptions(verifier = './verify-linux-artifacts.t
   const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
   const workspaceRoot = resolve(desktopRoot, '..')
   const require = createRequire(import.meta.url)
+  const targetArch = linuxTargetArch(process.env)
   return {
     env: process.env,
     platform: process.platform,
     arch: process.arch,
+    targetArch,
     nodeVersion: process.versions.node,
     workspaceRoot,
     desktopRoot,
     builderCli: require.resolve('electron-builder/cli.js'),
     prepareRuntime: () => {
-      prepareFsExtForElectron({ platform: 'linux', arch: 'x64', desktopRoot })
+      // fs-ext is shipped inside the artifact, so it must match the artifact CPU.
+      const binding = prepareFsExtForElectron({ platform: 'linux', arch: targetArch, desktopRoot })
+      if (binding.status === 'not-required') {
+        throw new Error('Linux artifacts require a prepared fs-ext binding; preparation reported not-required')
+      }
       // Linux ships no interpreter payload; the check confirms the tree declares none.
       verifyPreparedDesktopRuntime(desktopRoot, 'linux')
     },
@@ -120,14 +157,17 @@ function assertLinuxPackageHost(options: LinuxPackageOptions): void {
   }
 }
 
-/** Run the gates and package the unsigned x64 Linux AppImage and Debian package. */
+/** Run the gates and package one unsigned Linux AppImage and Debian package. */
 export function packageLinuxArtifacts(
   options: LinuxPackageOptions = createLinuxPackageOptions(),
 ): void {
   assertLinuxPackageHost(options)
 
   const cleanEnvironment = withoutLinuxSigningSecrets(options.env)
-  options.log('Building unsigned Linux x64 AppImage and Debian package; signing is a separate release step.')
+  options.log(`Building unsigned Linux ${options.targetArch} AppImage and Debian package; signing is a separate release step.`)
+  if (options.targetArch !== 'x64') {
+    options.log(`Cross-arch build: this ${options.arch} host cannot execute the packaged ${options.targetArch} binaries, so only header-level verification runs.`)
+  }
   if (options.env.DSH_PACKAGE_CHECK_ALREADY_RAN !== '1') {
     options.run(
       'corepack',
@@ -146,7 +186,7 @@ export function packageLinuxArtifacts(
       '--linux',
       'AppImage',
       'deb',
-      '--x64',
+      `--${options.targetArch}`,
       '--publish',
       'never',
       '--config.npmRebuild=false',
@@ -161,7 +201,8 @@ export function packageLinuxArtifacts(
     options.nodeExecutable,
     [options.verifier],
     options.desktopRoot,
-    cleanEnvironment,
+    // The verifier reads the same target CPU the build used.
+    { ...cleanEnvironment, DSH_PACKAGE_ARCH: options.targetArch },
   )
 }
 

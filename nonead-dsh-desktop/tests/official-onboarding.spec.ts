@@ -18,7 +18,7 @@ function fixture(nativeBridge = true, lastVisible: unknown = null, apiKeyBridge?
     if (id === '@deepseek-ai/dsh-client-ui-primitives') return { Button: 'button' }
     throw new Error(`Unexpected dependency ${id}`)
   }
-  // 0.2.2-alpha.2 的官方客户端会通过 require.asset 解析资源引用（真实 loader 默认原样返回）。
+  // 0.2.2-alpha.2 起的官方客户端会通过 require.asset 解析资源引用（真实 loader 默认原样返回）。
   Object.assign(require, { asset: (reference: string) => reference })
   runInNewContext(source, {
     ...(nativeBridge ? { dshDesktopSetup: {} } : {}), dshOnboarding: apiKeyBridge,

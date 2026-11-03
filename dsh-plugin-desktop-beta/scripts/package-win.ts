@@ -1,4 +1,4 @@
-/** Build an unsigned Windows x64 artifact on a native Windows host. */
+/** Build an unsigned Windows artifact on a native Windows host. */
 
 import { spawnSync } from 'node:child_process'
 import { createRequire } from 'node:module'
@@ -47,17 +47,22 @@ export const WINDOWS_TARGET_ARCHES = ['x64', 'arm64'] as const
 export type WindowsTargetArch = (typeof WINDOWS_TARGET_ARCHES)[number]
 
 /**
- * Read the Windows target CPU from `DSH_PACKAGE_ARCH`.
+ * Read the Windows target CPU from `--x64`/`--arm64` or `DSH_PACKAGE_ARCH`.
  *
  * The build host must stay x64: the packaging chain executes the packaged binaries to verify them,
  * and an x64 host cannot run arm64 code. `arm64` therefore produces an artifact this host can only
  * inspect, never run (see `scripts/verify-fuses.ts`).
  * @param env - environment of the packaging process.
+ * @param argv - command-line arguments; an explicit CPU flag wins over the environment.
  * @returns the requested CPU, `x64` when unset.
  * @throws When the value is not a supported Windows CPU.
  */
-export function windowsTargetArch(env: NodeJS.ProcessEnv): WindowsTargetArch {
-  const requested = env.DSH_PACKAGE_ARCH ?? 'x64'
+export function windowsTargetArch(
+  env: NodeJS.ProcessEnv,
+  argv: readonly string[] = process.argv.slice(2),
+): WindowsTargetArch {
+  const flag = argv.find(argument => argument === '--x64' || argument === '--arm64')
+  const requested = flag === undefined ? env.DSH_PACKAGE_ARCH ?? 'x64' : flag.slice(2)
   if (!(WINDOWS_TARGET_ARCHES as readonly string[]).includes(requested)) {
     throw new Error(`DSH_PACKAGE_ARCH must be one of ${WINDOWS_TARGET_ARCHES.join(', ')}; received ${requested}`)
   }
@@ -136,11 +141,12 @@ export function createWindowsPackageOptions(verifier = './verify-win-installer.t
   const workspaceRoot = resolve(desktopRoot, '..')
   const require = createRequire(import.meta.url)
   const windowsRoot = process.env.SystemRoot ?? process.env.WINDIR
+  const targetArch = windowsTargetArch(process.env)
   return {
     env: process.env,
     platform: process.platform,
     arch: process.arch,
-    targetArch: windowsTargetArch(process.env),
+    targetArch,
     nodeVersion: process.versions.node,
     workspaceRoot,
     desktopRoot,
@@ -149,7 +155,8 @@ export function createWindowsPackageOptions(verifier = './verify-win-installer.t
       : join(windowsRoot, 'System32', 'cmd.exe'),
     builderCli: require.resolve('electron-builder/cli.js'),
     prepareRuntime: () => {
-      prepareFsExtForElectron({ platform: 'win32', arch: 'x64', desktopRoot })
+      // fs-ext is a no-op on Windows, but the call still records the artifact CPU.
+      prepareFsExtForElectron({ platform: 'win32', arch: targetArch, desktopRoot })
       verifyPreparedDesktopRuntime(desktopRoot, 'win32')
     },
     verifier: fileURLToPath(new URL(verifier, import.meta.url)),
