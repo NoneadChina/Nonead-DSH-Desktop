@@ -92,9 +92,9 @@ vendor/agents-anywhere/*.tgz
 # Relocated Yarn cache (YARN_GLOBAL_FOLDER) for hosts that cannot write outside the checkout.
 /.yarn-global/
 
-# Plugin archives are build inputs (30 x ~13 MB). Only the manifest and its
-# human-readable summary belong in the repository; the wizard regenerates them.
-/plugin/*.tgz
+# Plugin archives ARE tracked: the corp repository is the distribution source for
+# the preinstalled plugins, so plugin/*.tgz travels with plugin/manifest.json
+# instead of being regenerated locally by the wizard.
 
 # Build logs and package-manager cache.
 /.nsis-build/*.log
