@@ -372,12 +372,17 @@ export function loadNextProfile(projectDir: string, home: string, installAnchor 
   const profile = loadProfileDirectory('nonead-dsh-desktop', projectDir, installAnchor)
   profile.layers.push({ packageName: 'nonead-dsh-desktop', packageDir: target,
     patchPaths: [NEXT_BUNDLE_PATCH], patches: loadOverlayPatches('nonead-dsh-desktop', NEXT_BUNDLE_PATCH) })
-  const overlay = [
-    { id: 'agents-anywhere-bridge-next', config: {
-      dshHome: home,
-      ...archivedAgentsAnywhereConfig(installAnchor),
-    } },
-  ]
+  // Only patch the AA row when this Profile bundles the bridge: an unconditional config patch
+  // produced `patch: entry "agents-anywhere-bridge-next" not found` on every AA-disabled start,
+  // burying real loader warnings.
+  const overlay = manager.features(basename(projectDir)).remoteControl
+    ? [
+        { id: 'agents-anywhere-bridge-next', config: {
+          dshHome: home,
+          ...archivedAgentsAnywhereConfig(installAnchor),
+        } },
+      ]
+    : []
   // Leave AA stateRoot unset to share its default credentials and device binding with Stable/Beta.
   // Rewriting the generated overlay also removes the former per-Profile stateRoot on upgrade.
   // The official manager still owns per-Profile bundle/row enablement.

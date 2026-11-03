@@ -1,0 +1,9 @@
+chore(release): 版本升到 2.2.7
+
+- DSH runtime 0.2.2-alpha.2 -> 0.2.2-alpha.3（pin 05b1cae8），vendor 新增 373 包
+- 24 个构建产物补丁移植到 alpha.3；dsh-hmr 补丁补 hasEsmCache 的 internals 保护
+- 市场 dshmarket 1.73.1 -> 1.73.9；AA 桥按 pin 源码重建（…rbcb63731）
+- 适配 alpha.3 契约：WebRoute resource 路由、internal/config 首参、sidebar drawer、
+  dockkit/official-bundles/experimental-forge/ptc-runtime-node 声明、.cordis 解析边界
+- 打包：Linux 支持 arm64（按宿主架构参数化），新增 dist:linux:beta
+- 文档：八语言 README/CHANGELOG、docs 与 i18n 哈希同步

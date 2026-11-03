@@ -106,7 +106,13 @@ export default class NextWebServer extends WebServer {
     return true
   }
 
-  override register(route: WebRoute): () => void {
+  override register(route: WebRoute | WebResourceRoute): () => void {
+    // 0.2.2-alpha.3 serves some GET/HEAD routes as Fetch resources (`{ resource }`) instead of
+    // `IncomingMessage` handlers; wrapping those as handlers answered every request with
+    // `handler is not a function` (400). Resource routes keep their own shape: upstream's
+    // `serveResource` resolves the requesting peer before calling them, so the connection
+    // fence still applies there.
+    if (!('handler' in route)) return super.register(route)
     return super.register({ ...route, handler: this.observeHttp(route.path, async (request, response) => {
       if (!this.permits(request)) { response.writeHead(403, { 'cache-control': 'no-store' }); response.end('Browser access is disabled'); return }
       if (this.fence(route.path, request, response)) return

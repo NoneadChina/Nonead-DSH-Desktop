@@ -13,6 +13,15 @@ Konventionen für die Pflege:
 - Einträge halten ausschließlich Änderungen fest, die Nutzer wahrnehmen können, sowie Grenzänderungen, die Maintainer kennen müssen; reine Refactorings erhalten keinen eigenen Eintrag.
 - Die frühere Historie findet sich in den Git-Tags (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) und in der Commit-Historie.
 
+## 2.2.7 — 2026-11-03
+
+Ein Release, das dem Upstream-Laufzeitstand folgt:
+
+- Laufzeit: DSH steigt auf `0.2.2-alpha.3`, der Upstream-Pin wechselt auf `05b1cae8db6e674c5685101494d4eec24652424a`, und die mitgelieferte Laufzeit wird aus den neuen Quellen neu gepackt (373 Pakete); die 39 kopierten Upstream-Dateihashes in `upstream-reference.json` wurden erneut geprüft und sind unverändert.
+- Mitgelieferter Markt: `dshmarket` steigt von 1.73.1 auf 1.73.9.
+- Desktop-Anpassung: alle 24 Artefakt-Patches wurden für `0.2.2-alpha.3` neu erzeugt; die Konversationstitelzeile, das Desktop-Symbol der Einstellungen und der Start-Wordmark (`NONEAD DEEPSEEK`) wurden gegen die neue Codestruktur neu geschrieben.
+- Version: Produkt 2.2.6 → **2.2.7** (beide Desktop-Workspaces im Gleichschritt).
+
 ## 2.2.6 — 2026-11-02
 
 Wartungsversion mit Fokus auf Stabilität und Prüfungsstärke; der Funktionsumfang bleibt unverändert.

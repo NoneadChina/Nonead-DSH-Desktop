@@ -262,9 +262,11 @@ export function createDesktopSettingsPort(
     developerLogging: config.developerLogging?.get() ?? false,
   })
   assertDesktopSettings(read(), platform)
-  ctx.on('internal/config', function (_raw, next) {
+  // cordis 0.2.2-alpha.3 起 `internal/config` 把 fiber 作为第一个参数传入（`this` 为 null），
+  // 因此按参数判断归属，而不是按 `this`。
+  ctx.on('internal/config', function (fiber, next) {
     const raw: unknown = next()
-    if (this !== ctx.fiber) return raw
+    if (fiber !== ctx.fiber) return raw
     assertDesktopSettings(readCandidate(raw), platform)
     return raw
   })

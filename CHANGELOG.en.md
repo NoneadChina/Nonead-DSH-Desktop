@@ -13,6 +13,15 @@ Maintenance conventions:
 - Entries record only changes users can perceive and boundary changes maintainers must know about; pure refactors do not get their own entry.
 - Earlier history lives in the Git tags (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) and in the commit log.
 
+## 2.2.7 — 2026-11-03
+
+A release centred on following the upstream runtime:
+
+- Runtime: DSH raised to `0.2.2-alpha.3`, the upstream pin moved to `05b1cae8db6e674c5685101494d4eec24652424a`, and the vendored runtime was repacked from the new source (373 packages); the 39 copied upstream file hashes in `upstream-reference.json` were re-verified and are unchanged.
+- Bundled market: `dshmarket` raised from 1.73.1 to 1.73.9.
+- Desktop customisation: all 24 build-output patches regenerated for `0.2.2-alpha.3`; the conversation title row, the settings desktop icon and the boot wordmark (`NONEAD DEEPSEEK`) were rewritten against the new code shape.
+- Version: product 2.2.6 → **2.2.7** (both desktop workspaces in lockstep).
+
 ## 2.2.6 — 2026-11-02
 
 A maintenance release focused on stability and gate strength; the feature set is unchanged.

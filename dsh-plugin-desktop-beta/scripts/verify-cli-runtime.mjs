@@ -15,6 +15,8 @@ const dshAtomicWritePackage = fileURLToPath(new URL('node_modules/@deepseek-ai/d
 const cordisPluginLoaderPackage = fileURLToPath(new URL('node_modules/@deepseek-ai/cordis-plugin-loader/', packageRoot))
 const dshHomePathsPackage = fileURLToPath(new URL('node_modules/@deepseek-ai/dsh-home-paths/', packageRoot))
 const dshPackage = fileURLToPath(new URL('node_modules/@deepseek-ai/dsh/', packageRoot))
+// 0.2.2-alpha.3 起产物在运行期直接 import 这个包，冒烟 profile 必须能看到它。
+const dshOfficialBundlesPackage = fileURLToPath(new URL('node_modules/@deepseek-ai/dsh-official-bundles/', packageRoot))
 const semverPackage = fileURLToPath(new URL('node_modules/semver/', packageRoot))
 const pnpmCli = fileURLToPath(new URL('node_modules/pnpm/bin/pnpm.mjs', packageRoot))
 const dshVersion = JSON.parse(readFileSync(new URL('node_modules/@deepseek-ai/dsh/package.json', packageRoot), 'utf8')).version
@@ -119,8 +121,11 @@ function verifyLifecycleEnvironment(stateRoot, installation, env) {
   const result = runPnpm(env, ['install', '--offline', '--reporter=silent'], project)
   verifyResult('pnpm lifecycle smoke', result, '')
   const actual = JSON.parse(readFileSync(resultPath, 'utf8'))
+  // Windows 的私有 node shim 以「保留 ELECTRON_RUN_AS_NODE」为前提：clear-env.cjs 在 win32 上
+  // 是空操作，否则 Electron 会按图形程序启动。因此生命周期脚本在 Windows 上必然看得见这个变量，
+  // 只有 POSIX 才会被 clear-env.cjs 删除。
   const expected = {
-    runAsNode: [],
+    runAsNode: process.platform === 'win32' ? ['ELECTRON_RUN_AS_NODE'] : [],
     node: installation.nodeShimPath,
     npmNodeExecPath: installation.nodeShimPath,
     runtime: 'electron',
@@ -168,6 +173,7 @@ function runFlatProfileDshEntry() {
   const linkedCordisPluginLoaderPackage = join(root, 'node_modules', '@deepseek-ai', 'cordis-plugin-loader')
   const linkedDshHomePathsPackage = join(root, 'node_modules', '@deepseek-ai', 'dsh-home-paths')
   const linkedDshPackage = join(root, 'node_modules', '@deepseek-ai', 'dsh')
+  const linkedDshOfficialBundlesPackage = join(root, 'node_modules', '@deepseek-ai', 'dsh-official-bundles')
   const linkedSemverPackage = join(root, 'node_modules', 'semver')
   try {
     mkdirSync(join(root, 'node_modules', '@deepseek-ai'), { recursive: true })
@@ -178,6 +184,7 @@ function runFlatProfileDshEntry() {
     symlinkSync(cordisPluginLoaderPackage, linkedCordisPluginLoaderPackage, process.platform === 'win32' ? 'junction' : 'dir')
     symlinkSync(dshHomePathsPackage, linkedDshHomePathsPackage, process.platform === 'win32' ? 'junction' : 'dir')
     symlinkSync(dshPackage, linkedDshPackage, process.platform === 'win32' ? 'junction' : 'dir')
+    symlinkSync(dshOfficialBundlesPackage, linkedDshOfficialBundlesPackage, process.platform === 'win32' ? 'junction' : 'dir')
     symlinkSync(semverPackage, linkedSemverPackage, process.platform === 'win32' ? 'junction' : 'dir')
     // dsh 0.2.0-rc.2 only manages the reserved Desktop Profile after Desktop
     // has initialized it, so give the smoke a private, initialized home.

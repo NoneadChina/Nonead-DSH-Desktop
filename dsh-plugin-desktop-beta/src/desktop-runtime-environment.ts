@@ -493,7 +493,9 @@ function windowsPnpmShim(options: DesktopPnpmRuntimeOptions): string {
     '@echo off',
     'setlocal DisableDelayedExpansion',
     ...windowsCodePagePrologue(),
-    'set "DSH_RUNTIME_ROOT=%~dp0.."',
+    // `%~dp0..` 会原样保留 `bin\..`，那样写进 NODE/npm_node_execpath 的就是未规范化的路径；
+    // 先用 for/%%~fI 解析成绝对规范路径，后续派生的 private/node-bin 才是干净的。
+    'for %%I in ("%~dp0..") do set "DSH_RUNTIME_ROOT=%%~fI"',
     'set "DSH_RUNTIME_PRIVATE=%DSH_RUNTIME_ROOT%\\private"',
     'set "DSH_RUNTIME_NODE_BIN=%DSH_RUNTIME_PRIVATE%\\node-bin"',
     'set "PATH=%DSH_RUNTIME_NODE_BIN%;%PATH%"',

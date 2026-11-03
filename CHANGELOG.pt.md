@@ -13,6 +13,15 @@ Convenções de manutenção:
 - As entradas registram apenas mudanças que os usuários percebem e mudanças de limite que os mantenedores precisam conhecer; refatorações puras não ganham entrada própria.
 - O histórico anterior está nas tags do Git (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) e no log de commits.
 
+## 2.2.7 — 2026-11-03
+
+Uma versão centrada em acompanhar o runtime upstream:
+
+- Runtime: DSH sobe para `0.2.2-alpha.3`, o pin upstream passa para `05b1cae8db6e674c5685101494d4eec24652424a` e o runtime incluído é reempacotado a partir do novo código (373 pacotes); os 39 hashes de arquivos copiados em `upstream-reference.json` foram revalidados e não mudaram.
+- Mercado incluído: `dshmarket` sobe de 1.73.1 para 1.73.9.
+- Personalização do desktop: os 24 patches de artefatos foram regenerados para `0.2.2-alpha.3`; a linha de título da conversa, o ícone de desktop das configurações e o wordmark de inicialização (`NONEAD DEEPSEEK`) foram reescritos conforme a nova estrutura do código.
+- Versão: produto 2.2.6 → **2.2.7** (ambos os workspaces de desktop em conjunto).
+
 ## 2.2.6 — 2026-11-02
 
 Versão de manutenção focada em estabilidade e no rigor das validações; o conjunto de recursos não muda.

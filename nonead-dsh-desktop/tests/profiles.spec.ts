@@ -550,6 +550,15 @@ it('leaves no Profile link into an archived installation and points the AA bridg
   mkdirSync(modules, { recursive: true })
   const link = join(modules, 'nonead-dsh-desktop')
   symlinkSync(dirname(NEXT_PACKAGE), link, 'junction')
+  // The AA config patch only applies to a Profile that bundles the bridge, so enable it here:
+  // the overlay below describes a real AA-enabled Profile.
+  const enableAgentsAnywhere = (): void => {
+    const manifestPath = join(dir, 'package.json')
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { dsh: { profile: { bundles: string[] } } }
+    if (!manifest.dsh.profile.bundles.includes(AA_PACKAGE)) manifest.dsh.profile.bundles.push(AA_PACKAGE)
+    writeFileSync(manifestPath, JSON.stringify(manifest))
+  }
+  enableAgentsAnywhere()
   const profile = loadNextProfile(dir, manager.home, join(archive, 'package.json'))
   expect(lstatSync(link, { throwIfNoEntry: false })).toBeUndefined()
   expect(profile.layers.map(layer => layer.packageName)).toContain('nonead-dsh-desktop')
@@ -563,7 +572,16 @@ it('leaves no Profile link into an archived installation and points the AA bridg
   // A physical installation keeps the managed link and the bridge's own defaults.
   loadNextProfile(dir, manager.home)
   expect(privateFiles.isLinkedPath(link)).toBe(true)
-  expect(JSON.parse(readFileSync(join(dir, 'nonead-dsh-desktop.cordis.patch.json'), 'utf8'))).toEqual([{ id: 'agents-anywhere-bridge-next', config: { dshHome: manager.home } }])
+  expect(JSON.parse(readFileSync(join(dir, 'nonead-dsh-desktop.cordis.patch.json'), 'utf8')))
+    .toEqual([{ id: 'agents-anywhere-bridge-next', config: { dshHome: manager.home } }])
+  // An AA-disabled Profile carries no AA config patch: patching an entry the Loader never
+  // inserted warns `patch: entry "agents-anywhere-bridge-next" not found` on every start.
+  const manifestPath = join(dir, 'package.json')
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { dsh: { profile: { bundles: string[] } } }
+  manifest.dsh.profile.bundles = manifest.dsh.profile.bundles.filter(bundle => bundle !== AA_PACKAGE)
+  writeFileSync(manifestPath, JSON.stringify(manifest))
+  loadNextProfile(dir, manager.home)
+  expect(JSON.parse(readFileSync(join(dir, 'nonead-dsh-desktop.cordis.patch.json'), 'utf8'))).toEqual([])
 })
 
 /**
