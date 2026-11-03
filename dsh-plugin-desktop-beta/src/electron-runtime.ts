@@ -635,7 +635,13 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
 
   /** @inheritdoc */
   setLocalePreference(preference: DesktopLocale | undefined): void {
-    const locale = preference ?? desktopLocaleFromLanguageTag(app.getLocale())
+    // The preference crosses the Host boundary (shell registration and native:setLocalePreference),
+    // so a value outside the two supported labels must never become `currentLocale`: every tray and
+    // application-menu rebuild indexes the label tables with it, and one unknown value would make
+    // each later rebuild throw instead of merely falling back to the system language.
+    const locale = preference === 'zh' || preference === 'en'
+      ? preference
+      : desktopLocaleFromLanguageTag(app.getLocale())
     if (locale === this.currentLocale) return
     this.currentLocale = locale
     this.rebuildTrayMenu()

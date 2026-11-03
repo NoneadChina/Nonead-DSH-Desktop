@@ -13,6 +13,30 @@ Convenções de manutenção:
 - As entradas registram apenas mudanças que os usuários percebem e mudanças de limite que os mantenedores precisam conhecer; refatorações puras não ganham entrada própria.
 - O histórico anterior está nas tags do Git (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) e no log de commits.
 
+## 2.2.7 — 2026-11-03
+
+Uma versão centrada em acompanhar o runtime upstream:
+
+- Runtime: DSH sobe para `0.2.2-alpha.3`, o pin upstream passa para `05b1cae8db6e674c5685101494d4eec24652424a` e o runtime incluído é reempacotado a partir do novo código (373 pacotes); os 39 hashes de arquivos copiados em `upstream-reference.json` foram revalidados e não mudaram.
+- Mercado incluído: `dshmarket` sobe de 1.73.1 para 1.73.9.
+- Personalização do desktop: os 24 patches de artefatos foram regenerados para `0.2.2-alpha.3`; a linha de título da conversa, o ícone de desktop das configurações e o wordmark de inicialização (`NONEAD DEEPSEEK`) foram reescritos conforme a nova estrutura do código.
+- Versão: produto 2.2.6 → **2.2.7** (ambos os workspaces de desktop em conjunto).
+
+## 2.2.6 — 2026-11-02
+
+Versão de manutenção focada em estabilidade e no rigor das validações; o conjunto de recursos não muda.
+
+- Execução prolongada: as evidências de ciclo de vida validavam `monotonicMs` com limite de 24 horas, então um desktop aberto por mais de um dia parava de gravar todos os eventos (inclusive a saída do host); agora usa o limite de atividade do host e mantém o limite apenas para a duração de uma inicialização.
+- Iniciador: a detecção do ponto de entrada é normalizada com `realpath` e uma alternativa sem distinção de maiúsculas no Windows, então `dsh-plugin-desktop-beta` não encerra mais em silêncio a partir de um bin global do npm/pnpm.
+- Liberação de recursos: uma saída não confirmada do host não omite mais a liberação das ligações nativas e do listener RPC, e uma falha de inicialização mantém a causa original.
+- Segurança: o mascaramento de logs e diagnósticos cobre credenciais base64 e JWT; a leitura de arquivos privados abre o inode validado (TOCTOU), e a validação de aninhamento do diretório de dados não é mais contornada por um filho `..cache`.
+- Segurança de dados: o bloqueio de operações de dados verifica o inode do registro e trata um registro desaparecido como o erro `busy` existente; a redefinição de fábrica recria o diretório de dados vazio antes de limpar preferências externas.
+- Verificação de atualizações: respostas diferentes de 200 liberam o body em vez de deixar a conexão para o coletor de lixo.
+- Configurações: o diálogo de confirmação da LAN ganha foco inicial, tratamento de Escape, ciclo de Tab e restauração de foco.
+- Mercado: o máximo de página do provider é alinhado ao esquema publicado (200), e uma fonte válida com `defaultLimit: 150` deixa de ficar permanentemente inutilizável.
+- Validações: nova verificação de pins de versão (commit, repositório e os 39 hashes de arquivos upstream contra os bytes reais), paridade de versão em oito idiomas e consistência de avisos de terceiros (`verify:notices:check` em check/CI e nas cinco entradas de empacotamento); os avisos são regenerados (DSH `0.2.1-rc.2` → `0.2.2-alpha.2`, mercado 1.73.1) e a licença Blue Oak é aceita.
+- Versão: o produto passa de 2.2.3 para **2.2.6** nos dois espaços de trabalho.
+
 ## 2.2.3 — 2026-10-29
 
 O shell do desktop foi localizado em oito idiomas (chinês simplificado, inglês, japonês, espanhol, francês, alemão, russo e português do Brasil):

@@ -1,6 +1,6 @@
 /** Cross-process exclusion for DSH data mutations owned by Desktop. */
 
-import { isLinkedPath } from './fs-links.ts'
+import { isLinkedPath, readVerifiedPrivateFile } from './fs-links.ts'
 import { randomUUID } from 'node:crypto'
 import {
   chmodSync,
@@ -11,10 +11,10 @@ import {
   lstatSync,
   mkdirSync,
   openSync,
-  readFileSync,
   unlinkSync,
   writeSync,
 } from 'node:fs'
+import type { Stats } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { desktopDataDirectoryStatePath, DesktopDataDirectoryError } from './desktop-data-directory.ts'
 
@@ -49,14 +49,41 @@ function processExists(pid: number): boolean {
   }
 }
 
-function readRecord(path: string): LockRecord {
-  const info = lstatSync(path)
+/**
+ * Snapshot the lock entry without reading it, or undefined when the entry is gone.
+ *
+ * A record that disappears between two operations is not an unsafe entry: callers that need a
+ * record report it as a stale lock, and an acquisition retries its exclusive create. Surfacing the
+ * bare `ENOENT` would leave every caller with an error its `busy` contract never mentions.
+ */
+function recordInfo(path: string): Stats | undefined {
+  let info: Stats
+  try {
+    info = lstatSync(path)
+  } catch (cause) {
+    if ((cause as NodeJS.ErrnoException).code === 'ENOENT') return undefined
+    throw cause
+  }
   if (!info.isFile() || isLinkedPath(path) || info.size > MAX_LOCK_BYTES) {
     throw new DesktopDataDirectoryError('busy', 'Desktop data operation lock is unsafe')
   }
+  return info
+}
+
+function readRecord(path: string): LockRecord | undefined {
+  const info = recordInfo(path)
+  if (info === undefined) return undefined
+  // Validate the entry and then read that same inode. Opening `path` again would accept a link or a
+  // replacement file, and an unbounded `readFile` would load whatever a growing file holds before
+  // the caller's size limit is applied.
+  const read = readVerifiedPrivateFile(path, info, MAX_LOCK_BYTES)
+  if (read.status !== 'ok') {
+    if (read.status === 'missing') return undefined
+    throw new DesktopDataDirectoryError('busy', 'Desktop data operation lock is invalid')
+  }
   let value: unknown
   try {
-    value = JSON.parse(readFileSync(path, 'utf8')) as unknown
+    value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(read.bytes)) as unknown
   } catch {
     throw new DesktopDataDirectoryError('busy', 'Desktop data operation lock is invalid')
   }
@@ -112,6 +139,9 @@ export function acquireDesktopDataOperationLock(
     } catch (cause) {
       if ((cause as NodeJS.ErrnoException).code !== 'EEXIST') throw cause
       const owner = readRecord(path)
+      // The holder released (or was reclaimed) between the failed exclusive create and this read:
+      // the lock is free right now, so retry instead of reporting a conflict that is not there.
+      if (owner === undefined) continue
       if (attempt === 0 && !processExists(owner.pid)) {
         try {
           unlinkSync(path)
@@ -141,7 +171,7 @@ export function acquireDesktopDataOperationLock(
         if (released) return
         released = true
         const current = readRecord(path)
-        if (current.id !== id || current.pid !== process.pid) {
+        if (current === undefined || current.id !== id || current.pid !== process.pid) {
           throw new DesktopDataDirectoryError('busy', 'Desktop data operation lock ownership changed')
         }
         unlinkSync(path)
@@ -157,7 +187,7 @@ export function assertDesktopDataOperationLockOwner(userDataDir: string, id: str
     throw new DesktopDataDirectoryError('busy', 'Desktop data operation token is invalid')
   }
   const owner = readRecord(desktopDataOperationLockPath(userDataDir))
-  if (owner.id !== id || !processExists(owner.pid)) {
+  if (owner === undefined || owner.id !== id || !processExists(owner.pid)) {
     throw new DesktopDataDirectoryError('busy', 'Desktop data operation token is stale')
   }
 }

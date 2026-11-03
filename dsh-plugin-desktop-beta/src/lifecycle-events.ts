@@ -151,7 +151,7 @@ export function parseDesktopLifecycleEvent(value: unknown): DesktopLifecycleEven
     throw new Error('event timestamp is invalid')
   }
   if (Number.isNaN(Date.parse(event.timestamp))) throw new Error('event timestamp is invalid')
-  if (typeof event.monotonicMs !== 'number' || !validDuration(event.monotonicMs)) {
+  if (!validMonotonic(event.monotonicMs)) {
     throw new Error('event monotonicMs is invalid')
   }
   const monotonicMs = event.monotonicMs
@@ -753,4 +753,14 @@ function safePluginIds(plugins: readonly string[]): readonly string[] {
 
 function validDuration(value: unknown): boolean {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 24 * 60 * 60 * 1000
+}
+
+/**
+ * `monotonicMs` measures the event against its recorder's start, so it lasts as long as the
+ * process does rather than as long as one startup operation: a Desktop left open for days keeps
+ * emitting Host-exit evidence. It therefore shares the far wider Host-uptime bound instead of the
+ * one-day ceiling that caps every individual startup duration.
+ */
+function validMonotonic(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= MAX_HOST_UPTIME_MS
 }

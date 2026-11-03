@@ -1,7 +1,7 @@
 /** Headless-safe npm launcher for the DSH Desktop Electron executable. */
 
 import { spawn } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { readFileSync, realpathSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { posix, resolve, win32 } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -181,8 +181,37 @@ export async function runDesktopCli(
   return launchElectron(request.workspacePath)
 }
 
-const invokedPath = process.argv[1] === undefined ? undefined : resolve(process.argv[1])
-if (invokedPath === fileURLToPath(import.meta.url)) {
+/**
+ * Whether this module was started as the process entry point.
+ *
+ * `import.meta.url` is the module's own path, while `process.argv[1]` is exactly how the process
+ * was asked to start it, so the two are only equal by accident on some installs: npm and pnpm
+ * expose a global bin as a symlink (Node resolves the main module's symlinks, but keeps argv[1]
+ * as invoked), and Windows keeps the caller's casing and accepts 8.3 short names for the same
+ * file. Comparing them literally makes the launcher exit silently without doing anything on those
+ * installs, so both paths are canonicalized first.
+ * @param invokedPath - `process.argv[1]`.
+ * @param moduleUrl - the running module's URL.
+ * @param platform - current platform, used for the case-insensitive fallback.
+ * @returns whether this file is the process entry point.
+ */
+export function isDesktopCliEntryPoint(
+  invokedPath: string | undefined,
+  moduleUrl: string = import.meta.url,
+  platform: NodeJS.Platform = process.platform,
+): boolean {
+  if (invokedPath === undefined) return false
+  const invoked = resolve(invokedPath)
+  const own = fileURLToPath(moduleUrl)
+  if (invoked === own) return true
+  try {
+    return realpathSync.native(invoked) === realpathSync.native(own)
+  } catch {
+    return platform === 'win32' && invoked.toLowerCase() === own.toLowerCase()
+  }
+}
+
+if (isDesktopCliEntryPoint(process.argv[1])) {
   void runDesktopCli(process.argv.slice(2)).then(
     code => { process.exitCode = code },
     cause => {

@@ -49,12 +49,23 @@ export function parseCatalogQuery(value: unknown): CatalogQuery {
   return parseSchema('query', validators.query, value)
 }
 
+/**
+ * Shared provider-page safety maximum. The published schemas promise it in two
+ * places: `catalog-provider-page` caps `items` at 200, and a standard source may
+ * declare `defaultLimit`/`maxLimit` up to 200. The "page honours the effective
+ * limit" check must therefore accept any effective limit through this value — a
+ * tighter bound here rejects a schema-valid manifest (for example
+ * `defaultLimit: 150` without `limit` support) on every scan, and the catalog
+ * route reports it as an invalid provider response.
+ */
+const MAX_PROVIDER_PAGE_LIMIT = 200
+
 export function parseCatalogProviderPage(value: unknown, effectiveLimit?: number): CatalogProviderPage {
   const page = parseSchema('provider-page', validators.providerPage, value)
   const seen = new Set<string>()
 
   if (effectiveLimit !== undefined) {
-    if (!Number.isInteger(effectiveLimit) || effectiveLimit < 1 || effectiveLimit > 100) {
+    if (!Number.isInteger(effectiveLimit) || effectiveLimit < 1 || effectiveLimit > MAX_PROVIDER_PAGE_LIMIT) {
       throw new CatalogContractError('provider-page', [
         semanticIssue('/items', 'cannot be checked against an invalid effective query limit'),
       ])

@@ -6,7 +6,9 @@ import { atomicJson, readPrivateFile } from './private-files.ts'
 export function parsePreferences(value: unknown): DesktopPreferences {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid Desktop preferences')
   const source = value as Record<string, unknown>
-  if (Object.keys(source).some(key => !(key in DEFAULT_PREFERENCES))) throw new Error('Unknown Desktop preference')
+  // `in` walks the prototype chain, so keys such as `constructor` or `toString`
+  // would pass this guard and then reach the renderer as persisted preferences.
+  if (Object.keys(source).some(key => !Object.hasOwn(DEFAULT_PREFERENCES, key))) throw new Error('Unknown Desktop preference')
   const result = { ...DEFAULT_PREFERENCES, ...source }
   // Acrylic and Mica were removed like in the original Desktop. Old preference
   // files stay readable and fail closed to the ordinary opaque Windows window.

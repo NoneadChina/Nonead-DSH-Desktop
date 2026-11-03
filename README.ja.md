@@ -5,11 +5,25 @@
 <h1 align="center">Nonead DSH Desktop</h1>
 
 <p align="center">
+  <a href="https://github.com/NoneadChina/Nonead-DSH-Desktop/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/NoneadChina/Nonead-DSH-Desktop/ci.yml?branch=main&amp;label=CI&amp;logo=github" alt="CI"></a>
+  <a href="https://github.com/NoneadChina/Nonead-DSH-Desktop/tags"><img src="https://img.shields.io/github/v/tag/NoneadChina/Nonead-DSH-Desktop?label=tag&amp;logo=git&amp;logoColor=white" alt="latest tag"></a>
+  <a href="https://github.com/NoneadChina/Nonead-DSH-Desktop/stargazers"><img src="https://img.shields.io/github/stars/NoneadChina/Nonead-DSH-Desktop?logo=github" alt="stars"></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-orange" alt="license: MIT"></a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-0078D6" alt="Windows, macOS, Linux">
+  <img src="https://img.shields.io/badge/Electron-44-47848F?logo=electron&amp;logoColor=white" alt="Electron 44">
+  <img src="https://img.shields.io/badge/DSH%20runtime-0.2.2--alpha.3-4B32C3" alt="DSH runtime 0.2.2-alpha.3">
+  <img src="https://img.shields.io/badge/node-%5E22.19%20%7C%20%3E%3D24-339933?logo=node.js&amp;logoColor=white" alt="Node.js">
+</p>
+
+<p align="center">
   <strong>DeepSeek Harness を基盤に構築した、Windows・macOS・Linux 向けのオープンソースデスクトップクライアントです。</strong>
 </p>
 
 <p align="center">
-  製品バージョン <code>2.2.3</code> · DSH ランタイム <code>0.2.2-alpha.2</code> · Electron 44 · MIT License
+  製品バージョン <code>2.2.7</code> · DSH ランタイム <code>0.2.2-alpha.3</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">ワンクリックでダウンロード、すぐに使えます。</a></h3>
@@ -53,6 +67,8 @@ Nonead DSH Desktop は、[DeepSeek Harness](https://github.com/deepseek-ai/deeps
 
 | レイヤー | 位置 | 役割 |
 | --- | --- | --- |
+| `2.2.7` | 2026-11-03 | ランタイムを DSH `0.2.2-alpha.3`（上流 `05b1cae8`）へ更新し、同梱マーケット `dshmarket` を 1.73.9 に、24 個のデスクトップ向けパッチを新しいビルド成果物に合わせて再生成しました |
+| `2.2.6` | 2026-11-02 | 安定性とゲートの保守：長時間稼働後のライフサイクル証跡が停止する問題、npm/pnpm のグローバル bin で起動器が無言終了する問題、プライベートファイルとデータ操作ロックの inode 未検証、工場出荷状態への復元でデータディレクトリが失われる問題、LAN 確認ダイアログのフォーカス管理不足、マーケットのページ上限とスキーマ不一致を修正。リリース pin・8 言語のバージョン一致・第三者表明の一致という 3 つのゲートを追加 |
 | デスクトップシェル | Electron main プロセス | 単一インスタンスロック、ウィンドウとマテリアル、トレイとメニュー、権限、ターミナル、アップデート、データディレクトリ、プロファイルの状態 |
 | Host | Node モードの子プロセス | プロファイルのパッチ層を読み込み、上流のプロファイル boot を起動し、Web carrier を提供し、サードパーティの Host プラグインをホストする |
 | Web carrier | ループバック HTTP + WebSocket | 公式 Web UI を提供する（既定では一時ポート） |
@@ -66,7 +82,7 @@ Nonead DSH Desktop は、[DeepSeek Harness](https://github.com/deepseek-ai/deeps
 
 | 項目 | 値 |
 | --- | --- |
-| 製品バージョン | `2.2.3`（`nonead-dsh-desktop` と `dsh-plugin-desktop-beta` が同期） |
+| 製品バージョン | `2.2.7`（`nonead-dsh-desktop` と `dsh-plugin-desktop-beta` が同期） |
 | 安定チャネルのワークスペース | `nonead-dsh-desktop`（ルートスクリプトは `:stable` 接尾辞） |
 | Beta チャネルのワークスペース | `dsh-plugin-desktop-beta`（ルートスクリプトは `:beta` 接尾辞） |
 | DSH ランタイム | `0.2.2-alpha.2`、すべての `@deepseek-ai/dsh*` 依存を厳密に pin し、ランタイムは vendored |

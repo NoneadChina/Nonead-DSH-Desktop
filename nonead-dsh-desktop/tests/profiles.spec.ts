@@ -257,7 +257,7 @@ it('composes optional AA and Market while retaining the official Web layout', ()
   const dir = manager.ensure('desktop')
   manager.setFeatures('desktop', { remoteControl: true, market: true, dshMarket: true })
   const profile = loadNextProfile(dir, manager.home)
-  const rows = composeEntries([...profile.layers.map(layer => layer.patches), loadOverlayPatches('next', join(dir, 'nonead-dsh-desktop.cordis.patch.json'))])
+  const rows = composeEntries(profile.layers.map(layer => layer.patches))
   expect(rows.some(row => row.name === AA_PACKAGE && !row.disabled)).toBe(true)
   expect(rows.some(row => row.name === COMMUNITY_MARKET_PACKAGE && !row.disabled)).toBe(true)
   expect(rows.some(row => row.name === DSH_MARKET_PACKAGE && !row.disabled)).toBe(true)
@@ -266,8 +266,7 @@ it('composes optional AA and Market while retaining the official Web layout', ()
   expect(rows.some(row => row.name === '@deepseek-ai/dsh-experimental-computer-use-cua-driver-native' && row.disabled)).toBe(true)
   // Client module discovery requires a package root, not the previous /extensions subpath.
   expect(rows.find(row => row.id === 'nonead-dsh-desktop-capabilities')?.name).toBe('nonead-dsh-desktop')
-  const overlays = [fileURLToPath(new URL('../host.cordis.patch.yml', import.meta.url)),
-    join(dir, 'nonead-dsh-desktop.cordis.patch.json')]
+  const overlays = [fileURLToPath(new URL('../host.cordis.patch.yml', import.meta.url))]
   const reread = readNextProfilePatches(dir, manager.home, overlays)
   const reconciled = composeEntries([reread])
   expect(reconciled.some(row => row.name === 'dsh-community-market' && !row.disabled)).toBe(true)
@@ -281,7 +280,7 @@ it('composes optional AA and Market while retaining the official Web layout', ()
     [{ id: 'ui-sidebar-browser', disabled: false }])])
   expect(pending.find(row => row.id === 'ui-sidebar-browser')?.disabled).toBe(false)
   manager.setFeatures('desktop', { remoteControl: false, market: false })
-  const disabled = composeEntries([...loadNextProfile(dir, manager.home).layers.map(layer => layer.patches), loadOverlayPatches('next', join(dir, 'nonead-dsh-desktop.cordis.patch.json'))])
+  const disabled = composeEntries(loadNextProfile(dir, manager.home).layers.map(layer => layer.patches))
   expect(disabled.some(row => !row.disabled && (row.name === AA_PACKAGE || row.name === 'dsh-community-market'))).toBe(false)
 })
 
@@ -301,24 +300,34 @@ it('reads the pre-rename user patch layer under its legacy name, exactly like th
 })
 it('shares AA defaults across Profiles and replaces legacy generated state overrides', () => {
   const manager = profiles()
-  for (const name of ['desktop', 'work']) {
-    const dir = manager.ensure(name)
-    manager.setFeatures(name, { remoteControl: true, market: false })
-    const legacyRoot = join(manager.home, 'agents-anywhere', name)
-    mkdirSync(legacyRoot, { recursive: true })
-    const legacyState = join(legacyRoot, 'settings.json')
-    writeFileSync(legacyState, '{"fixture":"preserve"}')
-    const overlayPath = join(dir, 'nonead-dsh-desktop.cordis.patch.json')
-    writeFileSync(overlayPath, JSON.stringify([{ id: 'agents-anywhere-bridge-next', config: {
-      dshHome: manager.home, stateRoot: legacyRoot,
-    } }]))
-    loadNextProfile(dir, manager.home)
-    const rows = composeEntries([readNextProfilePatches(dir, manager.home, [overlayPath])])
-    const aa = rows.find(row => row.id === 'agents-anywhere-bridge-next')
-    expect(aa?.disabled).not.toBe(true)
-    expect(aa?.config).toEqual({ dshHome: manager.home })
-    expect(JSON.parse(readFileSync(overlayPath, 'utf8'))[0].config).toEqual({ dshHome: manager.home })
-    expect(readFileSync(legacyState, 'utf8')).toBe('{"fixture":"preserve"}')
+  const previousHome = process.env['DSH_HOME']
+  try {
+    for (const name of ['desktop', 'work']) {
+      const dir = manager.ensure(name)
+      manager.setFeatures(name, { remoteControl: true, market: false })
+      const legacyRoot = join(manager.home, 'agents-anywhere', name)
+      mkdirSync(legacyRoot, { recursive: true })
+      const legacyState = join(legacyRoot, 'settings.json')
+      writeFileSync(legacyState, '{"fixture":"preserve"}')
+      const overlayPath = join(dir, 'nonead-dsh-desktop.cordis.patch.json')
+      writeFileSync(overlayPath, JSON.stringify([{ id: 'agents-anywhere-bridge-next', config: {
+        dshHome: manager.home, stateRoot: legacyRoot,
+      } }]))
+      delete process.env['DSH_HOME']
+      const profile = loadNextProfile(dir, manager.home)
+      const rows = composeEntries(profile.layers.map(layer => layer.patches))
+      const aa = rows.find(row => row.id === 'agents-anywhere-bridge-next')
+      expect(aa?.disabled).not.toBe(true)
+      // The bridge row is owned by its own bundle patch: the legacy generated overlay is removed
+      // instead of patching an entry a Profile patch can never reach.
+      // The overlay must still exist (the Host reads it) but must no longer patch anything.
+      expect(JSON.parse(readFileSync(overlayPath, 'utf8'))).toEqual([])
+      // The overrides now reach the bridge through the environment it already reads.
+      expect(process.env['DSH_HOME']).toBe(manager.home)
+      expect(readFileSync(legacyState, 'utf8')).toBe('{"fixture":"preserve"}')
+    }
+  } finally {
+    process.env['DSH_HOME'] = previousHome
   }
 })
 
@@ -371,8 +380,7 @@ it('migrates legacy switches once and preserves later official plugin selections
   manager.ensure('desktop')
   loadNextProfile(dir, manager.home)
   expect(manager.features('desktop')).toEqual({ market: true, remoteControl: false, dshMarket: true, marketChoice: 'dsh' })
-  const overlay = JSON.parse(readFileSync(join(dir, 'nonead-dsh-desktop.cordis.patch.json'), 'utf8'))
-  expect(overlay.every((row: object) => !Object.hasOwn(row, 'disabled'))).toBe(true)
+  expect(JSON.parse(readFileSync(join(dir, 'nonead-dsh-desktop.cordis.patch.json'), 'utf8'))).toEqual([])
   manager.create('work')
   expect(manager.features('work')).toEqual({ market: false, remoteControl: false })
 })
@@ -545,25 +553,58 @@ it('leaves no Profile link into an archived installation and points the AA bridg
   writeFileSync(join(bridge, 'package.json'), JSON.stringify({ name: AA_PACKAGE, version: '0.0.0', exports: { '.': './index.js', './package.json': './package.json' } }))
   writeFileSync(join(bridge, 'index.js'), 'export {}\n')
   writeFileSync(join(uv, 'package.json'), JSON.stringify({ name: `@dataiku/uv-${process.platform}-${process.arch}`, version: '0.0.0' }))
+  // The bridge spawns uv, which cannot execute from inside app.asar; the unpacked copy is the
+  // payload this application must point it at.
+  const unpacked = join(resources, 'app.asar.unpacked', 'node_modules')
+  const unpackedUv = join(unpacked, '@dataiku', `uv-${process.platform}-${process.arch}`, 'bin', process.platform === 'win32' ? 'uv.exe' : 'uv')
+  mkdirSync(dirname(unpackedUv), { recursive: true })
+  writeFileSync(unpackedUv, '')
   // A development launch left its link behind; the archived application removes it.
   const modules = join(manager.home, 'profiles', 'node_modules')
   mkdirSync(modules, { recursive: true })
   const link = join(modules, 'nonead-dsh-desktop')
   symlinkSync(dirname(NEXT_PACKAGE), link, 'junction')
-  const profile = loadNextProfile(dir, manager.home, join(archive, 'package.json'))
-  expect(lstatSync(link, { throwIfNoEntry: false })).toBeUndefined()
-  expect(profile.layers.map(layer => layer.packageName)).toContain('nonead-dsh-desktop')
-  const overlay = JSON.parse(readFileSync(join(dir, 'nonead-dsh-desktop.cordis.patch.json'), 'utf8')) as { id: string; config: Record<string, string> }[]
-  const unpacked = join(resources, 'app.asar.unpacked', 'node_modules')
-  expect(overlay).toEqual([{ id: 'agents-anywhere-bridge-next', config: {
-    dshHome: manager.home,
-    connectorSourceDir: join(unpacked, '@agents-anywhere', 'dsh-bridge-next', 'lib', 'bundled-connector'),
-    uvPath: join(unpacked, '@dataiku', `uv-${process.platform}-${process.arch}`, 'bin', process.platform === 'win32' ? 'uv.exe' : 'uv'),
-  } }])
-  // A physical installation keeps the managed link and the bridge's own defaults.
-  loadNextProfile(dir, manager.home)
-  expect(privateFiles.isLinkedPath(link)).toBe(true)
-  expect(JSON.parse(readFileSync(join(dir, 'nonead-dsh-desktop.cordis.patch.json'), 'utf8'))).toEqual([{ id: 'agents-anywhere-bridge-next', config: { dshHome: manager.home } }])
+  // The AA config patch only applies to a Profile that bundles the bridge, so enable it here:
+  // the overlay below describes a real AA-enabled Profile.
+  const enableAgentsAnywhere = (): void => {
+    const manifestPath = join(dir, 'package.json')
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { dsh: { profile: { bundles: string[] } } }
+    if (!manifest.dsh.profile.bundles.includes(AA_PACKAGE)) manifest.dsh.profile.bundles.push(AA_PACKAGE)
+    writeFileSync(manifestPath, JSON.stringify(manifest))
+  }
+  enableAgentsAnywhere()
+  const overlayPath = join(dir, 'nonead-dsh-desktop.cordis.patch.json')
+  writeFileSync(overlayPath, JSON.stringify([{ id: 'agents-anywhere-bridge-next', config: { dshHome: manager.home } }]))
+  const previousHome = process.env['DSH_HOME']
+  const previousUv = process.env['UV_PATH']
+  try {
+    // An operator-provided value wins by design, so clear it to observe what this run delivers.
+    delete process.env['DSH_HOME']
+    const profile = loadNextProfile(dir, manager.home, join(archive, 'package.json'))
+    expect(lstatSync(link, { throwIfNoEntry: false })).toBeUndefined()
+    expect(profile.layers.map(layer => layer.packageName)).toContain('nonead-dsh-desktop')
+    // A generated overlay whose row lives in the bridge's own bundle patch is removed instead of
+    // being written again: patching it warned `patch: entry … not found` on every start.
+    expect(JSON.parse(readFileSync(overlayPath, 'utf8'))).toEqual([])
+    // Both values the bridge reads from the environment are delivered instead.
+    expect(process.env['DSH_HOME']).toBe(manager.home)
+    expect(process.env['UV_PATH']).toBe(unpackedUv)
+    // A physical installation keeps the managed link and points nothing at app.asar.unpacked.
+    delete process.env['UV_PATH']
+    loadNextProfile(dir, manager.home)
+    expect(privateFiles.isLinkedPath(link)).toBe(true)
+    expect(process.env['UV_PATH']).toBeUndefined()
+    // An AA-disabled Profile is left exactly as it is: no overlay file appears either.
+    const manifestPath = join(dir, 'package.json')
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { dsh: { profile: { bundles: string[] } } }
+    manifest.dsh.profile.bundles = manifest.dsh.profile.bundles.filter(bundle => bundle !== AA_PACKAGE)
+    writeFileSync(manifestPath, JSON.stringify(manifest))
+    loadNextProfile(dir, manager.home)
+    expect(JSON.parse(readFileSync(overlayPath, 'utf8'))).toEqual([])
+  } finally {
+    process.env['DSH_HOME'] = previousHome
+    process.env['UV_PATH'] = previousUv
+  }
 })
 
 /**

@@ -517,6 +517,40 @@ describe('desktop lifecycle events', () => {
     expect(String(exit?.details.childProcessGone)).not.toContain('\n')
   })
 
+  it('keeps the one-day ceiling on one operation while allowing a longer session clock', () => {
+    const day = 24 * 60 * 60 * 1000
+    expect(() => { parseDesktopLifecycleEvent(baseEvent({ monotonicMs: day * 30 })) }).not.toThrow()
+    expect(() => { parseDesktopLifecycleEvent(baseEvent({ monotonicMs: -1 })) }).toThrow()
+    expect(() => { parseDesktopLifecycleEvent(baseEvent({ monotonicMs: Number.NaN })) }).toThrow()
+    expect(() => { parseDesktopLifecycleEvent(baseEvent({ durationMs: day + 1 })) }).toThrow()
+  })
+
+  it('still records evidence after the Desktop has been running for more than a day', () => {
+    const userDataDir = tempUserData('dsh-lifecycle-long-session-')
+    const logger = createLogger()
+    let clock = 0
+    const recorder = createDesktopLifecycleRecorder({
+      userDataDir,
+      appVersion: '2.0.11-test',
+      platform: 'win32',
+      arch: 'x64',
+      logger,
+      now: () => FIXED_NOW,
+      monotonicNow: () => clock,
+    })
+
+    recorder.startStartup('electron-ready')
+    recorder.completeStartup('health-commit', { status: 'healthy' })
+    clock = 25 * 60 * 60 * 1000
+    recorder.recordHostExit({ exitCode: 3, expected: false, uptimeMs: 25 * 60 * 60 * 1000 })
+
+    expect(logger.error).not.toHaveBeenCalled()
+    const exit = readEvents(userDataDir).at(-1)
+    expect(exit?.eventName).toBe('host.exited')
+    expect(exit?.monotonicMs).toBe(clock)
+    expect(exit?.details.exitCode).toBe(3)
+  })
+
   it('counts only unwanted Host exits in the summary', () => {
     const summaryBuffer = summarizeDesktopLifecycleEvidence(Buffer.from([
       eventLine(),

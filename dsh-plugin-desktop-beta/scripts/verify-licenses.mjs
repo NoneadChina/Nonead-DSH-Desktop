@@ -26,13 +26,17 @@ const ALLOWED_LICENSES = new Set([
   'BSD-3-Clause',
   'ISC',
   '0BSD',
-  'BlueOak-1.0.0',
   'Unlicense',
   'MPL-2.0',
   'CC0-1.0',
   '(MIT OR CC0-1.0)',
   'Zlib',
   'Python-2.0',
+  // Blue Oak Model License 1.0.0 (lru-cache@11 via hosted-git-info): permissive,
+  // OSI-approved, no copyleft; its notice obligation is met the same way MIT's is
+  // — the full text ships inside node_modules and the package is listed in
+  // THIRD_PARTY_NOTICES.md.
+  'BlueOak-1.0.0',
 ])
 
 /**
@@ -132,13 +136,15 @@ if (failures.length > 0) {
 }
 
 const noticeOnly = manifests.filter(entry => NOTICE_LICENSES.has(entry.license))
-const noticesArg = process.argv.indexOf('--notices')
-if (noticesArg !== -1) {
-  const target = process.argv[noticesArg + 1]
-  if (target === undefined) {
-    process.stderr.write('verify-licenses: --notices requires a file path\n')
-    process.exit(1)
-  }
+
+/**
+ * Render the notices document for the currently installed production tree.
+ *
+ * Kept as one function so `--notices` (write) and `--check-notices` (compare)
+ * cannot drift: the recorded file is only trustworthy if both paths build the
+ * same text.
+ */
+function renderNotices() {
   const lines = [
     '# Third-Party Notices',
     '',
@@ -157,7 +163,45 @@ if (noticesArg !== -1) {
       : `> Notice-required licenses in use: ${[...new Set(noticeOnly.map(entry => entry.license))].join(', ')}. Their license texts ship inside node_modules; see the package LICENSE files for the full terms.`,
     '',
   ].filter(line => line !== '')
-  writeFileSync(join(packageRoot, target), lines.join('\n'))
+  return lines.join('\n')
+}
+
+function noticeTarget(argName) {
+  const index = process.argv.indexOf(argName)
+  if (index === -1) return undefined
+  const target = process.argv[index + 1]
+  if (target === undefined) {
+    process.stderr.write(`verify-licenses: ${argName} requires a file path\n`)
+    process.exit(1)
+  }
+  return target
+}
+
+const noticesTarget = noticeTarget('--notices')
+const checkNoticesTarget = noticeTarget('--check-notices')
+
+if (noticesTarget !== undefined) {
+  writeFileSync(join(packageRoot, noticesTarget), renderNotices())
+}
+
+if (checkNoticesTarget !== undefined) {
+  const target = join(packageRoot, checkNoticesTarget)
+  if (!existsSync(target)) {
+    process.stderr.write(`verify-licenses: ${checkNoticesTarget} is missing; run \`yarn verify:notices\` to generate it\n`)
+    process.exit(1)
+  }
+  const expected = renderNotices()
+  const actual = readFileSync(target, 'utf8')
+  if (actual !== expected) {
+    const expectedLines = expected.split('\n')
+    const actualLines = actual.split('\n')
+    let first = 0
+    while (first < expectedLines.length && expectedLines[first] === actualLines[first]) first += 1
+    process.stderr.write(`verify-licenses: ${checkNoticesTarget} is stale (first difference at line ${first + 1}); run \`yarn verify:notices\` to regenerate\n`)
+    process.stderr.write(`- expected: ${expectedLines[first] ?? '<end of file>'}\n`)
+    process.stderr.write(`- actual:   ${actualLines[first] ?? '<end of file>'}\n`)
+    process.exit(1)
+  }
 }
 
 const total = seen.size - 1

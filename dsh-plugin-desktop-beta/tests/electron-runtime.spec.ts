@@ -1525,6 +1525,24 @@ describe('Electron desktop runtime', () => {
     await release()
   })
 
+  it('falls back to the system locale for a preference outside the native label table', async () => {
+    vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
+    const { ElectronDesktopRuntime } = await import('../src/electron-runtime.ts')
+    const runtime = new ElectronDesktopRuntime(async () => {})
+    const release = runtime.schedule({ ...spec, readLocalePreference: () => 'zh' as const })
+
+    await runtime.mountScheduled()
+    expect(runtime.locale).toBe('zh')
+
+    electron.app.getLocale.mockReturnValue('en-US')
+    expect(() => { runtime.setLocalePreference('ja' as never) }).not.toThrow()
+    expect(runtime.locale).toBe('en')
+    expect((electron.menuTemplates.at(-1) as Array<{ label?: string }>).map(item => item.label))
+      .toEqual(expect.arrayContaining(['Open DSH Desktop', 'Quit']))
+
+    await release()
+  })
+
   it('handles desktop zoom shortcuts without relying on the native menu', async () => {
     vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
     const { ElectronDesktopRuntime } = await import('../src/electron-runtime.ts')
