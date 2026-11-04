@@ -43,14 +43,3 @@ index f18e80e..bc60b49 100644
  			return (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconSettingsOutlineMedium, { size: 16 });
  		}
  		/**
-@@ -266,6 +293,10 @@ window.__ModuleLoader__.load({
- 			return (0, react_dom.createPortal)((0, react_jsx_runtime.jsxs)("div", {
- 				className: SettingsRoot_module_css_default.overlay,
- 				role: "presentation",
-+			if (id === "desktop") return (0, react_jsx_runtime.jsx)(IconDesktopSettings, {
-+				className: SettingsRoot_module_css_default.navIcon,
-+				size: 16
-+			});
- 				children: [(0, react_jsx_runtime.jsx)("div", {
- 					className: SettingsRoot_module_css_default.mask,
- 					"aria-hidden": "true",

@@ -215,6 +215,11 @@ export function packageWindowsArtifact(
   // to a fresh directory instead; the verifier reads electron-builder's own `outDir`, so it follows
   // the override without further configuration.
   const outputDirectory = options.env.DSH_PACKAGE_OUTPUT_DIR
+  // A machine without GitHub access cannot let electron-builder fetch Electron itself: the request
+  // waits six minutes and then fails. `DSH_ELECTRON_DIST` points at an already extracted Electron
+  // tree for the target CPU, which electron-builder uses verbatim and never downloads.
+  const electronDist = options.env.DSH_ELECTRON_DIST
+  if (electronDist) options.log(`Using the local Electron runtime at ${electronDist}; no download will be attempted.`)
   if (outputDirectory) options.log(`Packaging into ${outputDirectory} instead of the default output directory.`)
   options.run(
     options.nodeExecutable,
@@ -229,6 +234,7 @@ export function packageWindowsArtifact(
       '--config.npmRebuild=false',
       ...(compression === undefined ? [] : [`--config.win.compression=${compression}`]),
       ...(outputDirectory === undefined ? [] : [`--config.directories.output=${outputDirectory}`]),
+      ...(electronDist === undefined ? [] : [`--config.electronDist=${electronDist}`]),
     ],
     options.desktopRoot,
     electronBuilderEnvironment({

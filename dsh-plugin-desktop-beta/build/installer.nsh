@@ -1,6 +1,8 @@
 ; Check the exact app process before launching the quit handoff. This preserves
 ; the #469 fix: unrelated helpers under $INSTDIR must never block an upgrade.
+!ifndef BUILD_UNINSTALLER
 Var pid
+!endif
 
 !macro customCheckAppRunning
   ; electron-builder builds the uninstaller by RUNNING this installer once with
