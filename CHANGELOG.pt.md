@@ -13,6 +13,15 @@ Convenções de manutenção:
 - As entradas registram apenas mudanças que os usuários percebem e mudanças de limite que os mantenedores precisam conhecer; refatorações puras não ganham entrada própria.
 - O histórico anterior está nas tags do Git (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) e no log de commits.
 
+## 2.2.8 — 2026-11-04
+
+Uma publicação apenas de incremento de versão: nenhum comportamento visível muda.
+
+- Versão: produto 2.2.7 → **2.2.8** (ambos os workspaces de desktop em conjunto).
+- Runtime e patches: idênticos ao 2.2.7 — sem atualização de runtime e sem regeneração de patches.
+
+Este incremento apenas reserva um número de versão para publicações futuras e não traz mudanças visíveis.
+
 ## 2.2.7 — 2026-11-03
 
 Uma versão centrada em acompanhar o runtime upstream:

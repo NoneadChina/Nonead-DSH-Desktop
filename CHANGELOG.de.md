@@ -13,6 +13,15 @@ Konventionen für die Pflege:
 - Einträge halten ausschließlich Änderungen fest, die Nutzer wahrnehmen können, sowie Grenzänderungen, die Maintainer kennen müssen; reine Refactorings erhalten keinen eigenen Eintrag.
 - Die frühere Historie findet sich in den Git-Tags (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) und in der Commit-Historie.
 
+## 2.2.8 — 2026-11-04
+
+Eine reine Versionserhöhung: am sichtbaren Verhalten ändert sich nichts.
+
+- Version: Produkt 2.2.7 → **2.2.8** (beide Desktop-Workspaces im Gleichschritt).
+- Laufzeit und Patches: identisch zu 2.2.7 — keine Laufzeitaktualisierung und keine Neuerzeugung der Patches.
+
+Diese Erhöhung reserviert nur eine Versionsnummer für kommende Releases und enthält keine sichtbaren Änderungen.
+
 ## 2.2.7 — 2026-11-03
 
 Ein Release, das dem Upstream-Laufzeitstand folgt:

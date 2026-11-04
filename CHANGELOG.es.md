@@ -13,6 +13,15 @@ Convenciones de mantenimiento:
 - Las entradas solo recogen los cambios que el usuario puede percibir y los cambios de límites que los mantenedores deben conocer; las refactorizaciones puras no tienen entrada propia.
 - El historial anterior está en las etiquetas de Git (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) y en el registro de confirmaciones.
 
+## 2.2.8 — 2026-11-04
+
+Una publicación de solo incremento de versión: no cambia el comportamiento visible para el usuario.
+
+- Versión: producto 2.2.7 → **2.2.8** (ambos espacios de trabajo de escritorio sincronizados).
+- Runtime y parches: idénticos a 2.2.7; sin actualización de runtime ni regeneración de parches.
+
+Este incremento solo reserva una versión para próximas publicaciones y no incluye cambios visibles.
+
 ## 2.2.7 — 2026-11-03
 
 Una versión centrada en seguir el runtime upstream:

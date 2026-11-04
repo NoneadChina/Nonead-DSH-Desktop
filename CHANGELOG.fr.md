@@ -13,6 +13,15 @@ Conventions de maintenance :
 - Les entrées ne décrivent que les changements perceptibles par l’utilisateur et les changements de limite que les responsables de maintenance doivent connaître ; les refactorisations pures ne font pas l’objet d’une entrée.
 - L’historique plus ancien se trouve dans les étiquettes Git (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) et dans le journal des commits.
 
+## 2.2.8 — 2026-11-04
+
+Une publication de simple incrément de version : aucun comportement visible ne change.
+
+- Version : produit 2.2.7 → **2.2.8** (les deux espaces de travail de bureau avancent ensemble).
+- Runtime et correctifs : identiques à 2.2.7 ; pas de mise à jour du runtime ni de régénération des correctifs.
+
+Cet incrément réserve seulement un numéro de version pour les prochaines publications et n'apporte aucun changement visible.
+
 ## 2.2.7 — 2026-11-03
 
 Une version centrée sur le suivi du runtime amont :

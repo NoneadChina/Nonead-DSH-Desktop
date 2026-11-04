@@ -13,6 +13,15 @@ Maintenance conventions:
 - Entries record only changes users can perceive and boundary changes maintainers must know about; pure refactors do not get their own entry.
 - Earlier history lives in the Git tags (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) and in the commit log.
 
+## 2.2.8 — 2026-11-04
+
+A version-bump release: no user-facing behavior changed.
+
+- Version: product 2.2.7 → **2.2.8** (both desktop workspaces in lockstep).
+- Runtime and patches: identical to 2.2.7 — no runtime upgrade and no patch regeneration.
+
+This bump only reserves a version slot for upcoming releases; it carries no user-facing changes.
+
 ## 2.2.7 — 2026-11-03
 
 A release centred on following the upstream runtime:

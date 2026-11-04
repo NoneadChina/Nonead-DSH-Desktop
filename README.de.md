@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  Produkt <code>2.2.7</code> · DSH-Laufzeit <code>0.2.2-alpha.3</code> · Electron 44 · MIT License
+  Produkt <code>2.2.8</code> · DSH-Laufzeit <code>0.2.2-alpha.3</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">Mit einem Klick herunterladen, sofort einsatzbereit.</a></h3>
@@ -67,6 +67,7 @@ Das Produkt ist keine „Neuimplementierung des Clients“, sondern ein schlanke
 
 | Ebene | Ort | Zuständigkeit |
 | --- | --- | --- |
+| `2.2.8` | 2026-11-04 | Reine Versionserhöhung: keine Laufzeitänderung, keine Patch-Neuerzeugung; sichtbares Verhalten wie 2.2.7 |
 | `2.2.7` | 2026-11-03 | Laufzeit auf DSH `0.2.2-alpha.3` (Upstream `05b1cae8`) aktualisiert, mitgelieferter Markt `dshmarket` auf 1.73.9 angehoben und alle 24 Desktop-Anpassungspatches gegen den neuen Build neu erzeugt |
 | `2.2.6` | 2026-11-02 | Wartungsversion für Stabilität und Prüfungen: Lebenszyklus-Nachweise enden nicht mehr nach einem Tag Laufzeit, der Launcher beendet sich nicht mehr stillschweigend aus einem npm/pnpm-Global-Bin, private Dateien und die Datenoperations-Sperre prüfen den Inode, ein Werksreset kann die Installation nicht mehr ohne Datenverzeichnis zurücklassen, der LAN-Dialog erhält Fokusverwaltung, und das Markt-Seitenlimit entspricht wieder dem veröffentlichten Schema; neue Prüfungen für Release-Pins, Versionsgleichheit in acht Sprachen und Dritt-Hinweise |
 | Desktop-Shell | Electron-Hauptprozess | Einzelinstanz-Sperre, Fenster und Materialien, Tray und Menüs, Berechtigungen, Terminal, Updates, Datenverzeichnis, Profilzustand |
@@ -82,7 +83,7 @@ Shell und Host kommunizieren über genau einen IPC-Kanal zwischen Kindprozessen.
 
 | Punkt | Wert |
 | --- | --- |
-| Produktversion | `2.2.7` (`nonead-dsh-desktop` und `dsh-plugin-desktop-beta` im Gleichschritt) |
+| Produktversion | `2.2.8` (`nonead-dsh-desktop` und `dsh-plugin-desktop-beta` im Gleichschritt) |
 | Workspace des Stable-Kanals | `nonead-dsh-desktop` (Root-Skripte mit Suffix `:stable`) |
 | Workspace des Beta-Kanals | `dsh-plugin-desktop-beta` (Root-Skripte mit Suffix `:beta`) |
 | DSH-Laufzeit | `0.2.2-alpha.2`, jede Abhängigkeit von `@deepseek-ai/dsh*` exakt gepinnt, Laufzeit lokal vendored |
