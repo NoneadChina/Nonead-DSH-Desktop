@@ -9,10 +9,20 @@ const BADGE_BUNDLE = '@deepseek-ai/dsh-experimental-badge-skill-bundle'
 const root = process.argv[2]
 if (!root) throw new Error('packaged-host-smoke: expected the packaged application root')
 const { NextDesktopRuntime } = await import(pathToFileURL(join(root, 'lib', 'desktop-runtime.js')).href)
-// Electron's packaged Node runtime rejects mkdtempSync on Windows
-// (EPERM: operation not permitted), so allocate the scratch home explicitly.
-const home = join(tmpdir(), `nonead-dsh-desktop-packaged-smoke-${String(process.pid)}-${randomBytes(6).toString('hex')}`)
-mkdirSync(home)
+// Electron's packaged Node runtime rejects mkdtempSync on Windows (EPERM), and a locked or
+// restricted system temp folder makes mkdirSync fail the same way, so allocate the scratch home
+// from the first writable root: an explicit override, the system temp, then beside the app.
+const scratchRoots = [process.env['DSH_PACKAGE_SMOKE_HOME'], tmpdir(), join(root, '..')].filter(Boolean)
+let home
+for (const base of scratchRoots) {
+  const candidate = join(base, `nonead-dsh-desktop-packaged-smoke-${String(process.pid)}-${randomBytes(6).toString('hex')}`)
+  try {
+    mkdirSync(candidate)
+    home = candidate
+    break
+  } catch { /* try the next root */ }
+}
+if (home === undefined) throw new Error('packaged-host-smoke: no writable scratch directory')
 let failures = 0
 // The payload of this CPU sits beside the archive, where the packaged shell selects it.
 const runtime = new NextDesktopRuntime({ root, home, primaryRuntime: join(dirname(root), 'runtime', process.arch, 'primary-runtime'), executable: process.execPath, addresses: () => [],

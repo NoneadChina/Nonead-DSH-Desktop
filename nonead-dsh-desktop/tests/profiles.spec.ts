@@ -578,8 +578,11 @@ it('leaves no Profile link into an archived installation and points the AA bridg
   const previousHome = process.env['DSH_HOME']
   const previousUv = process.env['UV_PATH']
   try {
-    // An operator-provided value wins by design, so clear it to observe what this run delivers.
+    // An operator-provided value wins by design, so clear both to observe what this run delivers.
+    // `UV_PATH` is set by the running shell when the test host is itself an installed Desktop,
+    // and the production code deliberately never overwrites an existing value.
     delete process.env['DSH_HOME']
+    delete process.env['UV_PATH']
     const profile = loadNextProfile(dir, manager.home, join(archive, 'package.json'))
     expect(lstatSync(link, { throwIfNoEntry: false })).toBeUndefined()
     expect(profile.layers.map(layer => layer.packageName)).toContain('nonead-dsh-desktop')
@@ -602,8 +605,11 @@ it('leaves no Profile link into an archived installation and points the AA bridg
     loadNextProfile(dir, manager.home)
     expect(JSON.parse(readFileSync(overlayPath, 'utf8'))).toEqual([])
   } finally {
-    process.env['DSH_HOME'] = previousHome
-    process.env['UV_PATH'] = previousUv
+    // Restoring `undefined` would write the literal string "undefined" into the environment.
+    if (previousHome === undefined) delete process.env['DSH_HOME']
+    else process.env['DSH_HOME'] = previousHome
+    if (previousUv === undefined) delete process.env['UV_PATH']
+    else process.env['UV_PATH'] = previousUv
   }
 })
 
