@@ -6421,10 +6421,10 @@ __metadata:
 
 "@deepseek-ai/dsh-web-frontend@patch:@deepseek-ai/dsh-web-frontend@file%3Avendor/dsh-runtime/0.2.2-alpha.3/deepseek-ai-dsh-web-frontend-0.2.2-alpha.3.tgz#./patches/dsh-web-frontend@0.2.2-alpha.3.patch::locator=deepseek-harness-desktop%40workspace%3A.":
   version: 0.2.2-alpha.3
-  resolution: "@deepseek-ai/dsh-web-frontend@patch:@deepseek-ai/dsh-web-frontend@file%3Avendor/dsh-runtime/0.2.2-alpha.3/deepseek-ai-dsh-web-frontend-0.2.2-alpha.3.tgz%23vendor/dsh-runtime/0.2.2-alpha.3/deepseek-ai-dsh-web-frontend-0.2.2-alpha.3.tgz%3A%3Ahash=4ae480&locator=deepseek-harness-desktop%2540workspace%253A.#./patches/dsh-web-frontend@0.2.2-alpha.3.patch::version=0.2.2-alpha.3&hash=102f45&locator=deepseek-harness-desktop%40workspace%3A."
+  resolution: "@deepseek-ai/dsh-web-frontend@patch:@deepseek-ai/dsh-web-frontend@file%3Avendor/dsh-runtime/0.2.2-alpha.3/deepseek-ai-dsh-web-frontend-0.2.2-alpha.3.tgz%23vendor/dsh-runtime/0.2.2-alpha.3/deepseek-ai-dsh-web-frontend-0.2.2-alpha.3.tgz%3A%3Ahash=4ae480&locator=deepseek-harness-desktop%2540workspace%253A.#./patches/dsh-web-frontend@0.2.2-alpha.3.patch::version=0.2.2-alpha.3&hash=058b45&locator=deepseek-harness-desktop%40workspace%3A."
   dependencies:
     "@deepseek-ai/dsh-message-quotes": "npm:0.2.2-alpha.3"
-  checksum: 10c0/15a10aa4ddedbda6eeac4ca92da6b017ae1811f6bde525d7d36b033d56bff937b360f9857f3b6e5eb4d754389349607b93e7ddcc9d2e22ee7f853abdbea2b3f8
+  checksum: 10c0/bd78b59d6c527d66e2186c41a09675a3ea41d0f550c94536b3e3e03ce5e9aff5a89687c298c3bddc21727023419a7e234d2c40a61e084bde0a67ddab433bcb78
   languageName: node
   linkType: hard
 
