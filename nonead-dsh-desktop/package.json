@@ -426,7 +426,7 @@
       "artifactName": "Nonead-DSH-Desktop-${version}-${arch}-Setup.${ext}",
       "installerIcon": "build/app-icon.ico",
       "uninstallerIcon": "build/app-icon.ico",
-      "include": "../dsh-plugin-desktop-beta/build/installer.nsh"
+      "include": "installer.nsh"
     },
     "linux": {
       "target": [
