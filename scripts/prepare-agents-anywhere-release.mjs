@@ -287,7 +287,25 @@ function prepare() {
     if (leakingTypeRoots.length > 0) console.error(typeRootAdvice)
     throw error
   } finally {
-    rmSync(stagingRoot, { recursive: true, force: true })
+    // Keeping the staging tree is a debugging lever: when the patched install
+    // fails, the built tarball under `pack/` is the only way to rebase the
+    // connector patch against the new bundle without rebuilding from scratch.
+    if (process.env.DSH_AA_KEEP_STAGING === '1') {
+      console.warn(`Keeping the AA staging directory ${stagingRoot} (DSH_AA_KEEP_STAGING=1)`)
+      return
+    }
+    try {
+      rmSync(stagingRoot, { recursive: true, force: true })
+    } catch (error) {
+      // Windows can still hold handles inside a freshly built tree (git/ssh child
+      // processes, antivirus, or the pnpm/yarn store linking into node_modules), and
+      // `force` does not suppress EPERM. Throwing from `finally` would turn an
+      // otherwise successful release into a failure after the manifests and the
+      // artifact were already written, leaving a half-committed channel behind.
+      // The staging root sits under the operator's temp directory, so a failed
+      // cleanup is reported and the caller/OS can remove it later.
+      console.warn(`Could not remove the AA staging directory ${stagingRoot}: ${error instanceof Error ? error.message : String(error)}`)
+    }
   }
 }
 

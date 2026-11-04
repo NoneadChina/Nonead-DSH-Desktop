@@ -14,13 +14,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@agents-anywhere/dsh-bridge-next@file:vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c39b82d4fffb1.rbcb63731.tgz::locator=deepseek-harness-desktop%40workspace%3A.":
-  version: 2.1.0-desktop.c39b82d4fffb1.rbcb63731
-  resolution: "@agents-anywhere/dsh-bridge-next@file:vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c39b82d4fffb1.rbcb63731.tgz#vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c39b82d4fffb1.rbcb63731.tgz::hash=93114a&locator=deepseek-harness-desktop%40workspace%3A."
+"@agents-anywhere/dsh-bridge-next@file:vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c1f827133d6d6.rbcb63731.tgz::locator=deepseek-harness-desktop%40workspace%3A.":
+  version: 2.1.0-desktop.c1f827133d6d6.rbcb63731
+  resolution: "@agents-anywhere/dsh-bridge-next@file:vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c1f827133d6d6.rbcb63731.tgz#vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c1f827133d6d6.rbcb63731.tgz::hash=6a83c9&locator=deepseek-harness-desktop%40workspace%3A."
   dependencies:
     "@dataiku/uv": "npm:0.12.0"
     clsx: "npm:2.1.1"
     lucide-react: "npm:1.41.0"
+    meshcall: "npm:0.3.0"
     qrcode: "npm:1.5.4"
   peerDependencies:
     "@deepseek-ai/cordis": ~4.0.4
@@ -29,17 +30,18 @@ __metadata:
     "@deepseek-ai/dsh-typert-protocol": 0.2.2-alpha.3
     "@deepseek-ai/schemastery": ~3.18.4
     react: ^18.3.1
-  checksum: 10c0/a0327ebf0fbf9ba059b02a2b1fd66cb754274dcfac11f97655cbb117f2bf995d2b80a4a1111b5d983330bd16fe1c75bef94a01f86276db5c686729d5a567ca65
+  checksum: 10c0/6136359536e7a51de1e9e1a58b801560552e17a9b5cbb13c3f7211a96c2923a5720a853e628e0aff936a336e0e469fac0b61466897bd9c48fb7bc98d434e0f28
   languageName: node
   linkType: hard
 
-"@agents-anywhere/dsh-bridge-next@patch:@agents-anywhere/dsh-bridge-next@file%3Avendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c39b82d4fffb1.rbcb63731.tgz#./patches/agents-anywhere-connector-httpx.patch::locator=deepseek-harness-desktop%40workspace%3A.":
-  version: 2.1.0-desktop.c39b82d4fffb1.rbcb63731
-  resolution: "@agents-anywhere/dsh-bridge-next@patch:@agents-anywhere/dsh-bridge-next@file%3Avendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c39b82d4fffb1.rbcb63731.tgz%23vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c39b82d4fffb1.rbcb63731.tgz%3A%3Ahash=93114a&locator=deepseek-harness-desktop%2540workspace%253A.#./patches/agents-anywhere-connector-httpx.patch::version=2.1.0-desktop.c39b82d4fffb1.rbcb63731&hash=543c4f&locator=deepseek-harness-desktop%40workspace%3A."
+"@agents-anywhere/dsh-bridge-next@patch:@agents-anywhere/dsh-bridge-next@file%3Avendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c1f827133d6d6.rbcb63731.tgz#./patches/agents-anywhere-connector-httpx.patch::locator=deepseek-harness-desktop%40workspace%3A.":
+  version: 2.1.0-desktop.c1f827133d6d6.rbcb63731
+  resolution: "@agents-anywhere/dsh-bridge-next@patch:@agents-anywhere/dsh-bridge-next@file%3Avendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c1f827133d6d6.rbcb63731.tgz%23vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c1f827133d6d6.rbcb63731.tgz%3A%3Ahash=6a83c9&locator=deepseek-harness-desktop%2540workspace%253A.#./patches/agents-anywhere-connector-httpx.patch::version=2.1.0-desktop.c1f827133d6d6.rbcb63731&hash=1b9409&locator=deepseek-harness-desktop%40workspace%3A."
   dependencies:
     "@dataiku/uv": "npm:0.12.0"
     clsx: "npm:2.1.1"
     lucide-react: "npm:1.41.0"
+    meshcall: "npm:0.3.0"
     qrcode: "npm:1.5.4"
   peerDependencies:
     "@deepseek-ai/cordis": ~4.0.4
@@ -48,7 +50,7 @@ __metadata:
     "@deepseek-ai/dsh-typert-protocol": 0.2.2-alpha.3
     "@deepseek-ai/schemastery": ~3.18.4
     react: ^18.3.1
-  checksum: 10c0/8303e98c91882455b5fab9725e2689a10a209c90d8e0a09925a639f34fedf75e607b7fc96bff4eee8fd73446a1ea20106c65ea6fc6334ad89dffef577ca8db5c
+  checksum: 10c0/26ffbaea6ddc25be0b7b4ba8330d50345f9582841af92c266b1d5df1c05f5856b667af3437fd4ec9849d75ab3b3980ba4a0edfcbeef083f72b70dd58c6fd960b
   languageName: node
   linkType: hard
 
@@ -9754,7 +9756,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ajv-formats@npm:^3.0.1":
+"ajv-formats@npm:^3, ajv-formats@npm:^3.0.1":
   version: 3.0.1
   resolution: "ajv-formats@npm:3.0.1"
   dependencies:
@@ -9768,7 +9770,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ajv@npm:^8.0.0, ajv@npm:^8.17.1, ajv@npm:^8.18.0, ajv@npm:^8.20.0, ajv@npm:^8.6.3":
+"ajv@npm:^8, ajv@npm:^8.0.0, ajv@npm:^8.17.1, ajv@npm:^8.18.0, ajv@npm:^8.20.0, ajv@npm:^8.6.3":
   version: 8.20.0
   resolution: "ajv@npm:8.20.0"
   dependencies:
@@ -11332,7 +11334,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "dsh-plugin-desktop-beta@workspace:dsh-plugin-desktop-beta"
   dependencies:
-    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c39b82d4fffb1.rbcb63731.tgz"
+    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c1f827133d6d6.rbcb63731.tgz"
     "@base-ui/react": "npm:^1.7.0"
     "@deepseek-ai/cordis": "npm:4.0.6-alpha.2"
     "@deepseek-ai/cordis-plugin-group": "npm:1.0.6-alpha.2"
@@ -14201,6 +14203,166 @@ __metadata:
   languageName: node
   linkType: hard
 
+"meshcall-router-darwin-arm64@npm:0.3.0":
+  version: 0.3.0
+  resolution: "meshcall-router-darwin-arm64@npm:0.3.0"
+  conditions: os=darwin & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"meshcall-router-darwin-x64@npm:0.3.0":
+  version: 0.3.0
+  resolution: "meshcall-router-darwin-x64@npm:0.3.0"
+  conditions: os=darwin & cpu=x64
+  languageName: node
+  linkType: hard
+
+"meshcall-router-freebsd-arm64@npm:0.3.0":
+  version: 0.3.0
+  resolution: "meshcall-router-freebsd-arm64@npm:0.3.0"
+  conditions: os=freebsd & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"meshcall-router-freebsd-x64@npm:0.3.0":
+  version: 0.3.0
+  resolution: "meshcall-router-freebsd-x64@npm:0.3.0"
+  conditions: os=freebsd & cpu=x64
+  languageName: node
+  linkType: hard
+
+"meshcall-router-linux-arm64@npm:0.3.0":
+  version: 0.3.0
+  resolution: "meshcall-router-linux-arm64@npm:0.3.0"
+  conditions: os=linux & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"meshcall-router-linux-arm@npm:0.3.0":
+  version: 0.3.0
+  resolution: "meshcall-router-linux-arm@npm:0.3.0"
+  conditions: os=linux & cpu=arm
+  languageName: node
+  linkType: hard
+
+"meshcall-router-linux-ia32@npm:0.3.0":
+  version: 0.3.0
+  resolution: "meshcall-router-linux-ia32@npm:0.3.0"
+  conditions: os=linux & cpu=ia32
+  languageName: node
+  linkType: hard
+
+"meshcall-router-linux-ppc64@npm:0.3.0":
+  version: 0.3.0
+  resolution: "meshcall-router-linux-ppc64@npm:0.3.0"
+  conditions: os=linux & cpu=ppc64
+  languageName: node
+  linkType: hard
+
+"meshcall-router-linux-riscv64@npm:0.3.0":
+  version: 0.3.0
+  resolution: "meshcall-router-linux-riscv64@npm:0.3.0"
+  conditions: os=linux & cpu=riscv64
+  languageName: node
+  linkType: hard
+
+"meshcall-router-linux-s390x@npm:0.3.0":
+  version: 0.3.0
+  resolution: "meshcall-router-linux-s390x@npm:0.3.0"
+  conditions: os=linux & cpu=s390x
+  languageName: node
+  linkType: hard
+
+"meshcall-router-linux-x64@npm:0.3.0":
+  version: 0.3.0
+  resolution: "meshcall-router-linux-x64@npm:0.3.0"
+  conditions: os=linux & cpu=x64
+  languageName: node
+  linkType: hard
+
+"meshcall-router-win32-arm64@npm:0.3.0":
+  version: 0.3.0
+  resolution: "meshcall-router-win32-arm64@npm:0.3.0"
+  conditions: os=win32 & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"meshcall-router-win32-ia32@npm:0.3.0":
+  version: 0.3.0
+  resolution: "meshcall-router-win32-ia32@npm:0.3.0"
+  conditions: os=win32 & cpu=ia32
+  languageName: node
+  linkType: hard
+
+"meshcall-router-win32-x64@npm:0.3.0":
+  version: 0.3.0
+  resolution: "meshcall-router-win32-x64@npm:0.3.0"
+  conditions: os=win32 & cpu=x64
+  languageName: node
+  linkType: hard
+
+"meshcall@npm:0.3.0":
+  version: 0.3.0
+  resolution: "meshcall@npm:0.3.0"
+  dependencies:
+    ajv: "npm:^8"
+    ajv-formats: "npm:^3"
+    meshcall-router-darwin-arm64: "npm:0.3.0"
+    meshcall-router-darwin-x64: "npm:0.3.0"
+    meshcall-router-freebsd-arm64: "npm:0.3.0"
+    meshcall-router-freebsd-x64: "npm:0.3.0"
+    meshcall-router-linux-arm: "npm:0.3.0"
+    meshcall-router-linux-arm64: "npm:0.3.0"
+    meshcall-router-linux-ia32: "npm:0.3.0"
+    meshcall-router-linux-ppc64: "npm:0.3.0"
+    meshcall-router-linux-riscv64: "npm:0.3.0"
+    meshcall-router-linux-s390x: "npm:0.3.0"
+    meshcall-router-linux-x64: "npm:0.3.0"
+    meshcall-router-win32-arm64: "npm:0.3.0"
+    meshcall-router-win32-ia32: "npm:0.3.0"
+    meshcall-router-win32-x64: "npm:0.3.0"
+    ws: "npm:^8.21.3"
+    zod: "npm:^4"
+  peerDependencies:
+    "@opentelemetry/api": ^1.4.0
+  dependenciesMeta:
+    meshcall-router-darwin-arm64:
+      optional: true
+    meshcall-router-darwin-x64:
+      optional: true
+    meshcall-router-freebsd-arm64:
+      optional: true
+    meshcall-router-freebsd-x64:
+      optional: true
+    meshcall-router-linux-arm:
+      optional: true
+    meshcall-router-linux-arm64:
+      optional: true
+    meshcall-router-linux-ia32:
+      optional: true
+    meshcall-router-linux-ppc64:
+      optional: true
+    meshcall-router-linux-riscv64:
+      optional: true
+    meshcall-router-linux-s390x:
+      optional: true
+    meshcall-router-linux-x64:
+      optional: true
+    meshcall-router-win32-arm64:
+      optional: true
+    meshcall-router-win32-ia32:
+      optional: true
+    meshcall-router-win32-x64:
+      optional: true
+  peerDependenciesMeta:
+    "@opentelemetry/api":
+      optional: true
+  bin:
+    meshcall: dist/src/launcher.js
+  checksum: 10c0/c744bfbcd579aa5365ff9da40c8696d872b64d90b659424909e42df50bc66ecf8cf6cf153053551f7ffa93f37eb6830fa2cb8da1caa2fc4dbab5b635834f4f41
+  languageName: node
+  linkType: hard
+
 "micromark-core-commonmark@npm:^2.0.0, micromark-core-commonmark@npm:^2.0.3":
   version: 2.0.3
   resolution: "micromark-core-commonmark@npm:2.0.3"
@@ -15016,7 +15178,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "nonead-dsh-desktop@workspace:nonead-dsh-desktop"
   dependencies:
-    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c39b82d4fffb1.rbcb63731.tgz"
+    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c1f827133d6d6.rbcb63731.tgz"
     "@base-ui/react": "npm:^1.7.0"
     "@deepseek-ai/cordis": "npm:4.0.6-alpha.2"
     "@deepseek-ai/cordis-plugin-group": "npm:1.0.6-alpha.2"
@@ -18446,6 +18608,13 @@ __metadata:
   version: 3.25.76
   resolution: "zod@npm:3.25.76"
   checksum: 10c0/5718ec35e3c40b600316c5b4c5e4976f7fee68151bc8f8d90ec18a469be9571f072e1bbaace10f1e85cf8892ea12d90821b200e980ab46916a6166a4260a983c
+  languageName: node
+  linkType: hard
+
+"zod@npm:^4":
+  version: 4.6.7
+  resolution: "zod@npm:4.6.7"
+  checksum: 10c0/4ce2eb14034317b7254e347ca37b5ad591cf8333147030cf05b9b5d31692d45073f7f2747aa50cf8c6b29012194d2b22978cecc89969cf34a0d18e89d0ee7d7b
   languageName: node
   linkType: hard
 

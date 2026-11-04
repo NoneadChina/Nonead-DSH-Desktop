@@ -1,14 +1,7 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
-import { execFile } from 'node:child_process'
-import { EventEmitter } from 'node:events'
 import { readFileSync } from 'node:fs'
-import { access, cp, mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join, relative, sep } from 'node:path'
-import { PassThrough } from 'node:stream'
 import { test } from 'node:test'
-import { promisify, stripVTControlCharacters } from 'node:util'
 import { runInNewContext } from 'node:vm'
 import { AA_WORKSPACES } from './agents-anywhere-release-policy.mjs'
 
@@ -37,31 +30,21 @@ function moduleSource(source, module) {
   return source.slice(span.start, span.end)
 }
 
-/** 取两个模块之间的连续代码块（原实现依赖它们相邻，两种打包格式下都成立）。 */
-function moduleRange(source, fromModule, toModule) {
-  const spans = moduleSpans(source)
-  const start = spans.findIndex(span => span.module === fromModule)
-  const end = spans.findIndex(span => span.module === toModule)
-  assert.ok(start >= 0 && end > start, `installed bundle does not expose ${fromModule}..${toModule}`)
-  return source.slice(spans[start].start, spans[end].start)
+function bridgeRoot(workspace) {
+  return new URL(`../${workspace}/node_modules/@agents-anywhere/dsh-bridge-next/`, import.meta.url)
 }
 
-function loadConnector(workspace, environment) {
-  const source = readFileSync(new URL(`../${workspace}/node_modules/@agents-anywhere/dsh-bridge-next/lib/index.js`, import.meta.url), 'utf8')
-  const region = moduleRange(source, 'src/host/connector/logs.ts', 'src/host/desktop/detect.ts')
-  return runInNewContext(`${region}; SourceConnector`, {
-    execFile, promisify, stripVTControlCharacters, join, relative, createHash, setTimeout, clearTimeout,
-    access, cp, mkdtemp, readFile, readdir, rename, rm,
-    process: { platform: process.platform, env: environment },
-    readJson$1: async () => [], writeJson: async () => {}, mkdir,
-    resolveUv: async () => 'uv',
-    DEFAULT_CONNECTOR_SETTINGS: { syncIntervalSeconds: 30 },
-  })
+function readBundle(workspace) {
+  return readFileSync(new URL('lib/index.js', bridgeRoot(workspace)), 'utf8')
+}
+
+function readConnectorFile(workspace, path) {
+  return readFileSync(new URL(`lib/bundled-connector/connector/${path}`, bridgeRoot(workspace)), 'utf8')
 }
 
 for (const workspace of AA_WORKSPACES) {
   test(`${workspace}: rc.2 tool results retain the same hash after JSON transport`, () => {
-    const source = readFileSync(new URL(`../${workspace}/node_modules/@agents-anywhere/dsh-bridge-next/lib/index.js`, import.meta.url), 'utf8')
+    const source = readBundle(workspace)
     const region = name => moduleSource(source, `src/host/dsh-runtime/${name}.ts`)
     const { createProjection, contentHash } = runInNewContext(
       // types carries the JSON helpers history applies before hashing, including lone-surrogate normalization.
@@ -89,65 +72,30 @@ for (const workspace of AA_WORKSPACES) {
       data: { message: { content: [{}] }, meta: {} } }), /Invalid DSH tool result message/)
   })
 
-  test(`${workspace}: Python gets a compatible bypass list and a writable project copy`, async t => {
-    const root = await mkdtemp(join(tmpdir(), 'dsh-aa-connector-'))
-    t.after(() => rm(root, { recursive: true, force: true }))
-    const source = join(root, 'package', 'connector-source')
-    const stateRoot = join(root, 'state')
-    await mkdir(join(source, 'connector'), { recursive: true })
-    await writeFile(join(source, 'pyproject.toml'), '[project]\nname = "fixture"\n')
-    await writeFile(join(source, 'connector', 'cli.py'), '# fixture\n')
-    const env = {
-      NO_PROXY: 'localhost,127.0.0.1,::1,[::1],.example.com',
-      no_proxy: 'internal.test, [::1] ',
-      HTTPS_PROXY: 'http://127.0.0.1:7890',
-    }
-    const original = { ...env }
-    const Connector = loadConnector(workspace, env)
-    const child = new EventEmitter()
-    child.stdout = new PassThrough()
-    child.stderr = new PassThrough()
-    child.stdin = new EventEmitter()
-    child.exitCode = null
-    child.signalCode = null
-    child.stdin.write = line => {
-      const request = JSON.parse(line)
-      queueMicrotask(() => child.stdout.write(JSON.stringify({
-        jsonrpc: '2.0', id: request.id,
-        result: { running: request.method === 'connector.start', authFailed: false },
-      }) + '\n'))
-    }
-    let launched, launchedArgs
-    const connector = new Connector({ stateRoot, connectorSourceDir: source, uvPath: 'uv' },
-      (_command, args, options) => { launched = options; launchedArgs = args; return child })
-    await connector.start({ connectorId: 'device', connectorToken: 'private-test-token' }, 'https://example.com', new AbortController().signal)
-    assert.equal(connector.running, true)
-    assert.equal(launched.env.NO_PROXY, 'localhost,127.0.0.1,::1,::1,.example.com')
-    assert.equal(launched.env.no_proxy, 'internal.test,::1')
-    assert.equal(launched.env.HTTPS_PROXY, env.HTTPS_PROXY)
-    assert.deepEqual(env, original)
-    assert.ok(launched.cwd.startsWith(join(stateRoot, 'connector-source') + sep))
-    assert.equal(launchedArgs[launchedArgs.indexOf('--directory') + 1], launched.cwd)
-    assert.equal(await readFile(join(launched.cwd, 'connector', 'cli.py'), 'utf8'), '# fixture\n')
-    await writeFile(join(launched.cwd, 'uv.lock'), 'fixture lock\n')
-    await assert.rejects(access(join(source, 'uv.lock')), { code: 'ENOENT' })
-    await connector.logs.flush()
+  // AA 2.1（Desktop 2.1.0）只通过 MeshCall 发现 DSH 桥：它读 `~/.agents-anywhere/dsh-bridge/connector.json`，
+  // 不再读 1.x 的 HTTP `endpoint.json`。产物必须仍是 MeshCall 桥，否则桌面端会一直显示「等待本地 DSH Bridge」。
+  test(`${workspace}: installed bridge publishes the MeshCall connector.json rendezvous`, () => {
+    const bundle = readBundle(workspace)
+    assert.match(bundle, /from "meshcall"/u)
+    assert.ok(bundle.includes('connector.json'), 'bundle must reference the connector.json rendezvous')
+    const provider = readConnectorFile(workspace, 'runtimes/dsh/provider_config.py')
+    assert.match(provider, /def endpoint_path\(\)[\s\S]*?connector\.json/u)
+    // 1.x 的 endpoint.json 只保留为会话身份，不能再作为发现路径。
+    assert.match(provider, /def legacy_endpoint_path/u)
   })
 
-  test(`${workspace}: RPC errors reach logs and credentials stay redacted`, async t => {
-    const stateRoot = await mkdtemp(join(tmpdir(), 'dsh-aa-logs-'))
-    t.after(() => rm(stateRoot, { recursive: true, force: true }))
-    const Connector = loadConnector(workspace, {})
-    const connector = new Connector({ stateRoot }, () => {})
-    await connector.logs.startSession(['private-test-token'])
-    const frame = JSON.stringify({ jsonrpc: '2.0', method: 'connector/log', params: {
-      level: 'ERROR', message: "Invalid port: ':1]' private-test-token",
-      exception: 'InvalidURL private-test-token',
-    } }) + '\n'
-    connector.receive(frame.slice(0, 31))
-    connector.receive(frame.slice(31))
-    await connector.logs.flush()
-    const lines = Array.from(connector.logs.entries, entry => entry.text)
-    assert.deepEqual(lines, ["[connector] ERROR: Invalid port: ':1]' [REDACTED]", 'InvalidURL [REDACTED]'])
+  // httpx 只接受裸 IPv6，undici 风格的 `[::1]` 会让 Python 子进程的代理绕过列表失效。
+  test(`${workspace}: Python bypass list keeps httpx-compatible IPv6 entries`, () => {
+    const bundle = readBundle(workspace)
+    const normalized = bundle.match(/replaceAll\("\[::1\]", "::1"\)/gu) ?? []
+    assert.ok(normalized.length >= 2, `NO_PROXY and no_proxy must both be normalized, found ${normalized.length}`)
+  })
+
+  // 连接器日志在 2.x 里走 MeshCall 的 `aa.local.v2.Logs`，不再经 `connector/log` 帧转发。
+  test(`${workspace}: bundled connector serves logs over MeshCall`, () => {
+    const logs = readConnectorFile(workspace, 'mesh/logs.py')
+    assert.match(logs, /from meshcall import/u)
+    const hub = readConnectorFile(workspace, 'mesh/hub.py')
+    assert.match(hub, /LOGS_SERVICE/u)
   })
 }

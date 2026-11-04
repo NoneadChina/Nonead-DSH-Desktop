@@ -1,26 +1,24 @@
 {
   "repository": "https://github.com/anywhere-labs/Agents-Anywhere.git",
   "branch": "main",
-  "commit": "39b82d4fffb178a1217abd057e546374c57c030a",
+  "commit": "1f827133d6d6de86df424898d9b9738b6b3aebf3",
   "packageDirectory": "dsh-bridge-next",
   "sourceVersion": "2.1.0",
-  "desktopVersion": "2.1.0-desktop.c39b82d4fffb1.rbcb63731",
-  "artifact": "agents-anywhere-dsh-bridge-next-2.1.0-desktop.c39b82d4fffb1.rbcb63731.tgz",
-  "sha256": "5fc24e945a2e22b9b9311cdfc3753d7f7431207afffc9e2df6f9e204c8593409",
+  "desktopVersion": "2.1.0-desktop.c1f827133d6d6.rbcb63731",
+  "artifact": "agents-anywhere-dsh-bridge-next-2.1.0-desktop.c1f827133d6d6.rbcb63731.tgz",
+  "sha256": "6f43264e24c3e0b93d9785ed22ca78ea1bb865fac7086e8eb75c587d008c3d33",
   "runtimePeers": {
     "@deepseek-ai/dsh-typert-protocol": "0.2.2-alpha.3",
     "@deepseek-ai/dsh-llm": "0.2.2-alpha.3",
     "@deepseek-ai/dsh-session": "0.2.2-alpha.3"
   },
   "manifestChanges": [
-    "version set to 2.1.0-desktop.c39b82d4fffb1.rbcb63731",
+    "version set to 2.1.0-desktop.c1f827133d6d6.rbcb63731",
     "release staging removes prepack/postpack hooks; build, typecheck and check:build run explicitly",
     "release staging pins the AA build-time DSH type graph to the source devDependencies",
     "@deepseek-ai/dsh-typert-protocol peer accepts 0.2.2-alpha.3",
     "@deepseek-ai/dsh-llm peer accepts 0.2.2-alpha.3",
     "@deepseek-ai/dsh-session peer accepts 0.2.2-alpha.3"
   ],
-  "sourceChanges": [],
-  "pinnedCommit": "39b82d4fffb178a1217abd057e546374c57c030a",
-  "pinReason": "AA Desktop 2.0.3 (the latest published release) discovers the DSH bridge only through the HTTP endpoint at ~/.agents-anywhere/dsh-bridge/endpoint.json. Upstream main moved the bridge to meshcall 0.3.0, which writes connector.json and no longer publishes endpoint.json, so a bridge built from main can never connect to a published AA Desktop. Clear this pin once AA ships a Desktop release that reads connector.json."
+  "sourceChanges": []
 }
