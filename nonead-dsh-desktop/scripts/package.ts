@@ -1,6 +1,6 @@
 /** Next entry points reuse Stable/Beta's native packaging and credential boundaries. */
 import { spawnSync } from 'node:child_process'
-import { readFileSync, rmSync } from 'node:fs'
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -79,6 +79,33 @@ const preparePayload = (platform: NodeJS.Platform): void => {
   if (result.status !== 0) throw new Error(`Next payload preparation exited with ${String(result.status)}`)
 }
 /**
+ * Where the packaged application's own bundle is projected beside the archive.
+ *
+ * The Profile lives outside `app.asar`, so its plugin cannot resolve the host package by name
+ * any more (the runtime resolver no longer answers for it). A copy of the built entry points
+ * would work but would give the Profile a second module instance, which splits module-level
+ * state such as the Host credential; the projection therefore re-exports the archive's own
+ * entry points so both sides share one instance.
+ */
+const hostBundleShim = join(desktopRoot, '.desktop-build', 'host-bundle')
+// Each entry re-exports the archive's module; an entry that owns a default export must forward it,
+// because `export *` never carries one and the Profile's plugin imports the webserver by default.
+const hostBundleEntries: readonly { entry: string; lines: readonly string[] }[] = [
+  { entry: 'extensions', lines: ['export * from'] },
+  { entry: 'client', lines: ['export * from'] },
+  { entry: 'permissions', lines: ['export * from'] },
+  { entry: 'webserver', lines: ['export * from', 'export { default } from'] },
+]
+const prepareHostBundleShim = (): void => {
+  rmSync(hostBundleShim, { recursive: true, force: true })
+  mkdirSync(join(hostBundleShim, 'lib'), { recursive: true })
+  writeFileSync(join(hostBundleShim, 'package.json'), readFileSync(join(desktopRoot, 'package.json')))
+  for (const { entry, lines } of hostBundleEntries) {
+    const target = `'../../../app.asar/lib/${entry}.js'`
+    writeFileSync(join(hostBundleShim, 'lib', `${entry}.js`), `${lines.map(line => `${line} ${target}`).join('\n')}\n`)
+  }
+}
+/**
  * The shared flows call this right before electron-builder: the interpreter payloads were prepared
  * before they started and must still verify, and the archive payload is prepared now.
  * @param platform - Platform being packaged; the shared flows package the host platform.
@@ -87,6 +114,7 @@ const prepareRuntime = (platform: NodeJS.Platform = process.platform): void => {
   if (platform === 'darwin') prepareNextMacRuntime(desktopRoot)
   verifyNextRuntimeTree(nextRuntimeBuildPaths(desktopRoot).runtime, platform, buildVersion)
   preparePayload(platform)
+  prepareHostBundleShim()
 }
 const mode = process.argv[2]
 const outputDir = join(desktopRoot, 'dist', mode === 'mac' ? 'mac-release' : 'mac-smoke')

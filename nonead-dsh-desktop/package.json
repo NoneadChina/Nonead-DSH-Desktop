@@ -386,11 +386,11 @@
           "to": "app/package.json"
         },
         {
-          "from": ".desktop-build/payload/package.json",
+          "from": ".desktop-build/host-bundle/package.json",
           "to": "node_modules/nonead-dsh-desktop/package.json"
         },
         {
-          "from": ".desktop-build/payload/lib",
+          "from": ".desktop-build/host-bundle/lib",
           "to": "node_modules/nonead-dsh-desktop/lib"
         }
       ],
@@ -420,11 +420,11 @@
           "to": "runtime"
         },
         {
-          "from": ".desktop-build/payload/package.json",
+          "from": ".desktop-build/host-bundle/package.json",
           "to": "node_modules/nonead-dsh-desktop/package.json"
         },
         {
-          "from": ".desktop-build/payload/lib",
+          "from": ".desktop-build/host-bundle/lib",
           "to": "node_modules/nonead-dsh-desktop/lib"
         }
       ]
@@ -451,11 +451,11 @@
       "icon": "build/app-icon.png",
       "extraResources": [
         {
-          "from": ".desktop-build/payload/package.json",
+          "from": ".desktop-build/host-bundle/package.json",
           "to": "node_modules/nonead-dsh-desktop/package.json"
         },
         {
-          "from": ".desktop-build/payload/lib",
+          "from": ".desktop-build/host-bundle/lib",
           "to": "node_modules/nonead-dsh-desktop/lib"
         }
       ]

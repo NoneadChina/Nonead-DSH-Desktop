@@ -77,10 +77,11 @@ it('archives the application like upstream Desktop while keeping fuses and nativ
   // Both CPU payloads ride beside the archive as extra resources; electron-builder must not re-sign the pre-signed payloads.
   // macOS also carries the manifest copy the updaters shipped in 2.0.14-next through 2.0.17-next read beside the archive.
   // Every platform also materialises the host bundle beside the archive: the packaged Profile is outside
-  // app.asar, and the runtime resolver no longer answers for the application's own package name.
+  // app.asar, and the runtime resolver no longer answers for the application's own package name. The
+  // projection re-exports the archive's entry points so the Profile and Host share one module instance.
   const hostBundleResources = [
-    { from: '.desktop-build/payload/package.json', to: 'node_modules/nonead-dsh-desktop/package.json' },
-    { from: '.desktop-build/payload/lib', to: 'node_modules/nonead-dsh-desktop/lib' },
+    { from: '.desktop-build/host-bundle/package.json', to: 'node_modules/nonead-dsh-desktop/package.json' },
+    { from: '.desktop-build/host-bundle/lib', to: 'node_modules/nonead-dsh-desktop/lib' },
   ]
   expect(next.build.mac.extraResources).toEqual([
     { from: '.desktop-build/runtime', to: 'runtime' },
