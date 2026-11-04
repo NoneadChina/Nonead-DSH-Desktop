@@ -441,8 +441,9 @@ try {
     // AA publishes one fixed per-user rendezvous that DSH_HOME does not move, so
     // the isolated Profile home is not where the Connector looks. AA 2.0.x wrote
     // the HTTP `endpoint.json` from the local runtime; AA 2.1 (MeshCall) instead
-    // relies on AA Desktop's `connector.json` descriptor, whose pid is the AA
-    // process rather than this one, so the two generations are checked apart.
+    // makes AA Desktop publish `connector.json`, which the bridge only reads, so
+    // that descriptor is legitimately absent while the AA app is not running and
+    // the runtime readiness above is the contract for the DSH side.
     const bridgeDir = join(userInfo().homedir, '.agents-anywhere', 'dsh-bridge')
     const legacyEndpoint = join(bridgeDir, 'endpoint.json')
     const meshcallConnector = join(bridgeDir, 'connector.json')
@@ -454,10 +455,7 @@ try {
       if (JSON.parse(readFileSync(legacyEndpoint, 'utf8')).pid !== process.pid) {
         throw new Error('AA bridge endpoint belongs to another process; quit any running Desktop with AA enabled')
       }
-    } else {
-      if (!existsSync(meshcallConnector)) {
-        throw new Error('AA did not publish its per-user bridge rendezvous (connector.json or endpoint.json)')
-      }
+    } else if (existsSync(meshcallConnector)) {
       const connector = JSON.parse(readFileSync(meshcallConnector, 'utf8'))
       if (connector.protocol !== 'meshcall' || typeof connector.pid !== 'number') {
         throw new Error('AA MeshCall connector descriptor is malformed')
