@@ -117,7 +117,11 @@ const prepareRuntime = (platform: NodeJS.Platform = process.platform): void => {
   prepareHostBundleShim()
 }
 const mode = process.argv[2]
-const outputDir = join(desktopRoot, 'dist', mode === 'mac' ? 'mac-release' : 'mac-smoke')
+/**
+ * Packaging output directory. `DSH_PACKAGE_OUTPUT` lets a caller build somewhere else when the
+ * default `dist` is still held open by a previous run's payload.
+ */
+const outputDir = process.env.DSH_PACKAGE_OUTPUT ?? join(desktopRoot, 'dist', mode === 'mac' ? 'mac-release' : 'mac-smoke')
 const shared = { env: process.env, platform: process.platform, desktopRoot, outputDir,
   resetOutput: () => rmSync(outputDir, { force: true, recursive: true }), run, log: console.log, prepareRuntime }
 if (mode === 'dir') {

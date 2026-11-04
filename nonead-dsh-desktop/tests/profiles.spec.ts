@@ -584,7 +584,10 @@ it('leaves no Profile link into an archived installation and points the AA bridg
     delete process.env['DSH_HOME']
     delete process.env['UV_PATH']
     const profile = loadNextProfile(dir, manager.home, join(archive, 'package.json'))
-    expect(lstatSync(link, { throwIfNoEntry: false })).toBeUndefined()
+    // No link can enter the archive, so the packaged Profile materialises a shim directory whose
+    // entries re-export the archive itself: that keeps one module instance for both sides.
+    expect(lstatSync(link, { throwIfNoEntry: false })?.isDirectory()).toBe(true)
+    expect(readFileSync(join(link, 'lib', 'webserver.js'), 'utf8')).toContain('app.asar/lib/webserver.js')
     expect(profile.layers.map(layer => layer.packageName)).toContain('nonead-dsh-desktop')
     // A generated overlay whose row lives in the bridge's own bundle patch is removed instead of
     // being written again: patching it warned `patch: entry … not found` on every start.

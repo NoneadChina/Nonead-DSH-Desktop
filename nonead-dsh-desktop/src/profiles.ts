@@ -1,8 +1,8 @@
 /** Next-owned profile state. Recovery works without importing any user plugin. */
-import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, symlinkSync, unlinkSync } from 'node:fs'
+import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { initProfile, loadOverlayPatches, loadProfileDirectory, readProfilePatches, type Profile, type ProfileContext } from '@deepseek-ai/dsh-app-boot'
 import { PROFILE_TEMPLATES, RETIRED_BUNDLES } from '@deepseek-ai/dsh-official-bundles'
 import { withFileLock } from '@deepseek-ai/dsh-atomic-write'
@@ -344,6 +344,10 @@ function retireLinkProjections(projectDir: string): void {
 }
 
 
+/** This application's bundle entry points, and whether they own a default export. */
+const HOST_BUNDLE_ENTRIES: readonly (readonly [string, boolean])[] = [
+  ['extensions', false], ['client', false], ['permissions', false], ['webserver', true],
+]
 /** Add product capabilities without replacing the upstream Web presentation. */
 export function loadNextProfile(projectDir: string, home: string, installAnchor = NEXT_PACKAGE): Profile {
   const manager = new NextProfiles(home)
@@ -361,14 +365,40 @@ export function loadNextProfile(projectDir: string, home: string, installAnchor 
   mkdirSync(modules, { recursive: true, mode: 0o700 })
   const link = join(modules, 'nonead-dsh-desktop')
   const target = realpathSync(dirname(installAnchor))
+  const packaged = insideArchive(installAnchor)
   // Compare through `realpathSync.native`: a junction is invisible to `lstat` and `readlink`
   // throws EINVAL on it, so both would treat a planted junction as an unmanaged directory.
-  const linkTarget = insideArchive(installAnchor) ? undefined : realpathSync.native(dirname(installAnchor))
+  const linkTarget = packaged ? undefined : realpathSync.native(dirname(installAnchor))
   const existingLink = lstatSync(link, { throwIfNoEntry: false })
   const existingTarget = existingLink ? linkedPathTarget(link) : undefined
-  if (existingLink && existingTarget === undefined) throw new Error('Next bundle fallback is occupied by an unmanaged package')
-  if (existingLink && (linkTarget === undefined || existingTarget === undefined || !sameResolvedPath(existingTarget, linkTarget))) removeLinkedPath(link)
-  if (linkTarget !== undefined && !lstatSync(link, { throwIfNoEntry: false })) symlinkSync(linkTarget, link, 'junction')
+  if (packaged) {
+    // No link can enter the archive, and the loader resolves this bundle from the Profile, so a
+    // file that re-exports the archive's own entry points is the only projection that keeps the
+    // Profile plugin and the Host on one module instance.
+    if (existingLink && existingTarget !== undefined) removeLinkedPath(link)
+    if (!existsSync(join(link, 'package.json'))) {
+      mkdirSync(join(link, 'lib'), { recursive: true, mode: 0o700 })
+      writeFileSync(join(link, 'package.json'), readFileSync(join(target, 'package.json')))
+      const base = pathToFileURL(join(target, 'lib')).href
+      for (const [entry, forwardsDefault] of HOST_BUNDLE_ENTRIES) {
+        const lines = [`export * from '${base}/${entry}.js'`]
+        if (forwardsDefault) lines.push(`export { default } from '${base}/${entry}.js'`)
+        writeFileSync(join(link, 'lib', `${entry}.js`), `${lines.join('\n')}\n`)
+      }
+    }
+  } else {
+    if (existingLink && existingTarget === undefined) {
+      // A previous packaged launch left its shim projection here; only a directory that re-exports
+      // the archive is ours to replace. Anything else is a foreign package we must not delete.
+      const shimEntry = existingLink.isDirectory() ? join(link, 'lib', 'webserver.js') : undefined
+      const ours = shimEntry !== undefined && existsSync(shimEntry) && readFileSync(shimEntry, 'utf8').includes('app.asar')
+      if (!ours) throw new Error('Next bundle fallback is occupied by an unmanaged package')
+      rmSync(link, { recursive: true, force: true })
+    } else if (existingLink && (existingTarget === undefined || linkTarget === undefined || !sameResolvedPath(existingTarget, linkTarget))) {
+      removeLinkedPath(link)
+    }
+    if (linkTarget !== undefined && !lstatSync(link, { throwIfNoEntry: false })) symlinkSync(linkTarget, link, 'junction')
+  }
   const profile = loadProfileDirectory('nonead-dsh-desktop', projectDir, installAnchor)
   profile.layers.push({ packageName: 'nonead-dsh-desktop', packageDir: target,
     patchPaths: [NEXT_BUNDLE_PATCH], patches: loadOverlayPatches('nonead-dsh-desktop', NEXT_BUNDLE_PATCH) })

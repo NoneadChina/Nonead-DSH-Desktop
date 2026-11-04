@@ -105,11 +105,22 @@ export default async function afterAllArtifactBuild(result: { outDir: string }):
   // Hand the packaged Host smoke a workspace scratch root instead of weakening the check.
   const scratch = join(desktopRoot, `.tmp-packaged-smoke-${String(process.pid)}-${String(Date.now())}`)
   mkdirSync(scratch, { recursive: true })
+  const previousTemp = process.env.TEMP
+  const previousTmp = process.env.TMP
   process.env.DSH_PACKAGED_SMOKE_SCRATCH = scratch
+  // The packaged Electron runs at low integrity on this host and cannot create directories under
+  // the system TEMP; point both variables at the workspace scratch so plugins that need a private
+  // temp root can still start while the smoke exercises the real payload.
+  process.env.TEMP = scratch
+  process.env.TMP = scratch
   try {
     for (const path of executables) await verifyExecutable(path, expectedVersion)
   } finally {
     delete process.env.DSH_PACKAGED_SMOKE_SCRATCH
+    if (previousTemp === undefined) delete process.env.TEMP
+    else process.env.TEMP = previousTemp
+    if (previousTmp === undefined) delete process.env.TMP
+    else process.env.TMP = previousTmp
     rmSync(scratch, { recursive: true, force: true })
   }
   return []

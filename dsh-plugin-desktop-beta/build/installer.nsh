@@ -38,10 +38,10 @@ Var pid
     ${endIf}
 
   dsh_installer_scoped_fallback:
-    ; The patched builder macros match DSH Desktop Beta.exe, not every executable
-    ; below $INSTDIR. They handle pre-handoff releases and stubborn processes.
-    MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION "$(appRunning)" /SD IDOK IDOK dsh_installer_stop_app
-    Quit
+    ; Upgrades close the previous installation without asking: the orderly handoff above already
+    ; ran, so staying here means an older build ignored it or the process is wedged. Continue
+    ; straight into the scoped forced close instead of blocking the installer on a prompt.
+    Goto dsh_installer_stop_app
 
   dsh_installer_stop_app:
     DetailPrint "$(appClosing)"
