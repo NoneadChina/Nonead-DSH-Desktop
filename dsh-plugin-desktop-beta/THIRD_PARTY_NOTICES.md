@@ -492,7 +492,7 @@ the package names, versions, and licenses for transparency.
 | diff | 9.0.0 | BSD-3-Clause |
 | dijkstrajs | 1.0.3 | MIT |
 | dsh-community-market | 0.1.0-dev.0 | MIT |
-| dshmarket | 1.73.9 | MIT |
+| dshmarket | 1.73.10 | MIT |
 | ecdsa-sig-formatter | 1.0.11 | Apache-2.0 |
 | ee-first | 1.1.1 | MIT |
 | emoji-regex | 8.0.0 | MIT |

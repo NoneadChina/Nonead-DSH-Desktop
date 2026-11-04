@@ -11537,7 +11537,7 @@ __metadata:
     class-variance-authority: "npm:^0.7.1"
     clsx: "npm:^2.1.1"
     dsh-community-market: "npm:0.1.0-dev.0"
-    dshmarket: "npm:1.73.9"
+    dshmarket: "npm:1.73.10"
     electron: "npm:44.0.0"
     electron-builder: "npm:26.15.7"
     extract-zip: "npm:2.0.1"
@@ -11575,9 +11575,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"dshmarket@npm:1.73.9":
-  version: 1.73.9
-  resolution: "dshmarket@npm:1.73.9"
+"dshmarket@npm:1.73.10":
+  version: 1.73.10
+  resolution: "dshmarket@npm:1.73.10"
   dependencies:
     js-yaml: "npm:^4.3.2"
     undici: "npm:^7.29.1"
@@ -11590,13 +11590,13 @@ __metadata:
       optional: true
     "@deepseek-ai/schemastery":
       optional: true
-  checksum: 10c0/e0385f7143d5582ea79b6e52bc36227e525dba7c7b63ab33c945117329abc9ba60d2aee533cd0a965362dc25798a26aa3c076b17dade718061926f3b6e36f830
+  checksum: 10c0/3e950628830eac9cd326df250cd4f05162415f048966063179034b1d59f5d941669016b798c8c538ca8c1bebb6483d2bb00681575f4b85e5f5db2d49e9879be7
   languageName: node
   linkType: hard
 
-"dshmarket@patch:dshmarket@npm%3A1.73.9#./.yarn/patches/dshmarket-desktop.patch::locator=deepseek-harness-desktop%40workspace%3A.":
-  version: 1.73.9
-  resolution: "dshmarket@patch:dshmarket@npm%3A1.73.9#./.yarn/patches/dshmarket-desktop.patch::version=1.73.9&hash=de1fdf&locator=deepseek-harness-desktop%40workspace%3A."
+"dshmarket@patch:dshmarket@npm%3A1.73.10#./.yarn/patches/dshmarket-desktop.patch::locator=deepseek-harness-desktop%40workspace%3A.":
+  version: 1.73.10
+  resolution: "dshmarket@patch:dshmarket@npm%3A1.73.10#./.yarn/patches/dshmarket-desktop.patch::version=1.73.10&hash=dce1b9&locator=deepseek-harness-desktop%40workspace%3A."
   dependencies:
     js-yaml: "npm:^4.3.2"
     undici: "npm:^7.29.1"
@@ -11609,7 +11609,7 @@ __metadata:
       optional: true
     "@deepseek-ai/schemastery":
       optional: true
-  checksum: 10c0/c7a1633a591d65cc983df8fe948ca7fd96c5c84d4b7f3697d38e46dc6a1f91c0774126077517e4c2a21f6115a9e2715d2de77c20334af94c0da4c0e7288c95d1
+  checksum: 10c0/6414155a6c744ea69b1ab436416156451e32f770f3879c918a93c700f93866c5ba2d05465130c2e433a763d9fdf249c670687c2a3b768e12ffcca409f19439ee
   languageName: node
   linkType: hard
 
@@ -15378,7 +15378,7 @@ __metadata:
     diff: "npm:^9.0.0"
     dsh-community-market: "npm:0.1.0-dev.0"
     dsh-nonead-client-skin: "file:../dsh-nonead-client-skin"
-    dshmarket: "npm:1.73.9"
+    dshmarket: "npm:1.73.10"
     electron: "npm:44.0.0"
     electron-builder: "npm:26.15.7"
     extract-zip: "npm:2.0.1"
