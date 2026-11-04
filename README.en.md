@@ -14,7 +14,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-0078D6" alt="Windows, macOS, Linux">
   <img src="https://img.shields.io/badge/Electron-44-47848F?logo=electron&amp;logoColor=white" alt="Electron 44">
-  <img src="https://img.shields.io/badge/DSH%20runtime-0.2.2--alpha.3-4B32C3" alt="DSH runtime 0.2.2-alpha.3">
+  <img src="https://img.shields.io/badge/DSH%20runtime-0.2.2--rc.1-4B32C3" alt="DSH runtime 0.2.2-rc.1">
   <img src="https://img.shields.io/badge/node-%5E22.19%20%7C%20%3E%3D24-339933?logo=node.js&amp;logoColor=white" alt="Node.js">
 </p>
 
@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  Product <code>2.2.8</code> · DSH runtime <code>0.2.2-alpha.3</code> · Electron 44 · MIT License
+  Product <code>2.2.8</code> · DSH runtime <code>0.2.2-rc.1</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">One-click download, ready to use out of the box.</a></h3>
@@ -67,7 +67,7 @@ The product is not a reimplementation of the client — it is a thin Electron ho
 
 | Layer | Location | Responsibility |
 | --- | --- | --- |
-| `2.2.8` | 2026-11-04 | Version bump only: no runtime change and no patch regeneration; user-facing behavior identical to 2.2.7 |
+| `2.2.8` | 2026-11-04 | Runtime upgraded to DSH `0.2.2-rc.1` (upstream `66491b05`), the vendored runtime repacked from the new source (373 packages), and all 24 desktop customisation patches renamed and re-applied |
 | `2.2.7` | 2026-11-03 | Runtime upgraded to DSH `0.2.2-alpha.3` (upstream `05b1cae8`), bundled market `dshmarket` raised to 1.73.9, and all 24 desktop customization patches regenerated against the new build output |
 | `2.2.6` | 2026-11-02 | Stability and gate maintenance: lifecycle evidence no longer stops after a day of uptime, the launcher no longer exits silently from an npm/pnpm global bin, private files and the data-operation lock bind to the validated inode, factory reset cannot leave the installation without a data directory, the LAN dialog gains focus management, and the market page limit matches its published schema; new gates cover release pins, eight-language version parity and third-party notices |
 | Desktop shell | Electron main process | Single-instance lock, windows and materials, tray and menus, permissions, terminal, updates, data directory, profile state |
@@ -87,7 +87,7 @@ Shell and Host communicate over exactly one child-process IPC channel. Switching
 | Stable-channel workspace | `nonead-dsh-desktop` (root scripts use the `:stable` suffix) |
 | Beta-channel workspace | `dsh-plugin-desktop-beta` (root scripts use the `:beta` suffix) |
 | DSH runtime | `0.2.2-alpha.2`, every `@deepseek-ai/dsh*` dependency pinned exactly, runtime vendored |
-| Vendored runtime | `vendor/dsh-runtime/0.2.2-alpha.2/` (several historical version directories are kept) |
+| Vendored runtime | `vendor/dsh-runtime/0.2.2-rc.1/` (several historical version directories are kept) |
 | Upstream pin | `f3803c96974ad4a94195fb97e5c637e9c2a3afe3fc48fa190a683e469daa699857e9afe8` (`channels.beta` in `upstream.json`, mirrored in `nonead-dsh-desktop/upstream-reference.json`) |
 | Electron / packager | Electron `44.0.0` / electron-builder `26.15.7` (patched `app-builder-lib`) |
 | Node / Yarn | Node `^22.19.0` or `>=24.0.0`; Yarn `4.18.0` via Corepack (`nodeLinker: node-modules`) |

@@ -15,12 +15,11 @@ Maintenance conventions:
 
 ## 2.2.8 — 2026-11-04
 
-A version-bump release: no user-facing behavior changed.
+A runtime-follow-up release; no user-facing behavior changed:
 
+- Runtime: DSH raised to `0.2.2-rc.1`, the upstream pin moved to `66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db`, and the vendored runtime was repacked from the new source (373 packages); the 39 copied upstream file hashes in `upstream-reference.json` were re-verified and are unchanged.
+- Desktop customisation: the 24 build-output patches were renamed to `@0.2.2-rc.1` and re-applied; their code is identical to 2.2.7 because this upstream change only bumped version numbers and left the build output otherwise unchanged.
 - Version: product 2.2.7 → **2.2.8** (both desktop workspaces in lockstep).
-- Runtime and patches: identical to 2.2.7 — no runtime upgrade and no patch regeneration.
-
-This bump only reserves a version slot for upcoming releases; it carries no user-facing changes.
 
 ## 2.2.7 — 2026-11-03
 

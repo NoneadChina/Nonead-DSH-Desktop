@@ -15,12 +15,11 @@ Konventionen für die Pflege:
 
 ## 2.2.8 — 2026-11-04
 
-Eine reine Versionserhöhung: am sichtbaren Verhalten ändert sich nichts.
+Ein Release zur Laufzeit-Nachführung ohne sichtbare Verhaltensänderung:
 
+- Laufzeit: DSH steigt auf `0.2.2-rc.1`, der Upstream-Pin wechselt auf `66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db`, und die mitgelieferte Laufzeit wird aus den neuen Quellen neu gepackt (373 Pakete); die 39 kopierten Upstream-Dateihashes in `upstream-reference.json` wurden erneut geprüft und sind unverändert.
+- Desktop-Anpassung: alle 24 Artefakt-Patches wurden auf `@0.2.2-rc.1` umbenannt und erneut angewendet; ihr Code entspricht 2.2.7, da diese Upstream-Änderung nur Versionsnummern anhebt und den Rest des Builds unverändert lässt.
 - Version: Produkt 2.2.7 → **2.2.8** (beide Desktop-Workspaces im Gleichschritt).
-- Laufzeit und Patches: identisch zu 2.2.7 — keine Laufzeitaktualisierung und keine Neuerzeugung der Patches.
-
-Diese Erhöhung reserviert nur eine Versionsnummer für kommende Releases und enthält keine sichtbaren Änderungen.
 
 ## 2.2.7 — 2026-11-03
 

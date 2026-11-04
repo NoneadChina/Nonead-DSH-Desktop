@@ -15,12 +15,11 @@ Conventions de maintenance :
 
 ## 2.2.8 — 2026-11-04
 
-Une publication de simple incrément de version : aucun comportement visible ne change.
+Une publication centrée sur le suivi du runtime, sans changement visible :
 
+- Runtime : DSH passe à `0.2.2-rc.1`, le pin amont passe à `66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db` et le runtime embarqué est reconstruit depuis les nouvelles sources (373 paquets) ; les 39 empreintes de fichiers copiés de `upstream-reference.json` ont été revérifiées et sont inchangées.
+- Personnalisation de bureau : les 24 correctifs ont été renommés en `@0.2.2-rc.1` et réappliqués ; leur code est identique à 2.2.7 car cette mise à jour amont ne modifie que les numéros de version et laisse le reste de la compilation inchangé.
 - Version : produit 2.2.7 → **2.2.8** (les deux espaces de travail de bureau avancent ensemble).
-- Runtime et correctifs : identiques à 2.2.7 ; pas de mise à jour du runtime ni de régénération des correctifs.
-
-Cet incrément réserve seulement un numéro de version pour les prochaines publications et n'apporte aucun changement visible.
 
 ## 2.2.7 — 2026-11-03
 

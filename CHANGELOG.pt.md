@@ -15,12 +15,11 @@ Convenções de manutenção:
 
 ## 2.2.8 — 2026-11-04
 
-Uma publicação apenas de incremento de versão: nenhum comportamento visível muda.
+Uma publicação focada em acompanhar o runtime, sem mudança visível para o usuário:
 
+- Runtime: DSH sobe para `0.2.2-rc.1`, o pin upstream passa para `66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db` e o runtime incluído é reempacotado a partir do novo código (373 pacotes); os 39 hashes de arquivos copiados em `upstream-reference.json` foram revalidados e não mudaram.
+- Personalização do desktop: os 24 patches de artefatos foram renomeados para `@0.2.2-rc.1` e reaplicados; seu código é idêntico ao de 2.2.7 porque esta mudança upstream apenas eleva os números de versão e não altera o restante da compilação.
 - Versão: produto 2.2.7 → **2.2.8** (ambos os workspaces de desktop em conjunto).
-- Runtime e patches: idênticos ao 2.2.7 — sem atualização de runtime e sem regeneração de patches.
-
-Este incremento apenas reserva um número de versão para publicações futuras e não traz mudanças visíveis.
 
 ## 2.2.7 — 2026-11-03
 

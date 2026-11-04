@@ -14,7 +14,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-0078D6" alt="Windows, macOS, Linux">
   <img src="https://img.shields.io/badge/Electron-44-47848F?logo=electron&amp;logoColor=white" alt="Electron 44">
-  <img src="https://img.shields.io/badge/DSH%20runtime-0.2.2--alpha.3-4B32C3" alt="DSH runtime 0.2.2-alpha.3">
+  <img src="https://img.shields.io/badge/DSH%20runtime-0.2.2--rc.1-4B32C3" alt="DSH runtime 0.2.2-rc.1">
   <img src="https://img.shields.io/badge/node-%5E22.19%20%7C%20%3E%3D24-339933?logo=node.js&amp;logoColor=white" alt="Node.js">
 </p>
 
@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  产品版本 <code>2.2.8</code> · DSH 运行时 <code>0.2.2-alpha.3</code> · Electron 44 · MIT License
+  产品版本 <code>2.2.8</code> · DSH 运行时 <code>0.2.2-rc.1</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">一键下载，开箱即用。</a></h3>
@@ -67,7 +67,7 @@ Nonead DSH Desktop 把 [DeepSeek Harness](https://github.com/deepseek-ai/deepsee
 
 | 层 | 位置 | 职责 |
 | --- | --- | --- |
-| `2.2.8` | 2026-11-04 | 版本号跟进发布：无运行时变更、无补丁重生成，面向用户的行为与 2.2.7 相同 |
+| `2.2.8` | 2026-11-04 | 运行时升级到 DSH `0.2.2-rc.1`（上游 `66491b05`），预置运行时按新版源码重新打包（373 个包）；24 个桌面定制补丁随版本改名并重新应用 |
 | `2.2.7` | 2026-11-03 | 运行时升级到 DSH `0.2.2-alpha.3`（上游 `05b1cae8`），随包市场 `dshmarket` 升到 1.73.9，24 个桌面定制补丁按新构建产物重新生成 |
 | `2.2.6` | 2026-11-02 | 稳定性与门禁维护：修复长期运行后生命周期证据停写、启动器在 npm/pnpm 全局 bin 下静默退出、私有文件与数据锁未绑定 inode、恢复出厂失败后没有数据目录、LAN 确认框无焦点管理、市场页上限与 schema 不一致；新增发布 pin、八语言版本一致性与第三方声明一致性门禁 |
 | 桌面壳 | Electron main 进程 | 单实例锁、窗口与材质、托盘与菜单、权限、终端、更新、数据目录、profile 状态 |
@@ -87,7 +87,7 @@ Nonead DSH Desktop 把 [DeepSeek Harness](https://github.com/deepseek-ai/deepsee
 | 稳定通道工作区 | `nonead-dsh-desktop`（根脚本 `:stable` 后缀） |
 | Beta 通道工作区 | `dsh-plugin-desktop-beta`（根脚本 `:beta` 后缀） |
 | DSH 运行时 | `0.2.2-alpha.2`，所有 `@deepseek-ai/dsh*` 依赖精确 pin，运行时就地 vendored |
-| 已 vendored 运行时 | `vendor/dsh-runtime/0.2.2-alpha.2/`（另有若干历史版本目录保留） |
+| 已 vendored 运行时 | `vendor/dsh-runtime/0.2.2-rc.1/`（另有若干历史版本目录保留） |
 | 上游 pin | `f3803c96974ad4a94195fb97e5c637e9c2a3afe3fc48fa190a683e469daa699857e9afe8`（`upstream.json` 的 `channels.beta`，同时记在 `nonead-dsh-desktop/upstream-reference.json`） |
 | Electron / 打包器 | Electron `44.0.0` / electron-builder `26.15.7`（`app-builder-lib` 带补丁） |
 | Node / Yarn | Node `^22.19.0` 或 `>=24.0.0`；Yarn `4.18.0`（经 Corepack，`nodeLinker: node-modules`） |

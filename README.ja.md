@@ -14,7 +14,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-0078D6" alt="Windows, macOS, Linux">
   <img src="https://img.shields.io/badge/Electron-44-47848F?logo=electron&amp;logoColor=white" alt="Electron 44">
-  <img src="https://img.shields.io/badge/DSH%20runtime-0.2.2--alpha.3-4B32C3" alt="DSH runtime 0.2.2-alpha.3">
+  <img src="https://img.shields.io/badge/DSH%20runtime-0.2.2--rc.1-4B32C3" alt="DSH runtime 0.2.2-rc.1">
   <img src="https://img.shields.io/badge/node-%5E22.19%20%7C%20%3E%3D24-339933?logo=node.js&amp;logoColor=white" alt="Node.js">
 </p>
 
@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  製品バージョン <code>2.2.8</code> · DSH ランタイム <code>0.2.2-alpha.3</code> · Electron 44 · MIT License
+  製品バージョン <code>2.2.8</code> · DSH ランタイム <code>0.2.2-rc.1</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">ワンクリックでダウンロード、すぐに使えます。</a></h3>
@@ -67,7 +67,7 @@ Nonead DSH Desktop は、[DeepSeek Harness](https://github.com/deepseek-ai/deeps
 
 | レイヤー | 位置 | 役割 |
 | --- | --- | --- |
-| `2.2.8` | 2026-11-04 | バージョン更新のみ：ランタイム変更もパッチ再生成もなく、ユーザー向けの動作は 2.2.7 と同じ |
+| `2.2.8` | 2026-11-04 | ランタイムを DSH `0.2.2-rc.1`（上流 `66491b05`）へ更新し、同梱ランタイムを新しいソースから再パック（373 パッケージ）。24 個のデスクトップ向けパッチを改名して再適用 |
 | `2.2.7` | 2026-11-03 | ランタイムを DSH `0.2.2-alpha.3`（上流 `05b1cae8`）へ更新し、同梱マーケット `dshmarket` を 1.73.9 に、24 個のデスクトップ向けパッチを新しいビルド成果物に合わせて再生成しました |
 | `2.2.6` | 2026-11-02 | 安定性とゲートの保守：長時間稼働後のライフサイクル証跡が停止する問題、npm/pnpm のグローバル bin で起動器が無言終了する問題、プライベートファイルとデータ操作ロックの inode 未検証、工場出荷状態への復元でデータディレクトリが失われる問題、LAN 確認ダイアログのフォーカス管理不足、マーケットのページ上限とスキーマ不一致を修正。リリース pin・8 言語のバージョン一致・第三者表明の一致という 3 つのゲートを追加 |
 | デスクトップシェル | Electron main プロセス | 単一インスタンスロック、ウィンドウとマテリアル、トレイとメニュー、権限、ターミナル、アップデート、データディレクトリ、プロファイルの状態 |
@@ -87,7 +87,7 @@ Nonead DSH Desktop は、[DeepSeek Harness](https://github.com/deepseek-ai/deeps
 | 安定チャネルのワークスペース | `nonead-dsh-desktop`（ルートスクリプトは `:stable` 接尾辞） |
 | Beta チャネルのワークスペース | `dsh-plugin-desktop-beta`（ルートスクリプトは `:beta` 接尾辞） |
 | DSH ランタイム | `0.2.2-alpha.2`、すべての `@deepseek-ai/dsh*` 依存を厳密に pin し、ランタイムは vendored |
-| vendored 済みランタイム | `vendor/dsh-runtime/0.2.2-alpha.2/`（過去バージョンのディレクトリもいくつか保持） |
+| vendored 済みランタイム | `vendor/dsh-runtime/0.2.2-rc.1/`（過去バージョンのディレクトリもいくつか保持） |
 | 上流の pin | `f3803c96974ad4a94195fb97e5c637e9c2a3afe3fc48fa190a683e469daa699857e9afe8`（`upstream.json` の `channels.beta`、`nonead-dsh-desktop/upstream-reference.json` にも記録） |
 | Electron / パッケージャー | Electron `44.0.0` / electron-builder `26.15.7`（`app-builder-lib` にパッチあり） |
 | Node / Yarn | Node `^22.19.0` または `>=24.0.0`、Yarn `4.18.0`（Corepack 経由、`nodeLinker: node-modules`） |
