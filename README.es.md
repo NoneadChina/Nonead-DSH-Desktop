@@ -67,7 +67,7 @@ El producto no es una reimplementación del cliente, sino un host Electron liger
 
 | Capa | Ubicación | Responsabilidad |
 | --- | --- | --- |
-| `2.2.8` | 2026-11-04 | Runtime actualizado a DSH `0.2.2-rc.1` (upstream `66491b05`), runtime incluido reempaquetado desde el nuevo código (373 paquetes) y los 24 parches de personalización renombrados y reaplicados |
+| `2.2.8` | 2026-11-04 | Runtime actualizado a DSH `0.2.2-rc.1` (upstream `66491b05`) con el runtime incluido reempaquetado (373 paquetes); mercado incluido `dshmarket` a 1.73.10 y los 24 parches de personalización renombrados y reaplicados |
 | `2.2.7` | 2026-11-03 | Runtime actualizado a DSH `0.2.2-alpha.3` (upstream `05b1cae8`), mercado incluido `dshmarket` en 1.73.9 y los 24 parches de personalización regenerados sobre la nueva compilación |
 | `2.2.6` | 2026-11-02 | Mantenimiento de estabilidad y compuertas: se corrige la detención de la evidencia del ciclo de vida tras un día de actividad, la salida silenciosa del lanzador desde un bin global de npm/pnpm, la falta de verificación de inodo en archivos privados y en el bloqueo de operaciones de datos, el reinicio de fábrica sin directorio de datos, la falta de gestión de foco del diálogo LAN y el límite de página del mercado frente a su esquema; se añaden compuertas de pines de versión, paridad de ocho idiomas y avisos de terceros |
 | Shell de escritorio | Proceso principal de Electron | Bloqueo de instancia única, ventanas y materiales, bandeja y menús, permisos, terminal, actualizaciones, directorio de datos, estado de los perfiles |

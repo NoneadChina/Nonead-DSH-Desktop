@@ -67,7 +67,7 @@ Das Produkt ist keine „Neuimplementierung des Clients“, sondern ein schlanke
 
 | Ebene | Ort | Zuständigkeit |
 | --- | --- | --- |
-| `2.2.8` | 2026-11-04 | Laufzeit auf DSH `0.2.2-rc.1` (Upstream `66491b05`) aktualisiert, mitgelieferte Laufzeit aus den neuen Quellen neu gepackt (373 Pakete) und alle 24 Desktop-Anpassungspatches umbenannt und erneut angewendet |
+| `2.2.8` | 2026-11-04 | Laufzeit auf DSH `0.2.2-rc.1` (Upstream `66491b05`) aktualisiert, mitgelieferte Laufzeit neu gepackt (373 Pakete); mitgelieferter Markt `dshmarket` auf 1.73.10 angehoben und alle 24 Desktop-Anpassungspatches umbenannt und erneut angewendet |
 | `2.2.7` | 2026-11-03 | Laufzeit auf DSH `0.2.2-alpha.3` (Upstream `05b1cae8`) aktualisiert, mitgelieferter Markt `dshmarket` auf 1.73.9 angehoben und alle 24 Desktop-Anpassungspatches gegen den neuen Build neu erzeugt |
 | `2.2.6` | 2026-11-02 | Wartungsversion für Stabilität und Prüfungen: Lebenszyklus-Nachweise enden nicht mehr nach einem Tag Laufzeit, der Launcher beendet sich nicht mehr stillschweigend aus einem npm/pnpm-Global-Bin, private Dateien und die Datenoperations-Sperre prüfen den Inode, ein Werksreset kann die Installation nicht mehr ohne Datenverzeichnis zurücklassen, der LAN-Dialog erhält Fokusverwaltung, und das Markt-Seitenlimit entspricht wieder dem veröffentlichten Schema; neue Prüfungen für Release-Pins, Versionsgleichheit in acht Sprachen und Dritt-Hinweise |
 | Desktop-Shell | Electron-Hauptprozess | Einzelinstanz-Sperre, Fenster und Materialien, Tray und Menüs, Berechtigungen, Terminal, Updates, Datenverzeichnis, Profilzustand |

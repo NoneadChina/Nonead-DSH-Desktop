@@ -18,6 +18,7 @@ Konventionen für die Pflege:
 Ein Release zur Laufzeit-Nachführung ohne sichtbare Verhaltensänderung:
 
 - Laufzeit: DSH steigt auf `0.2.2-rc.1`, der Upstream-Pin wechselt auf `66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db`, und die mitgelieferte Laufzeit wird aus den neuen Quellen neu gepackt (373 Pakete); die 39 kopierten Upstream-Dateihashes in `upstream-reference.json` wurden erneut geprüft und sind unverändert.
+- Mitgelieferter Markt: `dshmarket` steigt von 1.73.9 auf 1.73.10; der Desktop-Selbstupdate-Patch wird auf die neue Codestruktur neu aufgesetzt.
 - Desktop-Anpassung: alle 24 Artefakt-Patches wurden auf `@0.2.2-rc.1` umbenannt und erneut angewendet; ihr Code entspricht 2.2.7, da diese Upstream-Änderung nur Versionsnummern anhebt und den Rest des Builds unverändert lässt.
 - Version: Produkt 2.2.7 → **2.2.8** (beide Desktop-Workspaces im Gleichschritt).
 

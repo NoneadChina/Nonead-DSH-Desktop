@@ -67,7 +67,7 @@ Le produit n’est pas une réimplémentation du client — c’est un hôte Ele
 
 | Couche | Emplacement | Responsabilité |
 | --- | --- | --- |
-| `2.2.8` | 2026-11-04 | Runtime mis à jour vers DSH `0.2.2-rc.1` (amont `66491b05`), runtime embarqué reconstruit depuis les nouvelles sources (373 paquets) et les 24 correctifs de personnalisation renommés puis réappliqués |
+| `2.2.8` | 2026-11-04 | Runtime mis à jour vers DSH `0.2.2-rc.1` (amont `66491b05`), runtime embarqué reconstruit (373 paquets) ; marché embarqué `dshmarket` porté à 1.73.10 et les 24 correctifs renommés puis réappliqués |
 | `2.2.7` | 2026-11-03 | Runtime mis à jour vers DSH `0.2.2-alpha.3` (upstream `05b1cae8`), marché intégré `dshmarket` porté à 1.73.9 et les 24 correctifs de personnalisation régénérés sur la nouvelle compilation |
 | `2.2.6` | 2026-11-02 | Maintenance de stabilité et de garde-fous : correction de l'arrêt des preuves de cycle de vie après une journée d'activité, de la sortie silencieuse du lanceur depuis un bin global npm/pnpm, de l'absence de vérification d'inode pour les fichiers privés et le verrou d'opérations de données, du redémarrage usine sans répertoire de données, de l'absence de gestion du focus dans la boîte LAN et de la limite de page du marché face à son schéma ; ajout de garde-fous sur les pins de version, la parité des huit langues et les mentions de tiers |
 | Enveloppe de bureau | Processus principal Electron | Verrou d’instance unique, fenêtres et matériaux, barre d’état système et menus, autorisations, terminal, mises à jour, répertoire de données, état des profils |

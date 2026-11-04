@@ -67,7 +67,7 @@ O produto não é uma reimplementação do cliente — é um host Electron enxut
 
 | Camada | Local | Responsabilidade |
 | --- | --- | --- |
-| `2.2.8` | 2026-11-04 | Runtime atualizado para DSH `0.2.2-rc.1` (upstream `66491b05`), runtime incluído reempacotado a partir do novo código (373 pacotes) e os 24 patches de personalização renomeados e reaplicados |
+| `2.2.8` | 2026-11-04 | Runtime atualizado para DSH `0.2.2-rc.1` (upstream `66491b05`) com o runtime incluído reempacotado (373 pacotes); mercado incluído `dshmarket` elevado para 1.73.10 e os 24 patches renomeados e reaplicados |
 | `2.2.7` | 2026-11-03 | Runtime atualizado para DSH `0.2.2-alpha.3` (upstream `05b1cae8`), mercado incluído `dshmarket` elevado para 1.73.9 e os 24 patches de personalização regenerados sobre a nova compilação |
 | `2.2.6` | 2026-11-02 | Manutenção de estabilidade e validações: corrige a parada das evidências de ciclo de vida após um dia de execução, a saída silenciosa do iniciador a partir de um bin global do npm/pnpm, a ausência de verificação de inode em arquivos privados e no bloqueio de operações de dados, a redefinição de fábrica sem diretório de dados, a falta de gestão de foco no diálogo LAN e o limite de página do mercado frente ao esquema publicado; novos portões cobrem pins de versão, paridade de oito idiomas e avisos de terceiros |
 | Shell desktop | Processo principal do Electron | Bloqueio de instância única, janelas e materiais, bandeja e menus, permissões, terminal, atualizações, diretório de dados, estado do perfil |

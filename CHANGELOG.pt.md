@@ -18,6 +18,7 @@ Convenções de manutenção:
 Uma publicação focada em acompanhar o runtime, sem mudança visível para o usuário:
 
 - Runtime: DSH sobe para `0.2.2-rc.1`, o pin upstream passa para `66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db` e o runtime incluído é reempacotado a partir do novo código (373 pacotes); os 39 hashes de arquivos copiados em `upstream-reference.json` foram revalidados e não mudaram.
+- Mercado incluído: `dshmarket` sobe de 1.73.9 para 1.73.10, com o patch de autoatualização do desktop rebaseado na nova estrutura do código.
 - Personalização do desktop: os 24 patches de artefatos foram renomeados para `@0.2.2-rc.1` e reaplicados; seu código é idêntico ao de 2.2.7 porque esta mudança upstream apenas eleva os números de versão e não altera o restante da compilação.
 - Versão: produto 2.2.7 → **2.2.8** (ambos os workspaces de desktop em conjunto).
 

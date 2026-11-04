@@ -67,7 +67,7 @@ The product is not a reimplementation of the client — it is a thin Electron ho
 
 | Layer | Location | Responsibility |
 | --- | --- | --- |
-| `2.2.8` | 2026-11-04 | Runtime upgraded to DSH `0.2.2-rc.1` (upstream `66491b05`), the vendored runtime repacked from the new source (373 packages), and all 24 desktop customisation patches renamed and re-applied |
+| `2.2.8` | 2026-11-04 | Runtime upgraded to DSH `0.2.2-rc.1` (upstream `66491b05`) with the vendored runtime repacked (373 packages); bundled market `dshmarket` raised to 1.73.10; all 24 desktop customisation patches renamed and re-applied |
 | `2.2.7` | 2026-11-03 | Runtime upgraded to DSH `0.2.2-alpha.3` (upstream `05b1cae8`), bundled market `dshmarket` raised to 1.73.9, and all 24 desktop customization patches regenerated against the new build output |
 | `2.2.6` | 2026-11-02 | Stability and gate maintenance: lifecycle evidence no longer stops after a day of uptime, the launcher no longer exits silently from an npm/pnpm global bin, private files and the data-operation lock bind to the validated inode, factory reset cannot leave the installation without a data directory, the LAN dialog gains focus management, and the market page limit matches its published schema; new gates cover release pins, eight-language version parity and third-party notices |
 | Desktop shell | Electron main process | Single-instance lock, windows and materials, tray and menus, permissions, terminal, updates, data directory, profile state |
