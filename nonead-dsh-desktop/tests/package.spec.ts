@@ -76,10 +76,20 @@ it('archives the application like upstream Desktop while keeping fuses and nativ
     .replace('Contents/Resources/runtime/**}', 'Contents/Resources/runtime/**,Contents/Resources/runtime/**/.*/**}'))
   // Both CPU payloads ride beside the archive as extra resources; electron-builder must not re-sign the pre-signed payloads.
   // macOS also carries the manifest copy the updaters shipped in 2.0.14-next through 2.0.17-next read beside the archive.
-  expect(next.build.mac.extraResources).toEqual([{ from: '.desktop-build/runtime', to: 'runtime' }, { from: '.desktop-build/payload/package.json', to: 'app/package.json' }])
-  expect(next.build.win.extraResources).toEqual([{ from: '.desktop-build/runtime', to: 'runtime' }])
+  // Every platform also materialises the host bundle beside the archive: the packaged Profile is outside
+  // app.asar, and the runtime resolver no longer answers for the application's own package name.
+  const hostBundleResources = [
+    { from: '.desktop-build/payload/package.json', to: 'node_modules/nonead-dsh-desktop/package.json' },
+    { from: '.desktop-build/payload/lib', to: 'node_modules/nonead-dsh-desktop/lib' },
+  ]
+  expect(next.build.mac.extraResources).toEqual([
+    { from: '.desktop-build/runtime', to: 'runtime' },
+    { from: '.desktop-build/payload/package.json', to: 'app/package.json' },
+    ...hostBundleResources,
+  ])
+  expect(next.build.win.extraResources).toEqual([{ from: '.desktop-build/runtime', to: 'runtime' }, ...hostBundleResources])
   expect(next.build.extraResources).toBeUndefined()
-  expect(next.build.linux.extraResources).toBeUndefined()
+  expect(next.build.linux.extraResources).toEqual(hostBundleResources)
   expect(next.build.mac.signIgnore).toContain('/Contents/Resources/runtime/(?:arm64|x64)/primary-runtime(?:/|$)')
   expect(next.scripts['prepare:runtime']).toBe('node scripts/prepare-runtime.ts')
   // Like upstream Desktop's dev launcher, every development launch prepares the payload before the shell starts.

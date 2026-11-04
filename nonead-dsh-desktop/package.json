@@ -384,6 +384,14 @@
         {
           "from": ".desktop-build/payload/package.json",
           "to": "app/package.json"
+        },
+        {
+          "from": ".desktop-build/payload/package.json",
+          "to": "node_modules/nonead-dsh-desktop/package.json"
+        },
+        {
+          "from": ".desktop-build/payload/lib",
+          "to": "node_modules/nonead-dsh-desktop/lib"
         }
       ],
       "mergeASARs": false,
@@ -410,6 +418,14 @@
         {
           "from": ".desktop-build/runtime",
           "to": "runtime"
+        },
+        {
+          "from": ".desktop-build/payload/package.json",
+          "to": "node_modules/nonead-dsh-desktop/package.json"
+        },
+        {
+          "from": ".desktop-build/payload/lib",
+          "to": "node_modules/nonead-dsh-desktop/lib"
         }
       ]
     },
@@ -432,7 +448,17 @@
       "target": [
         "dir"
       ],
-      "icon": "build/app-icon.png"
+      "icon": "build/app-icon.png",
+      "extraResources": [
+        {
+          "from": ".desktop-build/payload/package.json",
+          "to": "node_modules/nonead-dsh-desktop/package.json"
+        },
+        {
+          "from": ".desktop-build/payload/lib",
+          "to": "node_modules/nonead-dsh-desktop/lib"
+        }
+      ]
     },
     "dmg": {
       "icon": "build/app-icon.icns"
