@@ -2,7 +2,7 @@
 
 [English documentation](README.en.md)
 
-这里是 Nonead DSH Desktop 的产品与开发文档入口，对应产品版本 **2.2.3**。根目录的 [`README.md`](../README.md) 负责"这是什么、能做什么、怎么装"；本目录解释项目为什么存在、怎么用得更顺，以及如何为 Desktop 编写插件。版本变更见[更新日志](../CHANGELOG.md)。
+这里是 Nonead DSH Desktop 的产品与开发文档入口，对应产品版本 **2.2.6**。根目录的 [`README.md`](../README.md) 负责"这是什么、能做什么、怎么装"；本目录解释项目为什么存在、怎么用得更顺，以及如何为 Desktop 编写插件。版本变更见[更新日志](../CHANGELOG.md)。
 
 ## 按目标阅读
 
@@ -39,7 +39,7 @@
 ## 文档命名与双语约定
 
 - 本目录的成对文档是 `X.md`（中文）与 `X.en.md`（英文），两侧内容等价，改动必须成对进行。
-- `*.i18n.yaml` 记录成对文件的 Git blob 哈希。`docs/` 的七对文档、根 `README`/`CHANGELOG` 与各子包 README 都已记录（当前 57 条记录，覆盖 114 个文档）。校验器只遍历 `git ls-files` 命中的记录，新增的 `*.i18n.yaml` 必须先 `git add` 才会被检查；`corepack yarn check:bilingual-docs` 会校验哈希一致，改文档后必须按 [`README.md` 的"从源码开发"](../README.md#从源码开发) 一节重算哈希。
+- `*.i18n.yaml` 记录成对文件的 Git blob 哈希。`docs/` 的七对文档、根 `README`/`CHANGELOG` 与各子包 README 都已记录（当前 57 条记录，覆盖 126 个文档）。校验器只遍历 `git ls-files` 命中的记录，新增的 `*.i18n.yaml` 必须先 `git add` 才会被检查；`corepack yarn check:bilingual-docs` 会校验哈希一致，改文档后必须按 [`README.md` 的"从源码开发"](../README.md#从源码开发) 一节重算哈希。
 - 仓库根的 `README.md` 是中文、`README.en.md` 是英文；子包的口径相反（`README.md` 英文、`README.zh.md` 中文），引用时按目录判断。
 
 ## README 文件怎么分工

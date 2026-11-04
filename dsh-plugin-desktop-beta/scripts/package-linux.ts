@@ -1,4 +1,4 @@
-/** Build an unsigned Linux x64 AppImage and Debian package on a native Linux host. */
+/** Build an unsigned Linux AppImage and Debian package on a native Linux host (x64 or arm64). */
 
 import { spawnSync } from 'node:child_process'
 import { createRequire } from 'node:module'
@@ -7,6 +7,27 @@ import { fileURLToPath } from 'node:url'
 import { prepareFsExtForElectron } from './prepare-fs-ext.ts'
 import { electronBuilderEnvironment } from './electron-builder-environment.ts'
 import { prepareDesktopInterpreters, verifyPreparedDesktopRuntime } from './prepare-runtime.ts'
+
+/** Architectures a native Linux host may package for. */
+export type LinuxTargetArch = 'arm64' | 'x64'
+
+const LINUX_TARGET_ARCHES = new Set<string>(['arm64', 'x64'])
+
+/**
+ * Normalize the packaging architecture.
+ *
+ * The Linux package builds `fs-ext` with node-gyp, which cannot cross-compile, so the target is
+ * always the host architecture; unsupported architectures fail instead of producing a broken
+ * AppImage.
+ * @param arch - `process.arch` of the packaging host.
+ * @returns the supported target architecture.
+ */
+export function normalizeLinuxArch(arch: string): LinuxTargetArch {
+  if (!LINUX_TARGET_ARCHES.has(arch)) {
+    throw new Error(`Linux artifacts require an x64 or arm64 host; received ${arch}`)
+  }
+  return arch as LinuxTargetArch
+}
 
 const LINUX_SIGNING_KEYS = [
   'CSC_IDENTITY_AUTO_DISCOVERY',
@@ -82,16 +103,17 @@ export function createLinuxPackageOptions(verifier = './verify-linux-artifacts.t
   const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
   const workspaceRoot = resolve(desktopRoot, '..')
   const require = createRequire(import.meta.url)
+  const arch = normalizeLinuxArch(process.arch)
   return {
     env: process.env,
     platform: process.platform,
-    arch: process.arch,
+    arch,
     nodeVersion: process.versions.node,
     workspaceRoot,
     desktopRoot,
     builderCli: require.resolve('electron-builder/cli.js'),
     prepareRuntime: () => {
-      prepareFsExtForElectron({ platform: 'linux', arch: 'x64', desktopRoot })
+      prepareFsExtForElectron({ platform: 'linux', arch, desktopRoot })
       // Linux ships no interpreter payload; the check confirms the tree declares none.
       verifyPreparedDesktopRuntime(desktopRoot, 'linux')
     },
@@ -107,8 +129,15 @@ function assertLinuxPackageHost(options: LinuxPackageOptions): void {
   if (options.platform !== 'linux') {
     throw new Error('Linux artifacts must be built on a native Linux host')
   }
-  if (options.arch !== 'x64') {
-    throw new Error(`Linux artifacts require x64 Node; received ${options.arch}`)
+  if (options.arch !== 'x64' && options.arch !== 'arm64') {
+    throw new Error(`Linux artifacts require an x64 or arm64 host; received ${options.arch}`)
+  }
+  if (options.arch !== process.arch) {
+    // `fs-ext` is compiled by node-gyp for the host, so a mismatched target would ship a binding
+    // the package cannot load.
+    throw new Error(
+      `Linux ${options.arch} artifacts must be built on that architecture; this host is ${process.arch}`,
+    )
   }
   const versionMatch = /^(\d+)\.(\d+)\./u.exec(options.nodeVersion)
   const major = Number(versionMatch?.[1])
@@ -120,14 +149,14 @@ function assertLinuxPackageHost(options: LinuxPackageOptions): void {
   }
 }
 
-/** Run the gates and package the unsigned x64 Linux AppImage and Debian package. */
+/** Run the gates and package the unsigned Linux AppImage and Debian package for the host architecture. */
 export function packageLinuxArtifacts(
   options: LinuxPackageOptions = createLinuxPackageOptions(),
 ): void {
   assertLinuxPackageHost(options)
 
   const cleanEnvironment = withoutLinuxSigningSecrets(options.env)
-  options.log('Building unsigned Linux x64 AppImage and Debian package; signing is a separate release step.')
+  options.log(`Building unsigned Linux ${options.arch} AppImage and Debian package; signing is a separate release step.`)
   if (options.env.DSH_PACKAGE_CHECK_ALREADY_RAN !== '1') {
     options.run(
       'corepack',
@@ -146,7 +175,7 @@ export function packageLinuxArtifacts(
       '--linux',
       'AppImage',
       'deb',
-      '--x64',
+      `--${options.arch}`,
       '--publish',
       'never',
       '--config.npmRebuild=false',

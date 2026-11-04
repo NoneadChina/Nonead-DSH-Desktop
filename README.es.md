@@ -5,11 +5,25 @@
 <h1 align="center">Nonead DSH Desktop</h1>
 
 <p align="center">
+  <a href="https://github.com/NoneadChina/Nonead-DSH-Desktop/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/NoneadChina/Nonead-DSH-Desktop/ci.yml?branch=main&amp;label=CI&amp;logo=github" alt="CI"></a>
+  <a href="https://github.com/NoneadChina/Nonead-DSH-Desktop/tags"><img src="https://img.shields.io/github/v/tag/NoneadChina/Nonead-DSH-Desktop?label=tag&amp;logo=git&amp;logoColor=white" alt="latest tag"></a>
+  <a href="https://github.com/NoneadChina/Nonead-DSH-Desktop/stargazers"><img src="https://img.shields.io/github/stars/NoneadChina/Nonead-DSH-Desktop?logo=github" alt="stars"></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-orange" alt="license: MIT"></a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-0078D6" alt="Windows, macOS, Linux">
+  <img src="https://img.shields.io/badge/Electron-44-47848F?logo=electron&amp;logoColor=white" alt="Electron 44">
+  <img src="https://img.shields.io/badge/DSH%20runtime-0.2.2--alpha.3-4B32C3" alt="DSH runtime 0.2.2-alpha.3">
+  <img src="https://img.shields.io/badge/node-%5E22.19%20%7C%20%3E%3D24-339933?logo=node.js&amp;logoColor=white" alt="Node.js">
+</p>
+
+<p align="center">
   <strong>Un cliente de escritorio de código abierto para Windows, macOS y Linux, basado en DeepSeek Harness.</strong>
 </p>
 
 <p align="center">
-  Producto <code>2.2.3</code> · runtime de DSH <code>0.2.2-alpha.2</code> · Electron 44 · MIT License
+  Producto <code>2.2.7</code> · runtime de DSH <code>0.2.2-alpha.3</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">Descarga con un clic, listo para usar.</a></h3>
@@ -53,6 +67,8 @@ El producto no es una reimplementación del cliente, sino un host Electron liger
 
 | Capa | Ubicación | Responsabilidad |
 | --- | --- | --- |
+| `2.2.7` | 2026-11-03 | Runtime actualizado a DSH `0.2.2-alpha.3` (upstream `05b1cae8`), mercado incluido `dshmarket` en 1.73.9 y los 24 parches de personalización regenerados sobre la nueva compilación |
+| `2.2.6` | 2026-11-02 | Mantenimiento de estabilidad y compuertas: se corrige la detención de la evidencia del ciclo de vida tras un día de actividad, la salida silenciosa del lanzador desde un bin global de npm/pnpm, la falta de verificación de inodo en archivos privados y en el bloqueo de operaciones de datos, el reinicio de fábrica sin directorio de datos, la falta de gestión de foco del diálogo LAN y el límite de página del mercado frente a su esquema; se añaden compuertas de pines de versión, paridad de ocho idiomas y avisos de terceros |
 | Shell de escritorio | Proceso principal de Electron | Bloqueo de instancia única, ventanas y materiales, bandeja y menús, permisos, terminal, actualizaciones, directorio de datos, estado de los perfiles |
 | Host | Proceso hijo en modo Node | Carga la capa de parches del perfil, arranca el boot del perfil upstream, sirve el transporte web y aloja los plugins Host de terceros |
 | Transporte web | HTTP + WebSocket en loopback | Sirve la interfaz web oficial (puerto efímero por defecto) |
@@ -66,7 +82,7 @@ El shell y el Host se comunican por un único canal IPC de proceso hijo. Cambiar
 
 | Elemento | Valor |
 | --- | --- |
-| Versión del producto | `2.2.3` (`nonead-dsh-desktop` y `dsh-plugin-desktop-beta` sincronizados) |
+| Versión del producto | `2.2.7` (`nonead-dsh-desktop` y `dsh-plugin-desktop-beta` sincronizados) |
 | Espacio de trabajo del canal estable | `nonead-dsh-desktop` (los scripts de la raíz usan el sufijo `:stable`) |
 | Espacio de trabajo del canal Beta | `dsh-plugin-desktop-beta` (los scripts de la raíz usan el sufijo `:beta`) |
 | Runtime de DSH | `0.2.2-alpha.2`, todas las dependencias `@deepseek-ai/dsh*` fijadas con pin exacto y el runtime vendored en el repositorio |

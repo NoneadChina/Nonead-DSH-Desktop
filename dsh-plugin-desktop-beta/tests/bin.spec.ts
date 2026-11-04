@@ -1,11 +1,13 @@
-import { existsSync, mkdtempSync } from 'node:fs'
+import { existsSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { describe, expect, it, vi } from 'vitest'
 import AdmZip from 'adm-zip'
 import {
   defaultDesktopUserDataDirectory,
   DESKTOP_CLI_HELP,
+  isDesktopCliEntryPoint,
   parseDesktopCli,
   parseDesktopCliRequest,
   runDesktopCli,
@@ -82,5 +84,22 @@ describe('desktop npm launcher', () => {
     } finally {
       write.mockRestore()
     }
+  })
+
+  it('recognizes the launcher through an equivalent entry path and nothing else', () => {
+    const directory = mkdtempSync(join(tmpdir(), 'dsh-cli-entry-'))
+    const entry = join(directory, 'bin.js')
+    writeFileSync(entry, '')
+    const moduleUrl = pathToFileURL(entry).href
+
+    expect(isDesktopCliEntryPoint(entry, moduleUrl)).toBe(true)
+    // A Windows install may name the same file with different casing or through an 8.3 short
+    // path; a POSIX install reaches it through a bin symlink, which realpath resolves here.
+    if (process.platform === 'win32') {
+      expect(isDesktopCliEntryPoint(entry.toUpperCase(), moduleUrl)).toBe(true)
+    }
+    expect(isDesktopCliEntryPoint(join(directory, 'other.js'), moduleUrl)).toBe(false)
+    expect(isDesktopCliEntryPoint(undefined, moduleUrl)).toBe(false)
+    expect(isDesktopCliEntryPoint(entry, pathToFileURL(join(directory, 'other.js')).href)).toBe(false)
   })
 })

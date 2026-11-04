@@ -330,7 +330,9 @@ function createHarness(
       for (const listener of documentUpdated) listener('ui-theme', 1)
     },
     validate: (candidate) => {
-      for (const waterfall of configWaterfall) waterfall.call(fiber, candidate, () => candidate)
+      // cordis 0.2.2-alpha.3 起 `internal/config` 以 `(fiber, next)` 调用监听器，
+      // `this` 不再承载 fiber；夹具按新契约传参。
+      for (const waterfall of configWaterfall) waterfall.call(undefined, fiber, () => candidate)
     },
   }
 }

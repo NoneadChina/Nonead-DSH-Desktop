@@ -2,7 +2,7 @@
 
 [中文文档](README.md)
 
-This directory is the product and developer documentation index for Nonead DSH Desktop, version **2.2.3**. The root [`README.en.md`](../README.en.md) covers what the product is, what it can do and how to install it; these pages explain why the project exists, how to get more out of it, and how to build plugins for it. Version history lives in the [changelog](../CHANGELOG.en.md).
+This directory is the product and developer documentation index for Nonead DSH Desktop, version **2.2.6**. The root [`README.en.md`](../README.en.md) covers what the product is, what it can do and how to install it; these pages explain why the project exists, how to get more out of it, and how to build plugins for it. Version history lives in the [changelog](../CHANGELOG.en.md).
 
 ## Read by goal
 
@@ -39,7 +39,7 @@ Ordinary users can start with the [user guide](user-guide.en.md) and never need 
 ## Naming and bilingual conventions
 
 - Paired pages in this directory are `X.md` (Chinese) and `X.en.md` (English). Both sides are equivalent, so every change must land on both.
-- `*.i18n.yaml` files record the Git blob hashes of the paired documents. All seven `docs/` pairs, the root `README`/`CHANGELOG` and the package READMEs are covered (57 records for 114 documents today). The verifier only walks records hit by `git ls-files`, so a new `*.i18n.yaml` must be `git add`ed before it is checked; `corepack yarn check:bilingual-docs` verifies the hashes, so after editing a document recompute them as described in [“Building from source”](../README.en.md#building-from-source) of the root README.
+- `*.i18n.yaml` files record the Git blob hashes of the paired documents. All seven `docs/` pairs, the root `README`/`CHANGELOG` and the package READMEs are covered (57 records for 126 documents today). The verifier only walks records hit by `git ls-files`, so a new `*.i18n.yaml` must be `git add`ed before it is checked; `corepack yarn check:bilingual-docs` verifies the hashes, so after editing a document recompute them as described in [“Building from source”](../README.en.md#building-from-source) of the root README.
 - At the repository root `README.md` is Chinese and `README.en.md` is English; packages use the opposite convention (`README.md` English, `README.zh.md` Chinese), so check the directory before linking.
 
 ## How the README files are organized

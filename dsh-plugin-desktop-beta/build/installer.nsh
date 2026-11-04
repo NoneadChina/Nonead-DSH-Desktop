@@ -1,8 +1,15 @@
 ; Check the exact app process before launching the quit handoff. This preserves
 ; the #469 fix: unrelated helpers under $INSTDIR must never block an upgrade.
+!ifndef BUILD_UNINSTALLER
 Var pid
+!endif
 
 !macro customCheckAppRunning
+  ; electron-builder builds the uninstaller by RUNNING this installer once with
+  ; BUILD_UNINSTALLER defined (`NsisTarget.computeScriptAndSignUninstaller`). That pass installs
+  ; nothing, so closing a running application there aborts the build with exit code 2 whenever
+  ; the app happens to be open — for example on the developer machine that builds the installer.
+  !ifndef BUILD_UNINSTALLER
   !insertmacro IS_POWERSHELL_AVAILABLE
   !insertmacro FIND_PROCESS "${APP_EXECUTABLE_FILENAME}" $R0
   ${if} $R0 != 0
@@ -61,4 +68,5 @@ Var pid
     Goto dsh_installer_wait_for_fallback
 
   dsh_installer_app_stopped:
+  !endif
 !macroend

@@ -173,7 +173,13 @@ export async function checkForDesktopUpdate(
   } catch {
     return null
   }
-  if (response.status !== 200) return null
+  if (response.status !== 200) {
+    // The body is never read on this path, so release it explicitly: otherwise the
+    // connection lingers until the garbage collector finalizes the response, exactly
+    // like the oversized-response path below.
+    await discardResponseBody(response)
+    return null
+  }
 
   let body: string
   try {
@@ -239,6 +245,11 @@ export function desktopVersionRequestHeaders(
 
 async function defaultRequest(url: string, init: RequestInit): Promise<Response> {
   return globalThis.fetch(url, init)
+}
+
+/** Release a response body that will never be read, so its connection can close. */
+async function discardResponseBody(response: Response): Promise<void> {
+  await response.body?.cancel().catch(() => undefined)
 }
 
 async function readLimitedBody(response: Response): Promise<string> {

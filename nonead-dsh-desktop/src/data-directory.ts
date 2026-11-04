@@ -1,7 +1,7 @@
 /** Persist the Desktop data location outside the selected home so it survives relaunch. */
 import { readdirSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { isAbsolute, join, relative, resolve } from 'node:path'
+import { isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { privateDirectory, readPrivateFile } from './private-files.ts'
 import { LEGACY, readPrivateFileWithLegacy } from './legacy-names.ts'
 
@@ -29,7 +29,10 @@ export function validateDataDirectory(target: string, current: string, defaultHo
   if (!isAbsolute(target) || target.includes('\0')) throw new Error('Data directory must be an absolute path')
   const destination = resolve(target)
   const nested = relative(current, destination)
-  if (nested && !nested.startsWith('..') && !isAbsolute(nested)) throw new Error('Choose a directory outside the current data directory')
+  // A descendant is inside the current data directory whatever its name; only the parent branch
+  // and other trees are "outside". `startsWith('..')` also matched children such as `..cache`.
+  const inside = nested !== '' && nested !== '..' && !nested.startsWith(`..${sep}`) && !isAbsolute(nested)
+  if (inside) throw new Error('Choose a directory outside the current data directory')
   privateDirectory(destination)
   const entries = readdirSync(destination)
   if (destination !== defaultHome && destination !== current && entries.length > 0

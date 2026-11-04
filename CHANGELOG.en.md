@@ -13,6 +13,30 @@ Maintenance conventions:
 - Entries record only changes users can perceive and boundary changes maintainers must know about; pure refactors do not get their own entry.
 - Earlier history lives in the Git tags (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) and in the commit log.
 
+## 2.2.7 — 2026-11-03
+
+A release centred on following the upstream runtime:
+
+- Runtime: DSH raised to `0.2.2-alpha.3`, the upstream pin moved to `05b1cae8db6e674c5685101494d4eec24652424a`, and the vendored runtime was repacked from the new source (373 packages); the 39 copied upstream file hashes in `upstream-reference.json` were re-verified and are unchanged.
+- Bundled market: `dshmarket` raised from 1.73.1 to 1.73.9.
+- Desktop customisation: all 24 build-output patches regenerated for `0.2.2-alpha.3`; the conversation title row, the settings desktop icon and the boot wordmark (`NONEAD DEEPSEEK`) were rewritten against the new code shape.
+- Version: product 2.2.6 → **2.2.7** (both desktop workspaces in lockstep).
+
+## 2.2.6 — 2026-11-02
+
+A maintenance release focused on stability and gate strength; the feature set is unchanged.
+
+- Long-running sessions: lifecycle evidence validated `monotonicMs` against a 24-hour ceiling, so a Desktop left open for more than a day stopped writing every event (including the host-exit evidence); the recorder now uses the host-uptime bound while single startup durations keep their limit.
+- Launcher: entry-point detection is canonicalized with `realpath` plus a Windows case-insensitive fallback, so `dsh-plugin-desktop-beta` no longer exits silently when npm/pnpm installs it as a global bin symlink.
+- Resource release: an unconfirmed host exit no longer skips releasing native bindings and the RPC listener, and a boot failure keeps its original cause.
+- Security: log and diagnostic masking now covers base64 and JWT credentials that used to pass through in clear text; private-file reads open the inode they validated (TOCTOU), and the data-directory nesting guard no longer lets a `..cache` child escape it.
+- Data safety: the desktop data operation lock verifies the record inode and reports a vanished record as the existing `busy` error; factory reset recreates the empty data directory before clearing external preferences, so a failure cannot leave the installation without one.
+- Update check: non-200 responses release their body explicitly instead of leaving the connection to the garbage collector.
+- Settings: the LAN confirmation dialog gains initial focus, Escape handling, Tab cycling and focus restoration.
+- Plugin market: the provider page safety maximum is aligned with the published schema (200), so a schema-valid `defaultLimit: 150` source is no longer permanently unusable.
+- Gates: a new release-pin check verifies the provenance record (commit, repository and the 39 upstream file hashes against the actual upstream bytes), eight-language README/CHANGELOG version parity, and third-party notice consistency (`verify:notices:check` now runs in check/CI and in all five packaging entries); the notices file is regenerated (DSH `0.2.1-rc.2` → `0.2.2-alpha.2`, market 1.73.1) and the Blue Oak license is accepted.
+- Version: the product moves from 2.2.3 to **2.2.6** in both desktop workspaces.
+
 ## 2.2.3 — 2026-10-29
 
 The desktop shell is localized into eight languages (Simplified Chinese, English, Japanese, Spanish, French, German, Russian, Brazilian Portuguese):

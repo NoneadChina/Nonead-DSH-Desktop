@@ -85,13 +85,26 @@ describe('Linux packaging orchestration', () => {
     expect(seen[0]!.CSC_IDENTITY_AUTO_DISCOVERY).toBe('false')
   })
 
-  it('rejects non-Linux hosts and non-x64 architectures', () => {
+  it('accepts the host architecture and rejects unsupported or cross-arch targets', () => {
     expect(() => packageLinuxArtifacts(options({ platform: 'win32' })))
       .toThrow('must be built on a native Linux host')
-    expect(() => packageLinuxArtifacts(options({ arch: 'arm64' })))
-      .toThrow('require x64 Node')
+    // arm64 hosts package arm64; node-gyp cannot cross-compile fs-ext, so a mismatched
+    // target has to fail instead of shipping a binding the package cannot load.
+    const otherArch = process.arch === 'arm64' ? 'x64' : 'arm64'
+    expect(() => packageLinuxArtifacts(options({ arch: otherArch })))
+      .toThrow('must be built on that architecture')
+    expect(() => packageLinuxArtifacts(options({ arch: 'ia32' })))
+      .toThrow('x64 or arm64 host')
     expect(() => packageLinuxArtifacts(options({ nodeVersion: '20.1.0' })))
       .toThrow('Node 22.19+ or Node 24.x')
+  })
+
+  it('packages the declared target architecture instead of a hard-coded x64', () => {
+    const arch = process.arch === 'arm64' ? 'arm64' : 'x64'
+    const run = vi.fn()
+    packageLinuxArtifacts(options({ run, arch }))
+    const builder = run.mock.calls[1]![1] as string[]
+    expect(builder).toContain(`--${arch}`)
   })
 
   it('strips signing secrets case-insensitively', () => {

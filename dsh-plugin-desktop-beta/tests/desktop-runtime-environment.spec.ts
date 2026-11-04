@@ -318,7 +318,9 @@ describe('desktop Host pnpm runtime', () => {
     expect(readdirSync(installation.pathDir)).toEqual(['pnpm.cmd'])
     expect(readdirSync(installation.nodeBinDir)).toEqual(['node.cmd'])
     const pnpm = readFileSync(installation.pnpmShimPath, 'utf8')
-    expect(pnpm).toContain('set "DSH_RUNTIME_ROOT=%~dp0.."')
+    // `%~dp0..` 会保留 `bin\..`，NODE/npm_node_execpath 必须是规范化路径，故先用 for/%%~fI 解析。
+    expect(pnpm).toContain('for %%I in ("%~dp0..") do set "DSH_RUNTIME_ROOT=%%~fI"')
+    expect(pnpm).not.toContain('set "DSH_RUNTIME_ROOT=%~dp0.."')
     expect(pnpm).toContain('set "PATH=%DSH_RUNTIME_NODE_BIN%;%PATH%"')
     expect(pnpm).toContain('set "NODE=%DSH_RUNTIME_NODE_BIN%\\node.cmd"')
     expect(pnpm).toContain('set "ELECTRON_RUN_AS_NODE=1"')

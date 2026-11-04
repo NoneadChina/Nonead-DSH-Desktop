@@ -91,6 +91,14 @@ export async function resetDesktopDataDirectory(
   // Startup always recreates desktop, even when it was removed before reset.
   const profiles = new Set(['desktop', ...await readdir(join(target, 'profiles'))])
   await options.trashItem(target)
+  // Recreate the empty root before touching any external preference: those writes are what can
+  // fail (denied permission, unreadable state, full volume), and a failure there must not leave the
+  // installation without a data directory.
+  await mkdir(target, { recursive: false, mode: DIRECTORY_MODE })
+  const recreated = lstatSync(target)
+  if (!recreated.isDirectory() || isLinkedPath(target)) {
+    throw new Error(`${DESKTOP_PACKAGE_NAME}: factory-reset data directory could not be recreated safely`)
+  }
   // Profile identity is path-based, so rebuilding the same Home would otherwise
   // restore preferences from before reset into the clean settings document.
   for (const name of profiles) {
@@ -105,10 +113,5 @@ export async function resetDesktopDataDirectory(
   }
   // A fresh Profile imports this legacy machine-level selection on first boot.
   await selectDesktopMarketProvider(userDataDir, 'disabled')
-  await mkdir(target, { recursive: false, mode: DIRECTORY_MODE })
-  const recreated = lstatSync(target)
-  if (!recreated.isDirectory() || isLinkedPath(target)) {
-    throw new Error(`${DESKTOP_PACKAGE_NAME}: factory-reset data directory could not be recreated safely`)
-  }
   return target
 }

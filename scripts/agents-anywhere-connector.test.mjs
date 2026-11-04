@@ -13,12 +13,43 @@ import { runInNewContext } from 'node:vm'
 import { AA_WORKSPACES } from './agents-anywhere-release-policy.mjs'
 
 // Exercise the installed artifact: a patch file alone does not prove Yarn applied it.
+// 打包器会随上游工具链漂移：旧产物用 `//#region <module>.ts` 标注模块边界，新产物（2026-10-29
+// 重建的 2.1.0-desktop.c39b82d4…rd9c47cbc）只留 `// <module>.ts` 普通注释。两种都要认，否则
+// 门禁会因为注释风格变化而整体报红，而不是因为安装产物真的不对。
+const MODULE_MARKERS = [
+  /^\/\/#region (src\/[^\s]+\.ts)$/gmu,
+  /^\/\/ (src\/[^\s]+\.ts)$/gmu,
+]
+
+function moduleSpans(source) {
+  const spans = []
+  for (const pattern of MODULE_MARKERS) {
+    for (const match of source.matchAll(pattern)) spans.push({ module: match[1], start: match.index })
+  }
+  spans.sort((left, right) => left.start - right.start)
+  return spans.map((span, index) => ({ ...span, end: spans[index + 1]?.start ?? source.length }))
+}
+
+/** 精确取一个模块的代码：从它的模块标记到下一个模块标记。 */
+function moduleSource(source, module) {
+  const span = moduleSpans(source).find(candidate => candidate.module === module)
+  assert.ok(span !== undefined, `installed bundle does not expose ${module}`)
+  return source.slice(span.start, span.end)
+}
+
+/** 取两个模块之间的连续代码块（原实现依赖它们相邻，两种打包格式下都成立）。 */
+function moduleRange(source, fromModule, toModule) {
+  const spans = moduleSpans(source)
+  const start = spans.findIndex(span => span.module === fromModule)
+  const end = spans.findIndex(span => span.module === toModule)
+  assert.ok(start >= 0 && end > start, `installed bundle does not expose ${fromModule}..${toModule}`)
+  return source.slice(spans[start].start, spans[end].start)
+}
+
 function loadConnector(workspace, environment) {
   const source = readFileSync(new URL(`../${workspace}/node_modules/@agents-anywhere/dsh-bridge-next/lib/index.js`, import.meta.url), 'utf8')
-  const start = source.indexOf('//#region src/host/connector/logs.ts')
-  const end = source.indexOf('//#region src/host/desktop/detect.ts', start)
-  assert.ok(start >= 0 && end > start)
-  return runInNewContext(`${source.slice(start, end)}; SourceConnector`, {
+  const region = moduleRange(source, 'src/host/connector/logs.ts', 'src/host/desktop/detect.ts')
+  return runInNewContext(`${region}; SourceConnector`, {
     execFile, promisify, stripVTControlCharacters, join, relative, createHash, setTimeout, clearTimeout,
     access, cp, mkdtemp, readFile, readdir, rename, rm,
     process: { platform: process.platform, env: environment },
@@ -31,12 +62,7 @@ function loadConnector(workspace, environment) {
 for (const workspace of AA_WORKSPACES) {
   test(`${workspace}: rc.2 tool results retain the same hash after JSON transport`, () => {
     const source = readFileSync(new URL(`../${workspace}/node_modules/@agents-anywhere/dsh-bridge-next/lib/index.js`, import.meta.url), 'utf8')
-    const region = name => {
-      const start = source.indexOf(`//#region src/host/dsh-runtime/${name}.ts`)
-      const end = source.indexOf('//#endregion', start)
-      assert.ok(start >= 0 && end > start)
-      return source.slice(start, end)
-    }
+    const region = name => moduleSource(source, `src/host/dsh-runtime/${name}.ts`)
     const { createProjection, contentHash } = runInNewContext(
       // types carries the JSON helpers history applies before hashing, including lone-surrogate normalization.
       ['types', 'identity', 'tools', 'history'].map(region).join('\n') + ';({ createProjection, contentHash })',

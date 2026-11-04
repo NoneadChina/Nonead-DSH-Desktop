@@ -1,15 +1,17 @@
 /** Desktop-owned WebServer wrapper with bounded bind-conflict retry. */
 
 import { diagnosticOperation } from './developer-logging.ts'
-import type { ServerResponse } from 'node:http'
+import type { IncomingHttpHeaders, ServerResponse } from 'node:http'
 import type { Duplex } from 'node:stream'
 import { Service } from '@deepseek-ai/cordis'
 import WebServer, {
   type Config,
+  type WebResource,
+  type WebResourceRoute,
   type WebRoute,
   type WebUpgradeRoute,
 } from '@deepseek-ai/dsh-host-webserver'
-import { decideDesktopBrowserAccess } from './desktop-browser-access.ts'
+import { DESKTOP_RENDERER_ACCESS_HEADER, decideDesktopBrowserAccess } from './desktop-browser-access.ts'
 import { DESKTOP_WEB_PORT_RETRY_LIMIT } from './desktop-port.ts'
 
 function isAddressInUse(cause: unknown): boolean {
@@ -67,6 +69,30 @@ export class DesktopWebServer extends WebServer {
     return access === undefined || decideDesktopBrowserAccess(access, request) !== 'denied'
   }
 
+  /**
+   * Fence a resource route with the same renderer capability the handler routes use.
+   * 0.2.2-alpha.3 serves several GET/HEAD routes as Fetch resources instead of
+   * `IncomingMessage` handlers, so the fence has to read the Fetch request headers.
+   * In-process reads (`readResource`) already arrive with an admitted peer and are
+   * therefore never fenced here.
+   */
+  private guardResource(resource: WebResource): WebResource {
+    return async (request, peer) => {
+      if (peer !== undefined) return resource(request, peer)
+      const access = this.ctx.get('desktopBrowserAccess')
+      if (access === undefined) return resource(request, peer)
+      const value = request.headers.get(DESKTOP_RENDERER_ACCESS_HEADER)
+      const headers: IncomingHttpHeaders = value === null ? {} : { [DESKTOP_RENDERER_ACCESS_HEADER]: value }
+      if (decideDesktopBrowserAccess(access, { headers, url: request.url }) === 'denied') {
+        return new Response('forbidden', {
+          status: 403,
+          headers: { 'cache-control': 'no-store', 'content-type': 'text/plain; charset=utf-8' },
+        })
+      }
+      return resource(request, peer)
+    }
+  }
+
   private traceHttp(route: string, handler: WebRoute['handler']): WebRoute['handler'] {
     return async (req, res) => {
       const end = diagnosticOperation('host.http', 'request', { route, method: req.method })
@@ -78,7 +104,8 @@ export class DesktopWebServer extends WebServer {
     }
   }
 
-  override register(route: WebRoute): () => void {
+  override register(route: WebRoute | WebResourceRoute): () => void {
+    if (!('handler' in route)) return super.register({ ...route, resource: this.guardResource(route.resource) })
     return super.register({
       ...route,
       handler: this.traceHttp(String(route.path), async (req, res) => {
@@ -88,10 +115,13 @@ export class DesktopWebServer extends WebServer {
     })
   }
 
-  override registerFallback(handler: WebRoute['handler']): () => void {
+  override registerFallback(fallback: WebRoute['handler'] | Pick<WebResourceRoute, 'resource'>): () => void {
+    if (typeof fallback !== 'function') {
+      return super.registerFallback({ resource: this.guardResource(fallback.resource) })
+    }
     return super.registerFallback(this.traceHttp('fallback', async (req, res) => {
       if (!this.permits(req)) return rejectBrowserRequest(res)
-      await handler(req, res)
+      await fallback(req, res)
     }))
   }
 

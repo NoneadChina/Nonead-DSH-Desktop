@@ -381,6 +381,9 @@ export function DesktopSettingsSection({
   const [confirmLan, setConfirmLan] = useState(false)
   const [updateCheck, setUpdateCheck] = useState<'idle' | 'checking' | 'failed'>('idle')
   const lanPoll = useRef<AbortController>()
+  const lanDialog = useRef<HTMLDivElement>(null)
+  const lanCancel = useRef<HTMLButtonElement>(null)
+  const lanOpener = useRef<HTMLElement>()
 
   const refreshView = useCallback(async () => {
     lanPoll.current?.abort()
@@ -413,6 +416,49 @@ export function DesktopSettingsSection({
     const timer = setTimeout(() => { setRestart('required') }, 8_000)
     return () => { clearTimeout(timer) }
   }, [restart])
+
+  // LAN 确认框是 aria-modal 的 alertdialog：打开时把焦点移进对话框、Tab 在框内循环、
+  // Escape 取消，关闭后把焦点还给触发它的开关。此前它没有焦点管理，焦点留在对话框
+  // 之外（读到 aria-modal 的辅助技术会认为背景不可用），只能用 Tab 走到页面末尾才
+  // 碰得到按钮，也没有任何键盘方式取消。设置向导弹窗走的是同一套语义（base-ui Dialog）。
+  useEffect(() => {
+    if (!confirmLan) return
+    lanOpener.current = document.activeElement instanceof HTMLElement ? document.activeElement : undefined
+    lanCancel.current?.focus()
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        event.stopPropagation()
+        setConfirmLan(false)
+        return
+      }
+      if (event.key !== 'Tab') return
+      const buttons = [...(lanDialog.current?.querySelectorAll<HTMLButtonElement>('button') ?? [])]
+      if (buttons.length === 0) return
+      const first = buttons[0]!
+      const last = buttons[buttons.length - 1]!
+      const active = document.activeElement
+      if (active === null || !lanDialog.current?.contains(active)) {
+        event.preventDefault()
+        first.focus()
+        return
+      }
+      if (event.shiftKey && active === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      const opener = lanOpener.current
+      lanOpener.current = undefined
+      if (opener?.isConnected === true) opener.focus()
+    }
+  }, [confirmLan])
 
   const run = useCallback(async (operation: BusyOperation, invoke: () => Promise<void>) => {
     setBusy(operation)
@@ -946,11 +992,12 @@ export function DesktopSettingsSection({
       {extraSections}
       {confirmLan && (
         <div className="dshDesktopSettingsDialogBackdrop" role="presentation">
-          <div className="dshDesktopSettingsDialog" role="alertdialog" aria-modal="true" aria-labelledby="dsh-desktop-lan-warning-title" aria-describedby="dsh-desktop-lan-warning-body">
+          <div ref={lanDialog} className="dshDesktopSettingsDialog" role="alertdialog" aria-modal="true" aria-labelledby="dsh-desktop-lan-warning-title" aria-describedby="dsh-desktop-lan-warning-body">
             <h3 id="dsh-desktop-lan-warning-title">{t('lanWarningTitle')}</h3>
             <p id="dsh-desktop-lan-warning-body">{t('lanWarningBody')}</p>
             <div className="dshDesktopSettingsDialogActions">
               <button
+                ref={lanCancel}
                 type="button"
                 className="dshDesktopSettingsButton dshDesktopSettingsButtonSecondary"
                 onClick={() => {

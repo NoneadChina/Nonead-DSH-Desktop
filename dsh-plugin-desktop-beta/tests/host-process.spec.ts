@@ -82,3 +82,47 @@ it('logs only the exit reason when the Host wrote nothing', () => {
   const error = new Error('DSH Host exited (0); restart the application to reconnect')
   expect(formatUnexpectedHostExit(error, { exitCode: 0, uptimeMs: 1, stderrTail: '\n' })).toBe(error.message)
 })
+
+it('still releases the native bindings and the child listener when the Host exit is never confirmed', async () => {
+  vi.useFakeTimers()
+  const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
+  try {
+    const f = fixture()
+    f.child.kill.mockImplementation(() => true)
+    await startIsolatedDesktopHost(f.options)
+    expect(f.child.listenerCount('message')).toBe(1)
+
+    const disposing = f.host().fiber.dispose()
+    const rejected = expect(disposing).rejects.toThrow('termination was not confirmed')
+    await vi.advanceTimersByTimeAsync(1_100)
+    await rejected
+
+    expect(f.child.listenerCount('message')).toBe(0)
+  } finally {
+    stderr.mockRestore()
+    vi.useRealTimers()
+  }
+})
+
+it('keeps the boot failure as the reported cause when teardown cannot confirm the Host exit', async () => {
+  vi.useFakeTimers()
+  const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
+  try {
+    const f = fixture()
+    f.child.postMessage.mockImplementation((message: { kind: string; id: number; method?: string }) => {
+      if (message.kind !== 'call') return
+      queueMicrotask(() => f.child.emit('message', message.method === 'boot'
+        ? { kind: 'result', id: message.id, error: 'boot exploded' }
+        : { kind: 'result', id: message.id, value: { pid: 123 } }))
+    })
+    f.child.kill.mockImplementation(() => true)
+
+    const starting = startIsolatedDesktopHost(f.options)
+    const rejected = expect(starting).rejects.toThrow('boot exploded')
+    await vi.advanceTimersByTimeAsync(1_500)
+    await rejected
+  } finally {
+    stderr.mockRestore()
+    vi.useRealTimers()
+  }
+})

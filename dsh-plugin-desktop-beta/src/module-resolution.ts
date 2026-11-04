@@ -19,6 +19,9 @@ import {
 import { retainAsarModuleResolver } from './asar-module-resolver-state.ts'
 
 const LOADER_ENTRY_URL = import.meta.resolve('@deepseek-ai/cordis-plugin-loader')
+// 0.2.2-alpha.3 的 Loader 把插件 import 放进 `<profile>/.cordis/resolve.mjs` 里求值，
+// 这个子目录因此也是 Profile 边界的一部分。
+const LOADER_STUB_DIRECTORY = '.cordis'
 // Keep installation resolution in Electron's logical ASAR tree. Native
 // payloads are redirected by Electron Builder, while ordinary modules avoid a
 // second physical node_modules tree and its Windows antivirus I/O cost.
@@ -168,6 +171,20 @@ function isWithin(
     )
 }
 
+/**
+ * Decide whether `candidate` belongs to the Profile that owns the Loader boundary.
+ * The Loader has used the directory URL, `package.json` and `cordis.yml` as its parentURL across
+ * Node releases, and since 0.2.2-alpha.3 it also evaluates plugin imports from the generated stub
+ * at `<profile>/.cordis/resolve.mjs`. Only that one extra directory is admitted — never another
+ * Profile, and never an arbitrary descendant.
+ */
+function isProfileOwnedPath(profileDirectory: string, candidate: string): boolean {
+  const offset = relative(profileDirectory, candidate)
+  if (offset === '' || (!offset.includes(sep) && offset !== '..' && !isAbsolute(offset))) return true
+  const stubOffset = relative(join(profileDirectory, LOADER_STUB_DIRECTORY), candidate)
+  return stubOffset !== '' && !stubOffset.includes(sep) && stubOffset !== '..' && !isAbsolute(stubOffset)
+}
+
 function isLexicalProfileBoundary(
   registration: ProfileResolverRegistration,
   url: string | undefined,
@@ -175,11 +192,7 @@ function isLexicalProfileBoundary(
   if (url === registration.profileBaseUrl) return true
   const candidate = filePath(url)
   if (candidate === undefined) return false
-  const offset = relative(registration.profileDirectory, candidate)
-  // The native Loader has used the directory URL, package.json, and cordis
-  // config files as its parentURL across supported Node releases. Restrict the
-  // bridge to that directory and its direct files, never another Profile.
-  return offset === '' || (!offset.includes(sep) && offset !== '..' && !isAbsolute(offset))
+  return isProfileOwnedPath(registration.profileDirectory, candidate)
 }
 
 function isCanonicalProfileBoundary(
@@ -188,8 +201,7 @@ function isCanonicalProfileBoundary(
 ): boolean {
   const candidate = filePath(canonicalUrl)
   if (candidate === undefined) return false
-  const offset = relative(canonicalPath(registration, registration.profileDirectory), candidate)
-  return offset === '' || (!offset.includes(sep) && offset !== '..' && !isAbsolute(offset))
+  return isProfileOwnedPath(canonicalPath(registration, registration.profileDirectory), candidate)
 }
 
 function isSharedFallbackPath(registration: ProfileResolverRegistration, candidate: string): boolean {

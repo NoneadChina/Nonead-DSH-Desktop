@@ -127,7 +127,11 @@ export function DesktopOwnedFrame({
           className="dshDesktopUpstreamSidebar dshDesktop_sidebarCol"
           data-pane="sidebar"
         >
-          {renderSlot('sidebar', { collapsed, width: sidebarOwnerWidth })}
+          {/*
+            `sidebar` 的 owner 契约自 0.2.2-alpha.3 起要求 `drawer`：只有窄屏 Web 布局
+            才把侧栏渲染为浮层抽屉。桌面壳自己解算列宽、始终以常驻列呈现侧栏，故固定 false。
+          */}
+          {renderSlot('sidebar', { collapsed, width: sidebarOwnerWidth, drawer: false })}
         </div>
       </aside>
       <main className="dshDesktopConversationSurface"><MainPanel usePanelInfo={usePanelInfo} renderSlot={renderSlot} /></main>

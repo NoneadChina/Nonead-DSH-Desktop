@@ -170,8 +170,36 @@ describe('Windows x64 installer packaging', () => {
     expect(logs).toContain('Packaging the portable archive with store compression.')
   })
 
-  it('rejects an unknown compression override before running commands', () => {
+  it('packages from an already extracted Electron tree when DSH_ELECTRON_DIST is set', () => {
     const calls: CommandCall[] = []
+    const logs: string[] = []
+    const electron = 'C:\\cache\\electron-arm64'
+    const value: WindowsPackageOptions = {
+      ...options(calls, logs),
+      env: { ...options(calls).env, DSH_PACKAGE_CHECK_ALREADY_RAN: '1', DSH_ELECTRON_DIST: electron },
+      targetArch: 'arm64',
+    }
+
+    packageWindowsArtifact(value, 'nsis', 'installer')
+
+    // A machine that cannot reach GitHub must never wait on electron-builder's own download.
+    expect(calls[0]?.args).toContain(`--config.electronDist=${electron}`)
+    expect(logs).toContain(`Using the local Electron runtime at ${electron}; no download will be attempted.`)
+  })
+
+  it('downloads Electron itself only when no local tree is configured', () => {
+    const calls: CommandCall[] = []
+    const value: WindowsPackageOptions = {
+      ...options(calls),
+      env: { ...options(calls).env, DSH_PACKAGE_CHECK_ALREADY_RAN: '1' },
+    }
+
+    packageWindowsArtifact(value, 'nsis', 'installer')
+
+    expect(calls[0]?.args.some(argument => argument.startsWith('--config.electronDist='))).toBe(false)
+  })
+
+  it('rejects an unknown compression override before running commands', () => {    const calls: CommandCall[] = []
     const value = {
       ...options(calls),
       env: { ...options(calls).env, DSH_WINDOWS_PACKAGE_COMPRESSION: 'fast' },
