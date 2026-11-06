@@ -922,7 +922,7 @@ describe('published package surface', () => {
     }])
     expect(manifest.build?.win?.artifactName).toBe('DSH-Desktop-Beta-${version}-${arch}-Portable.${ext}')
     expect(manifest.build?.nsis).toEqual({
-      include: 'installer.nsh',
+      include: 'dsh-installer-hooks.nsh',
       installerIcon: 'build/app-icon.ico',
       uninstallerIcon: 'build/app-icon.ico',
       license: 'THIRD_PARTY_NOTICES.md',

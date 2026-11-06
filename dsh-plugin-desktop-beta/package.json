@@ -479,7 +479,7 @@
       "asar": false
     },
     "nsis": {
-      "include": "installer.nsh",
+      "include": "dsh-installer-hooks.nsh",
       "license": "THIRD_PARTY_NOTICES.md",
       "oneClick": false,
       "perMachine": false,
