@@ -118,14 +118,27 @@ if (upstreamCheckout) {
   if (typeof upstreamPackage.packageManager !== 'string' || !upstreamPackage.packageManager.startsWith('pnpm@')) {
     fail('the upstream checkout must retain its pnpm package manager')
   }
-  if (run('git', ['rev-parse', 'HEAD'], upstreamDir) !== activeUpstream.commit) {
-    fail('checked-out upstream commit differs from upstream.json')
+  // A snapshot that is not its own Git work tree (for example an exported source drop, or a
+  // directory whose enclosing repository is this one) must not be measured through the enclosing
+  // repository: `git rev-parse` there reports the product repository's HEAD, so the commit, status
+  // and remote assertions would describe the wrong tree. Commit identity is still pinned by
+  // upstream.json, the vendored runtime manifests and `nonead-dsh-desktop/upstream-reference.json`.
+  let upstreamWorkTree = false
+  try {
+    upstreamWorkTree = resolve(run('git', ['rev-parse', '--show-toplevel'], upstreamDir)).toLowerCase() === upstreamDir.toLowerCase()
+  } catch {
+    upstreamWorkTree = false
   }
-  if (run('git', ['status', '--porcelain'], upstreamDir) !== '') {
-    fail('deepseek-harness contains local changes')
-  }
-  if (run('git', ['remote', 'get-url', 'origin'], upstreamDir) !== upstream.repository) {
-    fail('deepseek-harness origin differs from upstream.json')
+  if (upstreamWorkTree) {
+    if (run('git', ['rev-parse', 'HEAD'], upstreamDir) !== activeUpstream.commit) {
+      fail('checked-out upstream commit differs from upstream.json')
+    }
+    if (run('git', ['status', '--porcelain'], upstreamDir) !== '') {
+      fail('deepseek-harness contains local changes')
+    }
+    if (run('git', ['remote', 'get-url', 'origin'], upstreamDir) !== upstream.repository) {
+      fail('deepseek-harness origin differs from upstream.json')
+    }
   }
   if (upstreamPackage.version !== activeUpstream.sourceVersion) {
     fail('deepseek-harness package version differs from upstream.json')

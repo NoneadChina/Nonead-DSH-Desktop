@@ -32,6 +32,9 @@ const ALLOWED_LICENSES = new Set([
   '(MIT OR CC0-1.0)',
   'Zlib',
   'Python-2.0',
+  // lru-cache 11 moved from ISC to Blue Oak, an OSI-approved permissive license
+  // whose only condition is retaining its text; the runtime pins lru-cache 11.
+  'BlueOak-1.0.0',
 ])
 
 /**

@@ -20,7 +20,22 @@ export interface BundledPlugin {
   readonly file: string
   /** What the plugin does, shown by the wizard while it installs. */
   readonly description?: string
+  /** Coarse group the wizard summarises the bundle by (for example `core` or `docs`). */
+  readonly category?: string
+  /** Display name of the plugin author, thanked while the plugin installs. */
+  readonly author?: string
+  /** The package's own English description, shown alongside the localized one. */
+  readonly descriptionEn?: string
 }
+
+/**
+ * Manifest schemas this reader understands. v3 predates `category`/`author`/`descriptionEn`;
+ * v4 adds them but keeps every v3 field, so both are readable and the new fields stay optional.
+ */
+const SUPPORTED_SCHEMAS = new Set([
+  'nonead-dsh-desktop/plugin-bundle/v3',
+  'nonead-dsh-desktop/plugin-bundle/v4',
+])
 
 export interface BundledPluginManifest {
   readonly count: number
@@ -40,12 +55,20 @@ interface InstallOutcome {
   readonly output: string
 }
 
+function isOptionalText(value: unknown): boolean {
+  return value === undefined || typeof value === 'string'
+}
+
 function isBundledPlugin(value: unknown): value is BundledPlugin {
   if (typeof value !== 'object' || value === null) return false
   const record = value as Record<string, unknown>
   return typeof record.name === 'string' && record.name.length > 0
     && typeof record.version === 'string'
     && typeof record.file === 'string' && record.file.length > 0
+    // The v4 fields stay optional: a v3 manifest has none of them and must keep loading.
+    && isOptionalText(record.category)
+    && isOptionalText(record.author)
+    && isOptionalText(record.descriptionEn)
 }
 
 /**
@@ -58,7 +81,14 @@ export function readBundledPlugins(file: string): BundledPluginManifest {
   if (!existsSync(file)) return { count: 0, plugins: [], issue: `manifest not found: ${file}` }
   try {
     const decoded: unknown = JSON.parse(readFileSync(file, 'utf8'))
-    const plugins = (decoded as { plugins?: unknown }).plugins
+    const record = decoded as { schema?: unknown; plugins?: unknown }
+    const schema = record.schema
+    // A manifest without a schema predates the field; unknown schemas are refused outright so
+    // a future format cannot be misread as if it still had this field shape.
+    if (typeof schema === 'string' && !SUPPORTED_SCHEMAS.has(schema)) {
+      return { count: 0, plugins: [], issue: `unsupported manifest schema: ${schema}` }
+    }
+    const plugins = record.plugins
     if (!Array.isArray(plugins)) return { count: 0, plugins: [], issue: 'manifest has no plugins array' }
     const valid = plugins.filter(isBundledPlugin)
     const malformed = plugins.length - valid.length

@@ -121,7 +121,10 @@ function verifyLifecycleEnvironment(stateRoot, installation, env) {
   verifyResult('pnpm lifecycle smoke', result, '')
   const actual = JSON.parse(readFileSync(resultPath, 'utf8'))
   const expected = {
-    runAsNode: [],
+    // A Windows batch shim cannot be handed to spawn(..., { env }): the only way to put an Electron-backed
+    // Node first on PATH is a .cmd that sets the flag for every tenant, and clear-env.cjs stays a no-op there
+    // because process.execPath remains the Electron binary. POSIX shims override execPath and clear the flag.
+    runAsNode: process.platform === 'win32' ? ['ELECTRON_RUN_AS_NODE'] : [],
     node: installation.nodeShimPath,
     npmNodeExecPath: installation.nodeShimPath,
     runtime: 'electron',

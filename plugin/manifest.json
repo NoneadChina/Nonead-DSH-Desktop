@@ -1,186 +1,330 @@
 {
-  "schema": "nonead-dsh-desktop/plugin-bundle/v3",
-  "count": 30,
+  "schema": "nonead-dsh-desktop/plugin-bundle/v4",
+  "count": 36,
   "plugins": [
     {
       "name": "@a9i5k4/dsh-auto-memory",
       "version": "3.3.17",
       "file": "a9i5k4-dsh-auto-memory-3.3.17.tgz",
-      "description": "自动记忆：无需提示即可在开工前注入相关历史，跨会话积累上下文。"
+      "category": "core",
+      "author": "a9i5k4",
+      "description": "主动联想记忆：开工前自动唤回相关历史并注入上下文，无需手动提示。内置三层自动沉淀与技能固化，还提供交接账本、PLAN 白板与上下文水位感知，适合让长任务跨会话接着做。",
+      "descriptionEn": "Proactive associative memory for DSH: zero-prompt recall injected before the model speaks, three-layer auto-consolidation, skill crystallization, and Astra-style context management - handoff ledgers, PLAN whiteboard, water-level sensing. Local-first, model-agnostic, zero deps. 主动联想记忆+Astra 式上下文管理:自动唤回/自动沉淀/技能固化/交接账本与白板跨窗口续命/水位感知。"
     },
     {
-      "name": "@kenz1117/dsh-ui-usage-billing",
-      "version": "1.8.1",
-      "file": "kenz1117-dsh-ui-usage-billing-1.8.1.tgz",
-      "description": "用量与费用看板：侧边栏展示开销指标与用量明细。"
+      "name": "@changfenhuang/dsh-genui",
+      "version": "0.16.0",
+      "file": "changfenhuang-dsh-genui-0.16.0.tgz",
+      "category": "workspace",
+      "author": "changfenhuang",
+      "description": "生成式 UI：模型可在回复里用 dsh-ui 围栏渲染布局、图表、表单、测验、mermaid 与 3D 场景，交互事件还能回传给模型。适合把说明变成可点的面板。",
+      "descriptionEn": "GenUI for DeepSeek Harness: interactive UI components rendered inline in assistant replies via the ```dsh-ui fence — layout, charts, plots, forms, quizzes, mermaid, 3D scenes, and an action event loop back to the model. Ships the fence-teaching host plugin, the browser renderer (client half), and the genui skill."
+    },
+    {
+      "name": "@deepseek-ai/dsh-tool-subagent",
+      "version": "0.2.2-rc.1",
+      "file": "deepseek-ai-dsh-tool-subagent-0.2.2-rc.1.tgz",
+      "category": "agent",
+      "author": "DeepSeek Harness Team",
+      "description": "子 Agent 委派工具：给模型一个命名工具，把任务交给指定的子 Agent 后端执行。每次调用返回子 id，完成通知与清理由运行时负责，适合把独立工作拆出去跑。",
+      "descriptionEn": "Model-facing subagent delegation tool over the ctx.subagents seam"
     },
     {
       "name": "@linxin666/dsh-client-ui-git-graph",
       "version": "0.4.14",
       "file": "linxin666-dsh-client-ui-git-graph-0.4.14.tgz",
-      "description": "Git 分支图谱：在空白会话中切换分支、查看提交图。"
+      "category": "engineering",
+      "author": "linxin666",
+      "description": "Git 图谱：在空白会话里切换分支，并查看可视化提交图与 worktree 隔离。Git 操作在宿主进程中执行并带安全守卫，适合多 Agent 并行开发。",
+      "descriptionEn": "External dsh web GUI plugin: a blank-session git branch selector + Git graph, with real host-side git operations and guards, as a dsh profile bundle"
     },
     {
       "name": "@linxin666/dsh-client-ui-skill-explorer",
-      "version": "0.4.14",
-      "file": "linxin666-dsh-client-ui-skill-explorer-0.4.14.tgz",
-      "description": "技能中心：按来源浏览已加载的技能。"
+      "version": "0.4.16",
+      "file": "linxin666-dsh-client-ui-skill-explorer-0.4.16.tgz",
+      "category": "workspace",
+      "author": "linxin666",
+      "description": "技能中心：按来源（内置、项目、用户、自定义、运行时）浏览已加载技能，可开关模型调用、新建或删除技能。适合在一个面板里看清本机装了哪些技能。",
+      "descriptionEn": "DSH skill center: browse loaded skills by source (bundled / project / user / custom / runtime), enable or disable, create and delete, in a web GUI panel."
+    },
+    {
+      "name": "@linxin666/dsh-client-ui-task-board",
+      "version": "0.4.16",
+      "file": "linxin666-dsh-client-ui-task-board-0.4.16.tgz",
+      "category": "workspace",
+      "author": "linxin666",
+      "description": "任务看板：卡片由 Host 托管并真实开 DSH 会话执行，支持 cron 定时与跨平台休眠抑制。适合让审查、巡检与定时流水线无人值守地跑。",
+      "descriptionEn": "Host-authoritative task board for the DSH Web GUI with real session execution, Host cron scheduling, and optional cross-platform idle-sleep protection; mounted without DSH source changes."
     },
     {
       "name": "@michengai/dsh-agency-agents",
-      "version": "1.2.23",
-      "file": "michengai-dsh-agency-agents-1.2.23.tgz",
-      "description": "专家库：331 位可召唤的专业智能体。"
+      "version": "1.2.27",
+      "file": "michengai-dsh-agency-agents-1.2.27.tgz",
+      "category": "agent",
+      "author": "MichengAI",
+      "description": "专家库：内置 331 位可召唤的专业智能体与 5 个专家团，按能力分工处理各类任务。也支持自定义协作方式，适合需要专业视角时直接点名。",
+      "descriptionEn": "DSH Agency Agents — 为 DeepSeek Harness 提供 331 名可召唤的专业智能体 · 331 summonable domain experts for DeepSeek Harness"
     },
     {
       "name": "@michengai/dsh-archive-manager",
-      "version": "1.2.0",
-      "file": "michengai-dsh-archive-manager-1.2.0.tgz",
-      "description": "会话归档：归档、恢复、收藏、永久删除，并诊断损坏的会话日志。"
+      "version": "1.3.0",
+      "file": "michengai-dsh-archive-manager-1.3.0.tgz",
+      "category": "workspace",
+      "author": "MichengAI",
+      "description": "会话归档管理：归档、恢复、收藏与永久删除会话，还能诊断损坏的会话日志。适合清理历史记录，或找回误归档的对话。",
+      "descriptionEn": "归档、恢复、收藏和永久删除会话，并诊断损坏的会话日志。 · Archive, restore, favorite, and permanently delete sessions, and diagnose damaged session logs."
     },
     {
       "name": "@michengai/dsh-code-review",
-      "version": "1.0.7",
-      "file": "michengai-dsh-code-review-1.0.7.tgz",
-      "description": "代码审查：Codex 风格，原生独立子 Agent，可灵活选择审查范围。"
+      "version": "1.0.9",
+      "file": "michengai-dsh-code-review-1.0.9.tgz",
+      "category": "engineering",
+      "author": "MichengAI",
+      "description": "代码审查：在当前会话发起审查，由独立子 Agent 检查 Git、源码、调用方与测试，再把报告带回主会话。可按范围或要求审查，报告支持中英文。",
+      "descriptionEn": "DSH Code Review — 为 DeepSeek Harness 提供 Codex 风格代码审查、原生独立子 Agent、灵活范围选择和中英文报告 · Codex-style code review with native independent agents, flexible scope selection, and bilingual reports for DSH"
     },
     {
       "name": "@michengai/dsh-skills-manager",
-      "version": "1.2.28",
-      "file": "michengai-dsh-skills-manager-1.2.28.tgz",
-      "description": "技能管理：统一加载并安全管理本机的 Agent 技能。"
+      "version": "1.4.0",
+      "file": "michengai-dsh-skills-manager-1.4.0.tgz",
+      "category": "agent",
+      "author": "MichengAI",
+      "description": "技能管理：统一加载并安全管理本机 Agent 技能，支持从 GitHub 安装、预览更新与备份回退。适合把散落的技能收拢到一处维护。",
+      "descriptionEn": "DSH Skills Manager — 在 DeepSeek Harness 中统一加载并安全管理本机 Agent Skills · Load and safely manage local Agent Skills in DSH"
     },
     {
       "name": "@tt-a1i/archify-dsh",
-      "version": "1.0.0",
-      "file": "tt-a1i-archify-dsh-1.0.0.tgz",
-      "description": "架构图：生成可交互的架构、流程、时序、数据流与状态图。"
+      "version": "1.1.0",
+      "file": "tt-a1i-archify-dsh-1.1.0.tgz",
+      "category": "agent",
+      "author": "tt-a1i",
+      "description": "架构图技能：以纯技能包的形式把 Archify 架构图能力接入 DSH，让模型能按描述生成架构图。适合梳理系统结构或表达技术方案。",
+      "descriptionEn": "Opt-in DeepSeek Harness Skill-only bundle for the Archify architecture-diagram skill."
+    },
+    {
+      "name": "@weibaohui/skills-management",
+      "version": "0.9.3",
+      "file": "weibaohui-skills-management-0.9.3.tgz",
+      "category": "agent",
+      "author": "weibaohui",
+      "description": "技能市场：一个页面管理本机各类 coding agent 的技能，可一键收编进 DSH 用户库供 skill 工具调用。内置 6600+ 技能市场，并统计每个技能的注入开销。",
+      "descriptionEn": "dsh 插件 · 技能市场：一个页面管理本机所有 coding agent 的技能（Claude、ZCode、Codex 等十余个执行器），一键收编进 DSH 用户库供 skill 工具调用；内置 6600+ ntd 技能市场可浏览搜索安装，支持注入开销（≈token/字符）统计与排序、模型可见性治理与市场每日自动同步。"
     },
     {
       "name": "@wenaixi/dsh-superpower",
       "version": "8.0.0",
       "file": "wenaixi-dsh-superpower-8.0.0.tgz",
-      "description": "工程技能包：15 个 superpowers 工程技能，中英双语。"
+      "category": "agent",
+      "author": "wenaixi",
+      "description": "工程技能包：移植 obra/superpowers 的 15 个工程纪律技能，技能描述中英双语可切换、每个都能单独开关。适合给日常开发加上成体系的方法约束。",
+      "descriptionEn": "DeepSeek Harness plugin: 15 obra/superpowers engineering skills, bilingual descriptions, per-skill toggles | DeepSeek Harness 插件：15 个 obra/superpowers 工程纪律技能，技能描述中英双语自由切换，每一个技能本身自由开关"
     },
     {
       "name": "@yolk_vat-y/dsh-project-memory",
-      "version": "0.6.9",
-      "file": "yolk_vat-y-dsh-project-memory-0.6.9.tgz",
-      "description": "项目记忆：索引文档（PDF/Markdown）与代码符号，支持检索。"
+      "version": "0.6.12",
+      "file": "yolk_vat-y-dsh-project-memory-0.6.12.tgz",
+      "category": "core",
+      "author": "00080000",
+      "description": "项目持久记忆：把 PDF、Markdown 等文档与代码符号索引进工作区本地库，检索时带 path:line 出处。还会把任务、读过的文件与踩坑经验存下来，方便换会话后接着做。",
+      "descriptionEn": "Persistent project memory for dsh agents: index docs (PDF/Markdown/text) and code symbols into a searchable per-workspace store, recall them with cited sources, and keep experience entries (problems -> solutions) searchable on demand."
     },
     {
-      "name": "dsh-api-client",
-      "version": "0.2.0",
-      "file": "dsh-api-client-0.2.0.tgz",
-      "description": "API 调试：发起 HTTP 请求并查看响应。"
+      "name": "billion-context",
+      "version": "0.1.213",
+      "file": "billion-context-0.1.213.tgz",
+      "category": "core",
+      "author": "ranxianglei",
+      "description": "上下文压缩插件：把长会话折叠成摘要，用更小的上下文窗口和更少的 token 跑完。官方称可支撑数月长的单次会话、累计数十亿 token，适合长时间连续作业。",
+      "descriptionEn": "A context-compression plugin — small context windows (a 100K context is enough), 5x fewer tokens, month-long single sessions (billions of tokens), and compression quality — for all agents: pi, OpenCode, Codex, Claude Code, and more. billion-context is all you need."
     },
     {
       "name": "dsh-better-sidebar",
-      "version": "0.28.2",
-      "file": "dsh-better-sidebar-0.28.2.tgz",
-      "description": "更好用的侧边栏：文件树、编辑器、改动、任务与侧边聊天合成一栏，每个会话独立；并向其他插件开放侧栏标签与文件查看器注册服务。"
+      "version": "0.30.1",
+      "file": "dsh-better-sidebar-0.30.1.tgz",
+      "category": "workspace",
+      "author": "社区贡献者",
+      "description": "增强侧边栏：把文件树、编辑器、改动、任务与侧边聊天收进同一列，并且每个会话独立。还向其他插件开放侧栏标签与文件查看器注册服务，适合边聊边改文件。",
+      "descriptionEn": "Better Sidebar for DSH — file tree, editor, changes, tasks and side chat in one column, separate for every conversation. Also exposes a service other plugins use to register sidebar tabs and file viewers."
+    },
+    {
+      "name": "dsh-client-auto-continue",
+      "version": "0.17.4",
+      "file": "dsh-client-auto-continue-0.17.4.tgz",
+      "category": "workspace",
+      "author": "社区贡献者",
+      "description": "自动续跑：请求被网络错误等非人为原因中断时，自动补发一条本地化的继续提示；也可开启成功后循环继续。适合长时间无人值守的任务。",
+      "descriptionEn": "DSH Web UI plugin: automatically sends a localized continue prompt when a request is interrupted by network errors or other non-human causes"
     },
     {
       "name": "dsh-config-manager",
-      "version": "0.3.1",
-      "file": "dsh-config-manager-0.3.1.tgz",
-      "description": "配置管理：备份、恢复、导出、导入、迁移与同步 DSH 配置。"
+      "version": "0.6.0",
+      "file": "dsh-config-manager-0.6.0.tgz",
+      "category": "integration",
+      "author": "社区贡献者",
+      "description": "配置管理：一键备份、恢复、导出、导入、迁移与同步 DSH 配置，覆盖设置、插件、MCP、技能与工作区。适合换机器时把整套环境搬过去，也支持定时备份。",
+      "descriptionEn": "Backup, restore, export, import, migrate and sync your DeepSeek Harness (DSH) configuration: settings, plugins, MCP servers, skills, agent presets and workspaces. One-click migration to another machine. DSH 配置一键备份、恢复、导出、导入、迁移与同步插件。"
     },
     {
       "name": "dsh-context",
-      "version": "0.80.3",
-      "file": "dsh-context-0.80.3.tgz",
-      "description": "上下文洞察与管理：查看上下文占用并进行压缩。"
+      "version": "0.83.0",
+      "file": "dsh-context-0.83.0.tgz",
+      "category": "core",
+      "author": "bowenliang123",
+      "description": "上下文洞察与管理：用仪表板查看上下文由什么组成、怎么增长，并在需要时压缩。提供 /context 命令与侧边栏面板，适合排查上下文被谁占满。",
+      "descriptionEn": "A DeepSeek Harness plugin for context insight and management, with context dashboard and context command, for understanding how the context is made of, and how it evolves."
     },
     {
-      "name": "dsh-design",
-      "version": "0.2.0",
-      "file": "dsh-design-0.2.0.tgz",
-      "description": "设计系统技能：约束设计选择，并用 design_audit 实测渲染页面的字阶、对比度、间距与配色漂移。"
-    },
-    {
-      "name": "dsh-doc-reader",
-      "version": "0.2.0",
-      "file": "dsh-doc-reader-0.2.0.tgz",
-      "description": "文档读取：解析 PDF、Word 等文件的正文内容。"
+      "name": "dsh-cost-meter",
+      "version": "1.9.62",
+      "file": "dsh-cost-meter-1.9.62.tgz",
+      "category": "workspace",
+      "author": "社区贡献者",
+      "description": "费用与额度看板：统计本会话、当日与历史的 token 和成本，内置 170+ 模型价格目录并自动匹配。还能查 16 家 Coding Plan 订阅额度与自定义 Provider 余额，并在峰谷计价切换前提醒。",
+      "descriptionEn": "DeepSeek Harness 会话费用统计插件:本会话成本、当日费用、历史记录与官方价格同步,支持多厂商多模型价格计费(内置 170+ 模型 ID 价格目录与自动匹配)、主流 Coding Plan 订阅额度查询与显示(16 家,含 WorkBuddy 官方积分、OpenDesign 工作区查询、含小米 MiMo Token Plan 控制台 Cookie 查询、SCNet Token Plan 本地 Credits 计量与火山方舟 Volcano Ark Coding Plan AK/SK 签名查询)、自定义 Provider 余额查询(可配任意 HTTP 端点)与余额进度条、峰谷计价时段显示与切换前弹窗/系统通知提醒(位置/提前量/类型可配),界面中英双语。Session cost tracking plugin for DeepSeek Harness: per-conversation cost, daily totals, history and official price sync, with multi-vendor model pricing (built-in 170+ model-ID catalog with auto-matching), Coding Plan quota queries & display for 16 vendors (incl. WorkBuddy official credits, OpenDesign workspace queries, Xiaomi MiMo Token Plan via console cookie, local credits metering for the SCNet Token Plan and Volcano Ark Coding Plan via AK/SK signature), plan/API dual-track billing with per-1% & full-window Token Plan usage estimates, custom provider balance lookup (configurable HTTP endpoint) and balance progress bar, plus peak/off-peak pricing display with pre-switch popup & system-notification alerts (position / lead time / type configurable), in a bilingual (Chinese/English) UI."
     },
     {
       "name": "dsh-excel-chat",
       "version": "0.43.0",
       "file": "dsh-excel-chat-0.43.0.tgz",
-      "description": "表格对话：用自然语言操作 Excel 工作表。"
+      "category": "docs",
+      "author": "社区贡献者",
+      "description": "Excel 对话：用自然语言读取、编辑、清洗表格并生成报表，每次编辑后自动复查公式、修复静默错误。核心操作不依赖本机安装 Excel，适合批量改表。",
+      "descriptionEn": "Talk to Excel in DeepSeek Harness: read, edit, clean and report on spreadsheets by conversation. Re-checks every formula after each edit, repairs silent errors, and needs no local Excel for the core work (charts and PDF export use Windows Excel)."
     },
     {
       "name": "dsh-find-plugins",
       "version": "0.3.0",
       "file": "dsh-find-plugins-0.3.0.tgz",
-      "description": "插件搜索：跨五个社区目录以及 GitHub、npm 实时搜索插件。"
+      "category": "workspace",
+      "author": "Eray114514",
+      "description": "插件发现：聚合五个社区目录并实时搜 GitHub 与 npm，按相关度、可信度、新鲜度与热度排序，而不是只看 star。适合快速判断某个能力有没有现成插件。",
+      "descriptionEn": "Find DSH plugins across five community catalogs plus live GitHub and npm search, ranked by relevance × trust × freshness × popularity — not stars alone."
     },
     {
       "name": "dsh-github-skills",
       "version": "0.2.1",
       "file": "dsh-github-skills-0.2.1.tgz",
-      "description": "GitHub 工作流技能：改编自 OpenAI Codex。"
+      "category": "agent",
+      "author": "社区贡献者",
+      "description": "GitHub 工作流技能：以 OpenAI Codex 的 GitHub 工作流语义为上游基线，针对 DSH 的多 provider、审批机制与技能按需加载做适配。适合让 Agent 更规范地处理 issue、PR 与 Actions 流程。",
+      "descriptionEn": "GitHub workflow skills for DeepSeek Harness, adapted from OpenAI Codex GitHub workflow semantics."
     },
     {
       "name": "dsh-image-gen",
-      "version": "0.10.2",
-      "file": "dsh-image-gen-0.10.2.tgz",
-      "description": "图片生成：接入 Gemini、OpenAI 等渠道画图与改图。"
+      "version": "0.11.1",
+      "file": "dsh-image-gen-0.11.1.tgz",
+      "category": "docs",
+      "author": "shanliuling",
+      "description": "图片生成：在 DSH 里用说话的方式画图，支持 Gemini、OpenAI、Seedream、DashScope 与本地 ComfyUI 等渠道，也支持订阅账号免 Key 使用。适合出配图、改图或批量生成素材。",
+      "descriptionEn": "Bring ChatGPT-like image generation to DeepSeek Harness — Gemini, OpenAI, Seedream, DashScope, local ComfyUI & more."
+    },
+    {
+      "name": "dsh-markitdown",
+      "version": "0.2.2",
+      "file": "dsh-markitdown-0.2.2.tgz",
+      "category": "docs",
+      "author": "社区贡献者",
+      "description": "文档转 Markdown：调用微软 MarkItDown，把 PDF、Word、Excel、PPT、HTML、CSV、EPUB 或网址统一转成模型可读的 Markdown。适合在读取任何非文本文件之前先转换，让模型能真正读懂内容。",
+      "descriptionEn": "Microsoft MarkItDown as a DeepSeek Harness tool: convert PDF, Word, Excel, PowerPoint, HTML, CSV, EPUB, or a URL into Markdown the model can read."
     },
     {
       "name": "dsh-mcp-connector",
-      "version": "0.2.93",
-      "file": "dsh-mcp-connector-0.2.93.tgz",
-      "description": "MCP 连接器：连接 MCP 服务并跨服务搜索工具。"
+      "version": "0.2.97",
+      "file": "dsh-mcp-connector-0.2.97.tgz",
+      "category": "integration",
+      "author": "社区贡献者",
+      "description": "MCP 连接器：内置上百个连接器的数据市场，统一管理授权、跨连接搜索工具并排查连接问题。支持 OAuth、API Key 与 HTTP/stdio，适合接入企业数据。",
+      "descriptionEn": "MCP Connector for DeepSeek Harness: a data marketplace connecting enterprise, financial, legal, patent and research data. Manage authorization, search tools and troubleshoot MCP connections. Supports OAuth, API keys and HTTP/stdio."
     },
     {
       "name": "dsh-nonead-prompt-recall",
-      "version": "0.8.4",
-      "file": "dsh-nonead-prompt-recall-0.8.4.tgz",
-      "description": "输入历史：空输入框按 ↑ 召回上一条指令。"
+      "version": "0.8.7",
+      "file": "dsh-nonead-prompt-recall-0.8.7.tgz",
+      "category": "integration",
+      "author": "拓德科技",
+      "description": "输入历史：空输入框按 ↑ 召回上一条指令，再按 ↑ 往前翻、↓ 往回走，按工作区保存且重启不丢。模型选择器旁还有改写按钮，可在保留 @ 引用的前提下优化草稿。",
+      "descriptionEn": "Composer history for DeepSeek Harness: press ↑ in an empty input box to recall the previous prompt, ↑ again for older ones, ↓ to walk back; stored per workspace and survives restarts. Since 0.8.0 a sparkle button next to the model selector rewrites the draft with the current model while keeping @ references intact."
+    },
+    {
+      "name": "dsh-nonead-prompt-rewind",
+      "version": "0.5.4",
+      "file": "dsh-nonead-prompt-rewind-0.5.4.tgz",
+      "category": "integration",
+      "author": "拓德科技",
+      "description": "对话回退：一键就地回退到任意更早的用户消息，目标消息自动回填输入框。还能一并还原写类工具改过的文件，不依赖 git，适合走错路时重来。",
+      "descriptionEn": "In-window conversation rewind with workspace file restore"
     },
     {
       "name": "dsh-nonead-universal-robots",
-      "version": "0.8.5",
-      "file": "dsh-nonead-universal-robots-0.8.5.tgz",
-      "description": "UR 机械臂：用自然语言直接控制 Universal Robots 机械臂。"
+      "version": "0.8.6",
+      "file": "dsh-nonead-universal-robots-0.8.6.tgz",
+      "category": "robot",
+      "author": "拓德科技",
+      "description": "UR 机械臂控制：用自然语言直接驱动 Universal Robots 协作臂，支持读取位姿、关节运动、画图与 I/O 等操作。适合不写脚本就完成示教与调试。",
+      "descriptionEn": "一个让 DSH 用自然语言直接控制 Universal Robots（UR）机械臂的插件，由拓德科技（Nonead）基于自研的 nUR MCP Server 同源逻辑开发。"
     },
     {
       "name": "dsh-nonead-ursim",
-      "version": "0.3.13",
-      "file": "dsh-nonead-ursim-0.3.13.tgz",
-      "description": "UR 仿真：在离线仿真中编排机械臂动作。"
+      "version": "0.3.14",
+      "file": "dsh-nonead-ursim-0.3.14.tgz",
+      "category": "robot",
+      "author": "拓德科技",
+      "description": "UR 离线仿真：在仿真里编排与验证 Universal Robots 机械臂动作，不用连真机。适合先把轨迹与逻辑跑通，再上真机执行。",
+      "descriptionEn": "一个让 DSH 用自然语言直接控制 Universal Robots（UR）机械臂的插件，由拓德科技（Nonead）基于自研的 nUR MCP Server 同源逻辑开发。"
+    },
+    {
+      "name": "dsh-office-tools",
+      "version": "1.0.8",
+      "file": "dsh-office-tools-1.0.8.tgz",
+      "category": "docs",
+      "author": "kw78",
+      "description": "Office 文件工具：用 8 个工具创建、读取和追加 Word、Excel、PowerPoint 文件，全部经官方文件服务读写。适合在会话里直接产出 docx、xlsx、pptx 交付物。",
+      "descriptionEn": "DSH model-facing Office tools: create, read, and update Word (.docx), Excel (.xlsx), and PowerPoint (.pptx) files inside the session workspace, entirely through the official DSH filesystem service."
     },
     {
       "name": "dsh-ppt-master",
-      "version": "1.0.8",
-      "file": "dsh-ppt-master-1.0.8.tgz",
-      "description": "PPT 生成：根据内容生成演示文稿。"
+      "version": "6.1.0",
+      "file": "dsh-ppt-master-6.1.0.tgz",
+      "category": "agent",
+      "author": "社区贡献者",
+      "description": "PPT 生成工作流：按内容生成可编辑的 PPTX，也能输出 SVG 快照、填充原生模板并做 PPTX 增强。适合把大纲或文章快速变成演示文稿。",
+      "descriptionEn": "PPT Master skill for DeepSeek Harness: AI-driven presentation workflow for generating editable PPTX decks, SVG snapshots, native template filling, and PPTX enhancement."
     },
     {
       "name": "dsh-remotion",
-      "version": "0.10.4",
-      "file": "dsh-remotion-0.10.4.tgz",
-      "description": "视频制作：在 DSH 里用 React 工程渲染视频。"
-    },
-    {
-      "name": "dsh-rewind-plugin",
-      "version": "0.19.2",
-      "file": "dsh-rewind-plugin-0.19.2.tgz",
-      "description": "对话回退：在同一窗口内回退对话并恢复工作区文件。"
+      "version": "0.10.5",
+      "file": "dsh-remotion-0.10.5.tgz",
+      "category": "docs",
+      "author": "stardustlc",
+      "description": "视频工作台：把 React 工程做成视频，内置官方 Remotion 技能、工程检索、模板、素材排序、Studio 预览与 MP4 导出。适合用代码生成带动画的视频。",
+      "descriptionEn": "DSH React 视频工作台：官方 Remotion 技能、工程检索、模板、素材排序、Studio 预览与 MP4 导出。欢迎提交 issues 和 PR。"
     },
     {
       "name": "dsh-superagent",
       "version": "0.1.0",
       "file": "dsh-superagent-0.1.0.tgz",
-      "description": "超级智能体原型：监听 GitHub 与飞书，把被授权的请求转成工单并在独立会话中执行，Web 面板汇总待人工处理项（DeepSeek 研究原型，非官方产品）。"
+      "category": "agent",
+      "author": "DeepSeek Harness Team",
+      "description": "主动式智能体原型：监听一个 GitHub 仓库（可选飞书），按 Policy 评估请求，把被授权的请求转成工单并在独立会话中执行。Web 面板汇总待人工处理项；属 DeepSeek 研究原型，非官方产品。",
+      "descriptionEn": "A proactive agent for one GitHub repository, as a DSH (DeepSeek Harness) bundle: it listens to GitHub and optionally Feishu, evaluates requests under a Policy, turns authorized ones into Tickets, and executes each in its own DSH Session."
     },
     {
       "name": "dsh-univer-office",
       "version": "0.4.0",
       "file": "dsh-univer-office-0.4.0.tgz",
-      "description": "Office 文档：DSH 与 Univer 集成，支持表格、文档与演示。"
+      "category": "docs",
+      "author": "DreamNum",
+      "description": "Office 集成：把电子表格、文档、演示、画布与多维表接进 DSH，改动可在对话里预览、批准或丢弃。适合围绕 Excel、Word、PPT 做协作编辑与审阅。",
+      "descriptionEn": "DSH × Univer integration with a bundled collaboration Gateway and Viewer: inline previews, live floating Worktree windows, and session-end review actions in DeepSeek Harness."
+    },
+    {
+      "name": "dshmarket",
+      "version": "1.73.16",
+      "file": "dshmarket-1.73.16.tgz",
+      "category": "workspace",
+      "author": "社区贡献者",
+      "description": "可视化插件市场：在 DSH 里浏览、搜索社区插件并一键安装，不用命令行。适合快速试装主题与扩展，装错了也能在插件页里停用。",
+      "descriptionEn": "Visual plugin market inside DeepSeek Harness — browse, search, and one-click install community plugins. · DSH 可视化插件市场：逛一逛，点一下，装好。"
     }
   ]
 }

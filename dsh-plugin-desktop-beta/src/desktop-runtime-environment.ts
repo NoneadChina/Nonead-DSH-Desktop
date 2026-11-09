@@ -479,7 +479,10 @@ function windowsNodeShim(appExecutable: string): string {
     '@echo off',
     'setlocal DisableDelayedExpansion',
     ...windowsCodePagePrologue(),
+    // %~dp0 ends with a separator, so "..\" leaves a literal "bin\.." segment behind: tenant npm
+    // variables (NODE, npm_node_execpath) would carry it and stop matching the installed shim path.
     'set "DSH_RUNTIME_PRIVATE=%~dp0.."',
+    'for %%I in ("%DSH_RUNTIME_PRIVATE%") do set "DSH_RUNTIME_PRIVATE=%%~fI"',
     `set "${RUN_AS_NODE}=1"`,
     `${quoteBatchWord(appExecutable)} --require "%DSH_RUNTIME_PRIVATE%\\clear-env.cjs" %*`,
     ...windowsCodePageEpilogue(),
@@ -493,7 +496,10 @@ function windowsPnpmShim(options: DesktopPnpmRuntimeOptions): string {
     '@echo off',
     'setlocal DisableDelayedExpansion',
     ...windowsCodePagePrologue(),
+    // Normalize here too: DSH_RUNTIME_NODE_BIN and the NODE variable below are derived from this root,
+    // and a "bin\.." segment would leak into every lifecycle script's npm_node_execpath.
     'set "DSH_RUNTIME_ROOT=%~dp0.."',
+    'for %%I in ("%DSH_RUNTIME_ROOT%") do set "DSH_RUNTIME_ROOT=%%~fI"',
     'set "DSH_RUNTIME_PRIVATE=%DSH_RUNTIME_ROOT%\\private"',
     'set "DSH_RUNTIME_NODE_BIN=%DSH_RUNTIME_PRIVATE%\\node-bin"',
     'set "PATH=%DSH_RUNTIME_NODE_BIN%;%PATH%"',

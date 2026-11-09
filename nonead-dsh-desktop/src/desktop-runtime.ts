@@ -8,6 +8,7 @@ import { DesktopHostFatalError, DesktopHostProcess, type DesktopPlatformLoginReq
 import { DesktopPreferenceStore, parsePreferences } from './desktop-preferences.ts'
 import { DEFAULT_FEATURES, NextProfiles } from './profiles.ts'
 import { DEFAULT_PREFERENCES, DEFAULT_PROFILE, SAFE_MODE_PREFERENCES, type DesktopBrowserLinks, type DesktopPreferences, type DesktopState, type DesktopNotification } from './desktop-contract.ts'
+import type { BundledPlugin } from './preinstall-plugins.ts'
 import { DesktopDiagnostics } from './diagnostics.ts'
 import { withEnvFiles, type EnvLayer } from './env-file.ts'
 import { NextRecovery } from './recovery.ts'
@@ -28,7 +29,7 @@ interface RuntimeOptions {
   /** Bundled interpreter payload for this CPU; a development tree without one runs without Office skills. */
   primaryRuntime?: string
   /** Plugins this build ships, listed by the setup wizard before they are installed. */
-  bundledPlugins?: readonly { readonly name: string; readonly version: string; readonly description?: string }[]
+  bundledPlugins?: readonly BundledPlugin[]
   /** Why that list is empty, when the bundle manifest exists but cannot be used. */
   bundledPluginIssue?: string
   executable: string

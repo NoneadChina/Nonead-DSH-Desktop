@@ -1,6 +1,6 @@
 /** Keep upstream HTTP routing while requiring Host credentials for browser-reachable routes. */
 import { hostLog, hostOperation } from './host/logging.ts'
-import WebServer, { type WebResourceRoute, type WebRoute, type WebUpgradeRoute } from '@deepseek-ai/dsh-host-webserver'
+import WebServer, { type WebResource, type WebResourceRoute, type WebRoute, type WebUpgradeRoute } from '@deepseek-ai/dsh-host-webserver'
 import type {} from '@deepseek-ai/dsh-client-connection'
 import { decideDesktopBrowserAccess, nextBrowserAccess } from './desktop-browser-access.ts'
 import type { Duplex } from 'node:stream'
@@ -56,6 +56,11 @@ export default class NextWebServer extends WebServer {
   private permits(request: Parameters<WebRoute['handler']>[0]): boolean {
     const access = nextBrowserAccess()
     if (access !== undefined) return decideDesktopBrowserAccess(access, request) !== 'denied'
+    return this.rejectWithoutPolicy()
+  }
+
+  /** Fail closed on a Host that booted without the renderer credential. */
+  private rejectWithoutPolicy(): false {
     if (!unavailablePolicyReported) {
       unavailablePolicyReported = true
       hostLog({ source: 'host.http', event: 'browser-access.unavailable', level: 'warn',
@@ -106,12 +111,51 @@ export default class NextWebServer extends WebServer {
     return true
   }
 
-  override register(route: WebRoute): () => void {
+  override register(route: WebRoute | WebResourceRoute): () => void {
+    if ('resource' in route) {
+      // `dsh 0.2.2-rc.1` serves static assets as Fetch resources instead of Node handlers, so the
+      // renderer capability arrives as a header and the gate has to answer with a `Response`.
+      return super.register({
+        kind: route.kind,
+        path: route.path,
+        resource: this.observeResource(String(route.path), async (request, peer) => {
+          if (!this.permitsResource(request)) return new Response('Browser access is disabled', { status: 403, headers: { 'cache-control': 'no-store' } })
+          return await route.resource(request, peer)
+        }),
+      })
+    }
     return super.register({ ...route, handler: this.observeHttp(route.path, async (request, response) => {
       if (!this.permits(request)) { response.writeHead(403, { 'cache-control': 'no-store' }); response.end('Browser access is disabled'); return }
       if (this.fence(route.path, request, response)) return
       await route.handler(request, response)
     }) })
+  }
+
+  /**
+   * The renderer credential travels as a header on a Fetch request too, so the gate reads the
+   * flattened header map rather than an `IncomingMessage`.
+   */
+  private permitsResource(request: Request): boolean {
+    const access = nextBrowserAccess()
+    if (access === undefined) return this.rejectWithoutPolicy()
+    const headers: Record<string, string> = {}
+    request.headers.forEach((value, name) => { headers[name.toLowerCase()] = value })
+    return decideDesktopBrowserAccess(access, { headers, url: request.url }) !== 'denied'
+  }
+
+  /** A resource answers with a `Response`, so the trace settles on the returned status. */
+  private observeResource(route: string, resource: WebResource): WebResource {
+    return async (request, peer) => {
+      const end = hostOperation('host.http', 'resource', { route, method: request.method }, true)
+      try {
+        const response = await resource(request, peer)
+        end(undefined, { status: response.status })
+        return response
+      } catch (error) {
+        end(error)
+        throw error
+      }
+    }
   }
 
   private observeHttp(route: string, handler: WebRoute['handler']): WebRoute['handler'] {
@@ -138,12 +182,18 @@ export default class NextWebServer extends WebServer {
       if (!this.permits(request)) { response.writeHead(403, { 'cache-control': 'no-store' }); response.end('Browser access is disabled'); return }
       if (this.fence(requestPath(request), request, response)) return
       if (resource === undefined) { await (fallback as WebRoute['handler'])(request, response); return }
-      // Upstream hands the resource an absolute URL and the admitted peer; reproduce both so the
+      // Upstream hands the resource a Fetch `Request` and the admitted peer; reproduce both so the
       // static responder sees the same request shape it gets inside `serveResource`.
       const absolute = new URL(request.url ?? '/', `http://${request.headers.host ?? '127.0.0.1'}`)
       const connection = this.ctx.get('connection') as { admit?: (request: unknown) => unknown } | undefined
       const admission = connection?.admit?.(request) as { peer?: unknown } | undefined
-      const served = await resource({ url: absolute.href, method: request.method, headers: request.headers } as never, admission?.peer as never) as Response | undefined
+      // `serveStatic` reads `request.headers.get(...)`, so the Node header map has to become real
+      // Fetch headers; passing the raw object answered every asset with 400.
+      const headers = new Headers()
+      for (const [name, value] of Object.entries(request.headers)) {
+        for (const item of typeof value === 'string' ? [value] : value ?? []) headers.append(name, item)
+      }
+      const served = await resource(new Request(absolute, { method: request.method, headers }), admission?.peer as never) as Response | undefined
       if (served === undefined) { response.writeHead(404, { 'cache-control': 'no-store' }); response.end(); return }
       response.writeHead(served.status, Object.fromEntries(served.headers as unknown as Iterable<[string, string]>))
       response.end(request.method === 'HEAD' ? undefined : Buffer.from(await served.arrayBuffer()))
