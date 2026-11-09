@@ -550,6 +550,12 @@ it('leaves no Profile link into an archived installation and points the AA bridg
   mkdirSync(modules, { recursive: true })
   const link = join(modules, 'nonead-dsh-desktop')
   symlinkSync(dirname(NEXT_PACKAGE), link, 'junction')
+  // The overlay projects a row only for a Profile that enables the bridge bundle, so turn the
+  // feature on the way the wizard does before the first load.
+  const manifestPath = join(dir, 'package.json')
+  const enabled = JSON.parse(readFileSync(manifestPath, 'utf8'))
+  enabled.dsh.profile.bundles.push(AA_PACKAGE)
+  writeFileSync(manifestPath, JSON.stringify(enabled))
   const profile = loadNextProfile(dir, manager.home, join(archive, 'package.json'))
   expect(lstatSync(link, { throwIfNoEntry: false })).toBeUndefined()
   expect(profile.layers.map(layer => layer.packageName)).toContain('nonead-dsh-desktop')

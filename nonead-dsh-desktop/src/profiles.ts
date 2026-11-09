@@ -372,17 +372,32 @@ export function loadNextProfile(projectDir: string, home: string, installAnchor 
   const profile = loadProfileDirectory('nonead-dsh-desktop', projectDir, installAnchor)
   profile.layers.push({ packageName: 'nonead-dsh-desktop', packageDir: target,
     patchPaths: [NEXT_BUNDLE_PATCH], patches: loadOverlayPatches('nonead-dsh-desktop', NEXT_BUNDLE_PATCH) })
-  const overlay = [
-    { id: 'agents-anywhere-bridge-next', config: {
-      dshHome: home,
-      ...archivedAgentsAnywhereConfig(installAnchor),
-    } },
-  ]
+  const overlay = agentsAnywhereOverlay(projectDir, home, installAnchor)
   // Leave AA stateRoot unset to share its default credentials and device binding with Stable/Beta.
   // Rewriting the generated overlay also removes the former per-Profile stateRoot on upgrade.
   // The official manager still owns per-Profile bundle/row enablement.
   atomicJson(join(projectDir, 'nonead-dsh-desktop.cordis.patch.json'), overlay)
   return profile
+}
+
+/**
+ * The bridge's config row, or nothing when this Profile does not enable the bridge bundle: a
+ * patch row for a bundle that is absent from `profile.bundles` applies to nothing, and upstream
+ * logs `patch: entry "agents-anywhere-bridge-next" not found` on every start. The wizard and the
+ * feature toggle put the bundle in place; the next launch then re-projects the row with the
+ * redirects an archived installation needs.
+ * @param projectDir - Profile directory holding the manifest.
+ * @param home - Next home the bridge shares across Profiles.
+ * @param installAnchor - Next's package.json, which decides the archived redirects.
+ * @returns One overlay row, or an empty list.
+ */
+function agentsAnywhereOverlay(projectDir: string, home: string, installAnchor: string):
+{ id: string; config: Record<string, string> }[] {
+  const manifest = JSON.parse(readPrivateFile(join(projectDir, 'package.json')) ?? 'null') as
+  { dsh?: { profile?: { bundles?: unknown } } } | null
+  const bundles = manifest?.dsh?.profile?.bundles
+  if (!Array.isArray(bundles) || !bundles.includes(AA_PACKAGE)) return []
+  return [{ id: 'agents-anywhere-bridge-next', config: { dshHome: home, ...archivedAgentsAnywhereConfig(installAnchor) } }]
 }
 
 /**
