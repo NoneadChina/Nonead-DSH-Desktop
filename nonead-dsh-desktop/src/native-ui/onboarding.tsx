@@ -17,6 +17,15 @@ import { desktopText } from '../desktop-i18n.ts'
 import phoneArtwork from './assets/agents-anywhere-phone.webp'
 import tabletArtwork from './assets/agents-anywhere-tablet.webp'
 type Market = 'none' | 'community' | 'dsh'
+/** One bundled plugin as this wizard renders it; newer manifests also carry the optional fields. */
+interface OnboardingPlugin {
+  readonly name: string
+  readonly version: string
+  readonly description?: string
+  readonly category?: string
+  readonly author?: string
+  readonly descriptionEn?: string
+}
 // Keep official dialog dependencies out of recovery and the earlier setup pages.
 const DesktopPermissionsButton = lazy(() => import('../client/permissions.tsx').then(module => ({ default: module.DesktopPermissionsButton })))
 
@@ -25,7 +34,7 @@ export function Onboarding({ state, locale, bridge, renderNavigation, embedded =
   // The Host builds this wizard from a setup snapshot that carries only the Profile and its
   // feature flags, so the bundled plugin list never arrives through `state`. Read it from the
   // Desktop bridge, which serves the same state the settings windows use.
-  const [bundled, setBundled] = useState<readonly { readonly name: string; readonly version: string; readonly description?: string }[]>(state.bundledPlugins ?? [])
+  const [bundled, setBundled] = useState<readonly OnboardingPlugin[]>(state.bundledPlugins ?? [])
   const [issue, setIssue] = useState<string | undefined>(state.bundledPluginIssue)
   // Progress of the bundled-plugin install that runs after pressing "Finish and start".
   const [installing, setInstalling] = useState(false)
@@ -108,6 +117,45 @@ export function Onboarding({ state, locale, bridge, renderNavigation, embedded =
       `This installer carries ${bundled.length} plugins. Pressing “Finish and start” installs them\nautomatically, and you can manage them in the Market’s “Installed” tab afterwards.`),
   ]
 
+  // The bundled-plugin step summarises the categories present in this installer instead of
+  // listing every plugin; the install state below then details the one plugin going in.
+  const pluginCategories = [
+    { id: 'core', label: t('记忆与上下文', 'Memory & context'), detail: t('让对话记住来时的路，重要信息不必每次重讲。', 'Keeps earlier conversations in view, so context carries forward.') },
+    { id: 'workspace', label: t('界面与工作区', 'Workspace & UI'), detail: t('面板、看板与市场工具，把工作区布置成你想要的样子。', 'Panels, boards and market tools that shape the workspace around you.') },
+    { id: 'agent', label: t('智能体与技能', 'Agents & skills'), detail: t('更多可召唤的智能体、专家团与技能，随时听候调遣。', 'Extra agents, expert rosters and reusable skills, ready when needed.') },
+    { id: 'docs', label: t('文档与媒体', 'Documents & media'), detail: t('直接读写 Office 文档、表格、图片与视频。', 'Read and write Office documents, spreadsheets, images and video.') },
+    { id: 'engineering', label: t('代码与工程', 'Code & engineering'), detail: t('代码审查与仓库可视化，把工程现场看得更清楚。', 'Code review and repository visualisation, with the whole picture in view.') },
+    { id: 'robot', label: t('机器人与仿真', 'Robotics & simulation'), detail: t('控制 Universal Robots 机械臂，也能离线仿真练手。', 'Drive Universal Robots arms, or rehearse offline in simulation.') },
+    { id: 'integration', label: t('连接与自动化', 'Connections & automation'), detail: t('接上 MCP、配置与历史记录工具，把流程串起来。', 'MCP, configuration and prompt-history tools that tie your workflow together.') },
+  ]
+  const countLabel = (count: number): string => t(`${String(count)} 个插件`, `${String(count)} ${count === 1 ? 'plugin' : 'plugins'}`)
+  const knownCategoryIds: ReadonlySet<string> = new Set(pluginCategories.map(category => category.id))
+  // One row per category that this installer actually carries, ordered by the list above.
+  // A plugin with a missing or unrecognised category is counted in the trailing bucket.
+  const pluginOverview = ((): { key: string; label: string; detail: string; countText: string }[] => {
+    const counts = new Map<string, number>()
+    let others = 0
+    for (const plugin of bundled) {
+      if (plugin.category !== undefined && knownCategoryIds.has(plugin.category)) {
+        counts.set(plugin.category, (counts.get(plugin.category) ?? 0) + 1)
+      } else {
+        others += 1
+      }
+    }
+    const rows: { key: string; label: string; detail: string; countText: string }[] = []
+    for (const category of pluginCategories) {
+      const count = counts.get(category.id) ?? 0
+      if (count === 0) continue
+      rows.push({ key: category.id, label: category.label, detail: category.detail, countText: countLabel(count) })
+    }
+    if (others > 0) rows.push({ key: 'more', label: t('更多', 'More'), detail: t('其他随包插件，还没归入上面的分类。', 'Other bundled plugins that do not fit the categories above yet.'), countText: countLabel(others) })
+    return rows
+  })()
+  const currentCategory = currentPlugin === undefined ? undefined : pluginCategories.find(category => category.id === currentPlugin.category)
+  // English shows `descriptionEn` when the manifest carries it, and the shared description otherwise.
+  const currentDescription = currentPlugin === undefined ? undefined : locale === 'en' ? currentPlugin.descriptionEn ?? currentPlugin.description : currentPlugin.description
+  const currentAuthor = currentPlugin?.author
+
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; animation.current?.cancel() } }, [])
   useEffect(installPluginControlsStyles, [])
   useEffect(() => {
@@ -119,18 +167,24 @@ export function Onboarding({ state, locale, bridge, renderNavigation, embedded =
     if (navigationLock.current || saving.current || next < 0 || next > lastPage) return
     navigationLock.current = true
     setTransitioning(true)
-    const nextDirection = next > page ? 1 : -1
-    if (!matchMedia('(prefers-reduced-motion: reduce)').matches && slide.current) {
-      const current = getComputedStyle(slide.current)
-      animation.current = slide.current.animate([
-        { opacity: current.opacity, transform: current.transform },
-        { opacity: 0, transform: `translateX(${-nextDirection * 18}px)` },
-      ], { duration: 180, easing: 'cubic-bezier(.4, 0, 1, 1)', fill: 'forwards' })
-      await animation.current.finished.catch(() => {})
+    try {
+      const nextDirection = next > page ? 1 : -1
+      if (!matchMedia('(prefers-reduced-motion: reduce)').matches && slide.current) {
+        const current = getComputedStyle(slide.current)
+        animation.current = slide.current.animate([
+          { opacity: current.opacity, transform: current.transform },
+          { opacity: 0, transform: `translateX(${-nextDirection * 18}px)` },
+        ], { duration: 180, easing: 'cubic-bezier(.4, 0, 1, 1)', fill: 'forwards' })
+        await animation.current.finished.catch(() => {})
+      }
+      if (!mounted.current) return
+      setDirection(nextDirection); setPage(next)
+    } finally {
+      // Release the lock on every path: an early return (or a cancelled animation) used to leave
+      // the wizard permanently unable to navigate.
+      if (mounted.current) setTransitioning(false)
+      navigationLock.current = false
     }
-    if (!mounted.current) return
-    setDirection(nextDirection); setPage(next); setTransitioning(false)
-    navigationLock.current = false
   }
 
   async function finish(skip: boolean) {
@@ -147,7 +201,9 @@ export function Onboarding({ state, locale, bridge, renderNavigation, embedded =
     } catch (error) {
       if (!mounted.current) return
       setFailure(error instanceof Error ? error.message : String(error))
-      setBusy(false); saving.current = false
+      // Leave the install view: keeping it would hide the primary action, so the only way to retry
+      // a rejected save would be to skip setup.
+      setInstalling(false); setBusy(false); saving.current = false
     }
   }
 
@@ -223,19 +279,32 @@ export function Onboarding({ state, locale, bridge, renderNavigation, embedded =
             {bundled.length === 0
               ? <><p>{t('这个安装包没有附带插件。', 'This installer carries no plugins.')}</p>
                 {issue === undefined ? null : <p><small>{issue}</small></p>}</>
-              : <ol className="next-onboarding-plugins">
-                {bundled.map(plugin => <li key={plugin.name}><strong>{plugin.name}</strong><p>{plugin.version}</p></li>)}
-              </ol>}
+              : <ul className="next-onboarding-categories" aria-label={t('随包插件分类', 'Bundled plugin categories')}>
+                {pluginOverview.map(category => <li className="next-onboarding-category" key={category.key}>
+                  <span className="next-onboarding-category-label">{category.label}</span>
+                  <span className="next-onboarding-category-count">{category.countText}</span>
+                  <p className="next-onboarding-category-detail">{category.detail}</p>
+                </li>)}
+              </ul>}
           </div>}
         </aside>
         {installing
           ? <div className="next-onboarding-actions next-onboarding-installing">
-            <div className="next-onboarding-installing-copy">
-              <strong>{currentPlugin?.name ?? t('正在安装内置插件', 'Installing bundled plugins')}</strong>
-              {currentPlugin?.description === undefined ? null : <p>{currentPlugin.description}</p>}
-              <p><small>{t('装好后可在左侧「插件」页或设置的插件市场里找到它。', 'Once installed, find it under Plugins in the sidebar or the plugin market in Settings.')}</small></p>
+            <div className="next-onboarding-installing-copy" aria-live="polite">
+              {currentPlugin === undefined
+                ? <strong>{t('正在安装内置插件', 'Installing bundled plugins')}</strong>
+                : <>
+                  <strong className="next-onboarding-installing-name">{currentPlugin.name}</strong>
+                  <div className="next-onboarding-installing-meta">
+                    {currentCategory === undefined ? null : <span className="next-onboarding-installing-chip">{currentCategory.label}</span>}
+                    <span className="next-onboarding-installing-version">v{currentPlugin.version}</span>
+                  </div>
+                  {currentDescription === undefined ? null : <p className="next-onboarding-installing-description">{currentDescription}</p>}
+                  {currentAuthor === undefined ? null : <p className="next-onboarding-installing-thanks">{t('感谢 {author} 带来这个插件。', 'Thanks to {author} for this plugin.').replace('{author}', currentAuthor)}</p>}
+                </>}
+              <p className="next-onboarding-installing-hint">{t('装好后可在左侧「插件」页或设置的插件市场里找到它。', 'Once installed, find it under Plugins in the sidebar or the plugin market in Settings.')}</p>
             </div>
-            <div className="next-onboarding-install-meter">
+            <div className="next-onboarding-install-meter" role="progressbar" aria-label={t('内置插件安装进度', 'Bundled plugin install progress')} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
               <span style={{ width: `${String(percent)}%` }} />
             </div>
             <p className="next-onboarding-installing-count">

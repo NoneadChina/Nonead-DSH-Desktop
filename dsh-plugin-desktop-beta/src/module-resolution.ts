@@ -168,6 +168,16 @@ function isWithin(
     )
 }
 
+/**
+ * The Loader writes `<Profile>/.cordis/resolve.mjs` and imports every configuration entry through it,
+ * so that generated helper, not the Profile directory, is the parentURL of a plugin import.
+ */
+const loaderHelperDirectory = '.cordis'
+
+function isLoaderHelperPath(registration: ProfileResolverRegistration, candidate: string): boolean {
+  return isLexicallyWithin(join(registration.profileDirectory, loaderHelperDirectory), candidate)
+}
+
 function isLexicalProfileBoundary(
   registration: ProfileResolverRegistration,
   url: string | undefined,
@@ -180,6 +190,7 @@ function isLexicalProfileBoundary(
   // config files as its parentURL across supported Node releases. Restrict the
   // bridge to that directory and its direct files, never another Profile.
   return offset === '' || (!offset.includes(sep) && offset !== '..' && !isAbsolute(offset))
+    || isLoaderHelperPath(registration, candidate)
 }
 
 function isCanonicalProfileBoundary(
@@ -190,6 +201,7 @@ function isCanonicalProfileBoundary(
   if (candidate === undefined) return false
   const offset = relative(canonicalPath(registration, registration.profileDirectory), candidate)
   return offset === '' || (!offset.includes(sep) && offset !== '..' && !isAbsolute(offset))
+    || offset === loaderHelperDirectory || offset.startsWith(`${loaderHelperDirectory}${sep}`)
 }
 
 function isSharedFallbackPath(registration: ProfileResolverRegistration, candidate: string): boolean {

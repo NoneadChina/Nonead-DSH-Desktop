@@ -3,6 +3,7 @@ import type { Features, OnboardingChoices } from './profiles.ts'
 import type { DesktopLanHttpsRuntimeSnapshot } from './lan-https-runtime.ts'
 import type { DesktopPermissions } from './permissions.ts'
 import type { DesktopDeepLink } from './deep-link.ts'
+import type { BundledPlugin } from './preinstall-plugins.ts'
 
 export const NATIVE_ACCESS_HEADER = 'x-dsh-desktop-renderer'
 export const DEFAULT_PROFILE = 'desktop'
@@ -66,7 +67,7 @@ export interface DesktopState {
   /** Initial saved choice for setup; live state belongs to pluginManager. */
   onboardingComputerUse?: boolean
   /** Plugins the installer carries; the setup wizard lists these and completion installs them. */
-  bundledPlugins?: readonly { readonly name: string; readonly version: string; readonly description?: string }[]
+  bundledPlugins?: readonly BundledPlugin[]
   /** Why `bundledPlugins` came back empty, when a manifest was present but unusable. */
   bundledPluginIssue?: string
   /** Live install progress while the setup wizard finishes. */

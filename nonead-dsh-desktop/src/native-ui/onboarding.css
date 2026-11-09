@@ -90,36 +90,25 @@
 .next-onboarding-recovery-title { display: flex; align-items: center; gap: 12px; margin: 0 0 24px; font-size: 20px; font-weight: 500; }
 .next-onboarding-recovery-title > svg { width: 32px; height: 32px; flex-shrink: 0; stroke-width: 1.4; }
 .next-onboarding-recovery ol { list-style: decimal; padding-left: 22px; }
-/* The bundled plugin list must fit on one screen: five columns, tight rows. */
-.next-onboarding-plugins {
-  columns: 5;
-  column-gap: 14px;
-  list-style: decimal;
-  padding-left: 18px;
-  margin: 0;
-  font-size: 12px;
-}
-.next-onboarding-plugins li {
-  break-inside: avoid;
-  padding-left: 3px;
-  margin-bottom: 1.5px;
-  line-height: 1.25;
-}
-.next-onboarding-plugins li p {
-  display: inline;
-  margin: 0 0 0 5px;
-  font-size: 10px;
-}
+/* Bundled-plugin overview: one quiet row per category present, never one row per plugin. */
+.next-onboarding-categories { list-style: none; margin: 0; padding: 0; }
+/* Scoped past `.next-onboarding-recovery li`, which would otherwise add its list spacing. */
+.next-onboarding-categories .next-onboarding-category { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; margin: 0; padding: 9px 0; border-top: 1px solid var(--border); }
+.next-onboarding-categories .next-onboarding-category:last-child { border-bottom: 1px solid var(--border); }
+.next-onboarding-category-label { flex: 1 1 auto; min-width: 0; font-size: 13px; font-weight: 500; overflow-wrap: anywhere; }
+.next-onboarding-category-count { flex: 0 0 auto; color: var(--muted-foreground); font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.next-onboarding-categories .next-onboarding-category-detail { flex: 1 1 100%; margin: 0; color: var(--muted-foreground); font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
 /* Progress of the bundled-plugin install that runs after "Finish and start". */
-.next-onboarding-installing {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  align-items: stretch;
-  max-width: 760px;
-}
-.next-onboarding-installing-copy strong { display: block; font-size: 14px; font-weight: 500; }
-.next-onboarding-installing-copy p { margin: 4px 0 0; color: var(--muted-foreground); font-size: 12px; line-height: 1.65; }
+.next-onboarding-installing { display: flex; flex-direction: column; gap: 8px; align-items: stretch; max-width: 620px; }
+.next-onboarding-installing-copy { min-width: 0; }
+.next-onboarding-installing-copy strong { display: block; font-size: 15px; font-weight: 500; overflow-wrap: anywhere; }
+.next-onboarding-installing-copy p { margin: 10px 0 0; line-height: 1.7; overflow-wrap: anywhere; }
+.next-onboarding-installing-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.next-onboarding-installing-chip { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted-foreground); font-size: 11px; line-height: 1; white-space: nowrap; }
+.next-onboarding-installing-version { color: var(--muted-foreground); font-size: 11px; font-variant-numeric: tabular-nums; }
+.next-onboarding-installing-description { font-size: 12px; }
+.next-onboarding-installing-thanks { font-size: 12px; color: var(--muted-foreground); }
+.next-onboarding-installing-copy .next-onboarding-installing-hint { font-size: 11px; color: var(--muted-foreground); }
 .next-onboarding-installing-count { margin: 0; color: var(--muted-foreground); font-size: 12px; }
 /* Progress of the bundled-plugin install that runs after "Finish and start". */
 .next-onboarding-install-meter {
