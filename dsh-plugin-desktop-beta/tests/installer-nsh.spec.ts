@@ -24,9 +24,10 @@ describe('Windows NSIS running-app handoff', () => {
     const script = readFileSync(join(process.cwd(), 'build', 'installer.nsh'), 'utf8')
 
     // Bounded orderly window, then a forced-close loop with both soft and hard attempts.
-    expect(script).toContain('$DshWaitCount < 20')
+    // $R1 rather than a declared Var: the throwaway stub would leave a Var "never set".
+    expect(script).toContain('$R1 < 20')
     expect(script).toContain('Sleep 500')
-    expect(script).toContain('$DshWaitCount < 6')
+    expect(script).toContain('$R1 < 6')
     expect(script).toContain('!insertmacro dshInstallerKillApp 0')
     expect(script).toContain('!insertmacro dshInstallerKillApp 1')
     expect(script).toContain('Stop-Process -Force')
@@ -36,7 +37,9 @@ describe('Windows NSIS running-app handoff', () => {
     expect(script).toContain('tasklist /FI "IMAGENAME eq ${APP_EXECUTABLE_FILENAME}"')
 
     // Nothing may let the install continue while the previous version still runs.
-    expect(script).not.toContain('MB_OKCANCEL')
+    const initHook = script.indexOf('!macro customInit')
+    const initBody = script.slice(initHook, script.indexOf('!macroend', initHook))
+    expect(initBody).not.toContain('MessageBox')
     expect(script).not.toContain('MB_RETRYCANCEL')
     expect(script).toContain('MessageBox MB_ICONSTOP')
     expect(script).toContain('SetErrorLevel 2')
@@ -57,5 +60,28 @@ describe('Windows NSIS running-app handoff', () => {
     expect(script).toContain('!ifndef BUILD_UNINSTALLER')
     expect(script).not.toContain('nsProcess::KillProcess')
     expect(script).not.toContain('getProcessInfo.nsh')
+  })
+
+  it('asks before an uninstall closes a running instance, and aborts on cancel', () => {
+    const script = readFileSync(join(process.cwd(), 'build', 'installer.nsh'), 'utf8')
+    const guard = script.indexOf('!ifdef BUILD_UNINSTALLER')
+    const uninstallHook = script.indexOf('!macro customUnInstall')
+
+    expect(guard).toBeGreaterThan(0)
+    expect(uninstallHook).toBeGreaterThan(guard)
+    const body = script.slice(uninstallHook, script.indexOf('!macroend', uninstallHook))
+
+    // A silent uninstall must never delete files out from under a live instance, and a quiet
+    // one must never prompt: the prompt lives inside the "is running" branch.
+    expect(body).toContain('${if} $R0 == 0')
+    expect(body).toContain('MB_OKCANCEL|MB_ICONEXCLAMATION')
+    expect(body).toContain('还在运行中')
+    expect(body).toContain('IDOK dsh_uninstall_close_app')
+    // /SD IDOK keeps a scripted (/S) uninstall from blocking on the prompt.
+    expect(body).toContain('/SD IDOK')
+    // Cancel aborts the uninstall instead of continuing to delete files.
+    expect(body).toContain('Quit')
+    // Confirm reuses the same orderly-then-forced close and then falls through to deletion.
+    expect(body).toContain('!insertmacro dshInstallerCloseRunningApp')
   })
 })
