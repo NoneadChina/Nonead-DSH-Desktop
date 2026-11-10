@@ -265,12 +265,12 @@
     },
     {
       "name": "dsh-nonead-ursim",
-      "version": "0.3.14",
-      "file": "dsh-nonead-ursim-0.3.14.tgz",
+      "version": "0.3.15",
+      "file": "dsh-nonead-ursim-0.3.15.tgz",
       "category": "robot",
       "author": "拓德科技",
       "description": "UR 离线仿真：在仿真里编排与验证 Universal Robots 机械臂动作，不用连真机。适合先把轨迹与逻辑跑通，再上真机执行。",
-      "descriptionEn": "一个让 DSH 用自然语言直接控制 Universal Robots（UR）机械臂的插件，由拓德科技（Nonead）基于自研的 nUR MCP Server 同源逻辑开发。"
+      "descriptionEn": "一个让 DSH 在离线环境里用自然语言驱动虚拟 Universal Robots（UR）机械臂的仿真插件：运动学级建模、无需真机，由拓德科技（Nonead）基于自研的 nUR MCP Server 同源逻辑开发。"
     },
     {
       "name": "dsh-office-tools",
