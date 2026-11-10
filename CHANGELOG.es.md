@@ -13,6 +13,14 @@ Convenciones de mantenimiento:
 - Las entradas solo recogen los cambios que el usuario puede percibir y los cambios de límites que los mantenedores deben conocer; las refactorizaciones puras no tienen entrada propia.
 - El historial anterior está en las etiquetas de Git (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) y en el registro de confirmaciones.
 
+## 2.2.10 — 2026-11-10
+
+Dos correcciones encontradas en la revisión posterior a la publicación anterior:
+
+- Aviso al iniciar: un Profile que no habilita el control remoto ya no escribe la fila del puente en su capa cordis, así que `patch: entry "agents-anywhere-bridge-next" not found` deja de aparecer en cada arranque; los Profile que sí lo habilitan conservan la fila anterior, incluidas las redirecciones de la instalación empaquetada.
+- Complementos incluidos: `dsh-nonead-ursim` pasa a **0.3.15** con una descripción de simulación (antes coincidía byte a byte con el complemento de robot real `dsh-nonead-universal-robots`, lo que invitaba a instalarlo para trabajo con hardware).
+- Versión: producto 2.2.9 → **2.2.10** (los dos espacios de trabajo de escritorio avanzan juntos).
+
 ## 2.2.9 — 2026-11-10
 
 El tiempo de ejecución pasa a DSH 0.2.2-rc.1, el conjunto de plugins incluidos llega a 36 y la guía de puesta en marcha del instalador cambia de enfoque:
