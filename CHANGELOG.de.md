@@ -13,6 +13,14 @@ Konventionen für die Pflege:
 - Einträge halten ausschließlich Änderungen fest, die Nutzer wahrnehmen können, sowie Grenzänderungen, die Maintainer kennen müssen; reine Refactorings erhalten keinen eigenen Eintrag.
 - Die frühere Historie findet sich in den Git-Tags (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) und in der Commit-Historie.
 
+## 2.2.10 — 2026-11-10
+
+Zwei Korrekturen aus der Selbstprüfung nach der letzten Veröffentlichung:
+
+- Startwarnung: Ein Profile ohne aktivierte Fernsteuerung schreibt die Bridge-Zeile nicht mehr in seine cordis-Ebene, daher erscheint `patch: entry "agents-anywhere-bridge-next" not found` nicht mehr bei jedem Start; Profile mit aktivierter Funktion behalten die bisherige Zeile samt der Umleitungen der gepackten Installation.
+- Mitgelieferte Plugins: `dsh-nonead-ursim` geht auf **0.3.15** mit einer simulationsbezogenen Beschreibung (zuvor war sie bytegleich mit dem Echtroboter-Plugin `dsh-nonead-universal-robots`, was zur Installation für Hardware-Abläufe verleitete).
+- Version: Produkt 2.2.9 → **2.2.10** (beide Desktop-Workspaces wandern gemeinsam).
+
 ## 2.2.9 — 2026-11-10
 
 Die Laufzeit wechselt auf DSH 0.2.2-rc.1, das mitgelieferte Plugin-Set erreicht 36, und der Installationsassistent erzählt das anders:
