@@ -15,20 +15,22 @@ Convenciones de mantenimiento:
 
 ## 2.2.9 — 2026-11-10
 
-El tiempo de ejecución pasa a DSH 0.2.2-rc.1, el conjunto de plugins incluidos llega a 36 y la guía de puesta en marcha del instalador cambia de enfoque:
+El tiempo de ejecución pasa a DSH 0.2.2-rc.1, el conjunto de plugins incluidos llega a 35 y la guía de puesta en marcha del instalador cambia de enfoque:
 
 - Tiempo de ejecución: el DeepSeek Harness incluido pasa de 0.2.2-alpha.3 a **0.2.2-rc.1** (commit upstream `66491b0`, con la familia cordis promovida a 4.1.0 y schemastery 3.19.0). `vendor/dsh-runtime/0.2.2-rc.1` se reconstruye desde el código upstream local como 373 paquetes, exactamente el mismo conjunto que la versión anterior; los 24 parches de escritorio se reajustan sobre los nuevos artefactos, el `resolutions` raíz y las dependencias de DSH de los dos espacios de trabajo de escritorio apuntan a la nueva versión, y `yarn check:vendored-runtime` pasa en ambos canales.
 - Guía de inicio: el paso «listo para usar» del instalador ya no enumera todos los plugins de entrada, sino que explica por categorías qué cubre el conjunto incluido; al empezar la instalación, cada plugin muestra al llegar su turno el nombre, la versión, la categoría y la descripción completa, y da crédito a su autor: «Gracias a X por este plugin».
-- Plugins incluidos: el conjunto pasa de 30 a **36**, con la incorporación de `@changfenhuang/dsh-genui`, `@deepseek-ai/dsh-tool-subagent`, `@linxin666/dsh-client-ui-task-board`, `@weibaohui/skills-management`, `billion-context`, `dsh-client-auto-continue`, `dsh-cost-meter`, `dsh-markitdown`, `dsh-nonead-prompt-rewind`, `dsh-office-tools` y `dshmarket`; salen del conjunto `dsh-api-client`, `dsh-design`, `dsh-doc-reader`, `dsh-rewind-plugin` y `@kenz1117/dsh-ui-usage-billing`.
+- Plugins incluidos: el conjunto pasa de 30 a **35**, con la incorporación de `@changfenhuang/dsh-genui`, `@deepseek-ai/dsh-tool-subagent`, `@linxin666/dsh-client-ui-task-board`, `@weibaohui/skills-management`, `billion-context`, `dsh-client-auto-continue`, `dsh-cost-meter`, `dsh-markitdown`, `dsh-nonead-prompt-rewind`, `dshmarket`; salen del conjunto `dsh-api-client`, `dsh-design`, `dsh-doc-reader`, `dsh-rewind-plugin` y `@kenz1117/dsh-ui-usage-billing`.
 - Actualización de plugins: `dsh-ppt-master` 1.0.8 → 6.1.0, `dsh-config-manager` 0.3.1 → 0.6.0, `@michengai/dsh-skills-manager` 1.2.28 → 1.4.0, `dsh-better-sidebar` 0.28.2 → 0.30.1, `dsh-context` 0.80.3 → 0.83.0, y el resto sigue npm latest.
 - Manifiesto de plugins: `plugin/manifest.json` sube a v4 y cada entrada lleva categoría y autor; de ahí salen la agrupación y la línea de crédito del instalador.
 - Versión: producto 2.2.6 → **2.2.9** (los dos espacios de trabajo de escritorio avanzan juntos).
 - Aviso al iniciar: un Profile que no habilita el control remoto ya no escribe la fila del puente en su capa cordis, así que `patch: entry "agents-anywhere-bridge-next" not found` deja de aparecer en cada arranque; los Profile que sí lo habilitan conservan la fila anterior, incluidas las redirecciones de la instalación empaquetada.
 - Complementos incluidos: `dsh-nonead-ursim` pasa a **0.3.15** con una descripción de simulación (antes coincidía byte a byte con el complemento de robot real `dsh-nonead-universal-robots`, lo que invitaba a instalarlo para trabajo con hardware).
+- Puente incluido: el puente de Agents Anywhere pasa a la línea **2.1.0** (tag `v2.1.0`). AA exige actualizar el complemento junto con un salto MINOR de Desktop/Connector; si no, la conexión local se queda esperando. El artefacto sigue siendo la variante desktop de compilación propia, con el parche de robustez del conector reajustado a 2.1.0.
+- Actualizaciones: `@michengai/dsh-archive-manager` 1.3.1, `dsh-config-manager` 0.7.0, `dsh-context` 0.83.1, `dshmarket` 1.73.17.
 
-### Lista de plugins incluidos (36)
+### Lista de plugins incluidos (35)
 
-Estos 36 plugins se distribuyen con el instalador; tras el primer arranque puede activarlos, desactivarlos o quitarlos desde la página Plugins. El número tras cada nombre es la versión incluida.
+Estos 35 plugins se distribuyen con el instalador; tras el primer arranque puede activarlos, desactivarlos o quitarlos desde la página Plugins. El número tras cada nombre es la versión incluida.
 
 - `@a9i5k4/dsh-auto-memory` 3.3.17 — Memoria automática. Recupera decisiones previas y resume los registros en notas y libros.
 - `@changfenhuang/dsh-genui` 0.16.0 — UI generativa. El modelo dibuja gráficos, formularios y diagramas; los clics vuelven a él.
@@ -37,7 +39,7 @@ Estos 36 plugins se distribuyen con el instalador; tras el primer arranque puede
 - `@linxin666/dsh-client-ui-skill-explorer` 0.4.16 — Centro de habilidades. Explora las habilidades por origen y permite crearlas o borrarlas.
 - `@linxin666/dsh-client-ui-task-board` 0.4.16 — Tablero de tareas. El host abre sesiones reales para ejecutar tarjetas, con cron y reposo.
 - `@michengai/dsh-agency-agents` 1.2.27 — Biblioteca de expertos. 331 especialistas invocables y cinco equipos de expertos.
-- `@michengai/dsh-archive-manager` 1.3.0 — Archivo de sesiones. Archiva, restaura y borra sesiones y diagnostica registros dañados.
+- `@michengai/dsh-archive-manager` 1.3.1 — Archivo de sesiones. Archiva, restaura y borra sesiones y diagnostica registros dañados.
 - `@michengai/dsh-code-review` 1.0.9 — Revisión de código. Un subagente aparte revisa Git, fuentes y pruebas y trae el informe.
 - `@michengai/dsh-skills-manager` 1.4.0 — Gestor de habilidades. Carga y administra las locales, con instalación desde GitHub.
 - `@tt-a1i/archify-dsh` 1.1.0 — Diagramas de arquitectura. Integra Archify para dibujar desde una descripción del sistema.
@@ -47,8 +49,8 @@ Estos 36 plugins se distribuyen con el instalador; tras el primer arranque puede
 - `billion-context` 0.1.213 — Compresión de contexto. Pliega conversaciones largas en resúmenes para usar menos tokens.
 - `dsh-better-sidebar` 0.30.1 — Barra lateral mejorada. Reúne árbol, editor, cambios, tareas y chat lateral por sesión.
 - `dsh-client-auto-continue` 0.17.4 — Continuación automática. Reenvía la petición de continuar si el fallo no es del usuario.
-- `dsh-config-manager` 0.6.0 — Gestor de configuración. Respalda, restaura, exporta, importa, migra y sincroniza DSH.
-- `dsh-context` 0.83.0 — Perspectiva del contexto. Un panel muestra su composición y comprime cuando hace falta.
+- `dsh-config-manager` 0.7.0 — Gestor de configuración. Respalda, restaura, exporta, importa, migra y sincroniza DSH.
+- `dsh-context` 0.83.1 — Perspectiva del contexto. Un panel muestra su composición y comprime cuando hace falta.
 - `dsh-cost-meter` 1.9.62 — Panel de coste. Cuenta tokens y coste por sesión, día e historial, con más de 170 precios.
 - `dsh-excel-chat` 0.43.0 — Chat de hojas de cálculo. Lee, edita y limpia hojas en lenguaje natural y valida fórmulas.
 - `dsh-find-plugins` 0.3.0 — Descubrimiento de plugins. Agrega cinco catálogos y busca en GitHub y npm por relevancia.
@@ -59,13 +61,12 @@ Estos 36 plugins se distribuyen con el instalador; tras el primer arranque puede
 - `dsh-nonead-prompt-recall` 0.8.7 — Historial de entrada. Con el compositor vacío, ↑ recupera la instrucción anterior.
 - `dsh-nonead-prompt-rewind` 0.5.4 — Rebobinado de la conversación. Vuelve a un mensaje anterior y restaura los archivos.
 - `dsh-nonead-universal-robots` 0.8.6 — Brazos UR. Mueve cobots Universal Robots en lenguaje natural: pose, articulaciones y E/S.
-- `dsh-nonead-ursim` 0.3.14 — Simulación UR. Valida movimientos sin conexión antes de tocar la máquina real.
-- `dsh-office-tools` 1.0.8 — Archivos de Office. Ocho herramientas crean, leen y añaden Word, Excel y PowerPoint.
+- `dsh-nonead-ursim` 0.3.15 — Simulación UR. Valida movimientos sin conexión antes de tocar la máquina real.
 - `dsh-ppt-master` 6.1.0 — Generación de presentaciones. Crea PPTX editable y exporta SVG o mejora el archivo.
 - `dsh-remotion` 0.10.5 — Taller de vídeo. Convierte un proyecto React en vídeo con plantillas, vista previa y MP4.
 - `dsh-superagent` 0.1.0 — Prototipo de agente proactivo (investigación de DeepSeek, no un producto oficial). Vigila un repositorio de GitHub (opcionalmente Feishu) y ejecuta las peticiones autorizadas como tareas en sesiones propias.
 - `dsh-univer-office` 0.4.0 — Integración con Office. Trae hojas, documentos, presentaciones, lienzos y bases a DSH.
-- `dshmarket` 1.73.16 — Mercado visual de plugins. Explora, busca e instala plugins dentro de DSH en un clic.
+- `dshmarket` 1.73.17 — Mercado visual de plugins. Explora, busca e instala plugins dentro de DSH en un clic.
 
 ## 2.2.6 — 2026-11-03
 

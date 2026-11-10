@@ -15,20 +15,22 @@
 
 ## 2.2.9 — 2026-11-10
 
-ランタイムを DSH 0.2.2-rc.1 に上げ、同梱プラグインを 36 個に拡張し、インストーラーの「すぐ使える」ガイドも説明を変えました：
+ランタイムを DSH 0.2.2-rc.1 に上げ、同梱プラグインを 35 個に拡張し、インストーラーの「すぐ使える」ガイドも説明を変えました：
 
 - ランタイム：同梱の DeepSeek Harness を 0.2.2-alpha.3 から **0.2.2-rc.1** に更新（上流コミット `66491b0`、cordis ファミリーが 4.1.0、schemastery が 3.19.0 に昇格）。`vendor/dsh-runtime/0.2.2-rc.1` をローカルの上流ソースから 373 パッケージとして再構築し、パッケージ構成は前バージョンと完全に同一です。24 個のデスクトップパッチはすべて新しい成果物にリベースし、ルートの `resolutions` と 2 つのデスクトップワークスペースの DSH 依存も新バージョンに向け、`yarn check:vendored-runtime` は両チャネルで通過しています。
 - ガイド：インストーラーの「すぐ使える」は、最初にすべてのプラグインを列挙するのをやめ、同梱プラグインが何をできるかを大分類ごとに説明するようになりました。インストールを開始すると、各プラグインは順番が来た時点で名前・バージョン・分類・完全な説明を表示し、作者への謝辞（「X が提供するこのプラグインに感謝します」）も添えます。
-- 同梱プラグイン：同梱のプラグインを 30 個から **36 個** に増やし、`@changfenhuang/dsh-genui`、`@deepseek-ai/dsh-tool-subagent`、`@linxin666/dsh-client-ui-task-board`、`@weibaohui/skills-management`、`billion-context`、`dsh-client-auto-continue`、`dsh-cost-meter`、`dsh-markitdown`、`dsh-nonead-prompt-rewind`、`dsh-office-tools`、`dshmarket` を追加しました。`dsh-api-client`、`dsh-design`、`dsh-doc-reader`、`dsh-rewind-plugin`、`@kenz1117/dsh-ui-usage-billing` は同梱一覧から外れます。
+- 同梱プラグイン：同梱のプラグインを 30 個から **35 個** に増やし、`@changfenhuang/dsh-genui`、`@deepseek-ai/dsh-tool-subagent`、`@linxin666/dsh-client-ui-task-board`、`@weibaohui/skills-management`、`billion-context`、`dsh-client-auto-continue`、`dsh-cost-meter`、`dsh-markitdown`、`dsh-nonead-prompt-rewind`、`dshmarket` を追加しました。`dsh-api-client`、`dsh-design`、`dsh-doc-reader`、`dsh-rewind-plugin`、`@kenz1117/dsh-ui-usage-billing` は同梱一覧から外れます。
 - プラグイン更新：`dsh-ppt-master` 1.0.8 → 6.1.0、`dsh-config-manager` 0.3.1 → 0.6.0、`@michengai/dsh-skills-manager` 1.2.28 → 1.4.0、`dsh-better-sidebar` 0.28.2 → 0.30.1、`dsh-context` 0.80.3 → 0.83.0、その他は npm latest に追随。
 - プラグインマニフェスト：`plugin/manifest.json` を v4 に上げ、各エントリーが分類と作者を持つようになりました。インストーラーはこれに従ってグループ分けと謝辞を表示します。
 - バージョン：製品 2.2.6 → **2.2.9**（2 つのデスクトップワークスペースを同時に更新）。
 - 起動時の警告：リモート操作を有効にしていない Profile では、ブリッジの項目を cordis オーバーレイに書き込まないようにしました。これにより `patch: entry "agents-anywhere-bridge-next" not found` が起動ログに出なくなります。有効にしている Profile の挙動は変わらず、`dshHome` とパッケージ版のリダイレクトを書き続けます。
 - 同梱プラグイン：`dsh-nonead-ursim` を **0.3.15** に更新し、説明文をオフライン・シミュレーション向けに変更しました（従来は実機プラグイン `dsh-nonead-universal-robots` と完全に同一で、実機用途と誤解されやすい状態でした）。
+- 同梱ブリッジ：`Agents Anywhere` ブリッジを **2.1.0** 系（上流タグ `v2.1.0`）へ更新。AA は Desktop/Connector の MINOR 更新時にプラグインも揃えて更新することを求めており、揃えないとローカル接続が待機状態のままになります。同梱物は従来どおり自前ビルドの desktop 変体で、コネクタ堅牢化パッチは 2.1.0 向けに作り直しました。
+- プラグイン更新：`@michengai/dsh-archive-manager` 1.3.1、`dsh-config-manager` 0.7.0、`dsh-context` 0.83.1、`dshmarket` 1.73.17。
 
-### 同梱プラグイン一覧（36 個）
+### 同梱プラグイン一覧（35 個）
 
-以下の 36 個のプラグインはインストーラーに同梱されています。初回起動後は「プラグイン」ページからいつでも有効化・無効化・削除できます。名前の後ろの数字は同梱バージョンです。
+以下の 35 個のプラグインはインストーラーに同梱されています。初回起動後は「プラグイン」ページからいつでも有効化・無効化・削除できます。名前の後ろの数字は同梱バージョンです。
 
 - `@a9i5k4/dsh-auto-memory` 3.3.17 — 自動メモリ。過去の判断を呼び戻し、記録をノート・台帳・ホワイトボードへ自動で要約します。
 - `@changfenhuang/dsh-genui` 0.16.0 — 生成 UI。応答の中にレイアウト・グラフ・フォーム・フロー図を描き、パネルのクリックもモデルへ返します。
@@ -37,7 +39,7 @@
 - `@linxin666/dsh-client-ui-skill-explorer` 0.4.16 — スキルセンター。読み込んだスキルを提供元別に一覧し、モデルからの利用を切り替え、作成や削除もできます。
 - `@linxin666/dsh-client-ui-task-board` 0.4.16 — タスクボード。カードはホストが管理し実際にセッションを開いて実行します。cron 予約とスリープ抑止付き。
 - `@michengai/dsh-agency-agents` 1.2.27 — 専門家ライブラリ。331 体の専門エージェントと 5 つの専門家チームを同梱し、必要な視点を指名できます。
-- `@michengai/dsh-archive-manager` 1.3.0 — セッションアーカイブ。アーカイブ・復元・お気に入り・完全削除ができ、破損したログの診断も行います。
+- `@michengai/dsh-archive-manager` 1.3.1 — セッションアーカイブ。アーカイブ・復元・お気に入り・完全削除ができ、破損したログの診断も行います。
 - `@michengai/dsh-code-review` 1.0.9 — コードレビュー。独立したサブエージェントが Git・ソース・呼び出し元・テストを点検し、報告を戻します。
 - `@michengai/dsh-skills-manager` 1.4.0 — スキル管理。ローカルスキルを一括で読み込み安全に管理し、GitHub からの導入と更新の下見、復帰に対応します。
 - `@tt-a1i/archify-dsh` 1.1.0 — アーキテクチャ図。Archify をスキルパックとして取り込み、説明から構成図や技術方案の図を描きます。
@@ -47,8 +49,8 @@
 - `billion-context` 0.1.213 — コンテキスト圧縮。長い会話を要約に畳み、小さなウィンドウと少ないトークンで走らせます。
 - `dsh-better-sidebar` 0.30.1 — 使いやすいサイドバー。ファイルツリー・エディタ・変更・タスク・サイドチャットを 1 列にまとめ、他プラグインにも開放します。
 - `dsh-client-auto-continue` 0.17.4 — 自動継続。人が関与しない理由で要求が途切れたとき続行の指示を送り、成功後の繰り返しも設定できます。
-- `dsh-config-manager` 0.6.0 — 設定管理。DSH 設定のバックアップ・復元・移行・同期を、設定・プラグイン・MCP・スキルにわたって行います。
-- `dsh-context` 0.83.0 — コンテキスト分析。ダッシュボードで内訳と増え方を確認し、必要なら圧縮します。/context からも使えます。
+- `dsh-config-manager` 0.7.0 — 設定管理。DSH 設定のバックアップ・復元・移行・同期を、設定・プラグイン・MCP・スキルにわたって行います。
+- `dsh-context` 0.83.1 — コンテキスト分析。ダッシュボードで内訳と増え方を確認し、必要なら圧縮します。/context からも使えます。
 - `dsh-cost-meter` 1.9.62 — コストダッシュボード。セッション・当日・履歴のトークンとコストを集計し、170 以上の価格表を同梱します。
 - `dsh-excel-chat` 0.43.0 — 表計算チャット。自然言語で表を読み・編集・整理し、編集のたびに数式を検算します。Excel なしでも動きます。
 - `dsh-find-plugins` 0.3.0 — プラグイン発見。5 つのコミュニティカタログを統合し GitHub と npm も検索、関連度や信頼度で並べます。
@@ -59,13 +61,12 @@
 - `dsh-nonead-prompt-recall` 0.8.7 — 入力履歴。空の入力欄で ↑ を押すと直前の指示を呼び出し、ワークスペースごとに保存して再起動後も残ります。
 - `dsh-nonead-prompt-rewind` 0.5.4 — 会話の巻き戻し。過去のメッセージまでその場で戻して入力欄に戻し、書き込み系ツールが変えたファイルも復元します。
 - `dsh-nonead-universal-robots` 0.8.6 — UR ロボットアーム。Universal Robots の協働アームを自然言語で動かし、姿勢・関節運動・描画・I/O を扱えます。
-- `dsh-nonead-ursim` 0.3.14 — UR シミュレーション。オフライン環境で動作を組み立てて検証し、軌道とロジックを実機の前に確かめられます。
-- `dsh-office-tools` 1.0.8 — Office ファイル。8 つのツールで Word・Excel・PowerPoint を作成・読み取り・追記し、公式サービス経由で扱います。
+- `dsh-nonead-ursim` 0.3.15 — UR シミュレーション。オフライン環境で動作を組み立てて検証し、軌道とロジックを実機の前に確かめられます。
 - `dsh-ppt-master` 6.1.0 — プレゼン生成。内容から編集可能な PPTX を作り、SVG 出力やネイティブテンプレートの流し込みも行います。
 - `dsh-remotion` 0.10.5 — 動画ワークベンチ。React プロジェクトを動画にし、公式スキル・テンプレート・Studio プレビュー・MP4 出力を同梱します。
 - `dsh-superagent` 0.1.0 — 能動的エージェントの原型（研究用、非公式）。GitHub リポジトリを監視し、許可された依頼をポリシーに従って個別セッションで実行します。
 - `dsh-univer-office` 0.4.0 — Office 統合。表計算・文書・プレゼン・キャンバス・多次元表を DSH に取り込み、変更は会話内で承認できます。
-- `dshmarket` 1.73.16 — ビジュアルなプラグインマーケット。DSH 内でコミュニティのプラグインを閲覧・検索・導入でき、誤導入も無効化できます。
+- `dshmarket` 1.73.17 — ビジュアルなプラグインマーケット。DSH 内でコミュニティのプラグインを閲覧・検索・導入でき、誤導入も無効化できます。
 
 ## 2.2.6 — 2026-11-03
 
