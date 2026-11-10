@@ -53,7 +53,6 @@
 | [上流との関係](#upstream) | 境界と役割分担 |
 | [更新履歴](#changelog) | バージョンの変更履歴 |
 | [既知の制限](#limits) | 事前に知っておきたい動作 |
-| [コミュニティ](#community) | ディスカッションの窓口 |
 | [リンク](#links) | エコシステムのプロジェクト |
 | [License](#license) | ライセンスと表明 |
 
@@ -67,9 +66,6 @@ Nonead DSH Desktop は、[DeepSeek Harness](https://github.com/deepseek-ai/deeps
 
 | レイヤー | 位置 | 役割 |
 | --- | --- | --- |
-| `2.2.8` | 2026-11-04 | ランタイムを DSH `0.2.2-rc.1`（上流 `66491b05`）へ更新し、同梱ランタイムを再パック（373 パッケージ）。同梱マーケット `dshmarket` を 1.73.10 に更新し、24 個のデスクトップ向けパッチを改名して再適用 |
-| `2.2.7` | 2026-11-03 | ランタイムを DSH `0.2.2-alpha.3`（上流 `05b1cae8`）へ更新し、同梱マーケット `dshmarket` を 1.73.9 に、24 個のデスクトップ向けパッチを新しいビルド成果物に合わせて再生成しました |
-| `2.2.6` | 2026-11-02 | 安定性とゲートの保守：長時間稼働後のライフサイクル証跡が停止する問題、npm/pnpm のグローバル bin で起動器が無言終了する問題、プライベートファイルとデータ操作ロックの inode 未検証、工場出荷状態への復元でデータディレクトリが失われる問題、LAN 確認ダイアログのフォーカス管理不足、マーケットのページ上限とスキーマ不一致を修正。リリース pin・8 言語のバージョン一致・第三者表明の一致という 3 つのゲートを追加 |
 | デスクトップシェル | Electron main プロセス | 単一インスタンスロック、ウィンドウとマテリアル、トレイとメニュー、権限、ターミナル、アップデート、データディレクトリ、プロファイルの状態 |
 | Host | Node モードの子プロセス | プロファイルのパッチ層を読み込み、上流のプロファイル boot を起動し、Web carrier を提供し、サードパーティの Host プラグインをホストする |
 | Web carrier | ループバック HTTP + WebSocket | 公式 Web UI を提供する（既定では一時ポート） |
@@ -86,16 +82,16 @@ Nonead DSH Desktop は、[DeepSeek Harness](https://github.com/deepseek-ai/deeps
 | 製品バージョン | `2.2.8`（`nonead-dsh-desktop` と `dsh-plugin-desktop-beta` が同期） |
 | 安定チャネルのワークスペース | `nonead-dsh-desktop`（ルートスクリプトは `:stable` 接尾辞） |
 | Beta チャネルのワークスペース | `dsh-plugin-desktop-beta`（ルートスクリプトは `:beta` 接尾辞） |
-| DSH ランタイム | `0.2.2-alpha.2`、すべての `@deepseek-ai/dsh*` 依存を厳密に pin し、ランタイムは vendored |
+| DSH ランタイム | `0.2.2-rc.1`、すべての `@deepseek-ai/dsh*` 依存を厳密に pin し、ランタイムは vendored |
 | vendored 済みランタイム | `vendor/dsh-runtime/0.2.2-rc.1/`（過去バージョンのディレクトリもいくつか保持） |
-| 上流の pin | `f3803c96974ad4a94195fb97e5c637e9c2a3afe3fc48fa190a683e469daa699857e9afe8`（`upstream.json` の `channels.beta`、`nonead-dsh-desktop/upstream-reference.json` にも記録） |
+| 上流の pin | `66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db`（`upstream.json` の `channels.beta`、`nonead-dsh-desktop/upstream-reference.json` にも記録） |
 | Electron / パッケージャー | Electron `44.0.0` / electron-builder `26.15.7`（`app-builder-lib` にパッチあり） |
 | Node / Yarn | Node `^22.19.0` または `>=24.0.0`、Yarn `4.18.0`（Corepack 経由、`nodeLinker: node-modules`） |
-| プラグインマーケット | `dshmarket` `1.70.1`、加えて本リポジトリの `dsh-community-market` `0.1.0-dev.0` |
-| スマートフォン遠隔操作ブリッジ | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop`（上流コミット `39b82d4`） |
+| プラグインマーケット | `dshmarket` `1.73.10`、加えて本リポジトリの `dsh-community-market` `0.1.0-dev.0` |
+| スマートフォン遠隔操作ブリッジ | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop`（上流コミット `296f70e`） |
 | ブランドスキン | `dsh-nonead-client-skin`（インストーラーに同梱、プロファイルごとに組み込み読み込み） |
 
-`upstream.json` は vendored された 2 本のランタイム系列を記録しています。`stable` は上流 `0.2.0-rc.2`、`beta` は上流 `0.2.2-alpha.2` に対応します。実際にインストーラーに含まれるのは、ワークスペースが厳密に pin している系列です。現在は 2 つのデスクトップワークスペースがともに `0.2.2-alpha.2` を pin しています。**チャネル名が表すのは「ランタイム系列」であり、ワークスペースが参照するリリースチャネルではありません。**
+`upstream.json` は vendored された 2 本のランタイム系列を記録しています。`stable` は上流 `0.2.0-rc.2`、`beta` は上流 `0.2.2-rc.1` に対応します。実際にインストーラーに含まれるのは、ワークスペースが厳密に pin している系列です。現在は 2 つのデスクトップワークスペースがともに `0.2.2-rc.1` を pin しています。**チャネル名が表すのは「ランタイム系列」であり、ワークスペースが参照するリリースチャネルではありません。**
 
 <a id="download"></a>
 
@@ -301,6 +297,9 @@ Nonead DSH Desktop は、[DeepSeek Harness](https://github.com/deepseek-ai/deeps
 
 | バージョン | 日付 | ポイント |
 | --- | --- | --- |
+| `2.2.8` | 2026-11-04 | ランタイムを DSH `0.2.2-rc.1`（上流 `66491b05`）へ更新し、同梱ランタイムを再パック（373 パッケージ）。同梱マーケット `dshmarket` を 1.73.10 に更新し、24 個のデスクトップ向けパッチを改名して再適用 |
+| `2.2.7` | 2026-11-03 | ランタイムを DSH `0.2.2-alpha.3`（上流 `05b1cae8`）へ更新し、同梱マーケット `dshmarket` を 1.73.9 に、24 個のデスクトップ向けパッチを新しいビルド成果物に合わせて再生成しました |
+| `2.2.6` | 2026-11-02 | 安定性とゲートの保守：長時間稼働後のライフサイクル証跡が停止する問題、npm/pnpm のグローバル bin で起動器が無言終了する問題、プライベートファイルとデータ操作ロックの inode 未検証、工場出荷状態への復元でデータディレクトリが失われる問題、LAN 確認ダイアログのフォーカス管理不足、マーケットのページ上限とスキーマ不一致を修正。リリース pin・8 言語のバージョン一致・第三者表明の一致という 3 つのゲートを追加 |
 | `2.1.15` | 2026-10-22 | アップデートカード / トレイ / ネイティブダイアログでのリリースノート表示、バージョンのスキップ、インストール失敗時の再試行とスナップショットへのロールバック。ウィンドウ位置の記憶、`.env` のレイヤリング、`dsh-desktop://` ディープリンク、自動起動。マーケットの非画像メディアプレビューと名前指定インストール。`dshmarket` `1.66.45` |
 | `2.2.3` | 2026-10-29 | デスクトップシェルが 8 言語（中・英・日・西・仏・独・露・伯葡）に完全ローカライズ：5 言語分のシェル辞書と 6 言語分の設定ページ辞書を追加し、補間を含むダイアログはテンプレートによる参照に変更、クライアントのロケール名前空間とネイティブメニューも同じ 8 言語に追随 |
 | `2.2.2` | 2026-10-28 | ランタイムを DSH `0.2.2-alpha.2` に移動（370 パッケージを再 vendored、24 個のバージョンパッチとマーケットパッチをリベース）、dshmarket を 1.73.1 に移動、Agents Anywhere bridge を新しい peer 範囲に合わせて再ビルド |
@@ -319,14 +318,6 @@ Nonead DSH Desktop は、[DeepSeek Harness](https://github.com/deepseek-ai/deeps
 - **LAN アクセスには認証がありません** — 同じネットワークセグメントの全員に、このコンピューターの DSH を引き渡すことになります。
 - **プラグインの `inject` サービス名を間違えると静かに pending になります** — 警告は出ず、関連する API の 4xx としてのみ現れます。
 - ローカルでの `yarn install` により、`yarn.lock` にある `dsh-nonead-client-skin` の内容フィンガープリントが書き換わることがあります（マシン間で再現できません）。**このようなローカル生成の lockfile 変更はコミットしないでください**。
-
-<a id="community"></a>
-
-## コミュニティ
-
-- Discord：[Nonead DSH Desktop コミュニティに参加](https://discord.gg/TJeGqKRNM)
-- 企業 WeChat と QQ グループ：参加後に @王博升Benson へダイレクトメッセージするか、メールで参加方法をお問い合わせください
-- 技術チームへの参加をご希望の方：[t4wefan@qq.com](mailto:t4wefan@qq.com) までご連絡ください
 
 <a id="links"></a>
 

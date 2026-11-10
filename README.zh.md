@@ -53,7 +53,6 @@
 | [与上游的关系](#upstream) | 边界与分工 |
 | [更新日志](#changelog) | 版本变更记录 |
 | [已知限制](#limits) | 需要提前知道的行为 |
-| [社区交流](#community) | 讨论渠道 |
 | [友情链接](#links) | 生态项目 |
 | [License](#license) | 许可与声明 |
 
@@ -67,9 +66,6 @@ Nonead DSH Desktop 把 [DeepSeek Harness](https://github.com/deepseek-ai/deepsee
 
 | 层 | 位置 | 职责 |
 | --- | --- | --- |
-| `2.2.8` | 2026-11-04 | 运行时升级到 DSH `0.2.2-rc.1`（上游 `66491b05`），预置运行时重打包（373 个包）；随包市场 `dshmarket` 升到 1.73.10；24 个桌面定制补丁随版本改名并重新应用 |
-| `2.2.7` | 2026-11-03 | 运行时升级到 DSH `0.2.2-alpha.3`（上游 `05b1cae8`），随包市场 `dshmarket` 升到 1.73.9，24 个桌面定制补丁按新构建产物重新生成 |
-| `2.2.6` | 2026-11-02 | 稳定性与门禁维护：修复长期运行后生命周期证据停写、启动器在 npm/pnpm 全局 bin 下静默退出、私有文件与数据锁未绑定 inode、恢复出厂失败后没有数据目录、LAN 确认框无焦点管理、市场页上限与 schema 不一致；新增发布 pin、八语言版本一致性与第三方声明一致性门禁 |
 | 桌面壳 | Electron main 进程 | 单实例锁、窗口与材质、托盘与菜单、权限、终端、更新、数据目录、profile 状态 |
 | Host | Node 模式子进程 | 加载 profile 补丁层、启动上游 profile boot、承载 Web carrier、承载第三方 Host 插件 |
 | Web carrier | 回环地址 HTTP + WebSocket | 提供官方 Web UI（默认临时端口） |
@@ -86,16 +82,16 @@ Nonead DSH Desktop 把 [DeepSeek Harness](https://github.com/deepseek-ai/deepsee
 | 产品版本 | `2.2.8`（`nonead-dsh-desktop` 与 `dsh-plugin-desktop-beta` 同步） |
 | 稳定通道工作区 | `nonead-dsh-desktop`（根脚本 `:stable` 后缀） |
 | Beta 通道工作区 | `dsh-plugin-desktop-beta`（根脚本 `:beta` 后缀） |
-| DSH 运行时 | `0.2.2-alpha.2`，所有 `@deepseek-ai/dsh*` 依赖精确 pin，运行时就地 vendored |
+| DSH 运行时 | `0.2.2-rc.1`，所有 `@deepseek-ai/dsh*` 依赖精确 pin，运行时就地 vendored |
 | 已 vendored 运行时 | `vendor/dsh-runtime/0.2.2-rc.1/`（另有若干历史版本目录保留） |
-| 上游 pin | `f3803c96974ad4a94195fb97e5c637e9c2a3afe3fc48fa190a683e469daa699857e9afe8`（`upstream.json` 的 `channels.beta`，同时记在 `nonead-dsh-desktop/upstream-reference.json`） |
+| 上游 pin | `66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db`（`upstream.json` 的 `channels.beta`，同时记在 `nonead-dsh-desktop/upstream-reference.json`） |
 | Electron / 打包器 | Electron `44.0.0` / electron-builder `26.15.7`（`app-builder-lib` 带补丁） |
 | Node / Yarn | Node `^22.19.0` 或 `>=24.0.0`；Yarn `4.18.0`（经 Corepack，`nodeLinker: node-modules`） |
-| 插件市场 | `dshmarket` `1.70.1`，另有本仓库的 `dsh-community-market` `0.1.0-dev.0` |
-| 手机远控桥 | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop`（上游提交 `39b82d4`） |
+| 插件市场 | `dshmarket` `1.73.10`，另有本仓库的 `dsh-community-market` `0.1.0-dev.0` |
+| 手机远控桥 | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop`（上游提交 `296f70e`） |
 | 品牌皮肤 | `dsh-nonead-client-skin`（随安装包分发，按 profile 组合加载） |
 
-`upstream.json` 记录两条 vendored 运行时线：`stable` 对应上游 `0.2.0-rc.2`，`beta` 对应上游 `0.2.2-alpha.2`；真正打进安装包的是工作区精确 pin 的那一条，当前两个桌面工作区都 pin 在 `0.2.2-alpha.2`。**通道名描述的是"运行时线"，不是工作区查询的发布通道。**
+`upstream.json` 记录两条 vendored 运行时线：`stable` 对应上游 `0.2.0-rc.2`，`beta` 对应上游 `0.2.2-rc.1`；真正打进安装包的是工作区精确 pin 的那一条，当前两个桌面工作区都 pin 在 `0.2.2-rc.1`。**通道名描述的是"运行时线"，不是工作区查询的发布通道。**
 
 <a id="download"></a>
 
@@ -301,6 +297,9 @@ Nonead DSH Desktop 是基于 [DeepSeek Harness](https://github.com/deepseek-ai/d
 
 | 版本 | 日期 | 要点 |
 | --- | --- | --- |
+| `2.2.8` | 2026-11-04 | 运行时升级到 DSH `0.2.2-rc.1`（上游 `66491b05`），预置运行时重打包（373 个包）；随包市场 `dshmarket` 升到 1.73.10；24 个桌面定制补丁随版本改名并重新应用 |
+| `2.2.7` | 2026-11-03 | 运行时升级到 DSH `0.2.2-alpha.3`（上游 `05b1cae8`），随包市场 `dshmarket` 升到 1.73.9，24 个桌面定制补丁按新构建产物重新生成 |
+| `2.2.6` | 2026-11-02 | 稳定性与门禁维护：修复长期运行后生命周期证据停写、启动器在 npm/pnpm 全局 bin 下静默退出、私有文件与数据锁未绑定 inode、恢复出厂失败后没有数据目录、LAN 确认框无焦点管理、市场页上限与 schema 不一致；新增发布 pin、八语言版本一致性与第三方声明一致性门禁 |
 | `2.1.15` | 2026-10-22 | 更新卡片/托盘/原生对话框展示发行说明，可跳过版本、安装失败重试与快照回滚；记住窗口位置、`.env` 分层、`dsh-desktop://` 深链接与开机自启；市场支持非图片媒体预览与按名字安装；`dshmarket` `1.66.45` |
 | `2.2.3` | 2026-10-29 | 桌面外壳完成八语言本地化（中/英/日/西/法/德/俄/巴葡）：新增五种语言外壳字典与六种语言设置页字典，插值对话框改用模板查表，客户端语言命名空间与原生菜单同步八语言 |
 | `2.2.2` | 2026-10-28 | 运行时升到 DSH `0.2.2-alpha.2`（370 包重新 vendored、24 个版本补丁与市场补丁重定基），dshmarket 升到 1.73.1，Agents Anywhere bridge 按新 peer 范围重建，产品版本号跨到 2.2.2 |
@@ -319,14 +318,6 @@ Nonead DSH Desktop 是基于 [DeepSeek Harness](https://github.com/deepseek-ai/d
 - **局域网访问无鉴权**，等同于把本机 DSH 交给同网段所有人。
 - **插件 `inject` 服务名写错会静默 pending**，不产生警告，只表现为相关接口 4xx。
 - 本机 `yarn install` 可能改写 `yarn.lock` 中 `dsh-nonead-client-skin` 的内容指纹（跨机器不可复现），**不要提交这类本机产出的锁文件改动**。
-
-<a id="community"></a>
-
-## 社区交流
-
-- Discord：[加入 Nonead DSH Desktop 社区](https://discord.gg/TJeGqKRNM)
-- 企业微信与 QQ 群：加入后私信 @王博升Benson，或邮件索取入群方式
-- 想加入技术团队：联系 [t4wefan@qq.com](mailto:t4wefan@qq.com)
 
 <a id="links"></a>
 

@@ -53,7 +53,6 @@
 | [Relación con upstream](#upstream) | Límites y reparto del trabajo |
 | [Registro de cambios](#changelog) | Historial de versiones |
 | [Limitaciones conocidas](#limits) | Comportamientos que conviene conocer de antemano |
-| [Comunidad](#community) | Canales de conversación |
 | [Enlaces](#links) | Proyectos del ecosistema |
 | [Licencia](#license) | Licencia y avisos |
 
@@ -67,9 +66,6 @@ El producto no es una reimplementación del cliente, sino un host Electron liger
 
 | Capa | Ubicación | Responsabilidad |
 | --- | --- | --- |
-| `2.2.8` | 2026-11-04 | Runtime actualizado a DSH `0.2.2-rc.1` (upstream `66491b05`) con el runtime incluido reempaquetado (373 paquetes); mercado incluido `dshmarket` a 1.73.10 y los 24 parches de personalización renombrados y reaplicados |
-| `2.2.7` | 2026-11-03 | Runtime actualizado a DSH `0.2.2-alpha.3` (upstream `05b1cae8`), mercado incluido `dshmarket` en 1.73.9 y los 24 parches de personalización regenerados sobre la nueva compilación |
-| `2.2.6` | 2026-11-02 | Mantenimiento de estabilidad y compuertas: se corrige la detención de la evidencia del ciclo de vida tras un día de actividad, la salida silenciosa del lanzador desde un bin global de npm/pnpm, la falta de verificación de inodo en archivos privados y en el bloqueo de operaciones de datos, el reinicio de fábrica sin directorio de datos, la falta de gestión de foco del diálogo LAN y el límite de página del mercado frente a su esquema; se añaden compuertas de pines de versión, paridad de ocho idiomas y avisos de terceros |
 | Shell de escritorio | Proceso principal de Electron | Bloqueo de instancia única, ventanas y materiales, bandeja y menús, permisos, terminal, actualizaciones, directorio de datos, estado de los perfiles |
 | Host | Proceso hijo en modo Node | Carga la capa de parches del perfil, arranca el boot del perfil upstream, sirve el transporte web y aloja los plugins Host de terceros |
 | Transporte web | HTTP + WebSocket en loopback | Sirve la interfaz web oficial (puerto efímero por defecto) |
@@ -86,16 +82,16 @@ El shell y el Host se comunican por un único canal IPC de proceso hijo. Cambiar
 | Versión del producto | `2.2.8` (`nonead-dsh-desktop` y `dsh-plugin-desktop-beta` sincronizados) |
 | Espacio de trabajo del canal estable | `nonead-dsh-desktop` (los scripts de la raíz usan el sufijo `:stable`) |
 | Espacio de trabajo del canal Beta | `dsh-plugin-desktop-beta` (los scripts de la raíz usan el sufijo `:beta`) |
-| Runtime de DSH | `0.2.2-alpha.2`, todas las dependencias `@deepseek-ai/dsh*` fijadas con pin exacto y el runtime vendored en el repositorio |
+| Runtime de DSH | `0.2.2-rc.1`, todas las dependencias `@deepseek-ai/dsh*` fijadas con pin exacto y el runtime vendored en el repositorio |
 | Runtime vendored | `vendor/dsh-runtime/0.2.2-rc.1/` (se conservan varios directorios de versiones anteriores) |
-| Pin upstream | `f3803c96974ad4a94195fb97e5c637e9c2a3afe3fc48fa190a683e469daa699857e9afe8` (`channels.beta` en `upstream.json`, replicado en `nonead-dsh-desktop/upstream-reference.json`) |
+| Pin upstream | `66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db` (`channels.beta` en `upstream.json`, replicado en `nonead-dsh-desktop/upstream-reference.json`) |
 | Electron / empaquetador | Electron `44.0.0` / electron-builder `26.15.7` (`app-builder-lib` con parche) |
 | Node / Yarn | Node `^22.19.0` o `>=24.0.0`; Yarn `4.18.0` mediante Corepack (`nodeLinker: node-modules`) |
-| Mercado de plugins | `dshmarket` `1.70.1`, más el `dsh-community-market` `0.1.0-dev.0` de este repositorio |
-| Puente de control remoto | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop` (commit upstream `39b82d4`) |
+| Mercado de plugins | `dshmarket` `1.73.10`, más el `dsh-community-market` `0.1.0-dev.0` de este repositorio |
+| Puente de control remoto | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop` (commit upstream `296f70e`) |
 | Skin de marca | `dsh-nonead-client-skin` (se distribuye en el instalador y se monta por perfil) |
 
-`upstream.json` registra dos líneas de runtime vendored: `stable` corresponde al upstream `0.2.0-rc.2` y `beta` al upstream `0.2.2-alpha.2`. Lo que realmente se incluye en un instalador es la línea que el espacio de trabajo fija con pin exacto; actualmente ambos espacios de escritorio fijan `0.2.2-alpha.2`. **Los nombres de canal describen líneas de runtime, no el canal de publicación que consulta un espacio de trabajo.**
+`upstream.json` registra dos líneas de runtime vendored: `stable` corresponde al upstream `0.2.0-rc.2` y `beta` al upstream `0.2.2-rc.1`. Lo que realmente se incluye en un instalador es la línea que el espacio de trabajo fija con pin exacto; actualmente ambos espacios de escritorio fijan `0.2.2-rc.1`. **Los nombres de canal describen líneas de runtime, no el canal de publicación que consulta un espacio de trabajo.**
 
 <a id="download"></a>
 
@@ -301,6 +297,9 @@ El historial completo está en el [registro de cambios](CHANGELOG.es.md) ([中�
 
 | Versión | Fecha | Aspectos destacados |
 | --- | --- | --- |
+| `2.2.8` | 2026-11-04 | Runtime actualizado a DSH `0.2.2-rc.1` (upstream `66491b05`) con el runtime incluido reempaquetado (373 paquetes); mercado incluido `dshmarket` a 1.73.10 y los 24 parches de personalización renombrados y reaplicados |
+| `2.2.7` | 2026-11-03 | Runtime actualizado a DSH `0.2.2-alpha.3` (upstream `05b1cae8`), mercado incluido `dshmarket` en 1.73.9 y los 24 parches de personalización regenerados sobre la nueva compilación |
+| `2.2.6` | 2026-11-02 | Mantenimiento de estabilidad y compuertas: se corrige la detención de la evidencia del ciclo de vida tras un día de actividad, la salida silenciosa del lanzador desde un bin global de npm/pnpm, la falta de verificación de inodo en archivos privados y en el bloqueo de operaciones de datos, el reinicio de fábrica sin directorio de datos, la falta de gestión de foco del diálogo LAN y el límite de página del mercado frente a su esquema; se añaden compuertas de pines de versión, paridad de ocho idiomas y avisos de terceros |
 | `2.1.15` | 2026-10-22 | Notas de la versión en la tarjeta de actualización, la bandeja y los diálogos nativos, omisión de una versión, reintento de instalación y reversión a instantáneas; estado de ventana recordado, `.env` por capas, enlaces profundos `dsh-desktop://` y abrir al iniciar sesión; previsualización de medios del mercado e instalación por nombre; `dshmarket` `1.66.45` |
 | `2.2.3` | 2026-10-29 | El shell de escritorio está totalmente localizado en ocho idiomas (chino, inglés, japonés, español, francés, alemán, ruso y portugués de Brasil): cinco diccionarios nuevos del shell más diccionarios de la página de ajustes en seis idiomas, búsquedas basadas en plantillas para los diálogos con interpolación, y el espacio de nombres de idioma del cliente y los menús nativos siguen el mismo conjunto |
 | `2.2.2` | 2026-10-28 | El runtime pasa a DSH `0.2.2-alpha.2` (370 paquetes re-vendored, 24 parches de versión y el parche del mercado rebasados), dshmarket pasa a 1.73.1 y el puente de Agents Anywhere se reconstruye para los nuevos rangos de peer |
@@ -319,14 +318,6 @@ El historial completo está en el [registro de cambios](CHANGELOG.es.md) ([中�
 - **El acceso a la LAN no tiene autenticación**: entrega el DSH de este equipo a cualquiera en el mismo segmento de red.
 - **Un nombre de servicio `inject` equivocado en un plugin falla en silencio** y queda como un plugin pendiente para siempre, visible solo como un 4xx HTTP.
 - Un `yarn install` local puede reescribir la huella de contenido de `dsh-nonead-client-skin` en `yarn.lock` (no reproducible entre máquinas); **no confirmes esos cambios locales del lockfile**.
-
-<a id="community"></a>
-
-## Comunidad
-
-- Discord: [únete a la comunidad de Nonead DSH Desktop](https://discord.gg/TJeGqKRNM)
-- Grupos de WeChat Work y QQ: escribe a @王博升Benson después de unirte, o solicita una invitación por correo
-- Si te interesa unirte al equipo: escribe a [t4wefan@qq.com](mailto:t4wefan@qq.com)
 
 <a id="links"></a>
 
