@@ -153,7 +153,7 @@
     "dist:win-portable:arm64": "node scripts/package-win-portable.ts --arm64"
   },
   "dependencies": {
-    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c39b82d4fffb1.rc2b11bfc.tgz",
+    "@agents-anywhere/dsh-bridge-next": "file:../vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.ce8f0cb9e1d9a.rc2b11bfc.tgz",
     "@deepseek-ai/cordis": "4.1.0",
     "@deepseek-ai/cordis-plugin-group": "1.1.0",
     "@deepseek-ai/cordis-plugin-include": "1.1.0",
