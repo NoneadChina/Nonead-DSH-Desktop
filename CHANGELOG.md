@@ -13,14 +13,6 @@
 - 条目只写"用户能感知的变化"与"维护者必须知道的边界变化"；纯重构不单独成条。
 - 更早的历史见 Git 标签（`v1.7.3`、`v2.0.7`、`v2.0.8`、`v2.1.3`、`v2.1.4`、`v2.1.5`）与提交记录。
 
-## 2.2.10 — 2026-11-10
-
-两处修正，来自上一次发布后的自查：
-
-- 启动告警：未启用远程控制的 Profile 不再把桥接条目写进 cordis 覆盖层，`patch: entry "agents-anywhere-bridge-next" not found` 不再出现在每次启动的日志里；已启用该功能的 Profile 行为不变，仍写 `dshHome` 与打包安装的重定向路径。
-- 内置插件：`dsh-nonead-ursim` 升到 **0.3.15**，描述改为离线仿真定位（此前与真机插件 `dsh-nonead-universal-robots` 逐字节相同，容易让人在真机场景误装）。
-- 版本号：产品 2.2.9 → **2.2.10**（两个桌面工作区同步）。
-
 ## 2.2.9 — 2026-11-10
 
 运行时升到 DSH 0.2.2-rc.1，内置插件补到 36 个，开箱即用的引导页也换了讲法：
@@ -31,6 +23,8 @@
 - 插件升级：`dsh-ppt-master` 1.0.8 → 6.1.0，`dsh-config-manager` 0.3.1 → 0.6.0，`@michengai/dsh-skills-manager` 1.2.28 → 1.4.0，`dsh-better-sidebar` 0.28.2 → 0.30.1，`dsh-context` 0.80.3 → 0.83.0，其余随 npm latest。
 - 插件清单：`plugin/manifest.json` 升到 v4，每个条目带上分类与作者，安装向导据此分组与致谢。
 - 版本号：产品 2.2.6 → **2.2.9**（两个桌面工作区同步）。
+- 启动告警：未启用远程控制的 Profile 不再把桥接条目写进 cordis 覆盖层，`patch: entry "agents-anywhere-bridge-next" not found` 不再出现在每次启动的日志里；已启用该功能的 Profile 行为不变，仍写 `dshHome` 与打包安装的重定向路径。
+- 内置插件：`dsh-nonead-ursim` 升到 **0.3.15**，描述改为离线仿真定位（此前与真机插件 `dsh-nonead-universal-robots` 逐字节相同，容易让人在真机场景误装）。
 
 ### 内置插件清单（36 个）
 

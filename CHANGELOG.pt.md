@@ -13,14 +13,6 @@ Convenções de manutenção:
 - As entradas registram apenas mudanças que os usuários percebem e mudanças de limite que os mantenedores precisam conhecer; refatorações puras não ganham entrada própria.
 - O histórico anterior está nas tags do Git (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) e no log de commits.
 
-## 2.2.10 — 2026-11-10
-
-Duas correções da autoverificação posterior à versão anterior:
-
-- Aviso na inicialização: um Profile sem controle remoto ativado não escreve mais a linha da ponte na sua camada cordis, então `patch: entry "agents-anywhere-bridge-next" not found` deixa de aparecer a cada inicialização; Profiles com o recurso ativado mantêm a linha anterior, incluindo os redirecionamentos da instalação empacotada.
-- Plugins incluídos: `dsh-nonead-ursim` vai para **0.3.15** com descrição voltada à simulação (antes era idêntica byte a byte à do plugin de robô real `dsh-nonead-universal-robots`, o que induzia a instalá-lo para trabalho com hardware).
-- Versão: produto 2.2.9 → **2.2.10** (os dois workspaces de desktop avançam juntos).
-
 ## 2.2.9 — 2026-11-10
 
 O runtime passa para DSH 0.2.2-rc.1, o conjunto de plugins incluídos chega a 36 e o guia de primeira configuração passa a contá-lo de outra forma:
@@ -31,6 +23,8 @@ O runtime passa para DSH 0.2.2-rc.1, o conjunto de plugins incluídos chega a 36
 - Atualização de plugins: `dsh-ppt-master` 1.0.8 → 6.1.0, `dsh-config-manager` 0.3.1 → 0.6.0, `@michengai/dsh-skills-manager` 1.2.28 → 1.4.0, `dsh-better-sidebar` 0.28.2 → 0.30.1, `dsh-context` 0.80.3 → 0.83.0, e os restantes são atualizados para as versões mais recentes do npm.
 - Manifesto de plugins: `plugin/manifest.json` passa a v4, com categoria e autor em cada entrada — é isso que dá ao instalador o agrupamento por categoria e a linha de agradecimento.
 - Versão: produto 2.2.6 → **2.2.9** (os dois workspaces de desktop avançam juntos).
+- Aviso na inicialização: um Profile sem controle remoto ativado não escreve mais a linha da ponte na sua camada cordis, então `patch: entry "agents-anywhere-bridge-next" not found` deixa de aparecer a cada inicialização; Profiles com o recurso ativado mantêm a linha anterior, incluindo os redirecionamentos da instalação empacotada.
+- Plugins incluídos: `dsh-nonead-ursim` vai para **0.3.15** com descrição voltada à simulação (antes era idêntica byte a byte à do plugin de robô real `dsh-nonead-universal-robots`, o que induzia a instalá-lo para trabalho com hardware).
 
 ### Lista de plugins incluídos (36)
 

@@ -13,14 +13,6 @@ Conventions de maintenance :
 - Les entrées ne décrivent que les changements perceptibles par l’utilisateur et les changements de limite que les responsables de maintenance doivent connaître ; les refactorisations pures ne font pas l’objet d’une entrée.
 - L’historique plus ancien se trouve dans les étiquettes Git (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) et dans le journal des commits.
 
-## 2.2.10 — 2026-11-10
-
-Deux corrections issues de l'auto-contrôle qui a suivi la version précédente :
-
-- Avertissement au démarrage : un Profile qui n'active pas le contrôle à distance n'écrit plus la ligne du pont dans sa couche cordis, donc `patch: entry "agents-anywhere-bridge-next" not found` n'apparaît plus à chaque démarrage ; les Profile qui l'activent conservent la ligne précédente, y compris les redirections de l'installation packagée.
-- Extensions fournies : `dsh-nonead-ursim` passe à **0.3.15** avec une description orientée simulation (elle était auparavant identique octet pour octet à l'extension robot réel `dsh-nonead-universal-robots`, ce qui invitait à l'installer pour du matériel).
-- Version : produit 2.2.9 → **2.2.10** (les deux espaces de travail de bureau avancent ensemble).
-
 ## 2.2.9 — 2026-11-10
 
 Le runtime passe à DSH 0.2.2-rc.1, l’ensemble des plugins fournis atteint 36 et l’assistant d’installation présente les choses autrement :
@@ -31,6 +23,8 @@ Le runtime passe à DSH 0.2.2-rc.1, l’ensemble des plugins fournis atteint 36 
 - Mise à jour des plugins : `dsh-ppt-master` 1.0.8 → 6.1.0, `dsh-config-manager` 0.3.1 → 0.6.0, `@michengai/dsh-skills-manager` 1.2.28 → 1.4.0, `dsh-better-sidebar` 0.28.2 → 0.30.1, `dsh-context` 0.80.3 → 0.83.0, les autres suivent npm latest.
 - Manifeste des plugins : `plugin/manifest.json` passe en v4 ; chaque entrée porte désormais une catégorie et un auteur, ce qui pilote le regroupement et les remerciements de l’assistant d’installation.
 - Version : produit 2.2.6 → **2.2.9** (les deux espaces de travail de bureau avancent ensemble).
+- Avertissement au démarrage : un Profile qui n'active pas le contrôle à distance n'écrit plus la ligne du pont dans sa couche cordis, donc `patch: entry "agents-anywhere-bridge-next" not found` n'apparaît plus à chaque démarrage ; les Profile qui l'activent conservent la ligne précédente, y compris les redirections de l'installation packagée.
+- Extensions fournies : `dsh-nonead-ursim` passe à **0.3.15** avec une description orientée simulation (elle était auparavant identique octet pour octet à l'extension robot réel `dsh-nonead-universal-robots`, ce qui invitait à l'installer pour du matériel).
 
 ### Liste des plugins fournis (36)
 

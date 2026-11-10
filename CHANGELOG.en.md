@@ -13,14 +13,6 @@ Maintenance conventions:
 - Entries record only changes users can perceive and boundary changes maintainers must know about; pure refactors do not get their own entry.
 - Earlier history lives in the Git tags (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) and in the commit log.
 
-## 2.2.10 — 2026-11-10
-
-Two fixes from the post-release self-check:
-
-- Startup warning: a Profile that does not enable remote control no longer projects the bridge row into its cordis overlay, so `patch: entry "agents-anywhere-bridge-next" not found` stops appearing in every startup log; Profiles that enable the feature keep the previous row, including the packaged-install redirects.
-- Bundled plugins: `dsh-nonead-ursim` moves to **0.3.15** with a simulation-first description (it previously matched the real-robot plugin `dsh-nonead-universal-robots` byte for byte, which invited installing it for hardware workflows).
-- Version: product 2.2.9 → **2.2.10** (both desktop workspaces move together).
-
 ## 2.2.9 — 2026-11-10
 
 The runtime moves to DSH 0.2.2-rc.1, the bundled plugin set reaches 36, and the out-of-the-box guide tells that story differently:
@@ -31,6 +23,8 @@ The runtime moves to DSH 0.2.2-rc.1, the bundled plugin set reaches 36, and the 
 - Plugin upgrades: `dsh-ppt-master` 1.0.8 → 6.1.0, `dsh-config-manager` 0.3.1 → 0.6.0, `@michengai/dsh-skills-manager` 1.2.28 → 1.4.0, `dsh-better-sidebar` 0.28.2 → 0.30.1, `dsh-context` 0.80.3 → 0.83.0, the rest follow npm latest.
 - Plugin manifest: `plugin/manifest.json` moves to v4, every entry now carrying a category and an author, which is what drives the onboarding grouping and the credit line.
 - Version: product 2.2.6 → **2.2.9** (both desktop workspaces move together).
+- Startup warning: a Profile that does not enable remote control no longer projects the bridge row into its cordis overlay, so `patch: entry "agents-anywhere-bridge-next" not found` stops appearing in every startup log; Profiles that enable the feature keep the previous row, including the packaged-install redirects.
+- Bundled plugins: `dsh-nonead-ursim` moves to **0.3.15** with a simulation-first description (it previously matched the real-robot plugin `dsh-nonead-universal-robots` byte for byte, which invited installing it for hardware workflows).
 
 ### Bundled plugin list (36)
 
