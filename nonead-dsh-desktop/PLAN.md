@@ -6,7 +6,7 @@ the existing Agents Anywhere bridge and Community Market. Beta (`dsh-plugin-desk
 the other full Desktop implementation; the former Stable workspace `dsh-plugin-desktop` is gone, so
 there is no second variant to mirror.
 
-The reference is the upstream release recorded in `upstream.json` — currently DSH `0.2.2-alpha.2`,
+The reference is the upstream release recorded in `upstream.json` — currently DSH `0.2.2-rc.1`,
 vendored under `vendor/dsh-runtime/`. A local `deepseek-harness/` checkout is optional and is no
 longer a submodule; its `apps/desktop` and `apps/desktop-host` inform this shell. Desktop
 development never edits that directory, and the vendored runtime is the only packaged runtime.

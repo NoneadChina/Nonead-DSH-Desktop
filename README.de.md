@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  Produkt <code>2.2.3</code> · DSH-Laufzeit <code>0.2.2-alpha.2</code> · Electron 44 · MIT License
+  Produkt <code>2.2.9</code> · DSH-Laufzeit <code>0.2.2-rc.1</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">Mit einem Klick herunterladen, sofort einsatzbereit.</a></h3>
@@ -39,7 +39,6 @@
 | [Verhältnis zum Upstream](#upstream) | Grenzen und Arbeitsteilung |
 | [Changelog](#changelog) | Versionshistorie |
 | [Bekannte Einschränkungen](#limits) | Verhalten, das Sie vorher kennen sollten |
-| [Community](#community) | Diskussionskanäle |
 | [Links](#links) | Projekte im Ökosystem |
 | [License](#license) | Lizenz und Hinweise |
 
@@ -66,19 +65,19 @@ Shell und Host kommunizieren über genau einen IPC-Kanal zwischen Kindprozessen.
 
 | Punkt | Wert |
 | --- | --- |
-| Produktversion | `2.2.3` (`nonead-dsh-desktop` und `dsh-plugin-desktop-beta` im Gleichschritt) |
+| Produktversion | `2.2.9` (`nonead-dsh-desktop` und `dsh-plugin-desktop-beta` im Gleichschritt) |
 | Workspace des Stable-Kanals | `nonead-dsh-desktop` (Root-Skripte mit Suffix `:stable`) |
 | Workspace des Beta-Kanals | `dsh-plugin-desktop-beta` (Root-Skripte mit Suffix `:beta`) |
-| DSH-Laufzeit | `0.2.2-alpha.2`, jede Abhängigkeit von `@deepseek-ai/dsh*` exakt gepinnt, Laufzeit lokal vendored |
-| Vendored Laufzeit | `vendor/dsh-runtime/0.2.2-alpha.2/` (mehrere historische Versionsverzeichnisse bleiben erhalten) |
-| Upstream-Pin | `f3803c96974ad4a94195fb97e5c637e9c2a3afe3fc48fa190a683e469daa699857e9afe8` (`channels.beta` in `upstream.json`, gespiegelt in `nonead-dsh-desktop/upstream-reference.json`) |
+| DSH-Laufzeit | `0.2.2-rc.1`, jede Abhängigkeit von `@deepseek-ai/dsh*` exakt gepinnt, Laufzeit lokal vendored |
+| Vendored Laufzeit | `vendor/dsh-runtime/0.2.2-rc.1/` (mehrere historische Versionsverzeichnisse bleiben erhalten) |
+| Upstream-Pin | `66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db` (`channels.beta` in `upstream.json`, gespiegelt in `nonead-dsh-desktop/upstream-reference.json`) |
 | Electron / Packager | Electron `44.0.0` / electron-builder `26.15.7` (`app-builder-lib` gepatcht) |
 | Node / Yarn | Node `^22.19.0` oder `>=24.0.0`; Yarn `4.18.0` über Corepack (`nodeLinker: node-modules`) |
-| Plugin-Marktplatz | `dshmarket` `1.70.1`, dazu `dsh-community-market` `0.1.0-dev.0` aus diesem Repository |
-| Bridge zur Fernsteuerung | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop` (Upstream-Commit `39b82d4`) |
+| Plugin-Marktplatz | `dshmarket` `1.73.9`, dazu `dsh-community-market` `0.1.0-dev.0` aus diesem Repository |
+| Bridge zur Fernsteuerung | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop` (Upstream-Commit `e8f0cb9`) |
 | Marken-Skin | `dsh-nonead-client-skin` (wird mit dem Installationsprogramm ausgeliefert, pro Profil eingebunden) |
 
-`upstream.json` führt zwei vendored Laufzeitlinien: `stable` verweist auf Upstream `0.2.0-rc.2`, `beta` auf Upstream `0.2.2-alpha.2`. Was tatsächlich in einem Installationsprogramm landet, ist die Linie, die ein Workspace exakt pinnt – derzeit pinnen beide Desktop-Workspaces `0.2.2-alpha.2`. **Kanalnamen beschreiben Laufzeitlinien, nicht den Release-Kanal, den ein Workspace abfragt.**
+`upstream.json` führt zwei vendored Laufzeitlinien: `stable` verweist auf Upstream `0.2.0-rc.2`, `beta` auf Upstream `0.2.2-rc.1`. Was tatsächlich in einem Installationsprogramm landet, ist die Linie, die ein Workspace exakt pinnt – derzeit pinnen beide Desktop-Workspaces `0.2.2-rc.1`. **Kanalnamen beschreiben Laufzeitlinien, nicht den Release-Kanal, den ein Workspace abfragt.**
 
 <a id="download"></a>
 
@@ -284,6 +283,7 @@ Die vollständige Historie steht im [Changelog](CHANGELOG.de.md) ([中文](CHANG
 
 | Version | Datum | Highlights |
 | --- | --- | --- |
+| `2.2.9` | 2026-11-10 | Laufzeit auf DSH `0.2.2-rc.1` angehoben (373 Pakete neu vendored, 24 Patches neu aufgesetzt), mitgelieferte Plugins auf 35 erweitert, Onboarding stellt sie nach Kategorien vor und dankt jedem Autor; Agents-Anywhere-Bridge auf 2.1.0 |
 | `2.1.15` | 2026-10-22 | Versionshinweise in der Update-Karte, im Tray und in nativen Dialogen, Überspringen einer Version, Wiederholen der Installation und Snapshot-Rollback; gemerkter Fensterzustand, geschichtete `.env`, `dsh-desktop://`-Deep-Links und Start bei der Anmeldung; Medienvorschau und Installation nach Namen im Marktplatz; `dshmarket` `1.66.45` |
 | `2.2.3` | 2026-10-29 | Die Desktop-Shell ist vollständig in acht Sprachen lokalisiert (Chinesisch, Englisch, Japanisch, Spanisch, Französisch, Deutsch, Russisch, brasilianisches Portugiesisch): fünf neue Shell-Wörterbücher plus Wörterbücher für die Einstellungsseite in sechs Sprachen, vorlagenbasierte Nachschlagevorgänge für interpolierte Dialoge, und der Locale-Namespace des Clients und die nativen Menüs folgen derselben Sprachmenge |
 | `2.2.2` | 2026-10-28 | Laufzeit auf DSH `0.2.2-alpha.2` umgestellt (370 Pakete neu vendored, 24 Versionspatches und der Marktplatz-Patch neu basiert), `dshmarket` auf 1.73.1 gehoben, die Agents-Anywhere-Bridge für die neuen Peer-Bereiche neu gebaut und die Produktversion auf 2.2.2 gehoben |
@@ -302,14 +302,6 @@ Die vollständige Historie steht im [Changelog](CHANGELOG.de.md) ([中文](CHANG
 - **Der LAN-Zugriff hat keine Authentifizierung** – er übergibt das DSH dieses Rechners an alle im selben Netzsegment.
 - **Ein falscher `inject`-Dienstname eines Plugins scheitert stillschweigend** als dauerhaft ausstehendes Plugin und zeigt sich nur als HTTP-4xx.
 - Ein lokales `yarn install` kann den Inhaltsfingerabdruck von `dsh-nonead-client-skin` in `yarn.lock` neu schreiben (nicht maschinenübergreifend reproduzierbar); **committen Sie solche lokal erzeugten Lockfile-Änderungen nicht**.
-
-<a id="community"></a>
-
-## Community
-
-- Discord: [der Nonead-DSH-Desktop-Community beitreten](https://discord.gg/TJeGqKRNM)
-- WeChat Work und QQ-Gruppen: Schreiben Sie nach dem Beitritt @王博升Benson an oder fordern Sie die Einladung per E-Mail an
-- Interesse, im Team mitzuarbeiten: Kontakt [t4wefan@qq.com](mailto:t4wefan@qq.com)
 
 <a id="links"></a>
 

@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  Version du produit <code>2.2.3</code> · Runtime DSH <code>0.2.2-alpha.2</code> · Electron 44 · Licence MIT
+  Version du produit <code>2.2.9</code> · Runtime DSH <code>0.2.2-rc.1</code> · Electron 44 · Licence MIT
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">Téléchargement en un clic, prêt à l’emploi.</a></h3>
@@ -39,7 +39,6 @@
 | [Relation avec l’amont](#upstream) | Frontières et répartition du travail |
 | [Journal des modifications](#changelog) | Historique des versions |
 | [Limites connues](#limits) | Comportements à connaître à l’avance |
-| [Communauté](#community) | Canaux de discussion |
 | [Liens](#links) | Projets de l’écosystème |
 | [Licence](#license) | Licence et mentions |
 
@@ -66,19 +65,19 @@ L’enveloppe et le Host ne communiquent que par un unique canal IPC de processu
 
 | Élément | Valeur |
 | --- | --- |
-| Version du produit | `2.2.3` (`nonead-dsh-desktop` et `dsh-plugin-desktop-beta` synchronisés) |
+| Version du produit | `2.2.9` (`nonead-dsh-desktop` et `dsh-plugin-desktop-beta` synchronisés) |
 | Espace de travail du canal stable | `nonead-dsh-desktop` (les scripts racine utilisent le suffixe `:stable`) |
 | Espace de travail du canal Beta | `dsh-plugin-desktop-beta` (les scripts racine utilisent le suffixe `:beta`) |
-| Runtime DSH | `0.2.2-alpha.2`, chaque dépendance `@deepseek-ai/dsh*` épinglée exactement, runtime vendored |
-| Runtime vendored | `vendor/dsh-runtime/0.2.2-alpha.2/` (plusieurs répertoires de versions historiques sont conservés) |
-| Pin en amont | `f3803c96974ad4a94195fb97e5c637e9c2a3afe3fc48fa190a683e469daa699857e9afe8` (`channels.beta` dans `upstream.json`, également consigné dans `nonead-dsh-desktop/upstream-reference.json`) |
+| Runtime DSH | `0.2.2-rc.1`, chaque dépendance `@deepseek-ai/dsh*` épinglée exactement, runtime vendored |
+| Runtime vendored | `vendor/dsh-runtime/0.2.2-rc.1/` (plusieurs répertoires de versions historiques sont conservés) |
+| Pin en amont | `66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db` (`channels.beta` dans `upstream.json`, également consigné dans `nonead-dsh-desktop/upstream-reference.json`) |
 | Electron / outil de packaging | Electron `44.0.0` / electron-builder `26.15.7` (`app-builder-lib` patché) |
 | Node / Yarn | Node `^22.19.0` ou `>=24.0.0` ; Yarn `4.18.0` via Corepack (`nodeLinker: node-modules`) |
-| Marché de plugins | `dshmarket` `1.70.1`, ainsi que `dsh-community-market` `0.1.0-dev.0` de ce dépôt |
-| Pont de contrôle à distance | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop` (commit en amont `39b82d4`) |
+| Marché de plugins | `dshmarket` `1.73.9`, ainsi que `dsh-community-market` `0.1.0-dev.0` de ce dépôt |
+| Pont de contrôle à distance | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop` (commit en amont `e8f0cb9`) |
 | Habillage de marque | `dsh-nonead-client-skin` (fourni avec l’installateur, monté par profil) |
 
-`upstream.json` consigne deux lignes de runtime vendored : `stable` correspond à l’amont `0.2.0-rc.2` et `beta` à l’amont `0.2.2-alpha.2`. Ce qui est réellement embarqué dans un installateur est la ligne épinglée exactement par un espace de travail — actuellement, les deux espaces de travail de bureau épinglent `0.2.2-alpha.2`. **Les noms de canal décrivent des lignes de runtime, pas le canal de publication interrogé par un espace de travail.**
+`upstream.json` consigne deux lignes de runtime vendored : `stable` correspond à l’amont `0.2.0-rc.2` et `beta` à l’amont `0.2.2-rc.1`. Ce qui est réellement embarqué dans un installateur est la ligne épinglée exactement par un espace de travail — actuellement, les deux espaces de travail de bureau épinglent `0.2.2-rc.1`. **Les noms de canal décrivent des lignes de runtime, pas le canal de publication interrogé par un espace de travail.**
 
 <a id="download"></a>
 
@@ -284,6 +283,7 @@ L’historique complet se trouve dans le [journal des modifications](CHANGELOG.f
 
 | Version | Date | Points clés |
 | --- | --- | --- |
+| `2.2.9` | 2026-11-10 | Runtime porté à DSH `0.2.2-rc.1` (373 paquets re-vendored, 24 correctifs rebasés), plugins inclus portés à 35 avec une présentation par catégories et un remerciement à chaque auteur ; pont Agents Anywhere en 2.1.0 |
 | `2.1.15` | 2026-10-22 | Notes de version dans la carte de mise à jour, la barre d’état système et les boîtes de dialogue natives, possibilité d’ignorer une version, nouvelle tentative d’installation et restauration d’instantané ; mémorisation de l’état de fenêtre, `.env` en couches, liens profonds `dsh-desktop://` et lancement à l’ouverture de session ; aperçu des médias du marché et installation par nom ; `dshmarket` `1.66.45` |
 | `2.2.3` | 2026-10-29 | L’enveloppe de bureau est entièrement localisée en huit langues (chinois, anglais, japonais, espagnol, français, allemand, russe, portugais du Brésil) : cinq nouveaux dictionnaires d’enveloppe et des dictionnaires de page de paramètres en six langues, recherche par modèle pour les dialogues interpolés, et l’espace de noms de locale du client ainsi que les menus natifs suivent le même ensemble |
 | `2.2.2` | 2026-10-28 | Runtime passé à DSH `0.2.2-alpha.2` (370 paquets re-vendored, 24 correctifs de version et le correctif du marché rebasés), dshmarket passe à 1.73.1, et le pont Agents Anywhere est reconstruit pour les nouvelles plages de peer |
@@ -302,14 +302,6 @@ L’historique complet se trouve dans le [journal des modifications](CHANGELOG.f
 - **L’accès au réseau local n’a aucune authentification** — il confie le DSH de cette machine à quiconque se trouve sur le même segment réseau.
 - **Un nom de service `inject` erroné échoue silencieusement** sous forme de plugin indéfiniment en attente, qui ne se manifeste que par un HTTP 4xx.
 - Un `yarn install` local peut réécrire l’empreinte de contenu de `dsh-nonead-client-skin` dans `yarn.lock` (non reproductible d’une machine à l’autre) ; **ne committez pas ces modifications locales du lockfile**.
-
-<a id="community"></a>
-
-## Communauté
-
-- Discord : [rejoindre la communauté Nonead DSH Desktop](https://discord.gg/TJeGqKRNM)
-- Groupes WeChat Work et QQ : après avoir rejoint, envoyez un message à @王博升Benson, ou demandez une invitation par e-mail
-- Envie de rejoindre l’équipe technique : contactez [t4wefan@qq.com](mailto:t4wefan@qq.com)
 
 <a id="links"></a>
 

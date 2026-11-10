@@ -2,7 +2,7 @@
 
 [中文文档](README.md)
 
-This directory is the product and developer documentation index for Nonead DSH Desktop, version **2.2.3**. The root [`README.en.md`](../README.en.md) covers what the product is, what it can do and how to install it; these pages explain why the project exists, how to get more out of it, and how to build plugins for it. Version history lives in the [changelog](../CHANGELOG.en.md).
+This directory is the product and developer documentation index for Nonead DSH Desktop, version **2.2.9**. The root [`README.en.md`](../README.en.md) covers what the product is, what it can do and how to install it; these pages explain why the project exists, how to get more out of it, and how to build plugins for it. Version history lives in the [changelog](../CHANGELOG.en.md).
 
 ## Read by goal
 
@@ -53,7 +53,7 @@ The outer repository has two formal product READMEs plus one legacy compatibilit
 
 `dsh-plugin-desktop-beta/README.md` and `dsh-plugin-desktop-beta/README.zh.md` ship with the npm package and are the more technical package reference. `nonead-dsh-desktop/README.md` and `nonead-dsh-desktop/README.zh.md` describe the Nonead DSH Desktop workspace. `dsh-plugin-desktop-beta/docs/` contains stable API contracts rather than marketing copy. `.agents/notes/implemented/` contains dated maintainer decision records and does not replace user documentation.
 
-`deepseek-harness/` is an optional local upstream source directory (a plain directory, not shipped with this repository): the runtime is vendored, the active channel is `beta` with DSH `0.2.2-alpha.2` (`f3803c96974ad4a94195fb97e5c637e9c2a3afe3`) at `vendor/dsh-runtime/0.2.2-alpha.2/`, and the other channel, `stable`, is recorded as DSH `0.2.0-rc.2` (`639ed015`). The root `upstream.json` records both channels. Normal builds, typecheck and tests do **not** need that directory; only `corepack yarn upstream:*` (rebuilding the runtime) does. Its README and `docs/` belong to the upstream project and are not Desktop documentation.
+`deepseek-harness/` is an optional local upstream source directory (a plain directory, not shipped with this repository): the runtime is vendored, the active channel is `beta` with DSH `0.2.2-rc.1` (`66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db`) at `vendor/dsh-runtime/0.2.2-rc.1/`, and the other channel, `stable`, is recorded as DSH `0.2.0-rc.2` (`639ed015`). The root `upstream.json` records both channels. Normal builds, typecheck and tests do **not** need that directory; only `corepack yarn upstream:*` (rebuilding the runtime) does. Its README and `docs/` belong to the upstream project and are not Desktop documentation.
 
 ## Status convention
 
