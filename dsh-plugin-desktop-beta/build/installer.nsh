@@ -2,22 +2,24 @@
 ; silently skipped and the running-app handoff below is not in the installer at all.
 !echo "DSH installer include: running-app handoff compiled"
 
-; Close a running previous version before the installer touches $INSTDIR.
+; Running-app handoff for both directions of the lifecycle.
 ;
-; The hook lives in customInit: electron-builder builds the generated script as
+; Install: the hook lives in customInit. electron-builder builds the generated script as
 ; `!include <this file>` followed by templates/nsis/installer.nsi, so the macro is already
 ; defined when installer.nsi:80 runs `!ifmacrodef customInit` inside .onInit. That is before
 ; any page is shown and before uninstallOldVersion copies over the installation, which is
 ; exactly where a live instance must be gone.
 ;
-; customCheckAppRunning is kept defined but empty so the stock implementation - which offers
-; a cancel-to-skip prompt and then Quits - is never compiled in. Skipping is not an option.
+; Uninstall: the hook lives in customUnInstall, which uninstaller.nsh:156 inserts inside the
+; uninstall section right before the files are deleted. A live instance must be gone there
+; too, otherwise Windows keeps the executable and the directory cannot be removed.
 ;
-; The throwaway uninstaller stub (BUILD_UNINSTALLER) is compiled and executed on the release
-; machine, where this very application is normally running. It must not run these checks or
-; the build aborts with exit code 2 instead of producing an installer.
-!ifndef BUILD_UNINSTALLER
-Var DshWaitCount
+; customCheckAppRunning is kept defined but empty so the stock implementation - which offers
+; a cancel-to-skip prompt and then Quits - is never compiled in. On install a live instance
+; is never skippable; on uninstall the explicit confirmation in customUnInstall governs.
+; The wait counter uses $R1 instead of a declared Var: the throwaway uninstaller stub compiles
+; the !ifdef BUILD_UNINSTALLER branch without executing it, so a declared variable would be
+; "never set" there and NSIS warning 6001 is fatal under warningsAsErrors.
 
 ; Exact-image match by file name, independent of the install directory, so a previous
 ; version installed elsewhere is found too. Contract: the return value is 0 when the
@@ -53,31 +55,28 @@ Var DshWaitCount
   Pop $0
 !macroend
 
+; Assumes the instance is running. Asks it to quit, waits, then escalates to forced kills, and
+; aborts with a non-zero exit code when it still refuses to die.
 !macro dshInstallerCloseRunningApp
-  !insertmacro dshInstallerFindApp $R0
-  ${if} $R0 != 0
-    Goto dsh_installer_close_done
-  ${endIf}
-
   DetailPrint "$(appClosing)"
   IfFileExists "$INSTDIR\${APP_EXECUTABLE_FILENAME}" 0 dsh_installer_close_force
     ; Newer versions receive this through Electron's single-instance channel and dispose
     ; their Profiles and sessions cleanly. 2.0.2 ignores the flag, so the forced path below
     ; is still required for the first upgrade to a version that understands it.
     ExecWait '"$INSTDIR\${APP_EXECUTABLE_FILENAME}" --dsh-installer-quit'
-    StrCpy $DshWaitCount 0
+    StrCpy $R1 0
   dsh_installer_close_wait:
     !insertmacro dshInstallerFindApp $R0
     ${if} $R0 == 0
-      IntOp $DshWaitCount $DshWaitCount + 1
-      ${if} $DshWaitCount < 20
+      IntOp $R1 $R1 + 1
+      ${if} $R1 < 20
         Sleep 500
         Goto dsh_installer_close_wait
       ${endIf}
     ${endIf}
 
   dsh_installer_close_force:
-    StrCpy $DshWaitCount 0
+    StrCpy $R1 0
   dsh_installer_close_force_loop:
     !insertmacro dshInstallerKillApp 0
     Sleep 800
@@ -90,8 +89,8 @@ Var DshWaitCount
     ${if} $R0 != 0
       Goto dsh_installer_close_done
     ${endIf}
-    IntOp $DshWaitCount $DshWaitCount + 1
-    ${if} $DshWaitCount < 6
+    IntOp $R1 $R1 + 1
+    ${if} $R1 < 6
       Goto dsh_installer_close_force_loop
     ${endIf}
 
@@ -104,11 +103,40 @@ Var DshWaitCount
   dsh_installer_close_done:
 !macroend
 
+; Install path: close a running previous version before the installer touches $INSTDIR.
+; The throwaway uninstaller stub (BUILD_UNINSTALLER) is compiled and executed on the release
+; machine, where this very application is normally running. It must not run these checks or
+; the build aborts with exit code 2 instead of producing an installer.
+!ifndef BUILD_UNINSTALLER
 !macro customInit
-  !insertmacro dshInstallerCloseRunningApp
+  !insertmacro dshInstallerFindApp $R0
+  ${if} $R0 == 0
+    !insertmacro dshInstallerCloseRunningApp
+  ${endIf}
+!macroend
+!endif
+
+; Uninstall path: confirm with the operator, then close and delete everything.
+;
+; The prompt is the one requirement that must not be silent: uninstalling something that is
+; currently open is destructive, so Cancel has to leave both the installation and the running
+; instance untouched. When nothing is running this macro does nothing and the uninstaller
+; proceeds immediately with no prompt. /SD IDOK keeps a silent (/S) uninstall from hanging.
+!ifdef BUILD_UNINSTALLER
+!macro customUnInstall
+  !insertmacro dshInstallerFindApp $R0
+  ${if} $R0 == 0
+    MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION "你的程序还在运行中，点击$\"确定$\"会主动被关闭，随后继续卸载；点击$\"取消$\"则放弃卸载。$\r$\n$\r$\n${PRODUCT_NAME} is still running: OK closes it and continues, Cancel aborts the uninstall." /SD IDOK IDOK dsh_uninstall_close_app
+    ; Cancel: stop here, leave the installation and the running instance alone.
+    Quit
+
+    dsh_uninstall_close_app:
+    !insertmacro dshInstallerCloseRunningApp
+  ${endIf}
 !macroend
 !endif
 
 !macro customCheckAppRunning
-  ; Handled in customInit before the first page; never offer to skip a running instance.
+  ; Handled in customInit (install) and customUnInstall (uninstall); never offer to skip a
+  ; running instance.
 !macroend
