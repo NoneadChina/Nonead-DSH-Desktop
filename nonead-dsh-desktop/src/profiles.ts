@@ -3,7 +3,7 @@ import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSy
 import { createRequire } from 'node:module'
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { initProfile, loadOverlayPatches, loadProfileDirectory, readProfilePatches, type Profile, type ProfileContext } from '@deepseek-ai/dsh-app-boot'
+import { getDshRuntimeVersion, initProfile, loadOverlayPatches, loadProfileDirectory, PROFILE_COMPATIBILITY_FILENAME, readProfileCompatibility, readProfilePatches, type Profile, type ProfileContext } from '@deepseek-ai/dsh-app-boot'
 import { PROFILE_TEMPLATES, RETIRED_BUNDLES } from '@deepseek-ai/dsh-official-bundles'
 import { withFileLock } from '@deepseek-ai/dsh-atomic-write'
 import { atomicJson, atomicText, isLinkedPath, linkedPathTarget, readPrivateFile, removeLinkedPath, sameResolvedPath } from './private-files.ts'
@@ -164,6 +164,7 @@ export class NextProfiles {
       }
     } else this.writeFeatures(name, DEFAULT_FEATURES)
     this.writeMigrateSchedule(name)
+    certifyBundledBridge(dir)
     return dir
   }
   create(name: string): string {
@@ -410,6 +411,41 @@ export function loadNextProfile(projectDir: string, home: string, installAnchor 
   atomicJson(join(projectDir, 'nonead-dsh-desktop.cordis.patch.json'), [])
   applyAgentsAnywhereEnvironment(installAnchor, home)
   return profile
+}
+
+/**
+ * Certify the bundled Agents Anywhere bridge for the running runtime.
+ *
+ * The desktop ships this bridge itself and compiles it together with the
+ * runtime it targets, so the bridge peer requirements name the exact revision
+ * it was built against. rc.2 evaluates those requirements before mounting a
+ * bundle and skips a mismatch without changing the manifest, so a runtime bump
+ * would silently drop the AA layer. Recording the exact-version exemption is
+ * the owner-of-both-halves answer; every other record in the file (including
+ * grants made through the plugin manager) is preserved, and an unreadable file
+ * is left untouched for the manager to repair.
+ * @param dir - the Profile directory.
+ */
+function certifyBundledBridge(dir: string): void {
+  const version = bundledPackageVersion(AA_PACKAGE)
+  if (version === undefined) return
+  const compatibility = readProfileCompatibility(dir)
+  if (!compatibility.rewritable) return
+  const key = `${AA_PACKAGE}@${version}`
+  const runtime = getDshRuntimeVersion()
+  const versions = compatibility.exemptions[key] ?? []
+  if (versions.includes(runtime)) return
+  atomicJson(join(dir, PROFILE_COMPATIBILITY_FILENAME), {
+    ...compatibility.exemptions, [key]: [...versions, runtime].sort()
+  })
+}
+
+/** Read a bundled package's exact version, or undefined when it is not installed. */
+function bundledPackageVersion(packageName: string): string | undefined {
+  try {
+    const manifest = JSON.parse(readFileSync(createRequire(import.meta.url).resolve(`${packageName}/package.json`), 'utf8')) as { version?: unknown }
+    return typeof manifest.version === 'string' ? manifest.version : undefined
+  } catch { return undefined }
 }
 
 /**

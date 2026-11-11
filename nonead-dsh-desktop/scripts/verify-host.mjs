@@ -1,4 +1,4 @@
-/** Exercise the actual 0.2.1-alpha.5 Host, credentials, Market routes and AA manifest without Electron UI. */
+/** Exercise the actual 0.2.2-rc.2 Host, credentials, Market routes and AA manifest without Electron UI. */
 import assert from 'node:assert/strict'
 import crypto from 'node:crypto'
 import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, rmdirSync, writeFileSync } from 'node:fs'
@@ -155,17 +155,17 @@ try {
   }
   console.log('verify-host: Web-composed Schedule switch and restart persistence passed')
   const availableBundles = await rpc('listBundles')
-  // dsh 0.1.7 deleted `-web-profile` and merged its `ui-agent-team` row into `-profile`.
-  for (const [name, rowIds] of [
-    ['@deepseek-ai/dsh-experimental-agent-team-profile', ['agent-team', 'ui-agent-team']],
-  ]) {
-    const bundle = availableBundles.find(row => row.name === name)
-    assert.ok(bundle, `Official Plugins overview must offer ${name}`)
-    assert.equal(bundle.optional, true)
-    assert.equal(bundle.enabled, false, 'Team bundles must remain opt-in')
-    assert.equal(bundle.removable, false)
-    assert.equal(bundle.error, undefined)
-    for (const rowId of rowIds) assert.ok(bundle.rows.some(row => row.rowId === rowId), JSON.stringify(bundle))
+  // dsh 0.2.2-rc.2 retires `-agent-team-profile`: Agent Team is now mounted by
+  // the base and Web compositions themselves (`agent-team`, `tool-agent-team`,
+  // `ui-agent-team` in their cordis.patch.yml), so no optional bundle is offered.
+  const retiredAgentTeam = '@deepseek-ai/dsh-experimental-agent-team-profile'
+  assert.equal(availableBundles.some(bundle => bundle.name === retiredAgentTeam), false,
+    'Official Plugins overview must not offer the retired ' + retiredAgentTeam)
+  const composedRows = await rpc('listPlugins')
+  for (const name of ['@deepseek-ai/dsh-agent-team', '@deepseek-ai/dsh-client-ui-agent-team']) {
+    const row = composedRows.find(candidate => candidate.moduleName === name)
+    assert.equal(row?.enabled, true, 'Web composition must mount ' + name + ': ' + JSON.stringify(row))
+    assert.equal(row?.fiberPhase, 'active', JSON.stringify(row))
   }
   const packages = ['dsh-community-market', 'dshmarket', '@agents-anywhere/dsh-bridge-next']
   for (const name of packages) {
@@ -388,7 +388,7 @@ try {
     await stop()
     console.log('Onboarding Cua native provider activation and teardown passed without capturing screens, sending input or prompting for OS permissions.')
   }
-  console.log(`Next Host smoke passed (${process.argv.includes('--electron') ? 'Electron Node mode' : 'Node'}): authenticated 0.2.1-alpha.2 Web, exclusive market selection and independent AA persisted, official row toggles, dshmarket offline install and cross-market toggle and removal through the official manager, official install/remove with a freshly published locked dependency, native dshmarket update origin gate, graceful shutdown, recovery boot and profile switch.`)
+  console.log(`Next Host smoke passed (${process.argv.includes('--electron') ? 'Electron Node mode' : 'Node'}): authenticated 0.2.2-rc.2 Web, exclusive market selection and independent AA persisted, official row toggles, dshmarket offline install and cross-market toggle and removal through the official manager, official install/remove with a freshly published locked dependency, native dshmarket update origin gate, graceful shutdown, recovery boot and profile switch.`)
 } finally {
   await runner?.dispose()
   await host?.stop()

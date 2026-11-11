@@ -1421,7 +1421,13 @@ describe('published package surface', () => {
     const dshPatch = readFileSync(new URL(dshPatchPath, workspaceRoot), 'utf8')
     const workspaceRequire = createRequire(new URL('package.json', packageRoot))
     const dshManifest = workspaceRequire.resolve('@deepseek-ai/dsh/package.json')
-    const dshBin = readFileSync(join(dirname(dshManifest), 'lib/bin.js'), 'utf8')
+    // rc.2 splits the CLI into a thin launcher plus a hashed implementation module; the
+    // patched guard lives in the implementation file.
+    const dshLib = dirname(dshManifest)
+    const dshLauncher = readFileSync(join(dshLib, 'lib/bin.js'), 'utf8')
+    const dshEntry = /import\("(\.\/bin-[^"/]+\.js)"\)/u.exec(dshLauncher)?.[1]
+    if (dshEntry === undefined) throw new Error('Cannot find the dsh CLI entry')
+    const dshBin = readFileSync(join(dshLib, 'lib', dshEntry), 'utf8')
 
     expect(dshResolution('@deepseek-ai/dsh')).toContain(dshPatchPath)
     expect(lockfile).toContain(dshPatchPath)
@@ -1437,11 +1443,17 @@ describe('published package surface', () => {
     const lockfile = readFileSync(new URL('yarn.lock', workspaceRoot), 'utf8')
     const workspaceRequire = createRequire(new URL('package.json', packageRoot))
     const dshManifest = workspaceRequire.resolve('@deepseek-ai/dsh/package.json')
-    const dshBin = readFileSync(join(dirname(dshManifest), 'lib/bin.js'), 'utf8')
+    // rc.2 splits the CLI into a thin launcher plus a hashed implementation module; the
+    // patched guard lives in the implementation file.
+    const dshLib = dirname(dshManifest)
+    const dshLauncher = readFileSync(join(dshLib, 'lib/bin.js'), 'utf8')
+    const dshEntry = /import\("(\.\/bin-[^"/]+\.js)"\)/u.exec(dshLauncher)?.[1]
+    if (dshEntry === undefined) throw new Error('Cannot find the dsh CLI entry')
+    const dshBin = readFileSync(join(dshLib, 'lib', dshEntry), 'utf8')
     const pluginEntry = /const \{ runPlugin \} = await import\("(\.\/plugin-[^"/]+\.js)"\)/u.exec(dshBin)?.[1]
     expect(pluginEntry).toBeDefined()
     if (pluginEntry === undefined) throw new Error('Cannot find the CLI plugin command entry')
-    const dshPluginRuntime = readFileSync(join(dirname(dshManifest), 'lib', pluginEntry), 'utf8')
+    const dshPluginRuntime = readFileSync(join(dshLib, 'lib', pluginEntry), 'utf8')
     const subprocessManifest = workspaceRequire.resolve('@deepseek-ai/dsh-subprocess-local/package.json')
     const subprocessIndex = readFileSync(join(dirname(subprocessManifest), 'lib/index.js'), 'utf8')
     const runnerEntry = /from "(\.\/runner-launch-[^"/]+\.js)"/u.exec(subprocessIndex)?.[1]

@@ -1,11 +1,10 @@
 /** Next Office skills and bundled authoring dependencies; ported from upstream Desktop's Host composition. */
 import { existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import type { Context } from '@deepseek-ai/cordis'
 import * as officeSkills from '@deepseek-ai/dsh-skill-office'
 import * as workspaceDependencies from '@deepseek-ai/dsh-tool-workspace-dependencies'
-import { insideArchive, unpackedPath } from '../asar-archive-policy.ts'
+import { insideArchive } from '../asar-archive-policy.ts'
 
 /** Loader identity for the application-owned Office composition. */
 export const name = 'desktop-office'
@@ -49,12 +48,7 @@ export function resolveOfficeConfig(runtimeDir: string, source: string | undefin
  */
 export async function apply(ctx: Context, config: Config): Promise<void> {
   await ctx.plugin(workspaceDependencies, config)
-  // The CLI runs under the bundled standalone Node, which reads no archive; its package closure is unpacked beside the archive.
-  const manifest = fileURLToPath(import.meta.resolve('@deepseek-ai/libreoffice-kit/package.json'))
-  const packageRoot = dirname(insideArchive(manifest) ? unpackedPath(manifest) : manifest)
   await ctx.plugin(officeSkills, {
     assetRoot: join(dirname(config.source), 'office-skills'),
-    node: join(config.source, 'dependencies', 'node', 'bin', process.platform === 'win32' ? 'node.exe' : 'node'),
-    cli: join(packageRoot, 'lib', 'cli.js'),
   })
 }

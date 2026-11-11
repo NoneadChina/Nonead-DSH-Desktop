@@ -3,6 +3,7 @@ import { Context } from '@deepseek-ai/cordis'
 import LocalFileSystem from '@deepseek-ai/dsh-fs-local'
 import SkillRegistry from '@deepseek-ai/dsh-skill'
 import * as SkillFileSystem from '@deepseek-ai/dsh-skill-filesystem'
+import { readdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 
 export async function verifyBundledSkills(applicationRoot: string): Promise<void> {
@@ -28,7 +29,10 @@ export async function verifyBundledSkills(applicationRoot: string): Promise<void
     })
     const snapshot = await ctx.skills.snapshot()
     if (!snapshot.complete) throw new Error('packaged skill discovery was incomplete')
-    for (const name of ['editing-cordis-compositions', 'cordis-plugin-development']) {
+    const bundled = readdirSync(skillsRoot, { withFileTypes: true })
+      .filter(entry => entry.isDirectory()).map(entry => entry.name).sort()
+    if (bundled.length === 0) throw new Error('packaged skill discovery found no bundled skills')
+    for (const name of bundled) {
       if (!snapshot.skills.some(skill => skill.name === name)
         || !(await ctx.skills.get(name))?.content.trim()) {
         throw new Error(`bundled skill is unavailable: ${name}`)

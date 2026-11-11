@@ -25,7 +25,7 @@ export function DesktopSettingsLauncher({ wide, settingsShortcut, openSettings, 
         aria-label={t('settingsTrigger')}
         aria-haspopup="dialog"
         {...(settingsShortcut?.aria === undefined ? {} : { 'aria-keyshortcuts': settingsShortcut.aria })}
-        onClick={openSettings}
+        onClick={() => openSettings()}
       >
         <IconSettingsOutlineMedium size={16} />
         {wide && <span className="dshNextSettingsTriggerLabel">{t('settingsTrigger')}</span>}
