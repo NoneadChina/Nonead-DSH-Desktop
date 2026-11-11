@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  Version du produit <code>2.2.9</code> · Runtime DSH <code>0.2.2-rc.1</code> · Electron 44 · Licence MIT
+  Version du produit <code>2.2.9</code> · Runtime DSH <code>0.2.2-rc.2</code> · Electron 44 · Licence MIT
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">Téléchargement en un clic, prêt à l’emploi.</a></h3>
@@ -68,16 +68,16 @@ L’enveloppe et le Host ne communiquent que par un unique canal IPC de processu
 | Version du produit | `2.2.9` (`nonead-dsh-desktop` et `dsh-plugin-desktop-beta` synchronisés) |
 | Espace de travail du canal stable | `nonead-dsh-desktop` (les scripts racine utilisent le suffixe `:stable`) |
 | Espace de travail du canal Beta | `dsh-plugin-desktop-beta` (les scripts racine utilisent le suffixe `:beta`) |
-| Runtime DSH | `0.2.2-rc.1`, chaque dépendance `@deepseek-ai/dsh*` épinglée exactement, runtime vendored |
-| Runtime vendored | `vendor/dsh-runtime/0.2.2-rc.1/` (plusieurs répertoires de versions historiques sont conservés) |
-| Pin en amont | `66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db` (`channels.beta` dans `upstream.json`, également consigné dans `nonead-dsh-desktop/upstream-reference.json`) |
+| Runtime DSH | `0.2.2-rc.2`, chaque dépendance `@deepseek-ai/dsh*` épinglée exactement, runtime vendored |
+| Runtime vendored | `vendor/dsh-runtime/0.2.2-rc.2/` (plusieurs répertoires de versions historiques sont conservés) |
+| Pin en amont | `ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c` (`channels.beta` dans `upstream.json`, également consigné dans `nonead-dsh-desktop/upstream-reference.json`) |
 | Electron / outil de packaging | Electron `44.0.0` / electron-builder `26.15.7` (`app-builder-lib` patché) |
 | Node / Yarn | Node `^22.19.0` ou `>=24.0.0` ; Yarn `4.18.0` via Corepack (`nodeLinker: node-modules`) |
-| Marché de plugins | `dshmarket` `1.73.9`, ainsi que `dsh-community-market` `0.1.0-dev.0` de ce dépôt |
+| Marché de plugins | `dshmarket` `1.73.17`, ainsi que `dsh-community-market` `0.1.0-dev.0` de ce dépôt |
 | Pont de contrôle à distance | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop` (commit en amont `e8f0cb9`) |
 | Habillage de marque | `dsh-nonead-client-skin` (fourni avec l’installateur, monté par profil) |
 
-`upstream.json` consigne deux lignes de runtime vendored : `stable` correspond à l’amont `0.2.0-rc.2` et `beta` à l’amont `0.2.2-rc.1`. Ce qui est réellement embarqué dans un installateur est la ligne épinglée exactement par un espace de travail — actuellement, les deux espaces de travail de bureau épinglent `0.2.2-rc.1`. **Les noms de canal décrivent des lignes de runtime, pas le canal de publication interrogé par un espace de travail.**
+`upstream.json` consigne deux lignes de runtime vendored : `stable` correspond à l’amont `0.2.0-rc.2` et `beta` à l’amont `0.2.2-rc.2`. Ce qui est réellement embarqué dans un installateur est la ligne épinglée exactement par un espace de travail — actuellement, les deux espaces de travail de bureau épinglent `0.2.2-rc.2`. **Les noms de canal décrivent des lignes de runtime, pas le canal de publication interrogé par un espace de travail.**
 
 <a id="download"></a>
 

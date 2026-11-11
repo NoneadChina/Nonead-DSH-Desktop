@@ -6,6 +6,7 @@ import { createRequire } from 'node:module'
 import {
   existsSync,
   lstatSync,
+  mkdirSync,
   readdirSync,
   readFileSync,
   renameSync,
@@ -20,9 +21,11 @@ import type { PatchOptions } from '@deepseek-ai/cordis-plugin-include'
 import {
   bundlePatchPaths,
   composeEntries,
+  getDshRuntimeVersion,
   initProfile,
   loadOptionalPatches,
   loadOverlayPatches,
+  PROFILE_COMPATIBILITY_FILENAME,
   PROFILE_PATCH_FILENAME,
   PROFILES_DIR,
   readProfileManifest,
@@ -889,6 +892,42 @@ function marketFailureMessage(cause: unknown): string {
  * Every direct bundle uses the same Desktop/Profile SemVer overlay that Loader imports use.
  * The `dshmarket` bundle is filtered before resolution unless explicitly selected.
  */
+/**
+ * Grant the shipped AA connector the exact-version exemption that its own manifest still pins
+ * to the previous runtime. The connector is part of this application, so its identity is the
+ * only grant this function adds; a profile the reader rejected keeps its content untouched.
+ */
+function grantAgentsAnywhereCompatibility(profileDir: string, aaEnabled: boolean): void {
+  if (!aaEnabled) return
+  let packageVersion: string
+  try {
+    const manifestPath = createRequire(INSTALL_ANCHOR).resolve(`${AA_PACKAGE_NAME}/package.json`)
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { name?: unknown; version?: unknown }
+    if (typeof manifest.name !== 'string' || typeof manifest.version !== 'string') return
+    packageVersion = `${manifest.name}@${manifest.version}`
+  } catch {
+    // An unresolvable connector keeps the launcher's own report; only a declared identity can be exempted.
+    return
+  }
+  const runtimeVersion = getDshRuntimeVersion()
+  const filename = join(profileDir, PROFILE_COMPATIBILITY_FILENAME)
+  const exemptions: Record<string, unknown> = {}
+  if (existsSync(filename)) {
+    try {
+      const parsed: unknown = JSON.parse(readFileSync(filename, 'utf8'))
+      if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return
+      Object.assign(exemptions, parsed)
+    } catch {
+      return
+    }
+  }
+  const versions = exemptions[packageVersion]
+  if (Array.isArray(versions) && versions.includes(runtimeVersion)) return
+  exemptions[packageVersion] = [...(Array.isArray(versions) ? versions : []), runtimeVersion]
+  mkdirSync(profileDir, { recursive: true })
+  writeFileSync(filename, JSON.stringify(exemptions, undefined, 2) + '\n', { mode: 0o600 })
+}
+
 function loadRecoveryFilteredProfile(
   profileName: string,
   profileDir: string,
@@ -1311,6 +1350,7 @@ export function prepareDesktopProfile(
   const disabledBundles = marketSelection.requested === DESKTOP_MARKET_IDENTITIES.community.provider
     ? new Set(managedDisabledBundles)
     : new Set<string>()
+  grantAgentsAnywhereCompatibility(profileDir, hooks.aaEnabled === true)
   const loadedProfile = loadRecoveryFilteredProfile(
     profileName,
     profileDir,

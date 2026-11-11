@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  Product <code>2.2.9</code> · DSH runtime <code>0.2.2-rc.1</code> · Electron 44 · MIT License
+  Product <code>2.2.9</code> · DSH runtime <code>0.2.2-rc.2</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">One-click download, ready to use out of the box.</a></h3>
@@ -68,16 +68,16 @@ Shell and Host communicate over exactly one child-process IPC channel. Switching
 | Product version | `2.2.9` (`nonead-dsh-desktop` and `dsh-plugin-desktop-beta` in lockstep) |
 | Stable-channel workspace | `nonead-dsh-desktop` (root scripts use the `:stable` suffix) |
 | Beta-channel workspace | `dsh-plugin-desktop-beta` (root scripts use the `:beta` suffix) |
-| DSH runtime | `0.2.2-rc.1`, every `@deepseek-ai/dsh*` dependency pinned exactly, runtime vendored |
-| Vendored runtime | `vendor/dsh-runtime/0.2.2-rc.1/` (several historical version directories are kept) |
-| Upstream pin | `66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db` (`channels.beta` in `upstream.json`, mirrored in `nonead-dsh-desktop/upstream-reference.json`) |
+| DSH runtime | `0.2.2-rc.2`, every `@deepseek-ai/dsh*` dependency pinned exactly, runtime vendored |
+| Vendored runtime | `vendor/dsh-runtime/0.2.2-rc.2/` (several historical version directories are kept) |
+| Upstream pin | `ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c` (`channels.beta` in `upstream.json`, mirrored in `nonead-dsh-desktop/upstream-reference.json`) |
 | Electron / packager | Electron `44.0.0` / electron-builder `26.15.7` (patched `app-builder-lib`) |
 | Node / Yarn | Node `^22.19.0` or `>=24.0.0`; Yarn `4.18.0` via Corepack (`nodeLinker: node-modules`) |
-| Plugin market | `dshmarket` `1.73.9`, plus this repository's `dsh-community-market` `0.1.0-dev.0` |
+| Plugin market | `dshmarket` `1.73.17`, plus this repository's `dsh-community-market` `0.1.0-dev.0` |
 | Remote-control bridge | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop` (upstream commit `e8f0cb9`) |
 | Brand skin | `dsh-nonead-client-skin` (shipped in the installer, mounted per profile) |
 
-`upstream.json` records two vendored runtime lines: `stable` maps to upstream `0.2.0-rc.2` and `beta` to upstream `0.2.2-rc.1`. What actually ships inside an installer is the line a workspace pins exactly — currently both desktop workspaces pin `0.2.2-rc.1`. **Channel names describe runtime lines, not the release channel a workspace queries.**
+`upstream.json` records two vendored runtime lines: `stable` maps to upstream `0.2.0-rc.2` and `beta` to upstream `0.2.2-rc.2`. What actually ships inside an installer is the line a workspace pins exactly — currently both desktop workspaces pin `0.2.2-rc.2`. **Channel names describe runtime lines, not the release channel a workspace queries.**
 
 <a id="download"></a>
 

@@ -64,7 +64,5 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   const packageRoot = dirname(insideArchive(manifest) ? unpackedPath(manifest) : manifest)
   await ctx.plugin(officeSkills, {
     assetRoot: join(dirname(config.source), 'office-skills'),
-    node: join(config.source, 'dependencies', 'node', 'bin', process.platform === 'win32' ? 'node.exe' : 'node'),
-    cli: join(packageRoot, 'lib', 'cli.js'),
   })
 }

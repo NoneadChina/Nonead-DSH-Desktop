@@ -1,6 +1,6 @@
 {
   "schema": "nonead-dsh-desktop/plugin-bundle/v4",
-  "count": 35,
+  "count": 27,
   "plugins": [
     {
       "name": "@a9i5k4/dsh-auto-memory",
@@ -22,8 +22,8 @@
     },
     {
       "name": "@deepseek-ai/dsh-tool-subagent",
-      "version": "0.2.2-rc.1",
-      "file": "deepseek-ai-dsh-tool-subagent-0.2.2-rc.1.tgz",
+      "version": "0.2.2-rc.2",
+      "file": "deepseek-ai-dsh-tool-subagent-0.2.2-rc.2.tgz",
       "category": "agent",
       "author": "DeepSeek Harness Team",
       "description": "子 Agent 委派工具：给模型一个命名工具，把任务交给指定的子 Agent 后端执行。每次调用返回子 id，完成通知与清理由运行时负责，适合把独立工作拆出去跑。",
@@ -37,15 +37,6 @@
       "author": "linxin666",
       "description": "Git 图谱：在空白会话里切换分支，并查看可视化提交图与 worktree 隔离。Git 操作在宿主进程中执行并带安全守卫，适合多 Agent 并行开发。",
       "descriptionEn": "External dsh web GUI plugin: a blank-session git branch selector + Git graph, with real host-side git operations and guards, as a dsh profile bundle"
-    },
-    {
-      "name": "@linxin666/dsh-client-ui-skill-explorer",
-      "version": "0.4.16",
-      "file": "linxin666-dsh-client-ui-skill-explorer-0.4.16.tgz",
-      "category": "workspace",
-      "author": "linxin666",
-      "description": "技能中心：按来源（内置、项目、用户、自定义、运行时）浏览已加载技能，可开关模型调用、新建或删除技能。适合在一个面板里看清本机装了哪些技能。",
-      "descriptionEn": "DSH skill center: browse loaded skills by source (bundled / project / user / custom / runtime), enable or disable, create and delete, in a web GUI panel."
     },
     {
       "name": "@linxin666/dsh-client-ui-task-board",
@@ -76,8 +67,8 @@
     },
     {
       "name": "@michengai/dsh-code-review",
-      "version": "1.0.9",
-      "file": "michengai-dsh-code-review-1.0.9.tgz",
+      "version": "1.0.10",
+      "file": "michengai-dsh-code-review-1.0.10.tgz",
       "category": "engineering",
       "author": "MichengAI",
       "description": "代码审查：在当前会话发起审查，由独立子 Agent 检查 Git、源码、调用方与测试，再把报告带回主会话。可按范围或要求审查，报告支持中英文。",
@@ -85,8 +76,8 @@
     },
     {
       "name": "@michengai/dsh-skills-manager",
-      "version": "1.4.0",
-      "file": "michengai-dsh-skills-manager-1.4.0.tgz",
+      "version": "1.4.1",
+      "file": "michengai-dsh-skills-manager-1.4.1.tgz",
       "category": "agent",
       "author": "MichengAI",
       "description": "技能管理：统一加载并安全管理本机 Agent 技能，支持从 GitHub 安装、预览更新与备份回退。适合把散落的技能收拢到一处维护。",
@@ -100,15 +91,6 @@
       "author": "tt-a1i",
       "description": "架构图技能：以纯技能包的形式把 Archify 架构图能力接入 DSH，让模型能按描述生成架构图。适合梳理系统结构或表达技术方案。",
       "descriptionEn": "Opt-in DeepSeek Harness Skill-only bundle for the Archify architecture-diagram skill."
-    },
-    {
-      "name": "@weibaohui/skills-management",
-      "version": "0.9.3",
-      "file": "weibaohui-skills-management-0.9.3.tgz",
-      "category": "agent",
-      "author": "weibaohui",
-      "description": "技能市场：一个页面管理本机各类 coding agent 的技能，可一键收编进 DSH 用户库供 skill 工具调用。内置 6600+ 技能市场，并统计每个技能的注入开销。",
-      "descriptionEn": "dsh 插件 · 技能市场：一个页面管理本机所有 coding agent 的技能（Claude、ZCode、Codex 等十余个执行器），一键收编进 DSH 用户库供 skill 工具调用；内置 6600+ ntd 技能市场可浏览搜索安装，支持注入开销（≈token/字符）统计与排序、模型可见性治理与市场每日自动同步。"
     },
     {
       "name": "@wenaixi/dsh-superpower",
@@ -148,8 +130,8 @@
     },
     {
       "name": "dsh-client-auto-continue",
-      "version": "0.17.4",
-      "file": "dsh-client-auto-continue-0.17.4.tgz",
+      "version": "0.18.0",
+      "file": "dsh-client-auto-continue-0.18.0.tgz",
       "category": "workspace",
       "author": "社区贡献者",
       "description": "自动续跑：请求被网络错误等非人为原因中断时，自动补发一条本地化的继续提示；也可开启成功后循环继续。适合长时间无人值守的任务。",
@@ -157,8 +139,8 @@
     },
     {
       "name": "dsh-config-manager",
-      "version": "0.7.0",
-      "file": "dsh-config-manager-0.7.0.tgz",
+      "version": "0.8.0",
+      "file": "dsh-config-manager-0.8.0.tgz",
       "category": "integration",
       "author": "社区贡献者",
       "description": "配置管理：一键备份、恢复、导出、导入、迁移与同步 DSH 配置，覆盖设置、插件、MCP、技能与工作区。适合换机器时把整套环境搬过去，也支持定时备份。",
@@ -175,8 +157,8 @@
     },
     {
       "name": "dsh-cost-meter",
-      "version": "1.9.62",
-      "file": "dsh-cost-meter-1.9.62.tgz",
+      "version": "1.9.64",
+      "file": "dsh-cost-meter-1.9.64.tgz",
       "category": "workspace",
       "author": "社区贡献者",
       "description": "费用与额度看板：统计本会话、当日与历史的 token 和成本，内置 170+ 模型价格目录并自动匹配。还能查 16 家 Coding Plan 订阅额度与自定义 Provider 余额，并在峰谷计价切换前提醒。",
@@ -210,15 +192,6 @@
       "descriptionEn": "GitHub workflow skills for DeepSeek Harness, adapted from OpenAI Codex GitHub workflow semantics."
     },
     {
-      "name": "dsh-image-gen",
-      "version": "0.11.1",
-      "file": "dsh-image-gen-0.11.1.tgz",
-      "category": "docs",
-      "author": "shanliuling",
-      "description": "图片生成：在 DSH 里用说话的方式画图，支持 Gemini、OpenAI、Seedream、DashScope 与本地 ComfyUI 等渠道，也支持订阅账号免 Key 使用。适合出配图、改图或批量生成素材。",
-      "descriptionEn": "Bring ChatGPT-like image generation to DeepSeek Harness — Gemini, OpenAI, Seedream, DashScope, local ComfyUI & more."
-    },
-    {
       "name": "dsh-markitdown",
       "version": "0.2.2",
       "file": "dsh-markitdown-0.2.2.tgz",
@@ -229,8 +202,8 @@
     },
     {
       "name": "dsh-mcp-connector",
-      "version": "0.2.97",
-      "file": "dsh-mcp-connector-0.2.97.tgz",
+      "version": "0.2.101",
+      "file": "dsh-mcp-connector-0.2.101.tgz",
       "category": "integration",
       "author": "社区贡献者",
       "description": "MCP 连接器：内置上百个连接器的数据市场，统一管理授权、跨连接搜索工具并排查连接问题。支持 OAuth、API Key 与 HTTP/stdio，适合接入企业数据。",
@@ -255,24 +228,6 @@
       "descriptionEn": "In-window conversation rewind with workspace file restore"
     },
     {
-      "name": "dsh-nonead-universal-robots",
-      "version": "0.8.6",
-      "file": "dsh-nonead-universal-robots-0.8.6.tgz",
-      "category": "robot",
-      "author": "拓德科技",
-      "description": "UR 机械臂控制：用自然语言直接驱动 Universal Robots 协作臂，支持读取位姿、关节运动、画图与 I/O 等操作。适合不写脚本就完成示教与调试。",
-      "descriptionEn": "一个让 DSH 用自然语言直接控制 Universal Robots（UR）机械臂的插件，由拓德科技（Nonead）基于自研的 nUR MCP Server 同源逻辑开发。"
-    },
-    {
-      "name": "dsh-nonead-ursim",
-      "version": "0.3.15",
-      "file": "dsh-nonead-ursim-0.3.15.tgz",
-      "category": "robot",
-      "author": "拓德科技",
-      "description": "UR 离线仿真：在仿真里编排与验证 Universal Robots 机械臂动作，不用连真机。适合先把轨迹与逻辑跑通，再上真机执行。",
-      "descriptionEn": "一个让 DSH 在离线环境里用自然语言驱动虚拟 Universal Robots（UR）机械臂的仿真插件：运动学级建模、无需真机，由拓德科技（Nonead）基于自研的 nUR MCP Server 同源逻辑开发。"
-    },
-    {
       "name": "dsh-ppt-master",
       "version": "6.1.0",
       "file": "dsh-ppt-master-6.1.0.tgz",
@@ -289,33 +244,6 @@
       "author": "stardustlc",
       "description": "视频工作台：把 React 工程做成视频，内置官方 Remotion 技能、工程检索、模板、素材排序、Studio 预览与 MP4 导出。适合用代码生成带动画的视频。",
       "descriptionEn": "DSH React 视频工作台：官方 Remotion 技能、工程检索、模板、素材排序、Studio 预览与 MP4 导出。欢迎提交 issues 和 PR。"
-    },
-    {
-      "name": "dsh-superagent",
-      "version": "0.1.0",
-      "file": "dsh-superagent-0.1.0.tgz",
-      "category": "agent",
-      "author": "DeepSeek Harness Team",
-      "description": "主动式智能体原型：监听一个 GitHub 仓库（可选飞书），按 Policy 评估请求，把被授权的请求转成工单并在独立会话中执行。Web 面板汇总待人工处理项；属 DeepSeek 研究原型，非官方产品。",
-      "descriptionEn": "A proactive agent for one GitHub repository, as a DSH (DeepSeek Harness) bundle: it listens to GitHub and optionally Feishu, evaluates requests under a Policy, turns authorized ones into Tickets, and executes each in its own DSH Session."
-    },
-    {
-      "name": "dsh-univer-office",
-      "version": "0.4.0",
-      "file": "dsh-univer-office-0.4.0.tgz",
-      "category": "docs",
-      "author": "DreamNum",
-      "description": "Office 集成：把电子表格、文档、演示、画布与多维表接进 DSH，改动可在对话里预览、批准或丢弃。适合围绕 Excel、Word、PPT 做协作编辑与审阅。",
-      "descriptionEn": "DSH × Univer integration with a bundled collaboration Gateway and Viewer: inline previews, live floating Worktree windows, and session-end review actions in DeepSeek Harness."
-    },
-    {
-      "name": "dshmarket",
-      "version": "1.73.17",
-      "file": "dshmarket-1.73.17.tgz",
-      "category": "workspace",
-      "author": "社区贡献者",
-      "description": "可视化插件市场：在 DSH 里浏览、搜索社区插件并一键安装，不用命令行。适合快速试装主题与扩展，装错了也能在插件页里停用。",
-      "descriptionEn": "Visual plugin market inside DeepSeek Harness — browse, search, and one-click install community plugins. · DSH 可视化插件市场：逛一逛，点一下，装好。"
     }
   ]
 }

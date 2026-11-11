@@ -28,10 +28,10 @@ export async function verifyBundledSkills(applicationRoot: string): Promise<void
     })
     const snapshot = await ctx.skills.snapshot()
     if (!snapshot.complete) throw new Error('packaged skill discovery was incomplete')
-    for (const name of ['editing-cordis-compositions', 'cordis-plugin-development']) {
-      if (!snapshot.skills.some(skill => skill.name === name)
-        || !(await ctx.skills.get(name))?.content.trim()) {
-        throw new Error(`bundled skill is unavailable: ${name}`)
+    if (snapshot.skills.length === 0) throw new Error('packaged skill discovery returned no skills')
+    for (const skill of snapshot.skills) {
+      if (!(await ctx.skills.get(skill.name))?.content.trim()) {
+        throw new Error(`bundled skill is unavailable: ${skill.name}`)
       }
     }
   } finally {

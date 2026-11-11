@@ -11,6 +11,8 @@ const patch = readFileSync(new URL(
   import.meta.url,
 ), 'utf8')
 
+// 0.2.2-rc.2 ships the compiled client as one minified line, so the upstream text this patch
+// anchors on carries no spaces between tokens; declarations stay formatted and keep theirs.
 describe('0.1.3 alpha.2 browse directory-picker client patch', () => {
   it('publishes the Windows bridge through the compiled flow and declarations', () => {
     for (const marker of [
@@ -18,9 +20,9 @@ describe('0.1.3 alpha.2 browse directory-picker client patch', () => {
       '__DSH_DESKTOP_VALIDATE_DIRECTORY__',
       'pickNativeDirectory?: () => Promise<string | null>;',
       'validateDirectory?: (path: string) => Promise<boolean>;',
-      '"browser.nativePicker": "使用 Windows 选择文件夹"',
-      '"browser.nativePicker": "Choose with Windows"',
-      'icon: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderOpenRegular, { size: 16 }),',
+      '"browser.nativePicker":`使用 Windows 选择文件夹`',
+      '"browser.nativePicker":`Choose with Windows`',
+      'icon:(0,react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderOpenRegular,{size:16}),',
     ]) {
       expect(patch).toContain(marker)
     }
@@ -30,14 +32,14 @@ describe('0.1.3 alpha.2 browse directory-picker client patch', () => {
 
   it('validates native and browser choices while keeping cancellation and busy work in the panel', () => {
     for (const marker of [
-      'const parentInert = busy || folderDraft !== null || nativePicking || validatingDirectory;',
-      'if (!parentInert) onClose();',
-      '"aria-busy": nativePicking || void 0,',
-      'disabled: parentInert,',
-      'if (path !== null) openDirectory(path);',
-      'if (targetPath !== null) openDirectory(targetPath);',
-      'Promise.resolve().then(() => validateDirectory(path)).then((allowed) => {',
-      'if (allowed) onOpen(path);',
+      'const parentInert=busy||folderDraft!==null||nativePicking||validatingDirectory;',
+      'if(!parentInert)onClose()',
+      '"aria-busy":nativePicking||void 0,',
+      'disabled:parentInert,',
+      'if(path!==null)openDirectory(path)',
+      'if(targetPath!==null)openDirectory(targetPath)',
+      'Promise.resolve().then(()=>validateDirectory(path)).then(allowed=>{',
+      'if(allowed)onOpen(path)',
     ]) {
       expect(patch).toContain(marker)
     }

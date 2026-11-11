@@ -6,7 +6,7 @@ import { expect, it, vi } from 'vitest'
 /** Run the installed official view; only React scheduling and external services are replaced. */
 function fixture(nativeBridge = true, lastVisible: unknown = null, apiKeyBridge?: object) {
   const source = readFileSync(createRequire(import.meta.url).resolve('@deepseek-ai/dsh-client-ui-settings-account/client'), 'utf8')
-    .replace('return module.exports;', 'module.exports.testEntry = DesktopOnboardingEntry; module.exports.readKeys = readOnboardingApiKeyPresence; return module.exports;')
+    .replace(/return module\.exports;?(?=}\})/, 'module.exports.testEntry = DesktopOnboardingEntry; module.exports.readKeys = readOnboardingApiKeyPresence; return module.exports')
   let entry: (props: any) => any
   let readKeys: (ctx: any) => Promise<boolean>
   const jsx = (type: any, props: any) => ({ type, props })

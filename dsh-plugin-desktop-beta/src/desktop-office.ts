@@ -1,7 +1,6 @@
 /** Office skills and bundled authoring dependencies; ported from upstream Desktop's Host composition. */
 import { existsSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import type { Context } from '@deepseek-ai/cordis'
 import * as officeSkills from '@deepseek-ai/dsh-skill-office'
 import * as workspaceDependencies from '@deepseek-ai/dsh-tool-workspace-dependencies'
@@ -84,11 +83,7 @@ export function resolveDesktopOfficeConfig(runtime: DesktopPrimaryRuntime | unde
  */
 export async function apply(ctx: Context, config: Config): Promise<void> {
   await ctx.plugin(workspaceDependencies, config)
-  // Stable and Beta ship no archive, so the CLI runs from its installed package under the bundled standalone Node.
-  const packageRoot = dirname(fileURLToPath(import.meta.resolve('@deepseek-ai/libreoffice-kit/package.json')))
   await ctx.plugin(officeSkills, {
     assetRoot: join(dirname(config.source), 'office-skills'),
-    node: join(config.source, 'dependencies', 'node', 'bin', process.platform === 'win32' ? 'node.exe' : 'node'),
-    cli: join(packageRoot, 'lib', 'cli.js'),
   })
 }

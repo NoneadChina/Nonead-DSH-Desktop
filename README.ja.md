@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  製品バージョン <code>2.2.9</code> · DSH ランタイム <code>0.2.2-rc.1</code> · Electron 44 · MIT License
+  製品バージョン <code>2.2.9</code> · DSH ランタイム <code>0.2.2-rc.2</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">ワンクリックでダウンロード、すぐに使えます。</a></h3>
@@ -68,16 +68,16 @@ Nonead DSH Desktop は、[DeepSeek Harness](https://github.com/deepseek-ai/deeps
 | 製品バージョン | `2.2.9`（`nonead-dsh-desktop` と `dsh-plugin-desktop-beta` が同期） |
 | 安定チャネルのワークスペース | `nonead-dsh-desktop`（ルートスクリプトは `:stable` 接尾辞） |
 | Beta チャネルのワークスペース | `dsh-plugin-desktop-beta`（ルートスクリプトは `:beta` 接尾辞） |
-| DSH ランタイム | `0.2.2-rc.1`、すべての `@deepseek-ai/dsh*` 依存を厳密に pin し、ランタイムは vendored |
-| vendored 済みランタイム | `vendor/dsh-runtime/0.2.2-rc.1/`（過去バージョンのディレクトリもいくつか保持） |
-| 上流の pin | `66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db`（`upstream.json` の `channels.beta`、`nonead-dsh-desktop/upstream-reference.json` にも記録） |
+| DSH ランタイム | `0.2.2-rc.2`、すべての `@deepseek-ai/dsh*` 依存を厳密に pin し、ランタイムは vendored |
+| vendored 済みランタイム | `vendor/dsh-runtime/0.2.2-rc.2/`（過去バージョンのディレクトリもいくつか保持） |
+| 上流の pin | `ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c`（`upstream.json` の `channels.beta`、`nonead-dsh-desktop/upstream-reference.json` にも記録） |
 | Electron / パッケージャー | Electron `44.0.0` / electron-builder `26.15.7`（`app-builder-lib` にパッチあり） |
 | Node / Yarn | Node `^22.19.0` または `>=24.0.0`、Yarn `4.18.0`（Corepack 経由、`nodeLinker: node-modules`） |
-| プラグインマーケット | `dshmarket` `1.73.9`、加えて本リポジトリの `dsh-community-market` `0.1.0-dev.0` |
+| プラグインマーケット | `dshmarket` `1.73.17`、加えて本リポジトリの `dsh-community-market` `0.1.0-dev.0` |
 | スマートフォン遠隔操作ブリッジ | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop`（上流コミット `e8f0cb9`） |
 | ブランドスキン | `dsh-nonead-client-skin`（インストーラーに同梱、プロファイルごとに組み込み読み込み） |
 
-`upstream.json` は vendored された 2 本のランタイム系列を記録しています。`stable` は上流 `0.2.0-rc.2`、`beta` は上流 `0.2.2-rc.1` に対応します。実際にインストーラーに含まれるのは、ワークスペースが厳密に pin している系列です。現在は 2 つのデスクトップワークスペースがともに `0.2.2-rc.1` を pin しています。**チャネル名が表すのは「ランタイム系列」であり、ワークスペースが参照するリリースチャネルではありません。**
+`upstream.json` は vendored された 2 本のランタイム系列を記録しています。`stable` は上流 `0.2.0-rc.2`、`beta` は上流 `0.2.2-rc.2` に対応します。実際にインストーラーに含まれるのは、ワークスペースが厳密に pin している系列です。現在は 2 つのデスクトップワークスペースがともに `0.2.2-rc.2` を pin しています。**チャネル名が表すのは「ランタイム系列」であり、ワークスペースが参照するリリースチャネルではありません。**
 
 <a id="download"></a>
 

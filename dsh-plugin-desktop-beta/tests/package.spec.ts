@@ -244,12 +244,12 @@ describe('published package surface', () => {
     for (const marker of [
       '__DSH_DESKTOP_PICK_DIRECTORY__',
       '__DSH_DESKTOP_VALIDATE_DIRECTORY__',
-      'const openDirectory = (path) => {',
-      'if (path !== null) openDirectory(path);',
-      'if (targetPath !== null) openDirectory(targetPath);',
-      'IconFolderOpenRegular, { size: 16 }',
+      'const openDirectory=path=>{',
+      'if(path!==null)openDirectory(path)',
+      'if(targetPath!==null)openDirectory(targetPath)',
+      'IconFolderOpenRegular,{size:16}',
       'browser.nativePicker',
-      'const parentInert = busy || folderDraft !== null || nativePicking || validatingDirectory;',
+      'const parentInert=busy||folderDraft!==null||nativePicking||validatingDirectory;',
     ]) {
       expect(patch).toContain(marker)
       expect(installedClient).toContain(marker)
@@ -300,7 +300,7 @@ describe('published package surface', () => {
     ), 'utf8')
     for (const marker of [
       'function IconDesktopSettings',
-      'if (id === "desktop")',
+      'if(id===`desktop`)',
       'M5 14h6M8 11.5V14',
     ]) {
       expect(patch).toContain(marker)
@@ -1427,14 +1427,18 @@ describe('published package surface', () => {
     const workspaceRequire = createRequire(new URL('package.json', packageRoot))
     const dshManifest = workspaceRequire.resolve('@deepseek-ai/dsh/package.json')
     const dshBin = readFileSync(join(dirname(dshManifest), 'lib/bin.js'), 'utf8')
+    const binEntry = /await import\("(\.\/bin-[^"/]+\.js)"\)/u.exec(dshBin)?.[1]
+    expect(binEntry).toBeDefined()
+    if (binEntry === undefined) throw new Error('Cannot find the CLI entry chunk')
+    const dshRuntime = readFileSync(join(dirname(dshManifest), 'lib', binEntry), 'utf8')
 
     expect(dshResolution('@deepseek-ai/dsh')).toContain(dshPatchPath)
     expect(lockfile).toContain(dshPatchPath)
     // Upstream only lets the installed carrier manage plugins; the patch also
     // lets it boot the reserved Desktop profile.
     expect(dshPatch).toContain('if (!manageDesktopProfile) rejectElectronProfile(program, profile)')
-    expect(dshBin).toMatch(/if \(!manageDesktopProfile\) rejectElectronProfile\(program, profile\)/u)
-    expect(dshBin).toMatch(/if \(!manageDesktopProfile\) rejectElectronProfile\(plugin, options\.profile\)/u)
+    expect(dshRuntime).toMatch(/if \(!manageDesktopProfile\) rejectElectronProfile\(program, profile\)/u)
+    expect(dshRuntime).toMatch(/if \(!manageDesktopProfile\) rejectElectronProfile\(plugin, options\.profile\)/u)
   })
 
   it('hides official plugin-manager and general subprocess consoles on Windows', () => {
@@ -1443,7 +1447,11 @@ describe('published package surface', () => {
     const workspaceRequire = createRequire(new URL('package.json', packageRoot))
     const dshManifest = workspaceRequire.resolve('@deepseek-ai/dsh/package.json')
     const dshBin = readFileSync(join(dirname(dshManifest), 'lib/bin.js'), 'utf8')
-    const pluginEntry = /const \{ runPlugin \} = await import\("(\.\/plugin-[^"/]+\.js)"\)/u.exec(dshBin)?.[1]
+    const binEntry = /await import\("(\.\/bin-[^"/]+\.js)"\)/u.exec(dshBin)?.[1]
+    expect(binEntry).toBeDefined()
+    if (binEntry === undefined) throw new Error('Cannot find the CLI entry chunk')
+    const dshEntryRuntime = readFileSync(join(dirname(dshManifest), 'lib', binEntry), 'utf8')
+    const pluginEntry = /const \{ runPlugin \} = await import\("(\.\/plugin-[^"/]+\.js)"\)/u.exec(dshEntryRuntime)?.[1]
     expect(pluginEntry).toBeDefined()
     if (pluginEntry === undefined) throw new Error('Cannot find the CLI plugin command entry')
     const dshPluginRuntime = readFileSync(join(dirname(dshManifest), 'lib', pluginEntry), 'utf8')

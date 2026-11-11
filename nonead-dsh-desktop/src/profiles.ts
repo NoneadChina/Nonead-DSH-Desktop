@@ -3,7 +3,7 @@ import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSy
 import { createRequire } from 'node:module'
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { initProfile, loadOverlayPatches, loadProfileDirectory, readProfilePatches, type Profile, type ProfileContext } from '@deepseek-ai/dsh-app-boot'
+import { getDshRuntimeVersion, initProfile, loadOverlayPatches, loadProfileDirectory, readProfilePatches, type Profile, type ProfileContext } from '@deepseek-ai/dsh-app-boot'
 import { PROFILE_TEMPLATES, RETIRED_BUNDLES } from '@deepseek-ai/dsh-official-bundles'
 import { withFileLock } from '@deepseek-ai/dsh-atomic-write'
 import { atomicJson, atomicText, isLinkedPath, linkedPathTarget, readPrivateFile, removeLinkedPath, sameResolvedPath } from './private-files.ts'
@@ -197,9 +197,11 @@ export class NextProfiles {
   /** Unlocked: the caller holds the Profile writer lock. */
   private writeFeatures(name: string, value: unknown): void {
     const features = parseFeatures(value)
+    const dir = this.directory(name)
     const manifest = this.manifest(name)
     applyFeatures(manifest, features)
-    atomicJson(join(this.directory(name), 'package.json'), manifest)
+    atomicJson(join(dir, 'package.json'), manifest)
+    syncAgentsAnywhereExemption(dir, manifest)
   }
   onboardingRequired(name: string): boolean {
     const saved = this.manifest(name).dsh.desktopNextOnboarding
@@ -253,6 +255,7 @@ export class NextProfiles {
     try {
       // Completion is the final write: a failed/interrupted save must never start the Host.
       atomicJson(join(dir, 'package.json'), manifest)
+      syncAgentsAnywhereExemption(dir, manifest)
     } catch (error) {
       if (patchChanged) {
         if (originalPatch === undefined) unlinkSync(patchPath)
@@ -297,6 +300,7 @@ export class NextProfiles {
     manifest.dsh.profile.bundles = bundles
     manifest.dsh.desktopNextScheduleBundle = 2
     atomicJson(join(this.directory(name), 'package.json'), manifest)
+    syncAgentsAnywhereExemption(this.directory(name), manifest)
   }
   private manifest(name: string): ProfileManifest {
     const value = JSON.parse(readPrivateFile(join(this.directory(name), 'package.json')) ?? 'null')
@@ -398,6 +402,41 @@ function agentsAnywhereOverlay(projectDir: string, home: string, installAnchor: 
   const bundles = manifest?.dsh?.profile?.bundles
   if (!Array.isArray(bundles) || !bundles.includes(AA_PACKAGE)) return []
   return [{ id: 'agents-anywhere-bridge-next', config: { dshHome: home, ...archivedAgentsAnywhereConfig(installAnchor) } }]
+}
+
+/**
+ * rc.2 refuses to load a bundle whose declared DSH peers exclude the running runtime. The AA
+ * bridge still declares rc.1 peers, so the Profile grants the exact-version exemption the
+ * runtime documents, and withdraws it when the bundle leaves the selection.
+ * @param profileDir - Profile directory holding `compatibility.json`.
+ * @param manifest - Profile manifest that already reflects the requested bundles.
+ */
+function syncAgentsAnywhereExemption(profileDir: string, manifest: ProfileManifest): void {
+  let identity: string
+  try {
+    const manifestPath = createRequire(NEXT_PACKAGE).resolve(`${AA_PACKAGE}/package.json`)
+    const bridge = JSON.parse(readFileSync(manifestPath, 'utf8')) as { name?: unknown; version?: unknown }
+    if (typeof bridge.name !== 'string' || typeof bridge.version !== 'string') return
+    identity = `${bridge.name}@${bridge.version}`
+  } catch { return /* The bridge is optional; a missing installation needs no exemption. */ }
+  const file = join(profileDir, 'compatibility.json')
+  const text = readPrivateFile(file)
+  let record: Record<string, unknown> = {}
+  if (text !== undefined) {
+    let parsed: unknown
+    try { parsed = JSON.parse(text) } catch { return /* The runtime asks the user to repair an unreadable record; never overwrite it. */ }
+    if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return
+    record = parsed as Record<string, unknown>
+  }
+  const runtime = getDshRuntimeVersion()
+  const current = Array.isArray(record[identity]) ? record[identity] as unknown[] : []
+  const enabled = manifest.dsh.profile.bundles.includes(AA_PACKAGE)
+  if (enabled === current.includes(runtime)) return
+  const kept = current.filter(version => version !== runtime)
+  if (enabled) record[identity] = [...kept, runtime]
+  else if (kept.length === 0) delete record[identity]
+  else record[identity] = kept
+  atomicJson(file, record)
 }
 
 /**

@@ -19,7 +19,7 @@ const require = createRequire(import.meta.url)
 const officeAssets = join(dirname(require.resolve('@deepseek-ai/dsh-skill-office/package.json')), 'assets')
 const nodeName = process.platform === 'win32' ? 'node.exe' : 'node'
 
-it('loads Office skills with the bundled Node and the installed CLI, and removes them on disposal', async () => {
+it('loads Office skills from the bundled payload and removes them on disposal', async () => {
   const root = await mkdtemp(join(tmpdir(), 'desktop-office-'))
   const ctx = new Context()
   try {
@@ -55,7 +55,7 @@ it('loads Office skills with the bundled Node and the installed CLI, and removes
     await ctx.loader.await()
     for (const entry of ctx.loader.entries()) await entry.fiber?.await()
     expect((await ctx.skills.list()).map(skill => skill.name)).toEqual([
-      'office', 'office-docx', 'office-export-pdf', 'office-pptx', 'office-recalculate', 'office-render', 'office-xlsx',
+      'office', 'office-docx', 'office-pptx', 'office-xlsx',
     ])
     expect((await ctx.skills.get('office-pptx'))?.resourceBase).toEqual({
       kind: 'directory',
