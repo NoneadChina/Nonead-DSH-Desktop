@@ -13,6 +13,16 @@
 - 条目只写"用户能感知的变化"与"维护者必须知道的边界变化"；纯重构不单独成条。
 - 更早的历史见 Git 标签（`v1.7.3`、`v2.0.7`、`v2.0.8`、`v2.1.3`、`v2.1.4`、`v2.1.5`）与提交记录。
 
+## 2.2.10 — 2026-11-12
+
+运行时升到 DSH 0.2.2-rc.2，并适配了新内核的一批破坏性变更：
+
+- 运行时：内置 DeepSeek Harness 从 0.2.2-rc.1 升到 **0.2.2-rc.2**（上游 commit `ddac96760`，374 包重新 vendored、24 个桌面补丁重定基）。`dsh-experimental-agent-team` 转正为 `@deepseek-ai/dsh-agent-team`；`dsh-error` 等改为 peer 依赖，由应用显式声明。
+- 桥接：Agents Anywhere 桥接仍为 2.1.0 线，peer 范围早于 rc.2；启用远程控制时应用会向 Profile 的 `compatibility.json` 写入精确版本豁免，桥接继续正常加载。
+- 内置插件：`@deepseek-ai/dsh-tool-subagent` 随内核升到 0.2.2-rc.2，与运行时依赖链一致；随包插件仍为 27 个。
+- 文档：8 语 README 与 `THIRD_PARTY_NOTICES` 同步到新版本事实。
+- 版本号：产品 2.2.9 → **2.2.10**（两个桌面工作区同步）。
+
 ## 2.2.9 — 2026-11-10
 
 运行时升到 DSH 0.2.2-rc.1，内置插件补到 35 个，开箱即用的引导页也换了讲法：

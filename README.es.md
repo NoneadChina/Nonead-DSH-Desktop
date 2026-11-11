@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  Producto <code>2.2.9</code> · runtime de DSH <code>0.2.2-rc.2</code> · Electron 44 · MIT License
+  Producto <code>2.2.10</code> · runtime de DSH <code>0.2.2-rc.2</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">Descarga con un clic, listo para usar.</a></h3>
@@ -65,7 +65,7 @@ El shell y el Host se comunican por un único canal IPC de proceso hijo. Cambiar
 
 | Elemento | Valor |
 | --- | --- |
-| Versión del producto | `2.2.9` (`nonead-dsh-desktop` y `dsh-plugin-desktop-beta` sincronizados) |
+| Versión del producto | `2.2.10` (`nonead-dsh-desktop` y `dsh-plugin-desktop-beta` sincronizados) |
 | Espacio de trabajo del canal estable | `nonead-dsh-desktop` (los scripts de la raíz usan el sufijo `:stable`) |
 | Espacio de trabajo del canal Beta | `dsh-plugin-desktop-beta` (los scripts de la raíz usan el sufijo `:beta`) |
 | Runtime de DSH | `0.2.2-rc.2`, todas las dependencias `@deepseek-ai/dsh*` fijadas con pin exacto y el runtime vendored en el repositorio |
@@ -283,6 +283,7 @@ El historial completo está en el [registro de cambios](CHANGELOG.es.md) ([中�
 
 | Versión | Fecha | Aspectos destacados |
 | --- | --- | --- |
+| `2.2.10` | 2026-11-12 | Runtime elevado a DSH `0.2.2-rc.2` (374 paquetes re-vendored, 24 parches rebasados), adaptando el paquete agent-team promovido y los cambios de dependencias peer; el puente de Agents Anywhere sigue cargando mediante una excepción del perfil; 27 plugins incluidos |
 | `2.2.9` | 2026-11-10 | Tiempo de ejecución elevado a DSH `0.2.2-rc.1` (373 paquetes re-vendored, 24 parches rebasados), plugins incluidos ampliados a 35 con presentación por categorías y agradecimiento a cada autor; puente de Agents Anywhere en 2.1.0 |
 | `2.1.15` | 2026-10-22 | Notas de la versión en la tarjeta de actualización, la bandeja y los diálogos nativos, omisión de una versión, reintento de instalación y reversión a instantáneas; estado de ventana recordado, `.env` por capas, enlaces profundos `dsh-desktop://` y abrir al iniciar sesión; previsualización de medios del mercado e instalación por nombre; `dshmarket` `1.66.45` |
 | `2.2.3` | 2026-10-29 | El shell de escritorio está totalmente localizado en ocho idiomas (chino, inglés, japonés, español, francés, alemán, ruso y portugués de Brasil): cinco diccionarios nuevos del shell más diccionarios de la página de ajustes en seis idiomas, búsquedas basadas en plantillas para los diálogos con interpolación, y el espacio de nombres de idioma del cliente y los menús nativos siguen el mismo conjunto |

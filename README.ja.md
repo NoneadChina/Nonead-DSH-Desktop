@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  製品バージョン <code>2.2.9</code> · DSH ランタイム <code>0.2.2-rc.2</code> · Electron 44 · MIT License
+  製品バージョン <code>2.2.10</code> · DSH ランタイム <code>0.2.2-rc.2</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">ワンクリックでダウンロード、すぐに使えます。</a></h3>
@@ -65,7 +65,7 @@ Nonead DSH Desktop は、[DeepSeek Harness](https://github.com/deepseek-ai/deeps
 
 | 項目 | 値 |
 | --- | --- |
-| 製品バージョン | `2.2.9`（`nonead-dsh-desktop` と `dsh-plugin-desktop-beta` が同期） |
+| 製品バージョン | `2.2.10`（`nonead-dsh-desktop` と `dsh-plugin-desktop-beta` が同期） |
 | 安定チャネルのワークスペース | `nonead-dsh-desktop`（ルートスクリプトは `:stable` 接尾辞） |
 | Beta チャネルのワークスペース | `dsh-plugin-desktop-beta`（ルートスクリプトは `:beta` 接尾辞） |
 | DSH ランタイム | `0.2.2-rc.2`、すべての `@deepseek-ai/dsh*` 依存を厳密に pin し、ランタイムは vendored |
@@ -283,6 +283,7 @@ Nonead DSH Desktop は、[DeepSeek Harness](https://github.com/deepseek-ai/deeps
 
 | バージョン | 日付 | ポイント |
 | --- | --- | --- |
+| `2.2.10` | 2026-11-12 | ランタイムを DSH `0.2.2-rc.2` へ更新（374 パッケージを再 vendored、24 個のパッチを再適用）。agent-team の正式化と peer 依存の変更に追従し、Agents Anywhere ブリッジは Profile の例外指定で引き続き利用可能。同梱プラグインは 27 個 |
 | `2.2.9` | 2026-11-10 | ランタイムを DSH `0.2.2-rc.1` へ更新（373 パッケージを再 vendored、24 個のパッチを再適用）。同梱プラグインを 35 個に拡充し、オンボーディングはカテゴリ別に紹介して作者に謝辞を表示。Agents Anywhere ブリッジを 2.1.0 に更新 |
 | `2.1.15` | 2026-10-22 | アップデートカード / トレイ / ネイティブダイアログでのリリースノート表示、バージョンのスキップ、インストール失敗時の再試行とスナップショットへのロールバック。ウィンドウ位置の記憶、`.env` のレイヤリング、`dsh-desktop://` ディープリンク、自動起動。マーケットの非画像メディアプレビューと名前指定インストール。`dshmarket` `1.66.45` |
 | `2.2.3` | 2026-10-29 | デスクトップシェルが 8 言語（中・英・日・西・仏・独・露・伯葡）に完全ローカライズ：5 言語分のシェル辞書と 6 言語分の設定ページ辞書を追加し、補間を含むダイアログはテンプレートによる参照に変更、クライアントのロケール名前空間とネイティブメニューも同じ 8 言語に追随 |

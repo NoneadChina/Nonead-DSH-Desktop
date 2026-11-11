@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  Product <code>2.2.9</code> · DSH runtime <code>0.2.2-rc.2</code> · Electron 44 · MIT License
+  Product <code>2.2.10</code> · DSH runtime <code>0.2.2-rc.2</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">One-click download, ready to use out of the box.</a></h3>
@@ -65,7 +65,7 @@ Shell and Host communicate over exactly one child-process IPC channel. Switching
 
 | Item | Value |
 | --- | --- |
-| Product version | `2.2.9` (`nonead-dsh-desktop` and `dsh-plugin-desktop-beta` in lockstep) |
+| Product version | `2.2.10` (`nonead-dsh-desktop` and `dsh-plugin-desktop-beta` in lockstep) |
 | Stable-channel workspace | `nonead-dsh-desktop` (root scripts use the `:stable` suffix) |
 | Beta-channel workspace | `dsh-plugin-desktop-beta` (root scripts use the `:beta` suffix) |
 | DSH runtime | `0.2.2-rc.2`, every `@deepseek-ai/dsh*` dependency pinned exactly, runtime vendored |
@@ -283,6 +283,7 @@ The full history is in the [changelog](CHANGELOG.en.md) ([中文](CHANGELOG.md))
 
 | Version | Date | Highlights |
 | --- | --- | --- |
+| `2.2.10` | 2026-11-12 | Runtime raised to DSH `0.2.2-rc.2` (374 packages re-vendored, 24 patches rebased), adapting the promoted agent-team package and peer-dependency changes; the Agents Anywhere bridge keeps loading through a profile exemption; 27 bundled plugins |
 | `2.2.9` | 2026-11-10 | Runtime raised to DSH `0.2.2-rc.1` (373 packages re-vendored, 24 patches rebased), bundled plugins expanded to 35 with category-based onboarding that credits each author; Agents Anywhere bridge raised to 2.1.0 |
 | `2.1.15` | 2026-10-22 | Release notes in the update card, tray and native dialogs, skip-a-version, install retry and snapshot rollback; remembered window state, layered `.env`, `dsh-desktop://` deep links and launch at login; market media preview and install-by-name; `dshmarket` `1.66.45` |
 | `2.2.3` | 2026-10-29 | The desktop shell is fully localized into eight languages (Chinese, English, Japanese, Spanish, French, German, Russian, Brazilian Portuguese): five new shell dictionaries plus settings-page dictionaries in six languages, template-based lookups for interpolated dialogs, and the client locale namespace and native menus follow the same set |

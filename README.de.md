@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  Produkt <code>2.2.9</code> · DSH-Laufzeit <code>0.2.2-rc.2</code> · Electron 44 · MIT License
+  Produkt <code>2.2.10</code> · DSH-Laufzeit <code>0.2.2-rc.2</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">Mit einem Klick herunterladen, sofort einsatzbereit.</a></h3>
@@ -65,7 +65,7 @@ Shell und Host kommunizieren über genau einen IPC-Kanal zwischen Kindprozessen.
 
 | Punkt | Wert |
 | --- | --- |
-| Produktversion | `2.2.9` (`nonead-dsh-desktop` und `dsh-plugin-desktop-beta` im Gleichschritt) |
+| Produktversion | `2.2.10` (`nonead-dsh-desktop` und `dsh-plugin-desktop-beta` im Gleichschritt) |
 | Workspace des Stable-Kanals | `nonead-dsh-desktop` (Root-Skripte mit Suffix `:stable`) |
 | Workspace des Beta-Kanals | `dsh-plugin-desktop-beta` (Root-Skripte mit Suffix `:beta`) |
 | DSH-Laufzeit | `0.2.2-rc.2`, jede Abhängigkeit von `@deepseek-ai/dsh*` exakt gepinnt, Laufzeit lokal vendored |
@@ -283,6 +283,7 @@ Die vollständige Historie steht im [Changelog](CHANGELOG.de.md) ([中文](CHANG
 
 | Version | Datum | Highlights |
 | --- | --- | --- |
+| `2.2.10` | 2026-11-12 | Laufzeit auf DSH `0.2.2-rc.2` angehoben (374 Pakete neu vendored, 24 Patches neu aufgesetzt), Anpassung an das beförderte agent-team-Paket und Peer-Abhängigkeitsänderungen; die Agents-Anywhere-Brücke lädt weiter über eine Profil-Ausnahme; 27 mitgelieferte Plugins |
 | `2.2.9` | 2026-11-10 | Laufzeit auf DSH `0.2.2-rc.1` angehoben (373 Pakete neu vendored, 24 Patches neu aufgesetzt), mitgelieferte Plugins auf 35 erweitert, Onboarding stellt sie nach Kategorien vor und dankt jedem Autor; Agents-Anywhere-Bridge auf 2.1.0 |
 | `2.1.15` | 2026-10-22 | Versionshinweise in der Update-Karte, im Tray und in nativen Dialogen, Überspringen einer Version, Wiederholen der Installation und Snapshot-Rollback; gemerkter Fensterzustand, geschichtete `.env`, `dsh-desktop://`-Deep-Links und Start bei der Anmeldung; Medienvorschau und Installation nach Namen im Marktplatz; `dshmarket` `1.66.45` |
 | `2.2.3` | 2026-10-29 | Die Desktop-Shell ist vollständig in acht Sprachen lokalisiert (Chinesisch, Englisch, Japanisch, Spanisch, Französisch, Deutsch, Russisch, brasilianisches Portugiesisch): fünf neue Shell-Wörterbücher plus Wörterbücher für die Einstellungsseite in sechs Sprachen, vorlagenbasierte Nachschlagevorgänge für interpolierte Dialoge, und der Locale-Namespace des Clients und die nativen Menüs folgen derselben Sprachmenge |

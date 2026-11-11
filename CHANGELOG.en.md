@@ -13,6 +13,16 @@ Maintenance conventions:
 - Entries record only changes users can perceive and boundary changes maintainers must know about; pure refactors do not get their own entry.
 - Earlier history lives in the Git tags (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) and in the commit log.
 
+## 2.2.10 — 2026-11-12
+
+Runtime raised to DSH 0.2.2-rc.2, with the new kernel's breaking changes adapted:
+
+- Runtime: bundled DeepSeek Harness moves from 0.2.2-rc.1 to **0.2.2-rc.2** (upstream commit `ddac96760`, 374 packages re-vendored, 24 desktop patches rebased). `dsh-experimental-agent-team` is now `@deepseek-ai/dsh-agent-team`; packages such as `dsh-error` became peer dependencies that the app declares explicitly.
+- Bridge: the Agents Anywhere bridge stays on the 2.1.0 line whose peer range predates rc.2; enabling remote control now writes an exact-version exemption into the profile's `compatibility.json` so the bridge keeps loading.
+- Bundled plugins: `@deepseek-ai/dsh-tool-subagent` moves to 0.2.2-rc.2 to match the runtime dependency chain; the bundle still ships 27 plugins.
+- Docs: the eight-language README and `THIRD_PARTY_NOTICES` follow the new version facts.
+- Version: product 2.2.9 → **2.2.10** (both desktop workspaces).
+
 ## 2.2.9 — 2026-11-10
 
 The runtime moves to DSH 0.2.2-rc.1, the bundled plugin set reaches 35, and the out-of-the-box guide tells that story differently:

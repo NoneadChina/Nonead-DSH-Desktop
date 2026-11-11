@@ -13,6 +13,16 @@ Convenções de manutenção:
 - As entradas registram apenas mudanças que os usuários percebem e mudanças de limite que os mantenedores precisam conhecer; refatorações puras não ganham entrada própria.
 - O histórico anterior está nas tags do Git (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) e no log de commits.
 
+## 2.2.10 — 2026-11-12
+
+Runtime elevado para DSH 0.2.2-rc.2, com adaptação das mudanças incompatíveis do novo núcleo:
+
+- Runtime: o DeepSeek Harness incluído passa de 0.2.2-rc.1 para **0.2.2-rc.2** (commit upstream `ddac96760`, 374 pacotes re-vendored, 24 patches de desktop rebaseados). `dsh-experimental-agent-team` agora é `@deepseek-ai/dsh-agent-team`; pacotes como `dsh-error` viraram dependências peer que o aplicativo declara explicitamente.
+- Ponte: a ponte Agents Anywhere permanece na linha 2.1.0, cuja faixa peer antecede o rc.2; ao ativar o controle remoto, o aplicativo grava uma isenção de versão exata no `compatibility.json` do perfil, e a ponte continua carregando.
+- Plugins incluídos: `@deepseek-ai/dsh-tool-subagent` sobe para 0.2.2-rc.2 para acompanhar a cadeia de dependências do runtime; o pacote continua com 27 plugins.
+- Documentação: os READMEs em oito idiomas e `THIRD_PARTY_NOTICES` seguem os novos dados de versão.
+- Versão: produto 2.2.9 → **2.2.10** (ambos os espaços de trabalho de desktop).
+
 ## 2.2.9 — 2026-11-10
 
 O runtime passa para DSH 0.2.2-rc.1, o conjunto de plugins incluídos chega a 35 e o guia de primeira configuração passa a contá-lo de outra forma:

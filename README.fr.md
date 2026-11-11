@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  Version du produit <code>2.2.9</code> · Runtime DSH <code>0.2.2-rc.2</code> · Electron 44 · Licence MIT
+  Version du produit <code>2.2.10</code> · Runtime DSH <code>0.2.2-rc.2</code> · Electron 44 · Licence MIT
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">Téléchargement en un clic, prêt à l’emploi.</a></h3>
@@ -65,7 +65,7 @@ L’enveloppe et le Host ne communiquent que par un unique canal IPC de processu
 
 | Élément | Valeur |
 | --- | --- |
-| Version du produit | `2.2.9` (`nonead-dsh-desktop` et `dsh-plugin-desktop-beta` synchronisés) |
+| Version du produit | `2.2.10` (`nonead-dsh-desktop` et `dsh-plugin-desktop-beta` synchronisés) |
 | Espace de travail du canal stable | `nonead-dsh-desktop` (les scripts racine utilisent le suffixe `:stable`) |
 | Espace de travail du canal Beta | `dsh-plugin-desktop-beta` (les scripts racine utilisent le suffixe `:beta`) |
 | Runtime DSH | `0.2.2-rc.2`, chaque dépendance `@deepseek-ai/dsh*` épinglée exactement, runtime vendored |
@@ -283,6 +283,7 @@ L’historique complet se trouve dans le [journal des modifications](CHANGELOG.f
 
 | Version | Date | Points clés |
 | --- | --- | --- |
+| `2.2.10` | 2026-11-12 | Runtime porté à DSH `0.2.2-rc.2` (374 paquets re-vendored, 24 correctifs rebasés), avec adaptation du paquet agent-team promu et des dépendances peer ; le pont Agents Anywhere continue de charger via une exemption de profil ; 27 plugins inclus |
 | `2.2.9` | 2026-11-10 | Runtime porté à DSH `0.2.2-rc.1` (373 paquets re-vendored, 24 correctifs rebasés), plugins inclus portés à 35 avec une présentation par catégories et un remerciement à chaque auteur ; pont Agents Anywhere en 2.1.0 |
 | `2.1.15` | 2026-10-22 | Notes de version dans la carte de mise à jour, la barre d’état système et les boîtes de dialogue natives, possibilité d’ignorer une version, nouvelle tentative d’installation et restauration d’instantané ; mémorisation de l’état de fenêtre, `.env` en couches, liens profonds `dsh-desktop://` et lancement à l’ouverture de session ; aperçu des médias du marché et installation par nom ; `dshmarket` `1.66.45` |
 | `2.2.3` | 2026-10-29 | L’enveloppe de bureau est entièrement localisée en huit langues (chinois, anglais, japonais, espagnol, français, allemand, russe, portugais du Brésil) : cinq nouveaux dictionnaires d’enveloppe et des dictionnaires de page de paramètres en six langues, recherche par modèle pour les dialogues interpolés, et l’espace de noms de locale du client ainsi que les menus natifs suivent le même ensemble |

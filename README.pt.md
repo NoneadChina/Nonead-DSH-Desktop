@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  Produto <code>2.2.9</code> · runtime do DSH <code>0.2.2-rc.2</code> · Electron 44 · Licença MIT
+  Produto <code>2.2.10</code> · runtime do DSH <code>0.2.2-rc.2</code> · Electron 44 · Licença MIT
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">Download em um clique, pronto para usar.</a></h3>
@@ -65,7 +65,7 @@ Shell e Host se comunicam por exatamente um canal IPC de processo filho. Trocar 
 
 | Item | Valor |
 | --- | --- |
-| Versão do produto | `2.2.9` (`nonead-dsh-desktop` e `dsh-plugin-desktop-beta` em sincronia) |
+| Versão do produto | `2.2.10` (`nonead-dsh-desktop` e `dsh-plugin-desktop-beta` em sincronia) |
 | Workspace do canal estável | `nonead-dsh-desktop` (os scripts da raiz usam o sufixo `:stable`) |
 | Workspace do canal Beta | `dsh-plugin-desktop-beta` (os scripts da raiz usam o sufixo `:beta`) |
 | Runtime do DSH | `0.2.2-rc.2`, todas as dependências `@deepseek-ai/dsh*` com pin exato, runtime vendorizado |
@@ -283,6 +283,7 @@ O histórico completo está no [registro de alterações](CHANGELOG.pt.md) ([中
 
 | Versão | Data | Destaques |
 | --- | --- | --- |
+| `2.2.10` | 2026-11-12 | Runtime elevado para DSH `0.2.2-rc.2` (374 pacotes re-vendored, 24 patches rebaseados), com adaptação do pacote agent-team promovido e das dependências peer; a ponte Agents Anywhere continua carregando via isenção do perfil; 27 plugins incluídos |
 | `2.2.9` | 2026-11-10 | Runtime elevado para DSH `0.2.2-rc.1` (373 pacotes re-vendored, 24 patches rebaseados), plugins incluídos ampliados para 35 com apresentação por categorias e agradecimento a cada autor; ponte Agents Anywhere em 2.1.0 |
 | `2.1.15` | 2026-10-22 | Notas de versão no cartão de atualização, na bandeja e nos diálogos nativos, ignorar uma versão, nova tentativa de instalação e reversão por snapshot; estado de janela lembrado, `.env` em camadas, links diretos `dsh-desktop://` e iniciar ao entrar; pré-visualização de mídia no mercado e instalação pelo nome; `dshmarket` `1.66.45` |
 | `2.2.3` | 2026-10-29 | O shell desktop está totalmente localizado em oito idiomas (chinês, inglês, japonês, espanhol, francês, alemão, russo e português brasileiro): cinco novos dicionários do shell mais dicionários da página de configurações em seis idiomas, consultas baseadas em template para diálogos com interpolação, e o namespace de locale do cliente e os menus nativos seguem o mesmo conjunto |
