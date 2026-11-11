@@ -23,8 +23,11 @@ import {
   initProfile,
   loadOptionalPatches,
   loadOverlayPatches,
+  getDshRuntimeVersion,
+  PROFILE_COMPATIBILITY_FILENAME,
   PROFILE_PATCH_FILENAME,
   PROFILES_DIR,
+  readProfileCompatibility,
   readProfileManifest,
   resolveProfileDir,
   writeProfileManifest,
@@ -1278,6 +1281,51 @@ function loadDesktopMachinePatches(home: string): PatchOptions[] {
 }
 
 /**
+ * rc.2 refuses bundles whose declared peer range predates the running kernel.
+ * This desktop ships and compiles the AA bridge itself, so the bundled build is
+ * certified against the kernel it was packaged with instead of being dropped.
+ */
+function certifyBundledBridge(profileDir: string, aaEnabled: boolean): void {
+  if (!aaEnabled) return
+  const compatibility = readProfileCompatibility(profileDir)
+  if (!compatibility.rewritable) return
+  const version = bundledPackageVersion(profileDir, AA_PACKAGE_NAME)
+  if (version === undefined) return
+  const runtime = getDshRuntimeVersion()
+  const key = `${AA_PACKAGE_NAME}@${version}`
+  const versions = compatibility.exemptions[key] ?? []
+  if (versions.includes(runtime)) return
+  const target = join(profileDir, PROFILE_COMPATIBILITY_FILENAME)
+  const temporary = `${target}.${process.pid}.tmp`
+  const next = { ...compatibility.exemptions, [key]: [...versions, runtime].sort() }
+  writeFileSync(temporary, `${JSON.stringify(next, null, 2)}\n`)
+  renameSync(temporary, target)
+}
+
+/**
+ * Read the bundled bridge version from the profile first, so a packed app that
+ * cannot resolve the package from its own module graph still certifies it.
+ */
+function bundledPackageVersion(profileDir: string, packageName: string): string | undefined {
+  const candidates = [join(profileDir, 'node_modules', packageName, 'package.json')]
+  try {
+    candidates.push(createRequire(import.meta.url).resolve(`${packageName}/package.json`))
+  } catch {
+    // The profile copy above is the only location guaranteed at runtime.
+  }
+  for (const candidate of candidates) {
+    if (!existsSync(candidate)) continue
+    try {
+      const manifest: { version?: unknown } = JSON.parse(readFileSync(candidate, 'utf8'))
+      if (typeof manifest.version === 'string') return manifest.version
+    } catch {
+      // A malformed manifest is treated as missing; composition reports it later.
+    }
+  }
+  return undefined
+}
+
+/**
  * Load and compose one desktop profile generation.
  * @param telemetryDisabled - inherited DSH telemetry opt-out value.
  * @param home - Harness home containing profiles and the machine-wide patch.
@@ -1300,6 +1348,8 @@ export function prepareDesktopProfile(
   const profileDir = profileName === DESKTOP_PROFILE_NAME
     ? ensureDesktopProfile(home)
     : resolveProfileDir(profileName, home)
+  // Must precede composition: rc.2 filters incompatible bundles while loading.
+  certifyBundledBridge(profileDir, hooks.aaEnabled === true)
   const workspaceChanged = reconcileProfilePnpmWorkspace(profileDir)
   const requiresDependencyMigration = profileDependencyMigrationRequired(profileDir, workspaceChanged, platform)
   // `plugin-management` remains the community market's user-facing scope.
