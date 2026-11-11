@@ -1,4 +1,5 @@
 import { existsSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -12,17 +13,20 @@ import type { UpdateArtifactRequest } from '../../dsh-plugin-desktop-beta/src/up
 const roots: string[] = []
 const owners: NextUpdates[] = []
 afterEach(async () => { for (const owner of owners.splice(0)) await owner.dispose(); for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true }); vi.useRealTimers() })
-async function fixture(overrides: Partial<NextUpdateOptions> = {}) {
+async function fixture(overrides: Partial<NextUpdateOptions> = {}, answer: Record<string, unknown> = {}) {
   const home = await mkdtemp(join(tmpdir(), 'next-updates-test-')); roots.push(home)
   const artifact = Buffer.alloc(1024); artifact.write('koly', 512)
+  // The updater now refuses a release answer without a digest for this platform, so the
+  // fixture publishes the digest of the bytes it actually serves.
+  const digest = createHash('sha256').update(artifact).digest('hex')
   const request = vi.fn<UpdateRequest>(async url => url.includes('/version')
-    ? Response.json({ version: '2.1.4', channel: 'stable' }) : new Response(artifact, { headers: { 'content-length': '1024' } }))
+    ? Response.json({ version: '2.1.4', channel: 'stable', sha256: { mac: digest }, ...answer }) : new Response(artifact, { headers: { 'content-length': '1024' } }))
   const artifactRequest = vi.fn<UpdateArtifactRequest>(async (url, init) => ({ response: await request(url, init), finalUrl: url }))
   const options: NextUpdateOptions = { userData: home, version: '2.1.3', platform: 'darwin', packaged: true,
     request, artifactRequest, prepare: vi.fn(async path => { expect(await readFile(path)).toEqual(artifact) }), install: vi.fn(async () => {}),
     changed: vi.fn(), log: vi.fn(), ...overrides }
   const updates = new NextUpdates(options); owners.push(updates)
-  return { updates, options, request, artifactRequest }
+  return { updates, options, request, artifactRequest, digest }
 }
 
 it('keeps the prepared installer while an install runs, after a retryable failure, or on request', () => {
@@ -46,6 +50,19 @@ it('checks without downloading; download completion waits for an explicit instal
   await updates.install()
   expect(options.install).toHaveBeenCalledOnce()
   expect(updates.snapshot().phase).toBe('installing')
+})
+it('refuses to download a release answer that carries no installer digest', async () => {
+  // Without a digest the downloaded bytes cannot be tied to the published release, so an
+  // answer that omits it must fail closed instead of installing whatever the host returns.
+  const { updates, options, artifactRequest } = await fixture({
+    request: async () => Response.json({ version: '2.1.4', channel: 'stable' }),
+  })
+  await updates.check()
+  expect(updates.snapshot().phase).toBe('available')
+  await updates.download()
+  expect(updates.snapshot()).toMatchObject({ phase: 'error', error: 'download' })
+  expect(artifactRequest).not.toHaveBeenCalled()
+  expect(options.prepare).not.toHaveBeenCalled()
 })
 it('does not confuse an unpublished channel, invalid response or network failure with up to date', async () => {
   for (const response of [new Response('', { status: 400 }), new Response('', { status: 503 }), Response.json({ version: '2.1.4', channel: 'beta' })]) {
@@ -125,7 +142,8 @@ it('shows progress and an actionable downloaded state in both languages', () => 
 it('downloads a Next installer through the injected artifact transport', async () => {
   const cdn = 'https://cdn-lfs-cn-1.modelscope.cn/prod/lfs-objects/next.dmg'
   const artifact = Buffer.alloc(1024); artifact.write('koly', 512)
-  const request = vi.fn<UpdateRequest>(async () => Response.json({ version: '2.1.4', channel: 'stable' }))
+  const request = vi.fn<UpdateRequest>(async () => Response.json({ version: '2.1.4', channel: 'stable',
+    sha256: { mac: createHash('sha256').update(artifact).digest('hex') } }))
   const artifactRequest = vi.fn<UpdateArtifactRequest>(async () => ({ response: new Response(artifact), finalUrl: cdn }))
   const { updates, options } = await fixture({ request, artifactRequest })
   await updates.download()
@@ -136,12 +154,11 @@ it('downloads a Next installer through the injected artifact transport', async (
 it('publishes release notes with the offered release and drops them with the next answer', async () => {
   const notes = '本次更新修复了若干稳定性问题。'
   const notesUrl = 'https://www.nonead.com/software/ndsh-desktop/releases/2.1.4'
-  const request = vi.fn<UpdateRequest>(async () => Response.json({ version: '2.1.4', channel: 'stable', notes, notesUrl }))
-  const { updates } = await fixture({ request })
+  const { updates, request, digest } = await fixture({}, { notes, notesUrl })
   await updates.check()
   expect(updates.snapshot()).toMatchObject({ phase: 'available', version: '2.1.4', notes, notesUrl })
   // A later answer without notes must not leave the previous summary under the same version.
-  request.mockImplementation(async () => Response.json({ version: '2.1.4', channel: 'stable' }))
+  request.mockImplementation(async () => Response.json({ version: '2.1.4', channel: 'stable', sha256: { mac: digest } }))
   await updates.check()
   expect(updates.snapshot().notes).toBeUndefined()
   expect(updates.snapshot().notesUrl).toBeUndefined()
@@ -149,8 +166,7 @@ it('publishes release notes with the offered release and drops them with the nex
 it('keeps the offered release notes after the update downloads', async () => {
   const notes = '本次更新修复了若干稳定性问题。'
   const notesUrl = 'https://www.nonead.com/software/ndsh-desktop/releases/2.1.4'
-  const request = vi.fn<UpdateRequest>(async () => Response.json({ version: '2.1.4', channel: 'stable', notes, notesUrl }))
-  const { updates } = await fixture({ request })
+  const { updates } = await fixture({}, { notes, notesUrl })
   await updates.check()
   await updates.download()
   expect(updates.snapshot()).toMatchObject({ phase: 'ready', version: '2.1.4', notes, notesUrl })

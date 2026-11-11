@@ -80,10 +80,11 @@ export type UpdateCheckResult = {
   /** Canonical latest stable version returned by the service. */
   readonly latestVersion: string
   /**
-   * Optional per-platform hex SHA-256 digests of the published installers.
-   * Whenever the service publishes them, the download path enforces them as
-   * a hard integrity gate before execution; they are optional only because
-   * the version endpoint does not publish digests yet.
+   * Per-platform hex SHA-256 digests of the published installers, when the service
+   * returns them. Optional only as a *parsing* result: both product download paths
+   * (stable `nonead-dsh-desktop/src/updates.ts` and Beta `electron-runtime.ts`)
+   * refuse to download a release that names none for the running platform, and
+   * enforce the digest as a hard integrity gate before the installer can run.
    */
   readonly installerSha256?: Readonly<Partial<Record<'win32' | 'darwin', string>>>
   /**

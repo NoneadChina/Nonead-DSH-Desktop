@@ -160,12 +160,20 @@ export class NextUpdates {
         const cache = join(this.options.userData, 'next-updates'); privateDirectory(cache)
         if (this.directory) await rm(this.directory, { recursive: true, force: true })
         const directory = this.directory = await mkdtemp(join(cache, 'download-'))
+        // Fail closed: a release answer without a digest gives the updater nothing to verify, so any
+        // host that can answer for the version service could hand over an arbitrary installer. The
+        // Beta path (`electron-runtime.ts`) already refuses in the same situation; the stable path
+        // must not be the weaker one just because the endpoint used to omit the field.
+        const expectedSha256 = result.installerSha256?.[platform]
+        if (expectedSha256 === undefined) {
+          throw new Error(`the stable release publishes no installer digest for ${platform}; refusing to download ${result.latestVersion}`)
+        }
         this.set({ phase: 'downloading', version: result.latestVersion, received: 0, total: undefined,
           notes: result.notes, notesUrl: result.notesUrl })
         let lastProgress = 0
         const path = await downloadDesktopUpdate({ platform, version: result.latestVersion, channel: 'stable',
           destinationPath: join(directory, desktopUpdateFilename(platform, result.latestVersion, 'stable')),
-          request: this.options.artifactRequest, expectedSha256: result.installerSha256?.[platform],
+          request: this.options.artifactRequest, expectedSha256,
           signal: AbortSignal.any([signal, AbortSignal.timeout(60 * 60_000)]), onProgress: (received, total) => {
             if (Date.now() - lastProgress < 250 && received !== total) return
             lastProgress = Date.now(); this.set({ received, total })
