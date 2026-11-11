@@ -13,6 +13,17 @@ Konventionen für die Pflege:
 - Einträge halten ausschließlich Änderungen fest, die Nutzer wahrnehmen können, sowie Grenzänderungen, die Maintainer kennen müssen; reine Refactorings erhalten keinen eigenen Eintrag.
 - Die frühere Historie findet sich in den Git-Tags (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) und in der Commit-Historie.
 
+## 2.2.11 — 2026-11-12
+
+Eine Version, die dem Upstream-Runtime folgt:
+
+- Laufzeit: DSH steigt auf `0.2.2-rc.2`, der Upstream-Pin wandert auf `ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c`, die mitgelieferte Laufzeit wird aus dem neuen Quellstand neu gepackt (374 Pakete). `scripts/disable-client-minify.mjs` schaltet den neu hinzugekommenen Whitespace-Minifier ab, damit die Build-Ausgabe mehrzeilig bleibt und die Desktop-Patches zeilenweise anwendbar sind.
+- Desktop-Anpassung: alle 24 Build-Artefakt-Patches werden auf `@0.2.2-rc.2` neu aufgesetzt. Upstream hat die CLI in einen Launcher und eine gehashte Implementierungsdatei geteilt, Agent Team in die Kernkomposition aufgenommen (`dsh-agent-team` und `dsh-client-ui-agent-team`; `dsh-experimental-agent-team-profile` entfällt) und `plugins.bundle.hidden` aus dem Slot-Vertrag entfernt; Patches, Typen und die `verify:host`-Prüfungen wurden auf die neue Struktur umgeschrieben.
+- Mitgelieferter Markt: `dshmarket` steigt von 1.73.10 auf 1.73.17, der Selbstupdate-Patch wurde auf den neuen `releaseSources`-Kanal neu aufgesetzt; der Markt pinnt `zod` auf 4.6.6 passend zu den Kernel-Typen.
+- Kompatibilität: Die Peers der AA-Brücke sind älter als der neue Kernel, und rc.2 überspringt inkompatible Bundles stillschweigend; die Anwendung schreibt deshalb bei der Profilinitialisierung eine exakte Versionsausnahme in `compatibility.json`, sodass die AA-Schicht das Upgrade übersteht. Die `dsh-skill-office`-Konfiguration schrumpft auf `assetRoot` und `pythonEnvironment`.
+- Gates: `verify:closure` deklariert nun 3 fehlende First-Party-Peers (Terminal-Controller, Office Kit, Session-Projection-Cache); `upstream-reference.json` behält 35 Einträge und verwirft 4 upstream gelöschte Dateien.
+- Version: Produkt 2.2.8 → **2.2.11** (beide Desktop-Workspaces im Gleichschritt).
+
 ## 2.2.8 — 2026-11-04
 
 Ein Release zur Laufzeit-Nachführung ohne sichtbare Verhaltensänderung:

@@ -13,6 +13,17 @@ Convenções de manutenção:
 - As entradas registram apenas mudanças que os usuários percebem e mudanças de limite que os mantenedores precisam conhecer; refatorações puras não ganham entrada própria.
 - O histórico anterior está nas tags do Git (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) e no log de commits.
 
+## 2.2.11 — 2026-11-12
+
+Uma versão centrada em acompanhar o runtime:
+
+- Runtime: o DSH sobe para `0.2.2-rc.2`, o pin do upstream passa para `ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c` e o runtime incluído é reempacotado a partir do código novo (374 pacotes). `scripts/disable-client-minify.mjs` desliga o minificador de espaços adicionado pelo upstream, para que a saída continue em várias linhas e os patches de desktop permaneçam aplicáveis linha a linha.
+- Personalização do desktop: os 24 patches de artefatos são rebaseados para `@0.2.2-rc.2`. O upstream dividiu o CLI em um launcher e um arquivo de implementação com hash, incorporou o Agent Team à composição central (`dsh-agent-team` e `dsh-client-ui-agent-team`; `dsh-experimental-agent-team-profile` foi aposentado) e removeu `plugins.bundle.hidden` do contrato de slots; patches, tipos e verificações de `verify:host` foram reescritos para a nova estrutura.
+- Mercado incluído: `dshmarket` sobe de 1.73.10 para 1.73.17, com o patch de autoatualização rebaseado sobre o novo canal `releaseSources`; o mercado fixa `zod` em 4.6.6 para alinhar aos tipos do kernel.
+- Compatibilidade: os peers da ponte AA estão atrás do novo kernel e o rc.2 ignora silenciosamente bundles incompatíveis; o aplicativo agora grava uma isenção de versão exata em `compatibility.json` na inicialização do perfil, então a camada AA sobrevive à atualização. A configuração do `dsh-skill-office` fica restrita a `assetRoot` e `pythonEnvironment`.
+- Portões: `verify:closure` passa a declarar 3 peers próprios ausentes (controlador de terminal, Office Kit e cache de projeção de sessão); `upstream-reference.json` mantém 35 entradas e descarta 4 arquivos removidos no upstream.
+- Versão: produto 2.2.8 → **2.2.11** (ambos os workspaces de desktop em sincronia).
+
 ## 2.2.8 — 2026-11-04
 
 Uma publicação focada em acompanhar o runtime, sem mudança visível para o usuário:

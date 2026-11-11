@@ -14,7 +14,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-0078D6" alt="Windows, macOS, Linux">
   <img src="https://img.shields.io/badge/Electron-44-47848F?logo=electron&amp;logoColor=white" alt="Electron 44">
-  <img src="https://img.shields.io/badge/DSH%20runtime-0.2.2--rc.1-4B32C3" alt="DSH runtime 0.2.2-rc.1">
+  <img src="https://img.shields.io/badge/DSH%20runtime-0.2.2--rc.2-4B32C3" alt="DSH runtime 0.2.2-rc.2">
   <img src="https://img.shields.io/badge/node-%5E22.19%20%7C%20%3E%3D24-339933?logo=node.js&amp;logoColor=white" alt="Node.js">
 </p>
 
@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  Producto <code>2.2.8</code> · runtime de DSH <code>0.2.2-rc.1</code> · Electron 44 · MIT License
+  Producto <code>2.2.11</code> · runtime de DSH <code>0.2.2-rc.2</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">Descarga con un clic, listo para usar.</a></h3>
@@ -79,19 +79,19 @@ El shell y el Host se comunican por un único canal IPC de proceso hijo. Cambiar
 
 | Elemento | Valor |
 | --- | --- |
-| Versión del producto | `2.2.8` (`nonead-dsh-desktop` y `dsh-plugin-desktop-beta` sincronizados) |
+| Versión del producto | `2.2.11` (`nonead-dsh-desktop` y `dsh-plugin-desktop-beta` sincronizados) |
 | Espacio de trabajo del canal estable | `nonead-dsh-desktop` (los scripts de la raíz usan el sufijo `:stable`) |
 | Espacio de trabajo del canal Beta | `dsh-plugin-desktop-beta` (los scripts de la raíz usan el sufijo `:beta`) |
-| Runtime de DSH | `0.2.2-rc.1`, todas las dependencias `@deepseek-ai/dsh*` fijadas con pin exacto y el runtime vendored en el repositorio |
-| Runtime vendored | `vendor/dsh-runtime/0.2.2-rc.1/` (se conservan varios directorios de versiones anteriores) |
-| Pin upstream | `66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db` (`channels.beta` en `upstream.json`, replicado en `nonead-dsh-desktop/upstream-reference.json`) |
+| Runtime de DSH | `0.2.2-rc.2`, todas las dependencias `@deepseek-ai/dsh*` fijadas con pin exacto y el runtime vendored en el repositorio |
+| Runtime vendored | `vendor/dsh-runtime/0.2.2-rc.2/` (se conservan varios directorios de versiones anteriores) |
+| Pin upstream | `ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c` (`channels.beta` en `upstream.json`, replicado en `nonead-dsh-desktop/upstream-reference.json`) |
 | Electron / empaquetador | Electron `44.0.0` / electron-builder `26.15.7` (`app-builder-lib` con parche) |
 | Node / Yarn | Node `^22.19.0` o `>=24.0.0`; Yarn `4.18.0` mediante Corepack (`nodeLinker: node-modules`) |
-| Mercado de plugins | `dshmarket` `1.73.10`, más el `dsh-community-market` `0.1.0-dev.0` de este repositorio |
+| Mercado de plugins | `dshmarket` `1.73.17`, más el `dsh-community-market` `0.1.0-dev.0` de este repositorio |
 | Puente de control remoto | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop` (commit upstream `296f70e`) |
 | Skin de marca | `dsh-nonead-client-skin` (se distribuye en el instalador y se monta por perfil) |
 
-`upstream.json` registra dos líneas de runtime vendored: `stable` corresponde al upstream `0.2.0-rc.2` y `beta` al upstream `0.2.2-rc.1`. Lo que realmente se incluye en un instalador es la línea que el espacio de trabajo fija con pin exacto; actualmente ambos espacios de escritorio fijan `0.2.2-rc.1`. **Los nombres de canal describen líneas de runtime, no el canal de publicación que consulta un espacio de trabajo.**
+`upstream.json` registra dos líneas de runtime vendored: `stable` corresponde al upstream `0.2.0-rc.2` y `beta` al upstream `0.2.2-rc.2`. Lo que realmente se incluye en un instalador es la línea que el espacio de trabajo fija con pin exacto; actualmente ambos espacios de escritorio fijan `0.2.2-rc.2`. **Los nombres de canal describen líneas de runtime, no el canal de publicación que consulta un espacio de trabajo.**
 
 <a id="download"></a>
 
@@ -297,6 +297,7 @@ El historial completo está en el [registro de cambios](CHANGELOG.es.md) ([中�
 
 | Versión | Fecha | Aspectos destacados |
 | --- | --- | --- |
+| `2.2.11` | 2026-11-12 | Runtime actualizado a DSH `0.2.2-rc.2` (upstream `ddac96760b`, 374 paquetes), los 24 parches de escritorio rebasados y el minificador de espacios upstream desactivado; mercado incluido `dshmarket` a 1.73.17; el puente AA gana una excepción de versión exacta |
 | `2.2.8` | 2026-11-04 | Runtime actualizado a DSH `0.2.2-rc.1` (upstream `66491b05`) con el runtime incluido reempaquetado (373 paquetes); mercado incluido `dshmarket` a 1.73.10 y los 24 parches de personalización renombrados y reaplicados |
 | `2.2.7` | 2026-11-03 | Runtime actualizado a DSH `0.2.2-alpha.3` (upstream `05b1cae8`), mercado incluido `dshmarket` en 1.73.9 y los 24 parches de personalización regenerados sobre la nueva compilación |
 | `2.2.6` | 2026-11-02 | Mantenimiento de estabilidad y compuertas: se corrige la detención de la evidencia del ciclo de vida tras un día de actividad, la salida silenciosa del lanzador desde un bin global de npm/pnpm, la falta de verificación de inodo en archivos privados y en el bloqueo de operaciones de datos, el reinicio de fábrica sin directorio de datos, la falta de gestión de foco del diálogo LAN y el límite de página del mercado frente a su esquema; se añaden compuertas de pines de versión, paridad de ocho idiomas y avisos de terceros |

@@ -13,6 +13,17 @@
 - 条目只写"用户能感知的变化"与"维护者必须知道的边界变化"；纯重构不单独成条。
 - 更早的历史见 Git 标签（`v1.7.3`、`v2.0.7`、`v2.0.8`、`v2.1.3`、`v2.1.4`、`v2.1.5`）与提交记录。
 
+## 2.2.11 — 2026-11-12
+
+一次以内核跟进为主的发布：
+
+- 运行时：DSH 升级到 `0.2.2-rc.2`，上游 pin 改为 `ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c`，预置运行时按新版源码重新打包（374 个包）；新增 `scripts/disable-client-minify.mjs`，构建前关掉上游新加的空白压缩，让产物保持多行、桌面补丁仍可按行寻址。
+- 桌面定制：24 个构建产物补丁重定基到 `@0.2.2-rc.2`。上游把 CLI 拆成启动器与哈希实现文件、把 Agent Team 收进核心组合（`dsh-agent-team` 与 `dsh-client-ui-agent-team`，原 `dsh-experimental-agent-team-profile` 退役）、把 `plugins.bundle.hidden` 从 slot 契约移除，补丁、d.ts 与 `verify:host` 断言随新结构重写。
+- 随包市场：`dshmarket` 由 1.73.10 升到 1.73.17，自更新补丁按新增的 `releaseSources` 通道重定基；市场把 `zod` 钉到 4.6.6，与内核类型对齐。
+- 兼容性：AA 桥的 peer 版本落后于新内核，rc.2 会静默跳过不兼容 bundle；改为在 Profile 初始化时写入精确版本豁免（`compatibility.json`），升级后不再丢失 AA 层。`dsh-skill-office` 的配置收敛为 `assetRoot` 与 `pythonEnvironment`。
+- 门禁：`verify:closure` 补上 3 个未声明的一等 peer（终端控制器、Office Kit、会话投影缓存）；`upstream-reference.json` 复核后保留 35 条、丢弃 4 条已随上游删除的文件。
+- 版本号：产品 2.2.8 → **2.2.11**（两个桌面工作区同步）。
+
 ## 2.2.8 — 2026-11-04
 
 一次以运行时跟进为主的发布，面向用户的功能没有变化：

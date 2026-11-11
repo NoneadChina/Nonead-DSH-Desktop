@@ -13,6 +13,17 @@ Convenciones de mantenimiento:
 - Las entradas solo recogen los cambios que el usuario puede percibir y los cambios de límites que los mantenedores deben conocer; las refactorizaciones puras no tienen entrada propia.
 - El historial anterior está en las etiquetas de Git (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) y en el registro de confirmaciones.
 
+## 2.2.11 — 2026-11-12
+
+Una versión centrada en seguir el runtime:
+
+- Runtime: DSH sube a `0.2.2-rc.2`, el pin de upstream pasa a `ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c` y el runtime incluido se reempaqueta desde el código nuevo (374 paquetes). `scripts/disable-client-minify.mjs` desactiva el minificador de espacios añadido upstream para que la salida siga en varias líneas y los parches de escritorio se puedan aplicar por línea.
+- Personalización de escritorio: los 24 parches de artefactos se rebasan a `@0.2.2-rc.2`. Upstream dividió el CLI en un lanzador y un archivo de implementación con hash, integró Agent Team en la composición central (`dsh-agent-team` y `dsh-client-ui-agent-team`; `dsh-experimental-agent-team-profile` queda retirado) y quitó `plugins.bundle.hidden` del contrato de slots; los parches, los tipos y las comprobaciones de `verify:host` se reescribieron para la nueva estructura.
+- Mercado incluido: `dshmarket` pasa de 1.73.10 a 1.73.17, con el parche de autoactualización rebasado sobre el nuevo canal `releaseSources`; el mercado fija `zod` en 4.6.6 para coincidir con los tipos del kernel.
+- Compatibilidad: los peers del puente AA van por detrás del kernel nuevo y rc.2 omite en silencio los bundles incompatibles, así que la aplicación escribe una excepción de versión exacta en `compatibility.json` al inicializar el perfil; la capa AA sobrevive a la actualización. La configuración de `dsh-skill-office` se reduce a `assetRoot` y `pythonEnvironment`.
+- Puertas: `verify:closure` declara ahora 3 peers propios que faltaban (controlador de terminal, Office Kit y caché de proyección de sesión); `upstream-reference.json` conserva 35 entradas y descarta 4 archivos eliminados upstream.
+- Versión: producto 2.2.8 → **2.2.11** (ambos espacios de trabajo de escritorio sincronizados).
+
 ## 2.2.8 — 2026-11-04
 
 Una publicación centrada en seguir el runtime, sin cambios visibles para el usuario:

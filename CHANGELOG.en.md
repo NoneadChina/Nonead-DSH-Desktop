@@ -13,6 +13,17 @@ Maintenance conventions:
 - Entries record only changes users can perceive and boundary changes maintainers must know about; pure refactors do not get their own entry.
 - Earlier history lives in the Git tags (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) and in the commit log.
 
+## 2.2.11 — 2026-11-12
+
+A runtime-follow-up release:
+
+- Runtime: DSH raised to `0.2.2-rc.2`, the upstream pin moved to `ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c`, and the vendored runtime was repacked from the new source (374 packages). `scripts/disable-client-minify.mjs` now turns off the whitespace minifier added upstream, so build output stays multi-line and the desktop patches remain line-addressable.
+- Desktop customisation: all 24 build-output patches were rebased to `@0.2.2-rc.2`. Upstream split the CLI into a launcher plus a hashed implementation file, folded Agent Team into the core composition (`dsh-agent-team` and `dsh-client-ui-agent-team`; `dsh-experimental-agent-team-profile` is retired) and removed `plugins.bundle.hidden` from the slot contract; patches, typings and the `verify:host` assertions were rewritten against the new shape.
+- Bundled market: `dshmarket` raised from 1.73.10 to 1.73.17, with the self-update patch rebased onto the new `releaseSources` channel; the market pins `zod` to 4.6.6 to match the kernel types.
+- Compatibility: the AA bridge peers lag behind the new kernel and rc.2 silently skips incompatible bundles, so the app now writes an exact-version exemption into `compatibility.json` at profile initialisation; the AA layer survives the upgrade. `dsh-skill-office` configuration is reduced to `assetRoot` and `pythonEnvironment`.
+- Gates: `verify:closure` now declares 3 missing first-party peers (terminal controller, Office Kit, session projection cache); `upstream-reference.json` kept 35 entries and dropped 4 files removed upstream.
+- Version: product 2.2.8 → **2.2.11** (both desktop workspaces in lockstep).
+
 ## 2.2.8 — 2026-11-04
 
 A runtime-follow-up release; no user-facing behavior changed:

@@ -13,6 +13,17 @@ Conventions de maintenance :
 - Les entrées ne décrivent que les changements perceptibles par l’utilisateur et les changements de limite que les responsables de maintenance doivent connaître ; les refactorisations pures ne font pas l’objet d’une entrée.
 - L’historique plus ancien se trouve dans les étiquettes Git (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) et dans le journal des commits.
 
+## 2.2.11 — 2026-11-12
+
+Une version centrée sur le suivi du runtime :
+
+- Runtime : DSH passe à `0.2.2-rc.2`, le pin amont à `ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c` et le runtime embarqué est reconstruit depuis les nouvelles sources (374 paquets). `scripts/disable-client-minify.mjs` désactive le minifieur d'espaces ajouté en amont afin que la sortie reste multiligne et que les correctifs bureau restent applicables ligne par ligne.
+- Personnalisation bureau : les 24 correctifs d'artefacts sont rebasés sur `@0.2.2-rc.2`. L'amont a scindé le CLI en un lanceur et un fichier d'implémentation haché, intégré Agent Team à la composition centrale (`dsh-agent-team` et `dsh-client-ui-agent-team` ; `dsh-experimental-agent-team-profile` est retiré) et supprimé `plugins.bundle.hidden` du contrat de slots ; les correctifs, les types et les assertions de `verify:host` ont été réécrits pour la nouvelle structure.
+- Marché embarqué : `dshmarket` passe de 1.73.10 à 1.73.17, le correctif d'auto-mise à jour étant rebasé sur le nouveau canal `releaseSources` ; le marché fixe `zod` à 4.6.6 pour s'aligner sur les types du noyau.
+- Compatibilité : les peers du pont AA sont plus anciens que le nouveau noyau et rc.2 ignore silencieusement les bundles incompatibles ; l'application écrit désormais une exemption de version exacte dans `compatibility.json` à l'initialisation du profil, de sorte que la couche AA survive à la mise à niveau. La configuration de `dsh-skill-office` se réduit à `assetRoot` et `pythonEnvironment`.
+- Garde-fous : `verify:closure` déclare 3 peers internes manquants (contrôleur de terminal, Office Kit, cache de projection de session) ; `upstream-reference.json` conserve 35 entrées et abandonne 4 fichiers supprimés en amont.
+- Version : produit 2.2.8 → **2.2.11** (les deux espaces de travail de bureau avancent ensemble).
+
 ## 2.2.8 — 2026-11-04
 
 Une publication centrée sur le suivi du runtime, sans changement visible :

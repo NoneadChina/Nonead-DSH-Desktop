@@ -14,7 +14,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-0078D6" alt="Windows, macOS, Linux">
   <img src="https://img.shields.io/badge/Electron-44-47848F?logo=electron&amp;logoColor=white" alt="Electron 44">
-  <img src="https://img.shields.io/badge/DSH%20runtime-0.2.2--rc.1-4B32C3" alt="DSH runtime 0.2.2-rc.1">
+  <img src="https://img.shields.io/badge/DSH%20runtime-0.2.2--rc.2-4B32C3" alt="DSH runtime 0.2.2-rc.2">
   <img src="https://img.shields.io/badge/node-%5E22.19%20%7C%20%3E%3D24-339933?logo=node.js&amp;logoColor=white" alt="Node.js">
 </p>
 
@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  Product <code>2.2.8</code> · DSH runtime <code>0.2.2-rc.1</code> · Electron 44 · MIT License
+  Product <code>2.2.11</code> · DSH runtime <code>0.2.2-rc.2</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">One-click download, ready to use out of the box.</a></h3>
@@ -79,19 +79,19 @@ Shell and Host communicate over exactly one child-process IPC channel. Switching
 
 | Item | Value |
 | --- | --- |
-| Product version | `2.2.8` (`nonead-dsh-desktop` and `dsh-plugin-desktop-beta` in lockstep) |
+| Product version | `2.2.11` (`nonead-dsh-desktop` and `dsh-plugin-desktop-beta` in lockstep) |
 | Stable-channel workspace | `nonead-dsh-desktop` (root scripts use the `:stable` suffix) |
 | Beta-channel workspace | `dsh-plugin-desktop-beta` (root scripts use the `:beta` suffix) |
-| DSH runtime | `0.2.2-rc.1`, every `@deepseek-ai/dsh*` dependency pinned exactly, runtime vendored |
-| Vendored runtime | `vendor/dsh-runtime/0.2.2-rc.1/` (several historical version directories are kept) |
-| Upstream pin | `66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db` (`channels.beta` in `upstream.json`, mirrored in `nonead-dsh-desktop/upstream-reference.json`) |
+| DSH runtime | `0.2.2-rc.2`, every `@deepseek-ai/dsh*` dependency pinned exactly, runtime vendored |
+| Vendored runtime | `vendor/dsh-runtime/0.2.2-rc.2/` (several historical version directories are kept) |
+| Upstream pin | `ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c` (`channels.beta` in `upstream.json`, mirrored in `nonead-dsh-desktop/upstream-reference.json`) |
 | Electron / packager | Electron `44.0.0` / electron-builder `26.15.7` (patched `app-builder-lib`) |
 | Node / Yarn | Node `^22.19.0` or `>=24.0.0`; Yarn `4.18.0` via Corepack (`nodeLinker: node-modules`) |
-| Plugin market | `dshmarket` `1.73.10`, plus this repository's `dsh-community-market` `0.1.0-dev.0` |
+| Plugin market | `dshmarket` `1.73.17`, plus this repository's `dsh-community-market` `0.1.0-dev.0` |
 | Remote-control bridge | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop` (upstream commit `296f70e`) |
 | Brand skin | `dsh-nonead-client-skin` (shipped in the installer, mounted per profile) |
 
-`upstream.json` records two vendored runtime lines: `stable` maps to upstream `0.2.0-rc.2` and `beta` to upstream `0.2.2-rc.1`. What actually ships inside an installer is the line a workspace pins exactly — currently both desktop workspaces pin `0.2.2-rc.1`. **Channel names describe runtime lines, not the release channel a workspace queries.**
+`upstream.json` records two vendored runtime lines: `stable` maps to upstream `0.2.0-rc.2` and `beta` to upstream `0.2.2-rc.2`. What actually ships inside an installer is the line a workspace pins exactly — currently both desktop workspaces pin `0.2.2-rc.2`. **Channel names describe runtime lines, not the release channel a workspace queries.**
 
 <a id="download"></a>
 
@@ -297,6 +297,7 @@ The full history is in the [changelog](CHANGELOG.en.md) ([中文](CHANGELOG.md))
 
 | Version | Date | Highlights |
 | --- | --- | --- |
+| `2.2.11` | 2026-11-12 | Runtime upgraded to DSH `0.2.2-rc.2` (upstream `ddac96760b`, 374 packages) with all 24 desktop patches rebased and the upstream whitespace minifier disabled; bundled market `dshmarket` raised to 1.73.17; AA bridge gains an exact-version exemption |
 | `2.2.8` | 2026-11-04 | Runtime upgraded to DSH `0.2.2-rc.1` (upstream `66491b05`) with the vendored runtime repacked (373 packages); bundled market `dshmarket` raised to 1.73.10; all 24 desktop customisation patches renamed and re-applied |
 | `2.2.7` | 2026-11-03 | Runtime upgraded to DSH `0.2.2-alpha.3` (upstream `05b1cae8`), bundled market `dshmarket` raised to 1.73.9, and all 24 desktop customization patches regenerated against the new build output |
 | `2.2.6` | 2026-11-02 | Stability and gate maintenance: lifecycle evidence no longer stops after a day of uptime, the launcher no longer exits silently from an npm/pnpm global bin, private files and the data-operation lock bind to the validated inode, factory reset cannot leave the installation without a data directory, the LAN dialog gains focus management, and the market page limit matches its published schema; new gates cover release pins, eight-language version parity and third-party notices |
