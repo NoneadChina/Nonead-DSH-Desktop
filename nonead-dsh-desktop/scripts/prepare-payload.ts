@@ -263,11 +263,11 @@ function electronVersion(desktopRoot: string): string {
 }
 
 if (process.argv[1] !== undefined && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
-  const { values } = parseArgs({ options: { platform: { type: 'string' }, version: { type: 'string' } }, allowPositionals: false })
+  const { values } = parseArgs({ options: { platform: { type: 'string' }, version: { type: 'string' }, arch: { type: 'string' } }, allowPositionals: false })
   const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
   await preparePayload({
     desktopRoot, output: join(desktopRoot, ...PAYLOAD_DIR.split('/')),
-    target: nextPackagingTarget((values.platform ?? process.platform) as NodeJS.Platform),
+    target: nextPackagingTarget((values.platform ?? process.platform) as NodeJS.Platform, process.arch, values.arch ?? process.arch),
     electronVersion: electronVersion(desktopRoot),
     ...(values.version === undefined ? {} : { extraMetadata: { version: values.version } }),
     log: message => console.log(message),

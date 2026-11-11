@@ -1,7 +1,7 @@
 /** Cross-check the assembled `app.asar` payload against the prepared tree before signing, without a GUI. */
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { archivedPayload, auditNextPayload, nextPackagingTarget, PAYLOAD_DIR, verifyArchiveAgainstPrepared, verifyNextPayload, verifyUpdaterManifestShim } from './packaged-payload.ts'
+import { archivedPayload, auditNextPayload, nextPackagingTarget, packagingTargetArch, PAYLOAD_DIR, verifyArchiveAgainstPrepared, verifyNextPayload, verifyUpdaterManifestShim } from './packaged-payload.ts'
 import { expectedNextVersion, verifyNextRuntimeTree } from './prepare-runtime.ts'
 import { DESKTOP_RUNTIME_FILE } from '../src/runtime-tree.ts'
 
@@ -31,7 +31,7 @@ export default async function afterPack(context: PackContext): Promise<void> {
   try {
     verifyUpdaterManifestShim(resources, source, platform, context.packager.appInfo.version)
     verifyNextPayload(source)
-    const target = nextPackagingTarget(platform)
+    const target = nextPackagingTarget(platform, process.arch, packagingTargetArch() ?? process.arch)
     const problems = auditNextPayload(source, target)
     if (problems.length > 0) throw new Error(`Next payload audit failed:\n${problems.join('\n')}`)
     const prepared = join(context.packager.projectDir, ...PAYLOAD_DIR.split('/'), DESKTOP_RUNTIME_FILE)
@@ -42,7 +42,8 @@ export default async function afterPack(context: PackContext): Promise<void> {
       + `Nonead DSH Desktop ${release.version}, dsh ${release.dshVersion}, Electron ${release.electronVersion}, pnpm ${release.pnpmVersion}`
       + (rewrittenPlists.length === 0 ? '' : `; the universal merge rewrote ${rewrittenPlists.join(', ')}`))
   } finally { source.close() }
-  const runtimes = verifyNextRuntimeTree(join(resources, 'runtime'), platform, expectedNextVersion(context.packager.projectDir))
+  const runtimes = verifyNextRuntimeTree(join(resources, 'runtime'), platform, expectedNextVersion(context.packager.projectDir),
+    platform === 'win32' ? (packagingTargetArch() ?? 'x64') : undefined)
   for (const runtime of runtimes) console.log(`Verified the ${runtime.arch} primary runtime: Python ${runtime.manifest.python}, Node ${runtime.manifest.node}, pnpm ${runtime.manifest.pnpm}`)
   await Promise.resolve()
 }

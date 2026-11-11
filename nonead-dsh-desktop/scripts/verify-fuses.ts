@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { verifyElectronExecutableFuses } from '../../dsh-plugin-desktop-beta/scripts/verify-electron-fuses.ts'
 import { withoutMacReleaseSecrets } from '../../dsh-plugin-desktop-beta/scripts/release-preflight.ts'
 import { withoutWindowsSigningSecrets } from '../../dsh-plugin-desktop-beta/scripts/package-win.ts'
-import { archivedPayload, nextPackagingTarget, PAYLOAD_DIR, universalMergeRewrite, verifyNextRuntime, verifyUpdaterManifestShim } from './packaged-payload.ts'
+import { archivedPayload, nextPackagingTarget, packagingTargetArch, PAYLOAD_DIR, universalMergeRewrite, verifyNextRuntime, verifyUpdaterManifestShim } from './packaged-payload.ts'
 import { expectedNextVersion, verifyNextRuntimeTree } from './prepare-runtime.ts'
 
 const desktopRoot = fileURLToPath(new URL('..', import.meta.url))
@@ -90,7 +90,8 @@ async function verifyExecutable(path: string, expectedVersion: string): Promise<
   // electron-builder signs unpacked Mach-O files and nested bundles after afterPack cross-checked
   // the archive, so the final tree is checked against the descriptor it carries with code-signing
   // tolerance; verify-mac-release.ts validates the signatures themselves.
-  const target = nextPackagingTarget(darwin ? 'darwin' : path.endsWith('.exe') ? 'win32' : 'linux')
+  const platform = darwin ? 'darwin' : path.endsWith('.exe') ? 'win32' : 'linux'
+  const target = nextPackagingTarget(platform, process.arch, packagingTargetArch() ?? process.arch)
   const merge = universalMergeRewrite(join(desktopRoot, ...PAYLOAD_DIR.split('/')))
   const descriptor = verifyNextRuntime(resources, expectedVersion, target, { afterCodeSigning: true, acceptRewrite: merge.accept })
   console.log(`Verified ${root} against its sealed descriptor: ${String(descriptor.files.length)} files, dsh ${descriptor.release.dshVersion}`
@@ -99,7 +100,8 @@ async function verifyExecutable(path: string, expectedVersion: string): Promise<
   const archived = archivedPayload(resources)
   try { verifyUpdaterManifestShim(resources, archived, target.platform, expectedVersion) } finally { archived.close() }
   // The interpreter payloads are pre-signed resources; code signing must have left them as prepared.
-  const runtimes = verifyNextRuntimeTree(join(resources, 'runtime'), target.platform, expectedVersion)
+  const runtimes = verifyNextRuntimeTree(join(resources, 'runtime'), target.platform, expectedVersion,
+    target.platform === 'win32' ? (packagingTargetArch() ?? 'x64') : undefined)
   if (runtimes.length > 0) console.log(`Verified the bundled primary runtimes: ${runtimes.map(runtime => runtime.arch).join(', ')}`)
   // A cross-arch artifact (an arm64 installer built on this x64 host) is inspected but never run:
   // this host cannot execute it, and the failure would say nothing about the payload itself.

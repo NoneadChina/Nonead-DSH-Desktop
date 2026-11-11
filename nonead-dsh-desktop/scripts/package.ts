@@ -39,6 +39,8 @@ if (TEST_BUILD_VERSION !== undefined && !/^[0-9]+\.[0-9]+\.[0-9]+(?:-next(?:\.[0
   throw new Error(`DSH_NONEAD_BUILD_VERSION must be x.y.z, x.y.z-next or x.y.z-next.N; received ${TEST_BUILD_VERSION}`)
 }
 const buildVersion = expectedNextVersion(desktopRoot)
+/** Windows CPU this run packages; other platforms ship every payload their artifacts carry. */
+const windowsTargetArch = (): 'x64' | 'arm64' => process.env.DSH_PACKAGE_ARCH === 'arm64' ? 'arm64' : 'x64'
 const run = (command: string, args: readonly string[], cwd: string, env: NodeJS.ProcessEnv): void => {
   // Windows resolves the CLI path with backslashes.
   const isBuilder = args.includes('electron-builder') || args.some(arg => arg.replaceAll('\\', '/').endsWith('electron-builder/cli.js'))
@@ -63,10 +65,11 @@ const listCodeSigningIdentities = (env: NodeJS.ProcessEnv): string => {
  * then check and execute the final bytes. electron-builder copies the tree as extra resources.
  */
 async function prepareInterpreters(sign?: (runtimeRoot: string) => Promise<void>): Promise<void> {
-  const root = await prepareNextRuntime({ desktopRoot, platform: process.platform, version: buildVersion })
+  const targetArch = process.platform === 'win32' ? windowsTargetArch() : undefined
+  const root = await prepareNextRuntime({ desktopRoot, platform: process.platform, version: buildVersion, targetArch })
   if (sign !== undefined) await sign(root)
-  verifyNextRuntimeTree(root, process.platform, buildVersion)
-  smokeNextRuntime(root, process.platform)
+  verifyNextRuntimeTree(root, process.platform, buildVersion, targetArch)
+  smokeNextRuntime(root, process.platform, console.log, targetArch)
 }
 /**
  * Materialize and seal the payload electron-builder archives. A separate process keeps the
@@ -74,7 +77,8 @@ async function prepareInterpreters(sign?: (runtimeRoot: string) => Promise<void>
  * @param platform - Platform being packaged.
  */
 const preparePayload = (platform: NodeJS.Platform): void => {
-  const result = spawnSync(process.execPath, [join(desktopRoot, 'scripts', 'prepare-payload.ts'), '--platform', platform,
+  const arch = process.platform === 'win32' ? windowsTargetArch() : process.arch
+  const result = spawnSync(process.execPath, [join(desktopRoot, 'scripts', 'prepare-payload.ts'), '--platform', platform, '--arch', arch,
     ...(TEST_BUILD_VERSION === undefined ? [] : ['--version', TEST_BUILD_VERSION])], { cwd: desktopRoot, env: process.env, stdio: 'inherit' })
   if (result.error) throw result.error
   if (result.status !== 0) throw new Error(`Next payload preparation exited with ${String(result.status)}`)
@@ -86,7 +90,8 @@ const preparePayload = (platform: NodeJS.Platform): void => {
  */
 const prepareRuntime = (platform: NodeJS.Platform = process.platform): void => {
   if (platform === 'darwin') prepareNextMacRuntime(desktopRoot)
-  verifyNextRuntimeTree(nextRuntimeBuildPaths(desktopRoot).runtime, platform, buildVersion)
+  const targetArch = platform === 'win32' ? windowsTargetArch() : undefined
+  verifyNextRuntimeTree(nextRuntimeBuildPaths(desktopRoot).runtime, platform, buildVersion, targetArch)
   preparePayload(platform)
 }
 

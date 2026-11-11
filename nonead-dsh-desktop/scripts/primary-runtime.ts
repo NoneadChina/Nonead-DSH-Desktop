@@ -32,8 +32,13 @@ export interface PrimaryRuntimeArtifact {
 
 /** Targets the upstream lock pins. */
 export const PRIMARY_RUNTIME_TARGETS = ['mac-arm64', 'mac-x64', 'win-x64', 'linux-x64', 'linux-arm64'] as const
-/** A locked interpreter and wheel target. */
-export type PrimaryRuntimeTarget = (typeof PRIMARY_RUNTIME_TARGETS)[number]
+/** A locked interpreter and wheel target; `win-arm64` is locked by the Desktop distribution, not upstream. */
+export type PrimaryRuntimeTarget = (typeof PRIMARY_RUNTIME_TARGETS)[number] | 'win-arm64'
+/** Everything the Desktop build can assemble: the pinned upstream targets plus its own Windows arm64 payload. */
+export const DESKTOP_RUNTIME_TARGETS = [...PRIMARY_RUNTIME_TARGETS, 'win-arm64'] as const
+
+/** Desktop-owned supplement to the upstream lock; `win-arm64` is absent from the pinned checkout. */
+export const DESKTOP_PRIMARY_RUNTIME_LOCK = join(import.meta.dirname, 'primary-runtime-win-arm64.json')
 
 /** The upstream download lock: interpreter releases, per-target archives and the shared pure-Python wheels. */
 export interface PrimaryRuntimeLock {
@@ -87,17 +92,51 @@ export function parsePrimaryRuntimeLock(value: unknown): PrimaryRuntimeLock {
     if (!isArtifact(artifact)) throw new Error(`primary runtime lock: malformed target ${target}`)
     targets[target] = artifact
   }
+  const desktopOnly = value.targets['win-arm64']
+  if (desktopOnly !== undefined) {
+    if (!isArtifact(desktopOnly)) throw new Error('primary runtime lock: malformed target win-arm64')
+    targets['win-arm64'] = desktopOnly
+  }
   if (!wheels.every(isWheel) || !isDistributionMap(pythonPackages)) throw new Error('primary runtime lock: malformed wheel records')
   return { nodeVersion, pythonVersion, pythonRelease, targets: targets as Record<PrimaryRuntimeTarget, PrimaryRuntimeArtifact>, wheels, pythonPackages }
 }
 
 /**
- * Read the upstream lock from the pinned checkout.
- * @param path - Lock file; defaults to the submodule's.
- * @returns The validated lock.
+ * Validate the Desktop-owned supplement, which pins interpreter versions and the `win-arm64`
+ * payload only; the other targets stay in the upstream lock.
+ * @param value - Decoded supplement file.
+ * @returns Interpreter versions and the Windows arm64 artifact.
+ * @throws For a supplement missing its target or carrying malformed digests.
  */
-export function readPrimaryRuntimeLock(path: string = join(UPSTREAM_PRIMARY_RUNTIME, 'lock.json')): PrimaryRuntimeLock {
-  return parsePrimaryRuntimeLock(JSON.parse(readFileSync(path, 'utf8')))
+function parseDesktopRuntimeLock(value: unknown): { readonly nodeVersion: string, readonly pythonVersion: string, readonly pythonRelease: string, readonly artifact: PrimaryRuntimeArtifact } {
+  if (!isRecord(value) || !isRecord(value.targets)) throw new Error('primary runtime lock: malformed document')
+  const { nodeVersion, pythonVersion, pythonRelease } = value
+  if (typeof nodeVersion !== 'string' || !VERSION.test(nodeVersion) || typeof pythonVersion !== 'string' || !VERSION.test(pythonVersion)
+    || typeof pythonRelease !== 'string' || !/^\d{8}$/u.test(pythonRelease)) {
+    throw new Error('primary runtime lock: malformed interpreter versions')
+  }
+  const artifact = value.targets['win-arm64']
+  if (!isArtifact(artifact)) throw new Error('primary runtime lock: malformed target win-arm64')
+  return { nodeVersion, pythonVersion, pythonRelease, artifact }
+}
+
+/**
+ * Read the upstream lock from the pinned checkout and merge the Desktop-owned Windows arm64 target.
+ * The upstream checkout must stay a clean checkout, so its lock keeps only the targets it pins;
+ * this merge adds `win-arm64` without rewriting upstream files.
+ * @param path - Upstream lock file; defaults to the submodule's.
+ * @param desktopLockPath - Desktop supplement; defaults to `primary-runtime-win-arm64.json`.
+ * @returns The validated lock, including `win-arm64` when the supplement matches the pinned versions.
+ */
+export function readPrimaryRuntimeLock(path: string = join(UPSTREAM_PRIMARY_RUNTIME, 'lock.json'),
+  desktopLockPath: string = DESKTOP_PRIMARY_RUNTIME_LOCK): PrimaryRuntimeLock {
+  const lock = parsePrimaryRuntimeLock(JSON.parse(readFileSync(path, 'utf8')))
+  const supplement = parseDesktopRuntimeLock(JSON.parse(readFileSync(desktopLockPath, 'utf8')))
+  if (supplement.nodeVersion !== lock.nodeVersion || supplement.pythonVersion !== lock.pythonVersion
+    || supplement.pythonRelease !== lock.pythonRelease) {
+    throw new Error('primary runtime lock: the Desktop Windows arm64 supplement does not match the pinned interpreter versions')
+  }
+  return { ...lock, targets: { ...lock.targets, 'win-arm64': supplement.artifact } }
 }
 
 /**
@@ -146,17 +185,18 @@ export async function downloadPrimaryRuntimeAsset(url: string, sha256: string, c
  * @returns Resolves after extracting the interpreter.
  */
 export async function downloadNodeRuntime(target: PrimaryRuntimeTarget, destination: string, cache: string, lock: PrimaryRuntimeLock): Promise<void> {
-  const artifact = lock.targets[target]
+  const artifact = lock.targets[target]!
   const filename = `node-v${lock.nodeVersion}-${artifact.nodeArchive}`
   const archive = await downloadPrimaryRuntimeAsset(`https://nodejs.org/dist/v${lock.nodeVersion}/${filename}`, artifact.nodeSha256, cache)
   const staging = mkdtempSync(join(tmpdir(), 'dsh-node-'))
+  const windows = target.startsWith('win-')
   try {
-    if (target === 'win-x64') await extractZip(archive, { dir: staging })
+    if (windows) await extractZip(archive, { dir: staging })
     else await extractTar({ file: archive, cwd: staging })
     const source = join(staging, filename.replace(/\.(?:zip|tar\.gz)$/u, ''))
     mkdirSync(join(destination, 'bin'), { recursive: true })
-    cpSync(join(source, ...(target === 'win-x64' ? ['node.exe'] : ['bin', 'node'])),
-      join(destination, 'bin', target === 'win-x64' ? 'node.exe' : 'node'))
+    cpSync(join(source, ...(windows ? ['node.exe'] : ['bin', 'node'])),
+      join(destination, 'bin', windows ? 'node.exe' : 'node'))
     cpSync(join(source, 'LICENSE'), join(destination, 'LICENSE'))
   } finally {
     rmSync(staging, { recursive: true, force: true })
@@ -164,7 +204,7 @@ export async function downloadNodeRuntime(target: PrimaryRuntimeTarget, destinat
 }
 
 async function pythonArchive(target: PrimaryRuntimeTarget, cache: string, lock: PrimaryRuntimeLock): Promise<string> {
-  const artifact = lock.targets[target]
+  const artifact = lock.targets[target]!
   const filename = `cpython-${lock.pythonVersion}+${lock.pythonRelease}-${artifact.pythonTarget}-install_only_stripped.tar.gz`
   return downloadPrimaryRuntimeAsset(`https://github.com/astral-sh/python-build-standalone/releases/download/${lock.pythonRelease}/${encodeURIComponent(filename)}`, artifact.pythonSha256, cache)
 }
@@ -182,7 +222,7 @@ export function primaryRuntimePayloadDigest(target: PrimaryRuntimeTarget, runtim
   // Bump format when extraction or assembly changes payload bytes without changing locked inputs.
   return createHash('sha256').update(JSON.stringify({
     format: 6, target, pythonVersion, pythonRelease, nodeVersion: pnpmVersion === undefined ? undefined : nodeVersion,
-    artifact: runtimeLock.targets[target], wheels, pythonPackages, pnpm: pnpmVersion,
+    artifact: runtimeLock.targets[target]!, wheels, pythonPackages, pnpm: pnpmVersion,
   })).digest('hex')
 }
 
@@ -258,7 +298,7 @@ export async function preparePrimaryRuntime(options: PreparePrimaryRuntimeOption
     await extractTar({ file: await pythonArchive(target, paths.downloads, lock), cwd: dependencies })
     const manifest: PrimaryRuntimeManifest = {
       desktopVersion: options.version,
-      platform: target === 'win-x64' ? 'win32' : target.startsWith('linux-') ? 'linux' : 'darwin',
+      platform: target.startsWith('win-') ? 'win32' : target.startsWith('linux-') ? 'linux' : 'darwin',
       arch: target.endsWith('-arm64') ? 'arm64' : 'x64',
       payloadDigest: primaryRuntimePayloadDigest(target, lock, pnpmVersion),
       python: lock.pythonVersion,
@@ -267,7 +307,7 @@ export async function preparePrimaryRuntime(options: PreparePrimaryRuntimeOption
       pythonPackages: lock.pythonPackages,
     }
     const entries = workspaceDependencyPaths(output, manifest)
-    for (const wheel of [...lock.targets[target].wheels, ...lock.wheels]) {
+    for (const wheel of [...lock.targets[target]!.wheels, ...lock.wheels]) {
       await unpackPrimaryRuntimeWheel(await downloadPrimaryRuntimeAsset(wheel.url, wheel.sha256, paths.downloads), entries.pythonPackages)
     }
     const { numpy, pandas } = lock.pythonPackages

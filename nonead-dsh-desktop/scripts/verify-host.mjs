@@ -155,18 +155,11 @@ try {
   }
   console.log('verify-host: Web-composed Schedule switch and restart persistence passed')
   const availableBundles = await rpc('listBundles')
-  // dsh 0.1.7 deleted `-web-profile` and merged its `ui-agent-team` row into `-profile`.
-  for (const [name, rowIds] of [
-    ['@deepseek-ai/dsh-experimental-agent-team-profile', ['agent-team', 'ui-agent-team']],
-  ]) {
-    const bundle = availableBundles.find(row => row.name === name)
-    assert.ok(bundle, `Official Plugins overview must offer ${name}`)
-    assert.equal(bundle.optional, true)
-    assert.equal(bundle.enabled, false, 'Team bundles must remain opt-in')
-    assert.equal(bundle.removable, false)
-    assert.equal(bundle.error, undefined)
-    for (const rowId of rowIds) assert.ok(bundle.rows.some(row => row.rowId === rowId), JSON.stringify(bundle))
-  }
+  // dsh 0.2.2-rc.2 retired the experimental agent-team profile bundle: the
+  // agent-team packages are plain modules of the default composition now, so
+  // the official overview must not offer the old opt-in bundle any more.
+  assert.equal(availableBundles.some(row => row.name === '@deepseek-ai/dsh-experimental-agent-team-profile'), false,
+    'Official Plugins overview must not offer the retired @deepseek-ai/dsh-experimental-agent-team-profile')
   const packages = ['dsh-community-market', 'dshmarket', '@agents-anywhere/dsh-bridge-next']
   for (const name of packages) {
     const bundle = (await rpc('listBundles')).find(row => row.name === name)

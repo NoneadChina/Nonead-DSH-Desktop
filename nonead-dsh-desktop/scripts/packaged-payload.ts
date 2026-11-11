@@ -26,9 +26,15 @@ export const PAYLOAD_DIR = '.desktop-build/payload'
  * @param hostArch - Build host architecture, used for platforms without a release target.
  * @returns Platform and architectures recorded in the payload descriptor.
  */
-export function nextPackagingTarget(platform: NodeJS.Platform, hostArch: string = process.arch): NextPackagingTarget {
+/** Windows CPU the running packaging command targets, from `DSH_PACKAGE_ARCH`; undefined when unset or not a Windows CPU. */
+export function packagingTargetArch(env: NodeJS.ProcessEnv = process.env): 'arm64' | 'x64' | undefined {
+  return env.DSH_PACKAGE_ARCH === 'arm64' ? 'arm64' : env.DSH_PACKAGE_ARCH === 'x64' ? 'x64' : undefined
+}
+
+export function nextPackagingTarget(platform: NodeJS.Platform, hostArch: string = process.arch,
+  targetArch: string = hostArch): NextPackagingTarget {
   if (platform === 'darwin') return { platform, archs: ['arm64', 'x64'] }
-  if (platform === 'win32') return { platform, archs: ['x64'] }
+  if (platform === 'win32') return { platform, archs: [targetArch === 'arm64' ? 'arm64' : 'x64'] }
   if (platform === 'linux') return { platform, archs: ['arm64', 'x64'] }
   return { platform, archs: [hostArch] }
 }

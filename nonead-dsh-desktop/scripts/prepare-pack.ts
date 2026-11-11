@@ -1,6 +1,6 @@
 /** Electron Builder's beforePack hook: the Office package closure joins the archive unpack patterns. */
 import { join } from 'node:path'
-import { nextPackagingTarget, PAYLOAD_DIR } from './packaged-payload.ts'
+import { nextPackagingTarget, packagingTargetArch, PAYLOAD_DIR } from './packaged-payload.ts'
 import { officeUnpackPatterns } from './office-packages.ts'
 
 interface PackContext {
@@ -18,17 +18,18 @@ interface PackContext {
  * @param platform - Electron platform being packaged.
  * @returns The patterns this call added.
  */
-export function applyOfficeUnpack(config: { asarUnpack?: unknown }, payloadRoot: string, platform: NodeJS.Platform): string[] {
+export function applyOfficeUnpack(config: { asarUnpack?: unknown }, payloadRoot: string, platform: NodeJS.Platform,
+  targetArch: string = process.arch): string[] {
   const existing = config.asarUnpack
   const patterns = typeof existing === 'string' ? [existing] : Array.isArray(existing) ? existing.filter((value): value is string => typeof value === 'string') : []
-  const added = officeUnpackPatterns(payloadRoot, platform, nextPackagingTarget(platform).archs).filter(pattern => !patterns.includes(pattern))
+  const added = officeUnpackPatterns(payloadRoot, platform, nextPackagingTarget(platform, process.arch, targetArch).archs).filter(pattern => !patterns.includes(pattern))
   config.asarUnpack = [...patterns, ...added]
   return added
 }
 
 export default async function beforePack(context: PackContext): Promise<void> {
   const platform = context.electronPlatformName as NodeJS.Platform
-  const office = applyOfficeUnpack(context.packager.config, join(context.packager.projectDir, ...PAYLOAD_DIR.split('/')), platform)
+  const office = applyOfficeUnpack(context.packager.config, join(context.packager.projectDir, ...PAYLOAD_DIR.split('/')), platform, packagingTargetArch() ?? process.arch)
   if (office.length > 0) console.log(`Next ${context.electronPlatformName} payload unpacks the Office closure: ${String(office.length)} packages`)
   await Promise.resolve()
 }

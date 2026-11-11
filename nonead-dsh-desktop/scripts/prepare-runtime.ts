@@ -17,13 +17,15 @@ export interface NextRuntimeTarget {
 
 /**
  * Payloads one Next package carries: both Darwin CPUs, because macOS releases are universal and the
- * installed slice selects its payload at runtime; Windows x64 only; nothing on other platforms.
+ * installed slice selects its payload at runtime; the requested Windows CPU only (the architecture
+ * being packaged, defaulting to x64); nothing on other platforms.
  * @param platform - Electron platform being packaged.
+ * @param targetArch - Windows CPU the installer targets; ignored elsewhere.
  * @returns Locked targets and their CPUs.
  */
-export function nextRuntimeTargets(platform: NodeJS.Platform): readonly NextRuntimeTarget[] {
+export function nextRuntimeTargets(platform: NodeJS.Platform, targetArch: NextRuntimeArch = 'x64'): readonly NextRuntimeTarget[] {
   if (platform === 'darwin') return [{ target: 'mac-arm64', arch: 'arm64' }, { target: 'mac-x64', arch: 'x64' }]
-  if (platform === 'win32') return [{ target: 'win-x64', arch: 'x64' }]
+  if (platform === 'win32') return [{ target: targetArch === 'arm64' ? 'win-arm64' : 'win-x64', arch: targetArch }]
   return []
 }
 
@@ -75,6 +77,8 @@ export interface PrepareNextRuntimeOptions {
   readonly desktopRoot: string
   readonly platform: NodeJS.Platform
   readonly version: string
+  /** Windows CPU being packaged; defaults to x64. */
+  readonly targetArch?: NextRuntimeArch
   readonly log?: (message: string) => void
 }
 
@@ -88,7 +92,7 @@ export async function prepareNextRuntime(options: PrepareNextRuntimeOptions): Pr
   const paths = nextRuntimeBuildPaths(options.desktopRoot)
   const log = options.log ?? console.log
   rmSync(paths.runtime, { recursive: true, force: true })
-  const targets = nextRuntimeTargets(options.platform)
+  const targets = nextRuntimeTargets(options.platform, options.targetArch)
   if (targets.length === 0) {
     log(`Next ships no interpreter payload for ${options.platform}`)
     return paths.runtime
@@ -110,9 +114,10 @@ export async function prepareNextRuntime(options: PrepareNextRuntimeOptions): Pr
  * @param log - Progress output.
  * @returns CPUs whose payload ran.
  */
-export function smokeNextRuntime(runtimeRoot: string, platform: NodeJS.Platform, log: (message: string) => void = console.log): NextRuntimeArch[] {
+export function smokeNextRuntime(runtimeRoot: string, platform: NodeJS.Platform, log: (message: string) => void = console.log,
+  targetArch: NextRuntimeArch = 'x64'): NextRuntimeArch[] {
   const executed: NextRuntimeArch[] = []
-  for (const { arch } of nextRuntimeTargets(platform)) {
+  for (const { arch } of nextRuntimeTargets(platform, targetArch)) {
     const root = primaryRuntimeDirectory(runtimeRoot, arch)
     const launcher = platform === 'darwin' && arch === 'x64' && process.arch === 'arm64' && rosettaAvailable() ? ['/usr/bin/arch', '-x86_64'] : undefined
     if (smokePrimaryRuntime(root, { launcher })) {
@@ -143,9 +148,10 @@ function requireFile(path: string, description: string): void {
  * @param expectedVersion - Product version every manifest must record.
  * @returns The verified payloads in target order.
  */
-export function verifyNextRuntimeTree(runtimeRoot: string, platform: NodeJS.Platform, expectedVersion: string): VerifiedNextRuntime[] {
+export function verifyNextRuntimeTree(runtimeRoot: string, platform: NodeJS.Platform, expectedVersion: string,
+  targetArch: NextRuntimeArch = 'x64'): VerifiedNextRuntime[] {
   const verified: VerifiedNextRuntime[] = []
-  for (const { arch } of nextRuntimeTargets(platform)) {
+  for (const { arch } of nextRuntimeTargets(platform, targetArch)) {
     const directory = primaryRuntimeDirectory(runtimeRoot, arch)
     const manifestFile = join(directory, 'runtime.json')
     requireFile(manifestFile, `${arch} payload manifest`)
@@ -179,7 +185,8 @@ const invokedPath = process.argv[1]
 if (invokedPath !== undefined && resolve(invokedPath) === fileURLToPath(import.meta.url)) {
   const desktopRoot = resolve(import.meta.dirname, '..')
   const version = expectedNextVersion(desktopRoot)
-  const root = await prepareNextRuntime({ desktopRoot, platform: process.platform, version })
-  verifyNextRuntimeTree(root, process.platform, version)
-  smokeNextRuntime(root, process.platform)
+  const targetArch = process.arch === 'arm64' ? 'arm64' : 'x64'
+  const root = await prepareNextRuntime({ desktopRoot, platform: process.platform, version, targetArch })
+  verifyNextRuntimeTree(root, process.platform, version, targetArch)
+  smokeNextRuntime(root, process.platform, console.log, targetArch)
 }
