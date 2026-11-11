@@ -60,4 +60,27 @@ describe('Windows NSIS running-app handoff', () => {
     expect(script).toContain('!macro customInit')
     expect(script).toContain('UAC_IsInnerInstance')
   })
+
+  it('卸载前先确认再关闭运行中的实例，取消则放弃卸载', () => {
+    const script = code()
+    const guard = script.indexOf('!ifdef BUILD_UNINSTALLER')
+    const hook = script.indexOf('!macro customUnInstall')
+
+    expect(guard).toBeGreaterThanOrEqual(0)
+    expect(hook).toBeGreaterThan(guard)
+
+    const body = script.slice(hook, script.indexOf('!macroend', hook))
+    // 只有“确实在运行”时才弹框；未运行时静默卸载。
+    expect(body).toContain('${if} $0 == 0')
+    expect(body).toContain('MB_OKCANCEL|MB_ICONEXCLAMATION')
+    expect(body).toContain('还在运行中')
+    expect(body).toContain('IDOK dsh_uninstall_close_app')
+    // 静默（/S）卸载不能卡在提示框上。
+    expect(body).toContain('/SD IDOK')
+    // 取消必须中止卸载，而不是继续删文件。
+    expect(body).toContain('Quit')
+    // 确认后复用“先请求退出、再强制结束”的循环，最后落到删除。
+    expect(body).toContain('!insertmacro dsh_UninstallCloseApp')
+    expect(script).toContain(DESKTOP_INSTALLER_QUIT_FLAG)
+  })
 })

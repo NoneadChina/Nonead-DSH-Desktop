@@ -129,6 +129,79 @@ FunctionEnd
   !endif
 !macroend
 
+; 卸载侧钩子（2.2.9 线回流）：程序仍在运行时先确认，再关闭它，然后继续删除文件。
+;
+; 安装侧已用 customCheckAppRunning 拦掉上游默认的“取消即跳过”提示；卸载侧的上游
+; CHECK_APP_RUNNING 同样被空实现拦掉。不补这一段，卸载器会在程序运行时既不提示也
+; 不拦截，结果是可执行文件被占用、安装目录删不干净。取消必须完全放弃卸载，不能删
+; 一半；未运行时不弹任何提示，静默（/S）卸载靠 /SD IDOK 兜底。
+;
+; 这里用独立宏 + 内建寄存器，而不是复用 dsh_CloseRunningApp：那个函数只在
+; !ifndef BUILD_UNINSTALLER 分支编译，卸载器那一趟看不到它；而 throwaway stub 会
+; 编译本分支却不执行，自定义 Var 在那里属“never set”，warning 6001 在
+; warningsAsErrors 下会直接中断打包。
+!ifdef BUILD_UNINSTALLER
+!macro dsh_UninstallCloseApp
+  Push $0
+  Push $R0
+  Push $R1
+
+  DetailPrint "$(appClosing)"
+  IfFileExists "$INSTDIR\${APP_EXECUTABLE_FILENAME}" 0 dsh_uninstall_close_force
+
+  Exec '"$INSTDIR\${APP_EXECUTABLE_FILENAME}" --dsh-installer-quit'
+  StrCpy $R1 0
+  dsh_uninstall_close_wait:
+    nsProcess::_FindProcess /NOUNLOAD "${APP_EXECUTABLE_FILENAME}"
+    Pop $0
+    ${if} $0 != 0
+      Goto dsh_uninstall_close_done
+    ${endIf}
+    IntOp $R1 $R1 + 1
+    ${if} $R1 < 60
+      Sleep 500
+      Goto dsh_uninstall_close_wait
+    ${endIf}
+
+  dsh_uninstall_close_force:
+    nsProcess::_KillProcess /NOUNLOAD "${APP_EXECUTABLE_FILENAME}"
+    Pop $0
+    StrCpy $R1 0
+  dsh_uninstall_close_kill:
+    nsProcess::_FindProcess /NOUNLOAD "${APP_EXECUTABLE_FILENAME}"
+    Pop $0
+    ${if} $0 != 0
+      Goto dsh_uninstall_close_done
+    ${endIf}
+    IntOp $R1 $R1 + 1
+    ${if} $R1 > 20
+      ; 与安装侧同一原则：宁可中止卸载，也不留下删了一半的目录。
+      MessageBox MB_OK|MB_ICONSTOP "$(appCannotBeClosed)"
+      Quit
+    ${endIf}
+    Sleep 500
+    Goto dsh_uninstall_close_kill
+
+  dsh_uninstall_close_done:
+  nsProcess::_Unload
+  Pop $R1
+  Pop $R0
+  Pop $0
+!macroend
+
+!macro customUnInstall
+  nsProcess::_FindProcess /NOUNLOAD "${APP_EXECUTABLE_FILENAME}"
+  Pop $0
+  ${if} $0 == 0
+    MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION "你的程序还在运行中，点击“确定”会先关闭它，随后继续卸载；点击“取消”则放弃卸载。$\r$\n$\r$\n${PRODUCT_NAME} is still running: OK closes it and continues, Cancel aborts the uninstall." /SD IDOK IDOK dsh_uninstall_close_app
+    Quit
+
+    dsh_uninstall_close_app:
+    !insertmacro dsh_UninstallCloseApp
+  ${endIf}
+!macroend
+!endif
+
 ; 提升安装（“为所有用户安装”）会让安装器以 UAC 内层实例重跑，而
 ; installSection.nsh 在内层实例会跳过 CHECK_APP_RUNNING。只在那种情况下
 ; 从 .onInit 补一次关停；普通“仅为我安装”仍要等到真正开始复制才动作，
