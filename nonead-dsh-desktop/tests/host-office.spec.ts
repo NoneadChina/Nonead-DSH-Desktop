@@ -28,6 +28,8 @@ it('loads Office skills with the bundled Node and the installed CLI, and removes
     const nodeDirectory = join(source, 'dependencies', 'node', 'bin')
     await mkdir(nodeDirectory, { recursive: true })
     await cp(process.execPath, join(nodeDirectory, nodeName))
+    // A prepared payload always carries the manifest the resolver and the mount both read.
+    await writeFile(join(source, 'runtime.json'), '{}')
     ctx.baseUrl = pathToFileURL(root).href + '/'
     await ctx.plugin(Loader)
     ctx.loader.builtins.include = Include

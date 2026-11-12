@@ -48,6 +48,16 @@ export function resolveOfficeConfig(runtimeDir: string, source: string | undefin
 }
 
 /**
+ * Whether the bundled payload Office skills read is on disk. Linux ships no interpreter payload, so its
+ * packaged Host passes the conventional path with nothing behind it.
+ * @param source - Bundled payload directory the shell selected.
+ * @returns True when that directory carries the payload manifest.
+ */
+export function officePayloadPresent(source: string | undefined): boolean {
+  return source !== undefined && existsSync(join(source, 'runtime.json'))
+}
+
+/**
  * Enable offline Office authoring and structural checks in the Next profile.
  * @param ctx - Profile scope; child plugins declare their own service requirements.
  * @param config - Bundled payload source and installation root.
@@ -55,6 +65,9 @@ export function resolveOfficeConfig(runtimeDir: string, source: string | undefin
 export async function apply(ctx: Context, config: Config): Promise<void> {
   await ctx.plugin(workspaceDependencies, config)
   if (config.mountSkills === false) return
+  // Office skills read `office-skills` beside the payload, so only a platform that ships the payload
+  // mounts them; Linux ships no interpreter payload and reports `office.unavailable`.
+  if (!officePayloadPresent(config.source)) return
   await ctx.plugin(officeSkills, {
     assetRoot: join(dirname(config.source), 'office-skills'),
   })

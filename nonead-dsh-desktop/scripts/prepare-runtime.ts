@@ -1,5 +1,5 @@
 /** Prepare, execute and check the bundled interpreter payloads for every CPU one Next package carries. */
-import { existsSync, readFileSync, rmSync, statSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -90,6 +90,9 @@ export async function prepareNextRuntime(options: PrepareNextRuntimeOptions): Pr
   rmSync(paths.runtime, { recursive: true, force: true })
   const targets = nextRuntimeTargets(options.platform)
   if (targets.length === 0) {
+    // The `linux` block still copies this tree as extra resources, so the source must exist even when
+    // the platform ships no interpreter payload (Linux has no locked Python/Node payload).
+    mkdirSync(paths.runtime, { recursive: true })
     log(`Next ships no interpreter payload for ${options.platform}`)
     return paths.runtime
   }

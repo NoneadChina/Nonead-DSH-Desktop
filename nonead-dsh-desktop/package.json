@@ -4,6 +4,8 @@
   "private": true,
   "description": "Experimental upstream-inspired DSH Desktop with Profiles, recovery, remote control and Community Market",
   "license": "MIT",
+  "homepage": "https://www.nonead.com",
+  "author": "Nonead Corporation <t4wefan@qq.com>",
   "type": "module",
   "main": "lib/main.js",
   "engines": {
@@ -430,9 +432,33 @@
     },
     "linux": {
       "target": [
-        "dir"
+        "AppImage",
+        "deb",
+        "rpm"
       ],
-      "icon": "build/app-icon.png"
+      "artifactName": "Nonead-DSH-Desktop-${version}-${arch}.${ext}",
+      "icon": "build/app-icon.png",
+      "category": "Development",
+      "synopsis": "Agentic coding desktop built on the DeepSeek Harness",
+      "maintainer": "Nonead Corporation <t4wefan@qq.com>",
+      "executableName": "nonead-dsh-desktop",
+      "syncDesktopName": true
+    },
+    "deb": {
+      "artifactName": "nonead-dsh-desktop_${version}_${arch}.${ext}"
+    },
+    "rpm": {
+      "artifactName": "nonead-dsh-desktop-${version}.${arch}.${ext}",
+      "depends": [
+        "gtk3",
+        "libnotify",
+        "nss",
+        "libXScrnSaver",
+        "libXtst",
+        "libxshmfence",
+        "libuuid",
+        "libsecret"
+      ]
     },
     "dmg": {
       "icon": "build/app-icon.icns"
@@ -443,6 +469,7 @@
       "**/spawn-helper",
       "**/@vscode/ripgrep-*/bin/rg",
       "**/@dataiku/uv-*/bin/uv",
+      "**/node_modules/@deepseek-ai/node-addon-system-*/bin/landlock-run",
       "**/node_modules/@deepseek-ai/libreoffice-kit-*/**/*",
       "**/node_modules/@trycua/cua-driver-*/**/*",
       "**/node_modules/sherpa-onnx-*/**/*",

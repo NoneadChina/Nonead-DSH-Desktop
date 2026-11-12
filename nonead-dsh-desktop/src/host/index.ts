@@ -26,7 +26,7 @@ import { installCuaDriverResolution } from './cua-driver.ts'
 import { installOfficeEngineResolution } from './office-engine.ts'
 import { installSkillBadgeResolution } from './skill-badge.ts'
 import * as desktopOffice from './office.ts'
-import { resolveOfficeConfig } from './office.ts'
+import { officePayloadPresent, resolveOfficeConfig } from './office.ts'
 
 export async function main(): Promise<void> {
   // The Host lists and reads user workspaces; see asar-archive-policy.ts.
@@ -154,7 +154,12 @@ export async function main(): Promise<void> {
   // Office skills and the workspace dependency tool need the bundled payload; a packaged Host without it fails here.
   const office = resolveOfficeConfig(runtimeDir, primaryRuntime, home)
   if (office === undefined) hostLog({ source: 'host', event: 'office.unavailable', level: 'warn', fields: { source: primaryRuntime } })
-  else {
+  else if (!officePayloadPresent(office.source)) {
+    // Linux ships no interpreter payload, so Office degrades to a warning there; every other platform
+    // must carry one, and a package without it stays a packaging fault rather than a supported mode.
+    if (process.platform !== 'linux') throw new Error(`Next Host requires the bundled primary runtime payload: ${office.source}`)
+    hostLog({ source: 'host', event: 'office.unavailable', level: 'warn', fields: { source: office.source } })
+  } else {
     const mounted = hostOperation('host', 'office.mount', { source: office.source })
     try { await ctx.plugin(desktopOffice, office); mounted() } catch (error) { mounted(error); throw error }
   }

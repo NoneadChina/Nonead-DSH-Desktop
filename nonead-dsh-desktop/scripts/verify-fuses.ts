@@ -14,6 +14,9 @@ const desktopRoot = fileURLToPath(new URL('..', import.meta.url))
 /** COFF machine identifiers of the CPUs the Windows payload can target. */
 const PE_MACHINES = { x64: 0x8664, arm64: 0xaa64 } as const
 
+/** ELF `e_machine` values of the CPUs the Linux payload can target. */
+const ELF_MACHINES = { x64: 62, arm64: 183 } as const
+
 function runPackagedNode(path: string, args: readonly string[], timeout: number, failure: string): void {
   const result = spawnSync(path, args, {
     env: { ...withoutWindowsSigningSecrets(withoutMacReleaseSecrets(process.env)), ELECTRON_RUN_AS_NODE: '1' },
@@ -45,6 +48,36 @@ function peMachine(path: string): number {
   }
 }
 
+/** Read the ELF machine type of one Linux executable without loading it. */
+function elfMachine(path: string): number {
+  const descriptor = openSync(path, 'r')
+  try {
+    const header = Buffer.alloc(20)
+    if (readSync(descriptor, header, 0, header.byteLength, 0) !== header.byteLength
+      || !header.subarray(0, 4).equals(Buffer.from([0x7f, 0x45, 0x4c, 0x46]))) {
+      throw new Error(`No ELF header in ${path}`)
+    }
+    return header.readUInt16LE(18)
+  } finally {
+    closeSync(descriptor)
+  }
+}
+
+/**
+ * The platform and CPU one packaged tree was built for.
+ *
+ * electron-builder names the CPU in the output directory (`linux-unpacked`, `linux-arm64-unpacked`,
+ * `win-arm64-unpacked`), so a batch that holds both CPUs is verified against each tree's own
+ * target instead of the host's default architecture.
+ * @param path - Packaged executable path inside `outDir`.
+ * @returns Platform and architecture the tree must declare.
+ */
+function packagedTarget(path: string): ReturnType<typeof nextPackagingTarget> {
+  if (path.includes('.app/')) return nextPackagingTarget('darwin')
+  const platform: NodeJS.Platform = path.endsWith('.exe') ? 'win32' : 'linux'
+  return { platform, archs: [path.includes('-arm64-unpacked') ? 'arm64' : 'x64'] }
+}
+
 /** Verify one packaged executable end to end. */
 async function verifyExecutable(path: string, expectedVersion: string): Promise<void> {
   // The stable shell ships an archive: assert the hardened fuse table, including the archive
@@ -56,7 +89,7 @@ async function verifyExecutable(path: string, expectedVersion: string): Promise<
   // electron-builder signs unpacked Mach-O files and nested bundles after afterPack cross-checked
   // the archive, so the final tree is checked against the descriptor it carries with code-signing
   // tolerance; verify-mac-release.ts validates the signatures themselves.
-  const target = nextPackagingTarget(darwin ? 'darwin' : path.endsWith('.exe') ? 'win32' : 'linux')
+  const target = packagedTarget(path)
   const merge = universalMergeRewrite(join(desktopRoot, ...PAYLOAD_DIR.split('/')))
   const descriptor = verifyNextRuntime(resources, expectedVersion, target, { afterCodeSigning: true, acceptRewrite: merge.accept })
   console.log(`Verified ${root} against its sealed descriptor: ${String(descriptor.files.length)} files, dsh ${descriptor.release.dshVersion}`
@@ -71,6 +104,13 @@ async function verifyExecutable(path: string, expectedVersion: string): Promise<
   // this host cannot execute it, and the failure would say nothing about the payload itself.
   const hostMachine = process.arch === 'arm64' ? PE_MACHINES.arm64 : PE_MACHINES.x64
   if (path.endsWith('.exe') && peMachine(path) !== hostMachine) {
+    console.log(`Skipped the packaged runtime smokes for ${path}: it does not run on this ${process.arch} host`)
+    return
+  }
+  // A Linux artifact for the other CPU is cross-arch for the same reason: ELF records its machine
+  // type, so an aarch64 build is inspected on this x64 host instead of being spawned.
+  const hostElf = process.arch === 'arm64' ? ELF_MACHINES.arm64 : ELF_MACHINES.x64
+  if (!darwin && !path.endsWith('.exe') && elfMachine(path) !== hostElf) {
     console.log(`Skipped the packaged runtime smokes for ${path}: it does not run on this ${process.arch} host`)
     return
   }
@@ -96,7 +136,8 @@ async function verifyExecutable(path: string, expectedVersion: string): Promise<
 export default async function afterAllArtifactBuild(result: { outDir: string }): Promise<string[]> {
   const paths = ['mac/Nonead DSH Desktop.app/Contents/MacOS/Nonead DSH Desktop', 'mac-arm64/Nonead DSH Desktop.app/Contents/MacOS/Nonead DSH Desktop',
     'mac-universal/Nonead DSH Desktop.app/Contents/MacOS/Nonead DSH Desktop', 'win-unpacked/Nonead DSH Desktop.exe',
-    'win-arm64-unpacked/Nonead DSH Desktop.exe', 'linux-unpacked/nonead-dsh-desktop']
+    'win-arm64-unpacked/Nonead DSH Desktop.exe', 'linux-unpacked/nonead-dsh-desktop',
+    'linux-arm64-unpacked/nonead-dsh-desktop']
   const executables = paths.map(path => join(result.outDir, path)).filter(existsSync)
   if (!executables.length) throw new Error('No packaged Next executable to verify')
   const expectedVersion = expectedNextVersion(desktopRoot)
