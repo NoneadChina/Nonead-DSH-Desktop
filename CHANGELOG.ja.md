@@ -19,9 +19,41 @@
 
 - ランタイム：同梱の DeepSeek Harness を 0.2.2-rc.1 から **0.2.2-rc.2** へ更新（上流コミット `ddac96760`、374 パッケージを再 vendored、24 個のデスクトップパッチを再適用）。`dsh-experimental-agent-team` は `@deepseek-ai/dsh-agent-team` に昇格し、`dsh-error` などは peer 依存としてアプリ側で明示的に宣言します。
 - ブリッジ：Agents Anywhere ブリッジは 2.1.0 系のままで、peer 範囲は rc.2 より前です。リモート制御を有効にすると Profile の `compatibility.json` に正確なバージョン例外を書き込み、ブリッジは引き続き読み込まれます。
-- 同梱プラグイン：`@deepseek-ai/dsh-tool-subagent` をカーネルに合わせて 0.2.2-rc.2 へ更新し、同梱プラグインは 27 個のままです。
+- 同梱プラグイン：`@deepseek-ai/dsh-tool-subagent` をカーネルに合わせて 0.2.2-rc.2 へ更新しました。同梱プラグインは 35 個から **27 個**に減り、`@linxin666/dsh-client-ui-skill-explorer`、`@weibaohui/skills-management`、`dsh-image-gen`、`dsh-nonead-ursim`、`dsh-nonead-universal-robots`、`dsh-superagent`、`dsh-univer-office`、`dshmarket` が同梱一覧から外れます（`dshmarket` はピン留めしたバージョンでインストーラーに組み込まれるため、同梱一覧からのみ外れます）。残り 7 個は npm latest に追従します。全リストは以下をご覧ください。
 - ドキュメント：8 言語の README と `THIRD_PARTY_NOTICES` を新しいバージョン情報に同期しました。
 - バージョン：製品 2.2.9 → **2.2.10**（2 つのデスクトップワークスペースを同期）。
+
+### 同梱プラグイン一覧（27 個）
+
+以下の 27 個のプラグインはインストーラーに同梱されています。初回起動後は「プラグイン」ページからいつでも有効化・無効化・削除できます。名前の後ろの数字は同梱バージョンです。
+
+- `@a9i5k4/dsh-auto-memory` 3.3.17 — 自動メモリ。過去の判断を呼び戻し、記録をノート・台帳・ホワイトボードへ自動で要約します。
+- `@changfenhuang/dsh-genui` 0.16.0 — 生成 UI。応答の中にレイアウト・グラフ・フォーム・フロー図を描き、パネルのクリックもモデルへ返します。
+- `@deepseek-ai/dsh-tool-subagent` 0.2.2-rc.2 — サブエージェント委譲。独立した作業を名前付きツールで指定バックエンドへ渡し、完了通知はランタイムが担います。
+- `@linxin666/dsh-client-ui-git-graph` 0.4.14 — Git グラフ。空のセッションからブランチを切り替え、コミット履歴と worktree 分離を確認できます。
+- `@linxin666/dsh-client-ui-task-board` 0.4.16 — タスクボード。カードはホストが管理し実際にセッションを開いて実行します。cron 予約とスリープ抑止付き。
+- `@michengai/dsh-agency-agents` 1.2.27 — 専門家ライブラリ。331 体の専門エージェントと 5 つの専門家チームを同梱し、必要な視点を指名できます。
+- `@michengai/dsh-archive-manager` 1.3.1 — セッションアーカイブ。アーカイブ・復元・お気に入り・完全削除ができ、破損したログの診断も行います。
+- `@michengai/dsh-code-review` 1.0.10 — コードレビュー。独立したサブエージェントが Git・ソース・呼び出し元・テストを点検し、報告を戻します。
+- `@michengai/dsh-skills-manager` 1.4.1 — スキル管理。ローカルスキルを一括で読み込み安全に管理し、GitHub からの導入と更新の下見、復帰に対応します。
+- `@tt-a1i/archify-dsh` 1.1.0 — アーキテクチャ図。Archify をスキルパックとして取り込み、説明から構成図や技術方案の図を描きます。
+- `@wenaixi/dsh-superpower` 8.0.0 — エンジニアリングスキルパック。obra/superpowers の規律スキル 15 個を移植し、個別に切り替えられます。
+- `@yolk_vat-y/dsh-project-memory` 0.6.12 — プロジェクトメモリ。文書とコードのシンボルを索引化し、path:line の出典付きで検索できます。
+- `billion-context` 0.1.213 — コンテキスト圧縮。長い会話を要約に畳み、小さなウィンドウと少ないトークンで走らせます。
+- `dsh-better-sidebar` 0.30.1 — 使いやすいサイドバー。ファイルツリー・エディタ・変更・タスク・サイドチャットを 1 列にまとめ、他プラグインにも開放します。
+- `dsh-client-auto-continue` 0.18.0 — 自動継続。人が関与しない理由で要求が途切れたとき続行の指示を送り、成功後の繰り返しも設定できます。
+- `dsh-config-manager` 0.8.0 — 設定管理。DSH 設定のバックアップ・復元・移行・同期を、設定・プラグイン・MCP・スキルにわたって行います。
+- `dsh-context` 0.83.1 — コンテキスト分析。ダッシュボードで内訳と増え方を確認し、必要なら圧縮します。/context からも使えます。
+- `dsh-cost-meter` 1.9.64 — コストダッシュボード。セッション・当日・履歴のトークンとコストを集計し、170 以上の価格表を同梱します。
+- `dsh-excel-chat` 0.43.0 — 表計算チャット。自然言語で表を読み・編集・整理し、編集のたびに数式を検算します。Excel なしでも動きます。
+- `dsh-find-plugins` 0.3.0 — プラグイン発見。5 つのコミュニティカタログを統合し GitHub と npm も検索、関連度や信頼度で並べます。
+- `dsh-github-skills` 0.2.1 — GitHub ワークフローのスキル。OpenAI Codex の意味論を基線に、DSH の複数 provider と承認に合わせます。
+- `dsh-markitdown` 0.2.2 — 文書の Markdown 化。Microsoft MarkItDown で PDF・Word・Excel・PPT・HTML・EPUB・URL を本文に変換します。
+- `dsh-mcp-connector` 0.2.101 — MCP コネクター。100 を超えるコネクターを同梱し、認可の一元管理とツール横断検索、接続診断を行います。
+- `dsh-nonead-prompt-recall` 0.8.7 — 入力履歴。空の入力欄で ↑ を押すと直前の指示を呼び出し、ワークスペースごとに保存して再起動後も残ります。
+- `dsh-nonead-prompt-rewind` 0.5.4 — 会話の巻き戻し。過去のメッセージまでその場で戻して入力欄に戻し、書き込み系ツールが変えたファイルも復元します。
+- `dsh-ppt-master` 6.1.0 — プレゼン生成。内容から編集可能な PPTX を作り、SVG 出力やネイティブテンプレートの流し込みも行います。
+- `dsh-remotion` 0.10.5 — 動画ワークベンチ。React プロジェクトを動画にし、公式スキル・テンプレート・Studio プレビュー・MP4 出力を同梱します。
 
 ## 2.2.9 — 2026-11-10
 
