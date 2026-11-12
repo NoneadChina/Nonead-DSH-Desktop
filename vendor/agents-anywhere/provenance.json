@@ -6,7 +6,7 @@
   "sourceVersion": "2.1.0",
   "desktopVersion": "2.1.0-desktop.ce8f0cb9e1d9a.r33fd0a0e",
   "artifact": "agents-anywhere-dsh-bridge-next-2.1.0-desktop.ce8f0cb9e1d9a.r33fd0a0e.tgz",
-  "sha256": "f25329c5ef7f5cfc4124455d4c12d5ea4bcb712744d6728a16cfc95579fa51c7",
+  "sha256": "30230d6dad3f06915d0eb17e6b47f08dfd2cbc7d068a411fe9cef5c1f0911f6c",
   "runtimePeers": {
     "@deepseek-ai/dsh-typert-protocol": "0.2.2-rc.2",
     "@deepseek-ai/dsh-llm": "0.2.2-rc.2",
