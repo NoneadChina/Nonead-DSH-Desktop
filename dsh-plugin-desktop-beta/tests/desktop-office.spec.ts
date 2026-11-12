@@ -102,8 +102,8 @@ it('mounts Office only for a prepared development payload and requires it for a 
     await mkdir(source, { recursive: true })
     await writeFile(join(source, 'runtime.json'), '{}')
     const expected = { source, root: join(home, 'dsh-runtimes', PRIMARY_RUNTIME_INSTALL_NAME) }
-    expect(resolveDesktopOfficeConfig({ source, required: false }, home)).toEqual(expected)
-    expect(resolveDesktopOfficeConfig({ source, required: true }, home)).toEqual(expected)
+    expect(resolveDesktopOfficeConfig({ source, required: false }, home)).toEqual({ ...expected, mountSkills: true })
+    expect(resolveDesktopOfficeConfig({ source, required: true }, home)).toEqual({ ...expected, mountSkills: false })
     // The official Desktop installs its payload as dsh-primary-runtime in the shared ~/.dsh; an edition must not replace it.
     expect(PRIMARY_RUNTIME_INSTALL_NAME).toBe(`${DESKTOP_PACKAGE_NAME}-primary-runtime`)
     expect(PRIMARY_RUNTIME_INSTALL_NAME).not.toBe('dsh-primary-runtime')

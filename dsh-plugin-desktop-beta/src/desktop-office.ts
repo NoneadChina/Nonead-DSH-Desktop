@@ -15,6 +15,12 @@ export interface Config {
   readonly source: string
   /** Directory under the DSH home receiving the installed payload. */
   readonly root: string
+  /**
+   * Whether this composition registers the Office skill provider itself. A packaged Host loads the
+   * official Web composition, which already mounts `@deepseek-ai/dsh-skill-office`; registering the
+   * same `dsh-office` provider twice aborts Host startup.
+   */
+  readonly mountSkills?: boolean
 }
 
 /**
@@ -73,7 +79,7 @@ export function resolveDesktopOfficeConfig(runtime: DesktopPrimaryRuntime | unde
     if (runtime.required) throw new Error(`${DESKTOP_PACKAGE_NAME}: the bundled primary runtime is missing: ${runtime.source}`)
     return undefined
   }
-  return { source: runtime.source, root: join(home, 'dsh-runtimes', PRIMARY_RUNTIME_INSTALL_NAME) }
+  return { source: runtime.source, root: join(home, 'dsh-runtimes', PRIMARY_RUNTIME_INSTALL_NAME), mountSkills: !runtime.required }
 }
 
 /**
@@ -83,6 +89,9 @@ export function resolveDesktopOfficeConfig(runtime: DesktopPrimaryRuntime | unde
  */
 export async function apply(ctx: Context, config: Config): Promise<void> {
   await ctx.plugin(workspaceDependencies, config)
+  // The packaged Host loads the official Web composition, which already mounts the Office skills; a
+  // second `dsh-office` provider registration aborts Host startup.
+  if (config.mountSkills === false) return
   await ctx.plugin(officeSkills, {
     assetRoot: join(dirname(config.source), 'office-skills'),
   })

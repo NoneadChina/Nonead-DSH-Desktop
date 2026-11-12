@@ -16,6 +16,12 @@ export interface Config {
   readonly source: string
   /** Directory under the Next home receiving the installed payload. */
   readonly root: string
+  /**
+   * Whether this composition registers the Office skill provider itself. A packaged Host loads the
+   * official Web composition, which already mounts `@deepseek-ai/dsh-skill-office`; registering the
+   * same `dsh-office` provider twice aborts Host startup.
+   */
+  readonly mountSkills?: boolean
 }
 
 /**
@@ -49,7 +55,7 @@ export function resolveOfficeConfig(runtimeDir: string, source: string | undefin
     return undefined
   }
   if (!packaged && !existsSync(join(source, 'runtime.json'))) return undefined
-  return { source, root: join(home, 'dsh-runtimes', PRIMARY_RUNTIME_INSTALL_NAME) }
+  return { source, root: join(home, 'dsh-runtimes', PRIMARY_RUNTIME_INSTALL_NAME), mountSkills: !packaged }
 }
 
 /**
@@ -59,6 +65,9 @@ export function resolveOfficeConfig(runtimeDir: string, source: string | undefin
  */
 export async function apply(ctx: Context, config: Config): Promise<void> {
   await ctx.plugin(workspaceDependencies, config)
+  // The packaged Host loads the official Web composition, which already mounts the Office skills; a
+  // second `dsh-office` provider registration aborts Host startup.
+  if (config.mountSkills === false) return
   // The CLI runs under the bundled standalone Node, which reads no archive; its package closure is unpacked beside the archive.
   const manifest = fileURLToPath(import.meta.resolve('@deepseek-ai/libreoffice-kit/package.json'))
   const packageRoot = dirname(insideArchive(manifest) ? unpackedPath(manifest) : manifest)

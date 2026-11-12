@@ -81,11 +81,11 @@ it('mounts Office only for a prepared development payload and always for a packa
     expect(resolveOfficeConfig(root, source, home, platform)).toBeUndefined()
     await mkdir(source, { recursive: true })
     await writeFile(join(source, 'runtime.json'), '{}')
-    expect(resolveOfficeConfig(root, source, home, platform)).toEqual({ source, root: join(home, 'dsh-runtimes', PRIMARY_RUNTIME_INSTALL_NAME) })
+    expect(resolveOfficeConfig(root, source, home, platform)).toEqual({ source, root: join(home, 'dsh-runtimes', PRIMARY_RUNTIME_INSTALL_NAME), mountSkills: true })
     const archive = join(root, 'Resources', 'app.asar')
     const packaged = join(root, 'Resources', 'runtime', 'x64', 'primary-runtime')
     expect(() => resolveOfficeConfig(archive, undefined, home, platform)).toThrow('requires the bundled primary runtime path')
-    expect(resolveOfficeConfig(archive, packaged, home, platform)).toEqual({ source: packaged, root: join(home, 'dsh-runtimes', PRIMARY_RUNTIME_INSTALL_NAME) })
+    expect(resolveOfficeConfig(archive, packaged, home, platform)).toEqual({ source: packaged, root: join(home, 'dsh-runtimes', PRIMARY_RUNTIME_INSTALL_NAME), mountSkills: false })
     expect(PRIMARY_RUNTIME_INSTALL_NAME).not.toBe('dsh-primary-runtime')
   } finally {
     await rm(root, { recursive: true, force: true })
