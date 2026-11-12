@@ -77,11 +77,14 @@ patches/*@0.2.1-rc.2.patch
 .yarn/patches/dshmarket-npm-*.patch
 
 # Agents Anywhere artifacts accumulate one file per release build; only the
-# bridge referenced by package.json and yarn.lock is consumed.
+# bridge referenced by package.json and yarn.lock is consumed. Every tgz kept in
+# the tree must also be negated below, otherwise a re-add silently drops it.
 vendor/agents-anywhere/*.tgz
+!vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c39b82d4fffb1.r7504932a.tgz
 !vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c39b82d4fffb1.rd9c47cbc.tgz
 !vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c39b82d4fffb1.rbcb63731.tgz
 !vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.c39b82d4fffb1.rc2b11bfc.tgz
+!vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.ce8f0cb9e1d9a.rc2b11bfc.tgz
 !vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.ce8f0cb9e1d9a.r33fd0a0e.tgz
 
 # Local-only scratch that must never enter the repository: copied Profile data
