@@ -88,7 +88,7 @@ Nonead DSH Desktop 把 [DeepSeek Harness](https://github.com/deepseek-ai/deepsee
 | Electron / 打包器 | Electron `44.0.0` / electron-builder `26.15.7`（`app-builder-lib` 带补丁） |
 | Node / Yarn | Node `^22.19.0` 或 `>=24.0.0`；Yarn `4.18.0`（经 Corepack，`nodeLinker: node-modules`） |
 | 插件市场 | `dshmarket` `1.73.17`，另有本仓库的 `dsh-community-market` `0.1.0-dev.0` |
-| 手机远控桥 | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop`（上游提交 `296f70e`） |
+| 手机远控桥 | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop`（上游提交 `e8f0cb9`） |
 | 品牌皮肤 | `dsh-nonead-client-skin`（随安装包分发，按 profile 组合加载） |
 
 `upstream.json` 记录两条 vendored 运行时线：`stable` 对应上游 `0.2.0-rc.2`，`beta` 对应上游 `0.2.2-rc.2`；真正打进安装包的是工作区精确 pin 的那一条，当前两个桌面工作区都 pin 在 `0.2.2-rc.2`。**通道名描述的是"运行时线"，不是工作区查询的发布通道。**

@@ -88,7 +88,7 @@ El shell y el Host se comunican por un único canal IPC de proceso hijo. Cambiar
 | Electron / empaquetador | Electron `44.0.0` / electron-builder `26.15.7` (`app-builder-lib` con parche) |
 | Node / Yarn | Node `^22.19.0` o `>=24.0.0`; Yarn `4.18.0` mediante Corepack (`nodeLinker: node-modules`) |
 | Mercado de plugins | `dshmarket` `1.73.17`, más el `dsh-community-market` `0.1.0-dev.0` de este repositorio |
-| Puente de control remoto | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop` (commit upstream `296f70e`) |
+| Puente de control remoto | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop` (commit upstream `e8f0cb9`) |
 | Skin de marca | `dsh-nonead-client-skin` (se distribuye en el instalador y se monta por perfil) |
 
 `upstream.json` registra dos líneas de runtime vendored: `stable` corresponde al upstream `0.2.0-rc.2` y `beta` al upstream `0.2.2-rc.2`. Lo que realmente se incluye en un instalador es la línea que el espacio de trabajo fija con pin exacto; actualmente ambos espacios de escritorio fijan `0.2.2-rc.2`. **Los nombres de canal describen líneas de runtime, no el canal de publicación que consulta un espacio de trabajo.**

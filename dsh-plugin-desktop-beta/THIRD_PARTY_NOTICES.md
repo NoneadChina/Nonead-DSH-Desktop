@@ -5,7 +5,7 @@ the package names, versions, and licenses for transparency.
 | Package | Version | License |
 | --- | --- | --- |
 | @agentclientprotocol/sdk | 1.4.0 | Apache-2.0 |
-| @agents-anywhere/dsh-bridge-next | 2.1.0-desktop.c296f70ed4036.rc2b11bfc | MIT |
+| @agents-anywhere/dsh-bridge-next | 2.1.0-desktop.ce8f0cb9e1d9a.r33fd0a0e | MIT |
 | @anthropic-ai/sdk | 0.129.0 | MIT |
 | @aws-sdk/client-bedrock-runtime | 3.1127.0 | Apache-2.0 |
 | @aws-sdk/core | 3.978.1 | Apache-2.0 |
@@ -511,7 +511,7 @@ the package names, versions, and licenses for transparency.
 | fast-sha256 | 1.3.0 | Unlicense |
 | fast-uri | 3.1.5 | BSD-3-Clause |
 | fetch-blob | 3.2.0 | MIT |
-| fflate | 0.8.3 | MIT |
+| fflate | 0.8.2 | MIT |
 | figures | 6.1.0 | MIT |
 | find-up | 4.1.0 | MIT |
 | fontkit | 2.0.4 | MIT |

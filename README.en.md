@@ -88,7 +88,7 @@ Shell and Host communicate over exactly one child-process IPC channel. Switching
 | Electron / packager | Electron `44.0.0` / electron-builder `26.15.7` (patched `app-builder-lib`) |
 | Node / Yarn | Node `^22.19.0` or `>=24.0.0`; Yarn `4.18.0` via Corepack (`nodeLinker: node-modules`) |
 | Plugin market | `dshmarket` `1.73.17`, plus this repository's `dsh-community-market` `0.1.0-dev.0` |
-| Remote-control bridge | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop` (upstream commit `296f70e`) |
+| Remote-control bridge | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop` (upstream commit `e8f0cb9`) |
 | Brand skin | `dsh-nonead-client-skin` (shipped in the installer, mounted per profile) |
 
 `upstream.json` records two vendored runtime lines: `stable` maps to upstream `0.2.0-rc.2` and `beta` to upstream `0.2.2-rc.2`. What actually ships inside an installer is the line a workspace pins exactly — currently both desktop workspaces pin `0.2.2-rc.2`. **Channel names describe runtime lines, not the release channel a workspace queries.**
