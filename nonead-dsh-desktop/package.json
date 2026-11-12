@@ -469,6 +469,7 @@
       "**/spawn-helper",
       "**/@vscode/ripgrep-*/bin/rg",
       "**/@dataiku/uv-*/bin/uv",
+      "**/meshcall-router-*/bin/*",
       "**/node_modules/@deepseek-ai/node-addon-system-*/bin/landlock-run",
       "**/node_modules/@deepseek-ai/libreoffice-kit-*/**/*",
       "**/node_modules/@trycua/cua-driver-*/**/*",
