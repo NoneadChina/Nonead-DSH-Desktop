@@ -81,11 +81,13 @@ it('mounts Office only for a prepared development payload and always for a packa
     expect(resolveOfficeConfig(root, source, home)).toBeUndefined()
     await mkdir(source, { recursive: true })
     await writeFile(join(source, 'runtime.json'), '{}')
-    expect(resolveOfficeConfig(root, source, home)).toEqual({ source, root: join(home, 'dsh-runtimes', PRIMARY_RUNTIME_INSTALL_NAME) })
+    expect(resolveOfficeConfig(root, source, home)).toEqual({ source, root: join(home, 'dsh-runtimes', PRIMARY_RUNTIME_INSTALL_NAME), mountSkills: true })
     const archive = join(root, 'Resources', 'app.asar')
     const packaged = join(root, 'Resources', 'runtime', 'x64', 'primary-runtime')
     expect(() => resolveOfficeConfig(archive, undefined, home)).toThrow('requires the bundled primary runtime path')
-    expect(resolveOfficeConfig(archive, packaged, home)).toEqual({ source: packaged, root: join(home, 'dsh-runtimes', PRIMARY_RUNTIME_INSTALL_NAME) })
+    // A packaged Host loads the official Web composition, which already registers `dsh-office`; the
+    // application-owned composition must not register a second provider with that name.
+    expect(resolveOfficeConfig(archive, packaged, home)).toEqual({ source: packaged, root: join(home, 'dsh-runtimes', PRIMARY_RUNTIME_INSTALL_NAME), mountSkills: false })
     expect(PRIMARY_RUNTIME_INSTALL_NAME).not.toBe('dsh-primary-runtime')
   } finally {
     await rm(root, { recursive: true, force: true })

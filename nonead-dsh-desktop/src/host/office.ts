@@ -15,6 +15,12 @@ export interface Config {
   readonly source: string
   /** Directory under the Next home receiving the installed payload. */
   readonly root: string
+  /**
+   * Whether this composition registers the Office skill provider itself. A packaged Host loads the
+   * official Web composition, which already mounts `@deepseek-ai/dsh-skill-office`; registering the
+   * same `dsh-office` provider twice aborts Host startup.
+   */
+  readonly mountSkills?: boolean
 }
 
 /**
@@ -38,7 +44,7 @@ export function resolveOfficeConfig(runtimeDir: string, source: string | undefin
     return undefined
   }
   if (!packaged && !existsSync(join(source, 'runtime.json'))) return undefined
-  return { source, root: join(home, 'dsh-runtimes', PRIMARY_RUNTIME_INSTALL_NAME) }
+  return { source, root: join(home, 'dsh-runtimes', PRIMARY_RUNTIME_INSTALL_NAME), mountSkills: !packaged }
 }
 
 /**
@@ -48,6 +54,7 @@ export function resolveOfficeConfig(runtimeDir: string, source: string | undefin
  */
 export async function apply(ctx: Context, config: Config): Promise<void> {
   await ctx.plugin(workspaceDependencies, config)
+  if (config.mountSkills === false) return
   await ctx.plugin(officeSkills, {
     assetRoot: join(dirname(config.source), 'office-skills'),
   })
