@@ -1,8 +1,8 @@
 diff --git a/lib/bundled-connector/connector/runtimes/dsh/bridge/sync.py b/lib/bundled-connector/connector/runtimes/dsh/bridge/sync.py
-index 178e77b..1b7c14b 100644
+index adee202..4f9773f 100644
 --- a/lib/bundled-connector/connector/runtimes/dsh/bridge/sync.py
 +++ b/lib/bundled-connector/connector/runtimes/dsh/bridge/sync.py
-@@ -178,7 +178,7 @@ class SyncRelay:
+@@ -225,7 +225,7 @@ class SyncRelay:
              if phase is None:
                  await self.host.runtime_health_update(status)
              else:
@@ -11,7 +11,7 @@ index 178e77b..1b7c14b 100644
          except Exception as error:  # noqa: BLE001 - reporting never interrupts sync
              logger.debug("DSH sync health report skipped ({})", type(error).__name__)
  
-@@ -366,13 +366,16 @@ class SyncRelay:
+@@ -414,13 +414,16 @@ class SyncRelay:
          loop = asyncio.get_running_loop()
          drafts = all(_streaming_draft(notice) for notice in notifications)
          started = loop.time()
@@ -19,18 +19,18 @@ index 178e77b..1b7c14b 100644
 +        if completed:
 +            # Promote before publishing: the notice round trip talks to the cloud and
 +            # must never keep the local runtime unusable.
-+            await self._report_health("running")
++            await self._baseline_completed()
          await self.host.publish_runtime_notifications("dsh", notifications)
          streaming = drafts and self.last_draft_post > float("-inf")
          self.last_draft_post = started if drafts else float("-inf")
          if streaming and (hold := started + self.streaming_post_interval - loop.time()) > 0:
              await asyncio.sleep(hold)
 -        if any(n["method"] == "session.inventory.complete" and n["params"].get("complete") is True for n in notifications):
--            await self._report_health("running")
+-            await self._baseline_completed()
  
      async def store_items(self, items: list[dict[str, Any]]) -> None:
          self.item_bytes += object_bytes(items)
-@@ -459,9 +462,11 @@ class SyncRelay:
+@@ -507,9 +510,11 @@ class SyncRelay:
          elif method == "catalog.permission.update":
              await self.host.permission_catalog_update(permission_catalog(params))
          elif method in {"session.inventory.begin", "session.inventory.complete"}:
@@ -38,39 +38,16 @@ index 178e77b..1b7c14b 100644
              if method == "session.inventory.complete" and params.get("complete") is True:
 +                # Promote before publishing: a failed notice round trip must never
 +                # leave the local runtime unavailable.
-                 await self._report_health("running")
+                 await self._baseline_completed()
 +            await self.host.publish_runtime_notifications("dsh", [notice])
          else:
              raise ValueError(f"Unsupported runtime notification: {method}")
  
-@@ -479,9 +484,6 @@ class SyncRelay:
-                         "DSH event sync interrupted; resubscribing in {:.1f}s ({}: {})",
-                         delay, type(error).__name__, error,
-                     )
--                    await self._report_health("starting", {
--                        "code": "sync_interrupted", "message": "DSH 会话同步中断，正在重试…", "retryable": True,
--                    })
-                     if not self.client.connected:
-                         return
-                     self.clear_snapshot()
-@@ -498,9 +500,9 @@ class SyncRelay:
-         self.expected_batch = 1
-         self.confirmed.clear()
-         try:
--            await self._report_health("starting", {
--                "code": "syncing", "message": "正在同步 DSH 会话…", "retryable": True,
--            })
-+            # Subscribing never demotes the runtime: the process is ready even while
-+            # history is still catching up, and a flapping feed must not make it
-+            # unavailable to the phone.
-             async for event in self.client.stream("sync", {"subscriptionId": subscription_id, "checkpointVersion": 1}):
-                 if event.get("kind") != "subscribed":
-                     continue
 diff --git a/lib/bundled-connector/connector/runtimes/dsh/runtime.py b/lib/bundled-connector/connector/runtimes/dsh/runtime.py
-index 013a9be..9a40c81 100644
+index c2cd2a3..7393893 100644
 --- a/lib/bundled-connector/connector/runtimes/dsh/runtime.py
 +++ b/lib/bundled-connector/connector/runtimes/dsh/runtime.py
-@@ -83,6 +83,12 @@ class DshRuntime(AgentRuntime):
+@@ -93,6 +93,12 @@ class DshRuntime(AgentRuntime):
              if not self._stopping and self._client is not None and self.sync_mode == "events":
                  self._sync = SyncRelay(self._client, self.host, on_exit=self._relay_exited, quarantined=self._quarantined)
                  self._sync.start()

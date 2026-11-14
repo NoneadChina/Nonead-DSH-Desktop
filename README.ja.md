@@ -88,7 +88,7 @@ Nonead DSH Desktop は、[DeepSeek Harness](https://github.com/deepseek-ai/deeps
 | Electron / パッケージャー | Electron `44.0.0` / electron-builder `26.15.7`（`app-builder-lib` にパッチあり） |
 | Node / Yarn | Node `^22.19.0` または `>=24.0.0`、Yarn `4.18.0`（Corepack 経由、`nodeLinker: node-modules`） |
 | プラグインマーケット | `dshmarket` `1.73.19`、加えて本リポジトリの `dsh-community-market` `0.1.0-dev.0` |
-| スマートフォン遠隔操作ブリッジ | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop`（上流コミット `e8f0cb9`） |
+| スマートフォン遠隔操作ブリッジ | `@agents-anywhere/dsh-bridge-next` `2.2.0-desktop`（上流コミット `aa12e7a`） |
 | ブランドスキン | `dsh-nonead-client-skin`（インストーラーに同梱、プロファイルごとに組み込み読み込み） |
 
 `upstream.json` は vendored された 2 本のランタイム系列を記録しています。`stable` は上流 `0.2.0-rc.2`、`beta` は上流 `0.2.2-rc.3` に対応します。実際にインストーラーに含まれるのは、ワークスペースが厳密に pin している系列です。現在は 2 つのデスクトップワークスペースがともに `0.2.2-rc.3` を pin しています。**チャネル名が表すのは「ランタイム系列」であり、ワークスペースが参照するリリースチャネルではありません。**

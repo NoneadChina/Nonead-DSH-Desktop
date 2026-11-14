@@ -21,7 +21,7 @@ Una versión centrada en seguir el núcleo y el empaquetado:
 - Personalización de escritorio: los 24 parches de artefactos de compilación se rebasaron a `@0.2.2-rc.3`. Upstream solo cambió metadatos de empaquetado cerca de los puntos parcheados: el recurso de entrada de `dsh-web-frontend` cambió de nombre con la compilación (`index-ghOpC9uV.js` → `index-Ciz7DZxv.js`) y las tipificaciones de `dsh-client-ui-workspace` ganaron una línea insertada por el nuevo contrato toast.
 - Empaquetado Linux: se restauran las compilaciones de doble arquitectura AppImage / deb / rpm y los binarios nativos del router `meshcall` quedan fuera de `app.asar`, de modo que la auditoría afterPack ya no falla con «native code is packed».
 - Mercado incluido: `dshmarket` sube de 1.73.17 a 1.73.19; el parche de autoactualización se aplica sin cambios.
-- Compatibilidad: el puente AA incluido se reconstruye desde el commit `e8f0cb9` de upstream v2.1.0 con peers `0.2.2-rc.3`; `upstream-reference.json` conserva 35 entradas tras la revisión.
+- Compatibilidad: el puente AA incluido se reconstruye desde el commit `aa12e7a` (licencia cambiada a Apache-2.0 en upstream) de upstream v2.2.0 con peers `0.2.2-rc.3`; `upstream-reference.json` conserva 35 entradas tras la revisión.
 - Versión: producto 2.2.11 → **2.2.13** (ambos espacios de trabajo de escritorio sincronizados).
 ## 2.2.11 — 2026-11-12
 
