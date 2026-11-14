@@ -12,6 +12,7 @@
  * 可选环境变量：
  *   DSH_PACKAGE_CHECK_ALREADY_RAN 1 = 跳过 check:win-package（一次打包两架构时第二遍用）
  *   DSH_PACKAGE_SKIP_PAYLOAD      1 = 复用已有 unpacked 目录，只重编安装包
+ *   DSH_PACKAGE_SMOKE             1 = 额外跑打包后运行时冒烟（默认不跑，用户要求）
  *   INNO_SETUP_ISCC               ISCC.exe 路径（默认 C:\Program Files\Inno Setup 7\ISCC.exe）
  */
 import { spawnSync } from 'node:child_process'
@@ -36,6 +37,8 @@ const workspaceRoot = resolve(desktopRoot, '..')
 const require = createRequire(import.meta.url)
 const ISCC = process.env.INNO_SETUP_ISCC ?? 'C:\\Program Files\\Inno Setup 7\\ISCC.exe'
 const ISS_TEMPLATE = join(desktopRoot, 'scripts', 'inno', 'desktop.iss')
+/** 安装包 logo 来自 build/app-icon.png，Inno 需要的是它的 .ico 渲染。 */
+const ICON_SOURCE = join(desktopRoot, 'build', 'app-icon.png')
 const ICON_FILE = join(desktopRoot, 'build', 'app-icon.ico')
 /** payload 约 1.4 GB；压缩后正常在 250 MB 以上，低于此值视为失败。 */
 const MIN_INSTALLER_BYTES = 250 * 1024 * 1024
@@ -74,7 +77,9 @@ async function prepareRuntime(platform: NodeJS.Platform = process.platform): Pro
   if (platform === 'darwin') prepareNextMacRuntime(desktopRoot)
   const root = await prepareNextRuntime({ desktopRoot, platform, version: buildVersion, targetArch })
   verifyNextRuntimeTree(root, platform, buildVersion, targetArch)
-  smokeNextRuntime(root, platform, console.log, targetArch)
+  // 用户要求打包时不必跑冒烟；需要时设 DSH_PACKAGE_SMOKE=1 打开（跨架构主机会自行跳过）。
+  if (process.env.DSH_PACKAGE_SMOKE === '1') smokeNextRuntime(root, platform, console.log, targetArch)
+  else console.log('跳过运行时冒烟（DSH_PACKAGE_SMOKE 未开启）。')
   preparePayload(platform)
 }
 
@@ -99,11 +104,31 @@ function findFile(root: string, name: string): string | undefined {
   return undefined
 }
 
+/**
+ * 安装包 logo 必须是 build/app-icon.png 的当前渲染：Inno 只吃 .ico，
+ * 所以这里用仓库自带的 icons:check 校验 app-icon.ico 与 png 导出记录一致，
+ * 避免出现「png 换了、ico 还是旧的」这种安装包图标与产品图标不一致。
+ */
+function assertCurrentInstallerIcon(): void {
+  if (!existsSync(ICON_SOURCE)) throw new Error(`缺少安装包 logo 源文件：${ICON_SOURCE}`)
+  if (!existsSync(ICON_FILE)) throw new Error(`缺少安装包图标：${ICON_FILE}（先跑 yarn icons:export）`)
+  const result = spawnSync(
+    process.execPath,
+    [join(workspaceRoot, 'scripts', 'export-app-icons.mjs'), '--check', '--channel', 'stable'],
+    { cwd: workspaceRoot, stdio: 'inherit' },
+  )
+  if (result.error) throw result.error
+  if (result.status !== 0) {
+    throw new Error('build/app-icon.ico 与 build/app-icon.png 不一致：先跑 yarn icons:export 再打包')
+  }
+  console.log(`安装包 logo：${ICON_SOURCE}（渲染为 ${ICON_FILE}）`)
+}
+
 async function main(): Promise<void> {
   console.log(`Inno Setup 打包：${targetArch}，版本 ${buildVersion}，输出 ${outputDirectory}`)
   if (process.platform !== 'win32') throw new Error('Inno Setup 安装包必须在 Windows 上构建')
   if (!existsSync(ISCC)) throw new Error(`找不到 Inno Setup 编译器：${ISCC}`)
-  if (!existsSync(ICON_FILE)) throw new Error(`找不到安装包图标：${ICON_FILE}`)
+  assertCurrentInstallerIcon()
 
   const cleanEnvironment = withoutWindowsSigningSecrets(process.env)
   const unpacked = join(desktopRoot, outputDirectory, targetArch === 'x64' ? 'win-unpacked' : 'win-arm64-unpacked')
