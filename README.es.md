@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  Producto <code>2.2.10</code> · runtime de DSH <code>0.2.2-rc.2</code> · Electron 44 · MIT License
+  Producto <code>2.2.12</code> · runtime de DSH <code>0.2.2-rc.3</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">Descarga con un clic, listo para usar.</a></h3>
@@ -65,19 +65,19 @@ El shell y el Host se comunican por un único canal IPC de proceso hijo. Cambiar
 
 | Elemento | Valor |
 | --- | --- |
-| Versión del producto | `2.2.10` (`nonead-dsh-desktop` y `dsh-plugin-desktop-beta` sincronizados) |
+| Versión del producto | `2.2.12` (`nonead-dsh-desktop` y `dsh-plugin-desktop-beta` sincronizados) |
 | Espacio de trabajo del canal estable | `nonead-dsh-desktop` (los scripts de la raíz usan el sufijo `:stable`) |
 | Espacio de trabajo del canal Beta | `dsh-plugin-desktop-beta` (los scripts de la raíz usan el sufijo `:beta`) |
-| Runtime de DSH | `0.2.2-rc.2`, todas las dependencias `@deepseek-ai/dsh*` fijadas con pin exacto y el runtime vendored en el repositorio |
-| Runtime vendored | `vendor/dsh-runtime/0.2.2-rc.2/` (se conservan varios directorios de versiones anteriores) |
-| Pin upstream | `ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c` (`channels.beta` en `upstream.json`, replicado en `nonead-dsh-desktop/upstream-reference.json`) |
+| Runtime de DSH | `0.2.2-rc.3`, todas las dependencias `@deepseek-ai/dsh*` fijadas con pin exacto y el runtime vendored en el repositorio |
+| Runtime vendored | `vendor/dsh-runtime/0.2.2-rc.3/` (se conservan varios directorios de versiones anteriores) |
+| Pin upstream | `38a6a5c965aa99ab525161efb7cc5cf1fe62fced` (`channels.beta` en `upstream.json`, replicado en `nonead-dsh-desktop/upstream-reference.json`) |
 | Electron / empaquetador | Electron `44.0.0` / electron-builder `26.15.7` (`app-builder-lib` con parche) |
 | Node / Yarn | Node `^22.19.0` o `>=24.0.0`; Yarn `4.18.0` mediante Corepack (`nodeLinker: node-modules`) |
-| Mercado de plugins | `dshmarket` `1.73.17`, más el `dsh-community-market` `0.1.0-dev.0` de este repositorio |
-| Puente de control remoto | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop` (commit upstream `e8f0cb9`) |
+| Mercado de plugins | `dshmarket` `1.73.19`, más el `dsh-community-market` `0.1.0-dev.0` de este repositorio |
+| Puente de control remoto | `@agents-anywhere/dsh-bridge-next` `2.2.0-desktop` (commit upstream `aa12e7a`) |
 | Skin de marca | `dsh-nonead-client-skin` (se distribuye en el instalador y se monta por perfil) |
 
-`upstream.json` registra dos líneas de runtime vendored: `stable` corresponde al upstream `0.2.0-rc.2` y `beta` al upstream `0.2.2-rc.2`. Lo que realmente se incluye en un instalador es la línea que el espacio de trabajo fija con pin exacto; actualmente ambos espacios de escritorio fijan `0.2.2-rc.2`. **Los nombres de canal describen líneas de runtime, no el canal de publicación que consulta un espacio de trabajo.**
+`upstream.json` registra dos líneas de runtime vendored: `stable` corresponde al upstream `0.2.0-rc.2` y `beta` al upstream `0.2.2-rc.3`. Lo que realmente se incluye en un instalador es la línea que el espacio de trabajo fija con pin exacto; actualmente ambos espacios de escritorio fijan `0.2.2-rc.3`. **Los nombres de canal describen líneas de runtime, no el canal de publicación que consulta un espacio de trabajo.**
 
 <a id="download"></a>
 
@@ -283,6 +283,7 @@ El historial completo está en el [registro de cambios](CHANGELOG.es.md) ([中�
 
 | Versión | Fecha | Aspectos destacados |
 | --- | --- | --- |
+| `2.2.12` | 2026-11-14 | Runtime elevado a DSH `0.2.2-rc.3` (375 paquetes re-vendored, 24 parches rebasados); el puente de Agents Anywhere sube a 2.2.0 con peers de rc.3; los 27 plugins incluidos se contrastaron con npm latest (13 actualizados); `dshmarket` 1.73.19 |
 | `2.2.10` | 2026-11-12 | Runtime elevado a DSH `0.2.2-rc.2` (374 paquetes re-vendored, 24 parches rebasados), adaptando el paquete agent-team promovido y los cambios de dependencias peer; el puente de Agents Anywhere sigue cargando mediante una excepción del perfil; 27 plugins incluidos |
 | `2.2.9` | 2026-11-10 | Tiempo de ejecución elevado a DSH `0.2.2-rc.1` (373 paquetes re-vendored, 24 parches rebasados), plugins incluidos ampliados a 35 con presentación por categorías y agradecimiento a cada autor; puente de Agents Anywhere en 2.1.0 |
 | `2.1.15` | 2026-10-22 | Notas de la versión en la tarjeta de actualización, la bandeja y los diálogos nativos, omisión de una versión, reintento de instalación y reversión a instantáneas; estado de ventana recordado, `.env` por capas, enlaces profundos `dsh-desktop://` y abrir al iniciar sesión; previsualización de medios del mercado e instalación por nombre; `dshmarket` `1.66.45` |

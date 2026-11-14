@@ -2,7 +2,7 @@
 
 DSH Desktop 是围绕**未修改的 DeepSeek Harness 上游**构建的桌面产品：一个 Electron 桌面壳 + 一个跑官方 Web 应用的 Host 进程，前端仍是上游自己的渲染器。本仓库不改上游语义，只在进程边界、Profile 组合、打包与发行通道上补齐桌面形态需要的东西。
 
-本文描述当前代码（HEAD `926254c`，产品版本 2.2.9，DSH Beta 运行时 `0.2.2-rc.2`）的真实结构。凡本文与代码冲突，以代码为准。
+本文描述当前代码（HEAD `60a1b41`，产品版本 2.2.12，DSH Beta 运行时 `0.2.2-rc.3`）的真实结构。凡本文与代码冲突，以代码为准。
 
 ## 总览
 
@@ -185,7 +185,7 @@ Profile 的读-改-写必须在**同一把写者锁**下完成（`src/recovery-s
 | 通道 | vendored 运行时 | 上游 commit | workspace 包 |
 | --- | --- | --- | --- |
 | stable | `0.2.0-rc.2` | `639ed015` | `nonead-dsh-desktop` |
-| beta | `0.2.2-rc.2` | `ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c` | `dsh-plugin-desktop-beta` |
+| beta | `0.2.2-rc.3` | `38a6a5c965aa99ab525161efb7cc5cf1fe62fced` | `dsh-plugin-desktop-beta` |
 
 边界说明：
 

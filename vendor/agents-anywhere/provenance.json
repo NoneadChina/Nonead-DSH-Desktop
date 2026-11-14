@@ -1,26 +1,26 @@
 {
   "repository": "https://github.com/anywhere-labs/Agents-Anywhere.git",
   "branch": "main",
-  "commit": "e8f0cb9e1d9aeca45331224653d0b7cacba39a3a",
+  "commit": "aa12e7a2c181df29c0cf0a88959dccbefef45a92",
   "packageDirectory": "dsh-bridge-next",
-  "sourceVersion": "2.1.0",
-  "desktopVersion": "2.1.0-desktop.ce8f0cb9e1d9a.r33fd0a0e",
-  "artifact": "agents-anywhere-dsh-bridge-next-2.1.0-desktop.ce8f0cb9e1d9a.r33fd0a0e.tgz",
-  "sha256": "1d64b6782fb8eca30025ab466b0a24a4321d6b78c7946133f427e7756417fea6",
+  "sourceVersion": "2.2.0",
+  "desktopVersion": "2.2.0-desktop.caa12e7a2c181.r216dce97",
+  "artifact": "agents-anywhere-dsh-bridge-next-2.2.0-desktop.caa12e7a2c181.r216dce97.tgz",
+  "sha256": "15fe55cfb6c14a5f2518cb275cc305e581dedfaeb022e5c745535d16dcf06e38",
   "runtimePeers": {
-    "@deepseek-ai/dsh-typert-protocol": "0.2.2-rc.2",
-    "@deepseek-ai/dsh-llm": "0.2.2-rc.2",
-    "@deepseek-ai/dsh-session": "0.2.2-rc.2"
+    "@deepseek-ai/dsh-typert-protocol": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-llm": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-session": "0.2.2-rc.3"
   },
   "manifestChanges": [
-    "version set to 2.1.0-desktop.ce8f0cb9e1d9a.r33fd0a0e",
+    "version set to 2.2.0-desktop.caa12e7a2c181.r216dce97",
     "release staging removes prepack/postpack hooks; build, typecheck and check:build run explicitly",
     "release staging pins the AA build-time DSH type graph to the source devDependencies",
-    "@deepseek-ai/dsh-typert-protocol peer accepts 0.2.2-rc.2",
-    "@deepseek-ai/dsh-llm peer accepts 0.2.2-rc.2",
-    "@deepseek-ai/dsh-session peer accepts 0.2.2-rc.2"
+    "@deepseek-ai/dsh-typert-protocol peer accepts 0.2.2-rc.3",
+    "@deepseek-ai/dsh-llm peer accepts 0.2.2-rc.3",
+    "@deepseek-ai/dsh-session peer accepts 0.2.2-rc.3"
   ],
   "sourceChanges": [],
-  "pinnedCommit": "e8f0cb9e1d9aeca45331224653d0b7cacba39a3a",
-  "pinReason": "Pin to the Agents Anywhere v2.1.0 release tag: AA Desktop and Connector 2.1.x require the matching 2.1.0 bridge, because a MINOR bump leaves the local connection waiting."
+  "pinnedCommit": "aa12e7a2c181df29c0cf0a88959dccbefef45a92",
+  "pinReason": "Pin to the Agents Anywhere v2.2.0 release line (commit aa12e7a2c181): AA Desktop and Connector 2.2.x ship the matching 2.2.0 bridge, and 2.2.0 is the release built against DSH 0.2.2-rc.3."
 }

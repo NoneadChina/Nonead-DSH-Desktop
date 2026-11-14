@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  Produkt <code>2.2.10</code> · DSH-Laufzeit <code>0.2.2-rc.2</code> · Electron 44 · MIT License
+  Produkt <code>2.2.12</code> · DSH-Laufzeit <code>0.2.2-rc.3</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">Mit einem Klick herunterladen, sofort einsatzbereit.</a></h3>
@@ -65,19 +65,19 @@ Shell und Host kommunizieren über genau einen IPC-Kanal zwischen Kindprozessen.
 
 | Punkt | Wert |
 | --- | --- |
-| Produktversion | `2.2.10` (`nonead-dsh-desktop` und `dsh-plugin-desktop-beta` im Gleichschritt) |
+| Produktversion | `2.2.12` (`nonead-dsh-desktop` und `dsh-plugin-desktop-beta` im Gleichschritt) |
 | Workspace des Stable-Kanals | `nonead-dsh-desktop` (Root-Skripte mit Suffix `:stable`) |
 | Workspace des Beta-Kanals | `dsh-plugin-desktop-beta` (Root-Skripte mit Suffix `:beta`) |
-| DSH-Laufzeit | `0.2.2-rc.2`, jede Abhängigkeit von `@deepseek-ai/dsh*` exakt gepinnt, Laufzeit lokal vendored |
-| Vendored Laufzeit | `vendor/dsh-runtime/0.2.2-rc.2/` (mehrere historische Versionsverzeichnisse bleiben erhalten) |
-| Upstream-Pin | `ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c` (`channels.beta` in `upstream.json`, gespiegelt in `nonead-dsh-desktop/upstream-reference.json`) |
+| DSH-Laufzeit | `0.2.2-rc.3`, jede Abhängigkeit von `@deepseek-ai/dsh*` exakt gepinnt, Laufzeit lokal vendored |
+| Vendored Laufzeit | `vendor/dsh-runtime/0.2.2-rc.3/` (mehrere historische Versionsverzeichnisse bleiben erhalten) |
+| Upstream-Pin | `38a6a5c965aa99ab525161efb7cc5cf1fe62fced` (`channels.beta` in `upstream.json`, gespiegelt in `nonead-dsh-desktop/upstream-reference.json`) |
 | Electron / Packager | Electron `44.0.0` / electron-builder `26.15.7` (`app-builder-lib` gepatcht) |
 | Node / Yarn | Node `^22.19.0` oder `>=24.0.0`; Yarn `4.18.0` über Corepack (`nodeLinker: node-modules`) |
-| Plugin-Marktplatz | `dshmarket` `1.73.17`, dazu `dsh-community-market` `0.1.0-dev.0` aus diesem Repository |
-| Bridge zur Fernsteuerung | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop` (Upstream-Commit `e8f0cb9`) |
+| Plugin-Marktplatz | `dshmarket` `1.73.19`, dazu `dsh-community-market` `0.1.0-dev.0` aus diesem Repository |
+| Bridge zur Fernsteuerung | `@agents-anywhere/dsh-bridge-next` `2.2.0-desktop` (Upstream-Commit `aa12e7a`) |
 | Marken-Skin | `dsh-nonead-client-skin` (wird mit dem Installationsprogramm ausgeliefert, pro Profil eingebunden) |
 
-`upstream.json` führt zwei vendored Laufzeitlinien: `stable` verweist auf Upstream `0.2.0-rc.2`, `beta` auf Upstream `0.2.2-rc.2`. Was tatsächlich in einem Installationsprogramm landet, ist die Linie, die ein Workspace exakt pinnt – derzeit pinnen beide Desktop-Workspaces `0.2.2-rc.2`. **Kanalnamen beschreiben Laufzeitlinien, nicht den Release-Kanal, den ein Workspace abfragt.**
+`upstream.json` führt zwei vendored Laufzeitlinien: `stable` verweist auf Upstream `0.2.0-rc.2`, `beta` auf Upstream `0.2.2-rc.3`. Was tatsächlich in einem Installationsprogramm landet, ist die Linie, die ein Workspace exakt pinnt – derzeit pinnen beide Desktop-Workspaces `0.2.2-rc.3`. **Kanalnamen beschreiben Laufzeitlinien, nicht den Release-Kanal, den ein Workspace abfragt.**
 
 <a id="download"></a>
 
@@ -283,6 +283,7 @@ Die vollständige Historie steht im [Changelog](CHANGELOG.de.md) ([中文](CHANG
 
 | Version | Datum | Highlights |
 | --- | --- | --- |
+| `2.2.12` | 2026-11-14 | Laufzeit auf DSH `0.2.2-rc.3` angehoben (375 Pakete neu vendored, 24 Patches neu aufgesetzt); die Agents-Anywhere-Brücke geht auf 2.2.0 mit rc.3-Peers; alle 27 mitgelieferten Plugins gegen npm latest geprüft (13 aktualisiert); `dshmarket` 1.73.19 |
 | `2.2.10` | 2026-11-12 | Laufzeit auf DSH `0.2.2-rc.2` angehoben (374 Pakete neu vendored, 24 Patches neu aufgesetzt), Anpassung an das beförderte agent-team-Paket und Peer-Abhängigkeitsänderungen; die Agents-Anywhere-Brücke lädt weiter über eine Profil-Ausnahme; 27 mitgelieferte Plugins |
 | `2.2.9` | 2026-11-10 | Laufzeit auf DSH `0.2.2-rc.1` angehoben (373 Pakete neu vendored, 24 Patches neu aufgesetzt), mitgelieferte Plugins auf 35 erweitert, Onboarding stellt sie nach Kategorien vor und dankt jedem Autor; Agents-Anywhere-Bridge auf 2.1.0 |
 | `2.1.15` | 2026-10-22 | Versionshinweise in der Update-Karte, im Tray und in nativen Dialogen, Überspringen einer Version, Wiederholen der Installation und Snapshot-Rollback; gemerkter Fensterzustand, geschichtete `.env`, `dsh-desktop://`-Deep-Links und Start bei der Anmeldung; Medienvorschau und Installation nach Namen im Marktplatz; `dshmarket` `1.66.45` |

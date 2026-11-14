@@ -1,94 +1,8 @@
-diff --git a/lib/bundled-connector/connector/runtimes/dsh/bridge/sync.py b/lib/bundled-connector/connector/runtimes/dsh/bridge/sync.py
-index 12d5aef..5b72fef 100644
---- a/lib/bundled-connector/connector/runtimes/dsh/bridge/sync.py
-+++ b/lib/bundled-connector/connector/runtimes/dsh/bridge/sync.py
-@@ -160,7 +160,7 @@ class SyncRelay:
-             if phase is None:
-                 await self.host.runtime_health_update(status)
-             else:
--                await self.host.runtime_health_update(status, phase=phase)
-+                await self.host.runtime_health_update(status, error=phase)
-         except Exception as error:  # noqa: BLE001 - reporting never interrupts sync
-             logger.debug("DSH sync health report skipped ({})", type(error).__name__)
- 
-@@ -326,9 +326,15 @@ class SyncRelay:
-     async def ingest_notifications(self, notifications: list[dict[str, Any]]) -> None:
-         if not notifications:
-             return
--        await self.host.publish_runtime_notifications("dsh", notifications)
--        if any(n["method"] == "session.inventory.complete" and n["params"].get("complete") is True for n in notifications):
-+        completed = any(
-+            n["method"] == "session.inventory.complete" and n["params"].get("complete") is True
-+            for n in notifications
-+        )
-+        if completed:
-+            # Promote before publishing: the notice round trip talks to the cloud and
-+            # must never keep the local runtime unusable.
-             await self._report_health("running")
-+        await self.host.publish_runtime_notifications("dsh", notifications)
- 
-     async def store_items(self, items: list[dict[str, Any]]) -> None:
-         self.item_bytes += object_bytes(items)
-@@ -408,9 +414,11 @@ class SyncRelay:
-         elif method == "catalog.permission.update":
-             await self.host.permission_catalog_update(permission_catalog(params))
-         elif method in {"session.inventory.begin", "session.inventory.complete"}:
--            await self.host.publish_runtime_notifications("dsh", [notice])
-             if method == "session.inventory.complete" and params.get("complete") is True:
-+                # Promote before publishing: a failed notice round trip must never
-+                # leave the local runtime unavailable.
-                 await self._report_health("running")
-+            await self.host.publish_runtime_notifications("dsh", [notice])
-         else:
-             raise ValueError(f"Unsupported runtime notification: {method}")
- 
-@@ -428,9 +436,8 @@ class SyncRelay:
-                         "DSH event sync interrupted; resubscribing in {:.1f}s ({}: {})",
-                         delay, type(error).__name__, error,
-                     )
--                    await self._report_health("starting", {
--                        "code": "sync_interrupted", "message": "DSH 会话同步中断，正在重试…", "retryable": True,
--                    })
-+                    # A dropped feed is not a runtime failure: resubscribing must never
-+                    # demote a running runtime back to "starting".
-                     if not self.client.connected:
-                         return
-                     self.clear_snapshot()
-@@ -447,9 +454,9 @@ class SyncRelay:
-         self.expected_batch = 1
-         self.confirmed.clear()
-         try:
--            await self._report_health("starting", {
--                "code": "syncing", "message": "正在同步 DSH 会话…", "retryable": True,
--            })
-+            # Subscribing never demotes the runtime: the process is ready even while
-+            # history is still catching up, and a flapping feed must not make it
-+            # unavailable to the phone.
-             async for event in self.client.stream("sync", {"subscriptionId": subscription_id, "checkpointVersion": 1}):
-                 if event.get("kind") != "subscribed":
-                     continue
-diff --git a/lib/bundled-connector/connector/runtimes/dsh/runtime.py b/lib/bundled-connector/connector/runtimes/dsh/runtime.py
-index 1260563..f5065f2 100644
---- a/lib/bundled-connector/connector/runtimes/dsh/runtime.py
-+++ b/lib/bundled-connector/connector/runtimes/dsh/runtime.py
-@@ -81,6 +81,12 @@ class DshRuntime(AgentRuntime):
-             if not self._stopping and self._client is not None and self.sync_mode == "events":
-                 self._sync = SyncRelay(self._client, self.host, on_exit=self._relay_exited)
-                 self._sync.start()
-+                # The runtime process itself is ready: history synchronization keeps
-+                # running in the background and must never keep it unavailable.
-+                try:
-+                    await self.host.runtime_health_update("running")
-+                except Exception as error:  # noqa: BLE001 - health reporting is best effort
-+                    logger.debug("DSH runtime health report skipped ({})", type(error).__name__)
- 
-     @property
-     def identity(self) -> RuntimeIdentity:
 diff --git a/lib/index.js b/lib/index.js
-index 06c8f08..3bfcfa5 100644
+index 02ff9d0..244bb1f 100644
 --- a/lib/index.js
 +++ b/lib/index.js
-@@ -7361,6 +7361,7 @@ var SyncFeed = class {
+@@ -8044,6 +8044,7 @@ var SyncFeed = class {
  	bufferedOperations;
  	bufferedBytes = 0;
  	checkpointDirty = /* @__PURE__ */ new Set();
@@ -96,18 +10,16 @@ index 06c8f08..3bfcfa5 100644
  	get retainedProjectionCount() {
  		return this.projections.size;
  	}
-@@ -7392,7 +7393,9 @@ var SyncFeed = class {
- 				};
- 			}
- 			if (this.queue.length >= MAX_BUFFER || this.queuedBytes > 16777216) {
--				this.fail(/* @__PURE__ */ new Error("DSH event buffer full; resubscribe for a fresh baseline"));
-+				if (!this.shedChange(change)) return;
-+				this.wake?.();
-+				this.wake = void 0;
- 				return;
- 			}
- 			this.queue.push(change);
-@@ -7400,6 +7403,32 @@ var SyncFeed = class {
+@@ -8079,7 +8080,7 @@ var SyncFeed = class {
+ 			this.queuedBytes += bytes;
+ 			if (change.type === "stream" && this.coalesceStream(change)) return;
+ 			if (this.queue.length >= MAX_BUFFER || this.queuedBytes > MAX_QUEUED_BYTES) {
+-				if (!this.compactQueue()) {
++				if (!this.compactQueue() && !this.shedChange(change)) {
+ 					this.fail(/* @__PURE__ */ new Error("DSH event buffer full; resubscribe for a fresh baseline"));
+ 					return;
+ 				}
+@@ -8091,6 +8092,32 @@ var SyncFeed = class {
  			this.wake = void 0;
  		});
  	}
@@ -137,6 +49,6 @@ index 06c8f08..3bfcfa5 100644
 +		});
 +		return true;
 +	}
- 	start() {
- 		this.native.diagnostics.log("info", "sync.started", { streamId: this.id });
- 		this.run().catch((error) => {
+ 	/**
+ 	* Merges a chunk into the session's last queued change when that is a delta of
+ 	* the same block. Projections and plan drafts concatenate these deltas, so one

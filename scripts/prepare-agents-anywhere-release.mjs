@@ -12,10 +12,9 @@ const sourceRepository = process.env.DSH_AA_SOURCE_REPOSITORY ?? AA_REPOSITORY
 const vendorRoot = resolve(root, 'vendor/agents-anywhere')
 const provenancePath = join(vendorRoot, 'provenance.json')
 const currentProvenance = existsSync(provenancePath) ? JSON.parse(readFileSync(provenancePath, 'utf8')) : {}
-// A pinned commit holds the release on the AA build whose bridge still publishes
-// the HTTP endpoint AA Desktop 2.0.3 reads. Upstream main moved the bridge to
-// meshcall's connector.json, which no published AA Desktop reads yet, so
-// tracking main would package a bridge that can never connect.
+// A pinned commit holds the release on the AA build the Desktop line ships with.
+// AA 2.2.0 (commit aa12e7a2c181) is the release that targets DSH 0.2.2-rc.3, so the
+// pin moves with the kernel instead of tracking AA main between releases.
 const pinnedCommit = /^[0-9a-f]{40}$/iu.test(currentProvenance.pinnedCommit ?? '') ? currentProvenance.pinnedCommit.toLowerCase() : undefined
 const sourceRef = process.env.DSH_AA_SOURCE_REF ?? pinnedCommit ?? 'main'
 let desktopVersion
@@ -94,7 +93,7 @@ function patchManifest(packagePath, peerRanges, releaseVersion = desktopVersion)
   const buildVersion = dev['@deepseek-ai/dsh-session']
   if (!/^\d+\.\d+\.\d+-[\w.-]+$/u.test(buildVersion ?? '')) throw new Error('AA source must declare an exact DSH build version')
   const schemaVersion = dev['@deepseek-ai/schemastery']
-  const cosmokitForSchema = { '3.18.2': '1.8.3', '3.18.4': '1.8.5', '3.18.5': '1.8.6' }
+  const cosmokitForSchema = { '3.18.2': '1.8.3', '3.18.4': '1.8.5', '3.18.5': '1.8.6', '3.19.0': '1.9.0' }
   const cosmokitVersion = cosmokitForSchema[schemaVersion]
   if (!cosmokitVersion) throw new Error(`Unsupported AA build schemastery version: ${String(schemaVersion)}`)
   const buildPackages = new Set([

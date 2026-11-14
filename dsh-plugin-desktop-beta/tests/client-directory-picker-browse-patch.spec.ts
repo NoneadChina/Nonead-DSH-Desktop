@@ -11,7 +11,7 @@ const patch = readFileSync(new URL(
   import.meta.url,
 ), 'utf8')
 
-// 0.2.2-rc.2 ships the compiled client as one minified line, so the upstream text this patch
+// 0.2.2-rc.3 ships the compiled client as one minified line, so the upstream text this patch
 // anchors on carries no spaces between tokens; declarations stay formatted and keep theirs.
 describe('0.1.3 alpha.2 browse directory-picker client patch', () => {
   it('publishes the Windows bridge through the compiled flow and declarations', () => {

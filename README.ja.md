@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  製品バージョン <code>2.2.10</code> · DSH ランタイム <code>0.2.2-rc.2</code> · Electron 44 · MIT License
+  製品バージョン <code>2.2.12</code> · DSH ランタイム <code>0.2.2-rc.3</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">ワンクリックでダウンロード、すぐに使えます。</a></h3>
@@ -65,19 +65,19 @@ Nonead DSH Desktop は、[DeepSeek Harness](https://github.com/deepseek-ai/deeps
 
 | 項目 | 値 |
 | --- | --- |
-| 製品バージョン | `2.2.10`（`nonead-dsh-desktop` と `dsh-plugin-desktop-beta` が同期） |
+| 製品バージョン | `2.2.12`（`nonead-dsh-desktop` と `dsh-plugin-desktop-beta` が同期） |
 | 安定チャネルのワークスペース | `nonead-dsh-desktop`（ルートスクリプトは `:stable` 接尾辞） |
 | Beta チャネルのワークスペース | `dsh-plugin-desktop-beta`（ルートスクリプトは `:beta` 接尾辞） |
-| DSH ランタイム | `0.2.2-rc.2`、すべての `@deepseek-ai/dsh*` 依存を厳密に pin し、ランタイムは vendored |
-| vendored 済みランタイム | `vendor/dsh-runtime/0.2.2-rc.2/`（過去バージョンのディレクトリもいくつか保持） |
-| 上流の pin | `ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c`（`upstream.json` の `channels.beta`、`nonead-dsh-desktop/upstream-reference.json` にも記録） |
+| DSH ランタイム | `0.2.2-rc.3`、すべての `@deepseek-ai/dsh*` 依存を厳密に pin し、ランタイムは vendored |
+| vendored 済みランタイム | `vendor/dsh-runtime/0.2.2-rc.3/`（過去バージョンのディレクトリもいくつか保持） |
+| 上流の pin | `38a6a5c965aa99ab525161efb7cc5cf1fe62fced`（`upstream.json` の `channels.beta`、`nonead-dsh-desktop/upstream-reference.json` にも記録） |
 | Electron / パッケージャー | Electron `44.0.0` / electron-builder `26.15.7`（`app-builder-lib` にパッチあり） |
 | Node / Yarn | Node `^22.19.0` または `>=24.0.0`、Yarn `4.18.0`（Corepack 経由、`nodeLinker: node-modules`） |
-| プラグインマーケット | `dshmarket` `1.73.17`、加えて本リポジトリの `dsh-community-market` `0.1.0-dev.0` |
-| スマートフォン遠隔操作ブリッジ | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop`（上流コミット `e8f0cb9`） |
+| プラグインマーケット | `dshmarket` `1.73.19`、加えて本リポジトリの `dsh-community-market` `0.1.0-dev.0` |
+| スマートフォン遠隔操作ブリッジ | `@agents-anywhere/dsh-bridge-next` `2.2.0-desktop`（上流コミット `aa12e7a`） |
 | ブランドスキン | `dsh-nonead-client-skin`（インストーラーに同梱、プロファイルごとに組み込み読み込み） |
 
-`upstream.json` は vendored された 2 本のランタイム系列を記録しています。`stable` は上流 `0.2.0-rc.2`、`beta` は上流 `0.2.2-rc.2` に対応します。実際にインストーラーに含まれるのは、ワークスペースが厳密に pin している系列です。現在は 2 つのデスクトップワークスペースがともに `0.2.2-rc.2` を pin しています。**チャネル名が表すのは「ランタイム系列」であり、ワークスペースが参照するリリースチャネルではありません。**
+`upstream.json` は vendored された 2 本のランタイム系列を記録しています。`stable` は上流 `0.2.0-rc.2`、`beta` は上流 `0.2.2-rc.3` に対応します。実際にインストーラーに含まれるのは、ワークスペースが厳密に pin している系列です。現在は 2 つのデスクトップワークスペースがともに `0.2.2-rc.3` を pin しています。**チャネル名が表すのは「ランタイム系列」であり、ワークスペースが参照するリリースチャネルではありません。**
 
 <a id="download"></a>
 
@@ -283,6 +283,7 @@ Nonead DSH Desktop は、[DeepSeek Harness](https://github.com/deepseek-ai/deeps
 
 | バージョン | 日付 | ポイント |
 | --- | --- | --- |
+| `2.2.12` | 2026-11-14 | ランタイムを DSH `0.2.2-rc.3` へ更新（375 パッケージを再 vendored、24 個のパッチを再適用）。Agents Anywhere ブリッジは 2.2.0 へ上がり peer も rc.3 に一致。同梱プラグインはすべて npm latest と突き合わせて 13 個更新。`dshmarket` は 1.73.19 |
 | `2.2.10` | 2026-11-12 | ランタイムを DSH `0.2.2-rc.2` へ更新（374 パッケージを再 vendored、24 個のパッチを再適用）。agent-team の正式化と peer 依存の変更に追従し、Agents Anywhere ブリッジは Profile の例外指定で引き続き利用可能。同梱プラグインは 27 個 |
 | `2.2.9` | 2026-11-10 | ランタイムを DSH `0.2.2-rc.1` へ更新（373 パッケージを再 vendored、24 個のパッチを再適用）。同梱プラグインを 35 個に拡充し、オンボーディングはカテゴリ別に紹介して作者に謝辞を表示。Agents Anywhere ブリッジを 2.1.0 に更新 |
 | `2.1.15` | 2026-10-22 | アップデートカード / トレイ / ネイティブダイアログでのリリースノート表示、バージョンのスキップ、インストール失敗時の再試行とスナップショットへのロールバック。ウィンドウ位置の記憶、`.env` のレイヤリング、`dsh-desktop://` ディープリンク、自動起動。マーケットの非画像メディアプレビューと名前指定インストール。`dshmarket` `1.66.45` |

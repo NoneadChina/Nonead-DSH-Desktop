@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  Product <code>2.2.10</code> · DSH runtime <code>0.2.2-rc.2</code> · Electron 44 · MIT License
+  Product <code>2.2.12</code> · DSH runtime <code>0.2.2-rc.3</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">One-click download, ready to use out of the box.</a></h3>
@@ -65,19 +65,19 @@ Shell and Host communicate over exactly one child-process IPC channel. Switching
 
 | Item | Value |
 | --- | --- |
-| Product version | `2.2.10` (`nonead-dsh-desktop` and `dsh-plugin-desktop-beta` in lockstep) |
+| Product version | `2.2.12` (`nonead-dsh-desktop` and `dsh-plugin-desktop-beta` in lockstep) |
 | Stable-channel workspace | `nonead-dsh-desktop` (root scripts use the `:stable` suffix) |
 | Beta-channel workspace | `dsh-plugin-desktop-beta` (root scripts use the `:beta` suffix) |
-| DSH runtime | `0.2.2-rc.2`, every `@deepseek-ai/dsh*` dependency pinned exactly, runtime vendored |
-| Vendored runtime | `vendor/dsh-runtime/0.2.2-rc.2/` (several historical version directories are kept) |
-| Upstream pin | `ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c` (`channels.beta` in `upstream.json`, mirrored in `nonead-dsh-desktop/upstream-reference.json`) |
+| DSH runtime | `0.2.2-rc.3`, every `@deepseek-ai/dsh*` dependency pinned exactly, runtime vendored |
+| Vendored runtime | `vendor/dsh-runtime/0.2.2-rc.3/` (several historical version directories are kept) |
+| Upstream pin | `38a6a5c965aa99ab525161efb7cc5cf1fe62fced` (`channels.beta` in `upstream.json`, mirrored in `nonead-dsh-desktop/upstream-reference.json`) |
 | Electron / packager | Electron `44.0.0` / electron-builder `26.15.7` (patched `app-builder-lib`) |
 | Node / Yarn | Node `^22.19.0` or `>=24.0.0`; Yarn `4.18.0` via Corepack (`nodeLinker: node-modules`) |
-| Plugin market | `dshmarket` `1.73.17`, plus this repository's `dsh-community-market` `0.1.0-dev.0` |
-| Remote-control bridge | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop` (upstream commit `e8f0cb9`) |
+| Plugin market | `dshmarket` `1.73.19`, plus this repository's `dsh-community-market` `0.1.0-dev.0` |
+| Remote-control bridge | `@agents-anywhere/dsh-bridge-next` `2.2.0-desktop` (upstream commit `aa12e7a`) |
 | Brand skin | `dsh-nonead-client-skin` (shipped in the installer, mounted per profile) |
 
-`upstream.json` records two vendored runtime lines: `stable` maps to upstream `0.2.0-rc.2` and `beta` to upstream `0.2.2-rc.2`. What actually ships inside an installer is the line a workspace pins exactly — currently both desktop workspaces pin `0.2.2-rc.2`. **Channel names describe runtime lines, not the release channel a workspace queries.**
+`upstream.json` records two vendored runtime lines: `stable` maps to upstream `0.2.0-rc.2` and `beta` to upstream `0.2.2-rc.3`. What actually ships inside an installer is the line a workspace pins exactly — currently both desktop workspaces pin `0.2.2-rc.3`. **Channel names describe runtime lines, not the release channel a workspace queries.**
 
 <a id="download"></a>
 
@@ -283,6 +283,7 @@ The full history is in the [changelog](CHANGELOG.en.md) ([中文](CHANGELOG.md))
 
 | Version | Date | Highlights |
 | --- | --- | --- |
+| `2.2.12` | 2026-11-14 | Runtime raised to DSH `0.2.2-rc.3` (375 packages re-vendored, 24 patches rebased); the Agents Anywhere bridge moves to 2.2.0 with rc.3 peers; every bundled plugin checked against npm latest (13 updated); `dshmarket` 1.73.19 |
 | `2.2.10` | 2026-11-12 | Runtime raised to DSH `0.2.2-rc.2` (374 packages re-vendored, 24 patches rebased), adapting the promoted agent-team package and peer-dependency changes; the Agents Anywhere bridge keeps loading through a profile exemption; 27 bundled plugins |
 | `2.2.9` | 2026-11-10 | Runtime raised to DSH `0.2.2-rc.1` (373 packages re-vendored, 24 patches rebased), bundled plugins expanded to 35 with category-based onboarding that credits each author; Agents Anywhere bridge raised to 2.1.0 |
 | `2.1.15` | 2026-10-22 | Release notes in the update card, tray and native dialogs, skip-a-version, install retry and snapshot rollback; remembered window state, layered `.env`, `dsh-desktop://` deep links and launch at login; market media preview and install-by-name; `dshmarket` `1.66.45` |

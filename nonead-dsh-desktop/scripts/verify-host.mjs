@@ -155,7 +155,7 @@ try {
   }
   console.log('verify-host: Web-composed Schedule switch and restart persistence passed')
   const availableBundles = await rpc('listBundles')
-  // dsh 0.2.2-rc.2 retired the experimental agent-team profile bundle: the
+  // dsh 0.2.2-rc.3 retired the experimental agent-team profile bundle: the
   // agent-team packages are plain modules of the default composition now, so
   // the official overview must not offer the old opt-in bundle any more.
   assert.equal(availableBundles.some(row => row.name === '@deepseek-ai/dsh-experimental-agent-team-profile'), false,
