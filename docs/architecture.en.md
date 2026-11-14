@@ -29,7 +29,7 @@ There are two shells in this repository and they are **two different implementat
 | Control channel | Private RPC (`{ kind, id, method, args }`) | Node named IPC messages (`process.send`) |
 | Renderer credential | 32 bytes per generation, base64url, same HTTP header | Same header, constant lives in `src/desktop-contract.ts` |
 
-Both shells are at version 2.2.9 and their feature sets largely match, but their Host lifecycles are entirely different. Before relying on any statement below, check which shell it applies to.
+Both shells are at version 2.2.12 and their feature sets largely match, but their Host lifecycles are entirely different. Before relying on any statement below, check which shell it applies to.
 
 ## Startup order
 

@@ -29,7 +29,7 @@ flowchart LR
 | 控制通道 | 私有 RPC（`{ kind, id, method, args }`） | Node 命名 IPC 消息（`process.send`） |
 | 渲染器凭据 | 每代 32 字节 base64url，同款 HTTP 头 | 同款头，常量在 `src/desktop-contract.ts` |
 
-两壳版本同步为 2.2.9，功能集合大体相同，但 Host 生命周期实现完全不同——只读一篇文档时请先看清它讲的是哪个壳。
+两壳版本同步为 2.2.12，功能集合大体相同，但 Host 生命周期实现完全不同——只读一篇文档时请先看清它讲的是哪个壳。
 
 ## 启动顺序
 
