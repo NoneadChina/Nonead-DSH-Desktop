@@ -8,7 +8,7 @@ import { packageDirectory } from '../../dsh-plugin-desktop-beta/scripts/package-
 import { releaseMac } from '../../dsh-plugin-desktop-beta/scripts/release-mac.ts'
 import { adaptMacReleaseEnvironment, assertMacReleaseReady, withoutMacReleaseSecrets } from '../../dsh-plugin-desktop-beta/scripts/release-preflight.ts'
 import { packageMacSmoke } from '../../dsh-plugin-desktop-beta/scripts/package-mac.ts'
-import { createWindowsPackageOptions, packageWindowsInstaller } from '../../dsh-plugin-desktop-beta/scripts/package-win.ts'
+import { createWindowsPackageOptions, packageWindowsInstaller, windowsTargetArch as resolveWindowsTargetArch } from '../../dsh-plugin-desktop-beta/scripts/package-win.ts'
 import { withoutLinuxSigningSecrets } from '../../dsh-plugin-desktop-beta/scripts/package-linux.ts'
 import { prepareNextMacRuntime } from './mac-runtime.ts'
 import { runNextPackagingCommand } from './packaging-command.ts'
@@ -40,7 +40,13 @@ if (TEST_BUILD_VERSION !== undefined && !/^[0-9]+\.[0-9]+\.[0-9]+(?:-next(?:\.[0
 }
 const buildVersion = expectedNextVersion(desktopRoot)
 /** Windows CPU this run packages; other platforms ship every payload their artifacts carry. */
-const windowsTargetArch = (): 'x64' | 'arm64' => process.env.DSH_PACKAGE_ARCH === 'arm64' ? 'arm64' : 'x64'
+const windowsTargetArch = (): 'x64' | 'arm64' => {
+  // The script is invoked as `node scripts/package.ts <mode>`, so only look at the switches and
+  // reuse the beta resolver: `--arm64` and `--x64` mean the same thing here as they do there, and an
+  // unknown `DSH_PACKAGE_ARCH` fails the run instead of silently packaging x64.
+  const switches = process.argv.slice(2).filter(argument => argument.startsWith('--'))
+  return resolveWindowsTargetArch(process.env, switches)
+}
 const run = (command: string, args: readonly string[], cwd: string, env: NodeJS.ProcessEnv): void => {
   // Windows resolves the CLI path with backslashes.
   const isBuilder = args.includes('electron-builder') || args.some(arg => arg.replaceAll('\\', '/').endsWith('electron-builder/cli.js'))

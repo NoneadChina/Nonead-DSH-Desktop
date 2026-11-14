@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { execFile } from 'node:child_process'
 import { EventEmitter } from 'node:events'
 import { readFileSync } from 'node:fs'
@@ -15,16 +15,66 @@ import { AA_WORKSPACES } from './agents-anywhere-release-policy.mjs'
 // Exercise the installed artifact: a patch file alone does not prove Yarn applied it.
 function loadConnector(workspace, environment) {
   const source = readFileSync(new URL(`../${workspace}/node_modules/@agents-anywhere/dsh-bridge-next/lib/index.js`, import.meta.url), 'utf8')
+  // A module section runs from its own marker up to the next one.
+  const section = marker => {
+    const start = source.indexOf(marker)
+    assert.ok(start >= 0, `missing bundle section ${marker}`)
+    const end = source.indexOf('// src/', start + 1)
+    return source.slice(start, end < 0 ? undefined : end)
+  }
+  // The connector builds its diagnostics and log sinks from earlier sections and
+  // derives its environment with self-contained helpers from sibling modules. Whole
+  // sections are unusable here: environment.ts evaluates `import.meta` at load time.
+  const extractFunction = name => {
+    const head = source.indexOf(`function ${name}(`)
+    assert.ok(head >= 0, `missing bundle function ${name}`)
+    const tail = source.indexOf('\n}\n', head)
+    assert.ok(tail > head, `unterminated bundle function ${name}`)
+    return source.slice(head, tail + 2)
+  }
+  const extractConstant = name => {
+    const match = new RegExp(`^const ${name} = .*$`, 'm').exec(source)
+    assert.ok(match, `missing bundle constant ${name}`)
+    return match[0]
+  }
+  const extractBlock = name => {
+    const head = source.indexOf(`const ${name} = {`)
+    assert.ok(head >= 0, `missing bundle block ${name}`)
+    const tail = source.indexOf('\n};', head)
+    assert.ok(tail > head, `unterminated bundle block ${name}`)
+    return source.slice(head, tail + 3)
+  }
+  const helpers = [
+    ...['record', 'withPackageIndexes'].map(extractFunction),
+    ...['PYPI_SIMPLE'].map(extractConstant),
+    ...['DEFAULT_CONNECTOR_SETTINGS'].map(extractBlock),
+  ].join('\n')
+  const dependencies = [
+    '// src/host/dsh-runtime/errors.ts',
+    '// src/host/dsh-runtime/diagnostics.ts',
+    '// src/host/dsh-runtime/log-output.ts',
+  ].map(section).join('') + helpers
   const start = source.indexOf('// src/host/connector/logs.ts')
   const end = source.indexOf('// src/host/desktop/detect.ts', start)
   assert.ok(start >= 0 && end > start)
-  return runInNewContext(`${source.slice(start, end)}; SourceConnector`, {
-    execFile, promisify, stripVTControlCharacters, join, relative, createHash, setTimeout, clearTimeout,
+  const sliced = `${dependencies}\n${source.slice(start, end)}`
+  // The connector reports RPC failures through MeshCall's application error.
+  class MeshCallError extends Error {
+    constructor(code, message, details) {
+      super(message)
+      this.code = code
+      this.details = details
+    }
+  }
+  return runInNewContext(`${sliced}; SourceConnector`, {
+    execFile, promisify, stripVTControlCharacters, join, relative, createHash, randomUUID, setTimeout, clearTimeout,
+    MeshCallError,
+    // `node:timers/promises` arrives in the bundle as a renamed import binding.
+    'setTimeout$1': ms => new Promise(resolve => setTimeout(resolve, ms)),
     access, cp, mkdtemp, readFile, readdir, rename, rm,
     process: { platform: process.platform, env: environment },
     readJson$1: async () => [], writeJson: async () => {}, mkdir,
     resolveUv: async () => 'uv',
-    DEFAULT_CONNECTOR_SETTINGS: { syncIntervalSeconds: 30 },
   })
 }
 
@@ -79,26 +129,34 @@ for (const workspace of AA_WORKSPACES) {
     }
     const original = { ...env }
     const Connector = loadConnector(workspace, env)
+    // The launch environment and the project copy are decided before the ready
+    // handshake, so the stub child never answers and start() is expected to time
+    // out: the assertions below are exactly what it had published by then.
     const child = new EventEmitter()
     child.stdout = new PassThrough()
     child.stderr = new PassThrough()
     child.stdin = new EventEmitter()
+    child.stdin.write = () => {}
+    // stop() ends stdin and then waits for the child to close; without a pid it
+    // never gets a kill (and must not: taskkill would target that pid), so the
+    // stub reports its own close when the plugin closes the channel.
+    child.stdin.end = () => queueMicrotask(() => child.emit('close', null))
     child.exitCode = null
     child.signalCode = null
-    child.stdin.write = line => {
-      const request = JSON.parse(line)
-      queueMicrotask(() => child.stdout.write(JSON.stringify({
-        jsonrpc: '2.0', id: request.id,
-        result: { running: request.method === 'connector.start', authFailed: false },
-      }) + '\n'))
-    }
+    child.kill = () => {}
     let launched, launchedArgs
+    // The failure path prunes the uv cache through a real `uv` process; the
+    // subject here is the launch environment and the project copy.
     const connector = new Connector({ stateRoot, connectorSourceDir: source, uvPath: 'uv' },
-      (_command, args, options) => { launched = options; launchedArgs = args; return child })
-    await connector.start({ connectorId: 'device', connectorToken: 'private-test-token' }, 'https://example.com', new AbortController().signal)
-    assert.equal(connector.running, true)
+      (_command, args, options) => { launched = options; launchedArgs = args; return child },
+      undefined, 250, async () => {})
+    await assert.rejects(
+      connector.start({ connectorId: 'device', connectorToken: 'private-test-token' }, 'https://example.com', new AbortController().signal),
+      /Connector 响应超时/)
+    assert.equal(connector.running, false)
     assert.equal(launched.env.NO_PROXY, 'localhost,127.0.0.1,::1,::1,.example.com')
-    assert.equal(launched.env.no_proxy, 'internal.test,::1')
+    // 2.2.0 only rewrites the bracketed IPv6 literal: it does not trim the list.
+    assert.equal(launched.env.no_proxy, 'internal.test, ::1 ')
     assert.equal(launched.env.HTTPS_PROXY, env.HTTPS_PROXY)
     assert.deepEqual(env, original)
     assert.ok(launched.cwd.startsWith(join(stateRoot, 'connector-source') + sep))
@@ -109,12 +167,14 @@ for (const workspace of AA_WORKSPACES) {
     await connector.logs.flush()
   })
 
-  test(`${workspace}: RPC errors reach logs and credentials stay redacted`, async t => {
+  test(`${workspace}: startup failures reach logs and credentials stay redacted`, async t => {
     const stateRoot = await mkdtemp(join(tmpdir(), 'dsh-aa-logs-'))
     t.after(() => rm(stateRoot, { recursive: true, force: true }))
     const Connector = loadConnector(workspace, {})
     const connector = new Connector({ stateRoot }, () => {})
     await connector.logs.startSession(['private-test-token'])
+    // The bridge only speaks the rendezvous handshake on its ready channel, so a
+    // JSON-RPC frame there is a startup failure, and that failure has to be logged.
     const frame = JSON.stringify({ jsonrpc: '2.0', method: 'connector/log', params: {
       level: 'ERROR', message: "Invalid port: ':1]' private-test-token",
       exception: 'InvalidURL private-test-token',
@@ -123,6 +183,13 @@ for (const workspace of AA_WORKSPACES) {
     connector.receive(frame.slice(31))
     await connector.logs.flush()
     const lines = Array.from(connector.logs.entries, entry => entry.text)
-    assert.deepEqual(lines, ["[connector] ERROR: Invalid port: ':1]' [REDACTED]", 'InvalidURL [REDACTED]'])
+    assert.deepEqual(lines, ['[process] process_error'])
+    assert.equal(connector.failure?.message, 'Connector 返回了无效的启动消息。')
+    // Connector output is redacted before it is retained, whatever carried the secret.
+    connector.logs.output("[connector] ERROR: Invalid port: ':1]' private-test-token\n")
+    connector.logs.output('InvalidURL private-test-token\n')
+    await connector.logs.flush()
+    const redacted = Array.from(connector.logs.entries, entry => entry.text).slice(-2)
+    assert.deepEqual(redacted, ["[connector] ERROR: Invalid port: ':1]' [REDACTED]", 'InvalidURL [REDACTED]'])
   })
 }

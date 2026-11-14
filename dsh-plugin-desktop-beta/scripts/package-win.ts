@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { prepareFsExtForElectron } from './prepare-fs-ext.ts'
 import { electronBuilderEnvironment } from './electron-builder-environment.ts'
 import { prepareDesktopInterpreters, verifyPreparedDesktopRuntime } from './prepare-runtime.ts'
+import { ensureNsisStubFix } from './nsis-stub-fix.ts'
 
 const WINDOWS_SIGNING_KEYS = [
   'CSC_IDENTITY_AUTO_DISCOVERY',
@@ -217,6 +218,10 @@ export function packageWindowsArtifact(
     options.log('Skipping the Windows package preflight; the package gate already passed.')
   }
   options.prepareRuntime()
+  // electron-builder builds the NSIS uninstaller by running a stub it just compiled. On a native
+  // Windows host that stub has to be launched from a copy and awaited by artifact instead of exit
+  // code, so make sure the installed app-builder-lib carries that fix before it runs.
+  if (target === 'nsis') ensureNsisStubFix(options.builderCli, message => options.log(message))
   // A running installation keeps the previous `resources/app.asar` mapped, and electron-builder
   // cannot unlink that file while it is mapped. `DSH_PACKAGE_OUTPUT_DIR` lets a local build write
   // to a fresh directory instead; the verifier reads electron-builder's own `outDir`, so it follows

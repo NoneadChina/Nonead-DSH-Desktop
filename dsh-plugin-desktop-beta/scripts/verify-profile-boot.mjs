@@ -443,7 +443,14 @@ try {
     const endpoint = join(userInfo().homedir, '.agents-anywhere', 'dsh-bridge', 'endpoint.json')
     const runtimeStatus = ctx.get('agentsAnywhereRuntime').status()
     if (runtimeStatus.state !== 'ready') {
-      throw new Error(`AA local runtime is ${String(runtimeStatus.state)}: ${String(runtimeStatus.message)}`)
+      // The per-user rendezvous is machine-global, so a Desktop that is already
+      // running with AA enabled wins the socket and this isolated Profile fails
+      // to start its own. Say that plainly instead of relaying the raw error.
+      const owner = existsSync(endpoint) ? JSON.parse(readFileSync(endpoint, 'utf8')).pid : undefined
+      const busy = owner !== undefined && owner !== process.pid
+      throw new Error(busy
+        ? `AA local runtime is ${String(runtimeStatus.state)}: another process (pid ${String(owner)}) owns ${endpoint}; quit any running Desktop with AA enabled and retry (${String(runtimeStatus.message)})`
+        : `AA local runtime is ${String(runtimeStatus.state)}: ${String(runtimeStatus.message)}`)
     }
     if (!existsSync(endpoint)) throw new Error('AA did not publish its per-user bridge endpoint')
     if (JSON.parse(readFileSync(endpoint, 'utf8')).pid !== process.pid) {

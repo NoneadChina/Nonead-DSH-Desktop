@@ -104,3 +104,7 @@ vendor/agents-anywhere/*.tgz
 # Scratch left by npm pack and a superseded market checkout.
 /package/
 /dshmarket-1.73.6/
+
+# Local NSIS packaging scratch (tracked scripts were removed 2026-11-14).
+/.nsis-build/
+/.nsis-verify/

@@ -1482,6 +1482,7 @@
     "dist:mac:stable": "yarn market:check && yarn aa:prepare-release && yarn workspace dsh-community-market build && yarn workspace nonead-dsh-desktop dist:mac",
     "dist:mac-smoke:stable": "yarn market:check && yarn aa:prepare-release && yarn workspace dsh-community-market build && yarn workspace nonead-dsh-desktop dist:mac-smoke",
     "dist:win:stable": "yarn market:check && yarn aa:prepare-release && yarn aa:prepare-release --verify-release && yarn workspace dsh-community-market build && yarn workspace nonead-dsh-desktop dist:win",
+    "dist:win:arm64:stable": "yarn market:check && yarn aa:prepare-release && yarn aa:prepare-release --verify-release && yarn workspace dsh-community-market build && yarn workspace nonead-dsh-desktop dist:win:arm64",
     "dist:linux:stable": "yarn market:check && yarn aa:prepare-release && yarn workspace dsh-community-market build && yarn workspace nonead-dsh-desktop dist:linux",
     "market:prepare": "node scripts/prepare-dsh-market.mjs",
     "market:check": "node scripts/prepare-dsh-market.mjs --check",

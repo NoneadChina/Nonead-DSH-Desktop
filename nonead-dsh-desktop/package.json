@@ -34,6 +34,7 @@
     "dist:mac": "node scripts/package.ts mac",
     "dist:mac-smoke": "node scripts/package.ts mac-smoke",
     "dist:win": "node scripts/package.ts win",
+    "dist:win:arm64": "node scripts/package.ts win --arm64",
     "dist:linux": "yarn build && node scripts/package.ts linux",
     "check:linux-package": "yarn check",
     "check:mac-package": "yarn check",
