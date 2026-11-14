@@ -19,7 +19,7 @@
  */
 import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { closeSync, existsSync, openSync, readdirSync, readFileSync, readSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { windowsTargetArch, type WindowsTargetArch } from '../../dsh-plugin-desktop-beta/scripts/package-win.ts'
 import { expectedNextVersion } from './prepare-runtime.ts'
@@ -60,8 +60,21 @@ function peMachine(path: string): number {
   return buffer.readUInt16LE(buffer.readUInt32LE(0x3c) + 4)
 }
 
+/** 安装包约 300 MB：按 1 MB 分块计算，避免把整个文件读进内存。 */
 function sha256(path: string): string {
-  return createHash('sha256').update(readFileSync(path)).digest('hex').toUpperCase()
+  const hash = createHash('sha256')
+  const descriptor = openSync(path, 'r')
+  const buffer = Buffer.allocUnsafe(1024 * 1024)
+  try {
+    for (;;) {
+      const read = readSync(descriptor, buffer, 0, buffer.length, null)
+      if (read === 0) break
+      hash.update(buffer.subarray(0, read))
+    }
+  } finally {
+    closeSync(descriptor)
+  }
+  return hash.digest('hex').toUpperCase()
 }
 
 function countFiles(root: string): number {
