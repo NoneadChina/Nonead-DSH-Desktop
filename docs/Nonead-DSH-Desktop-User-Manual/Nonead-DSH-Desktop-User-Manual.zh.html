@@ -150,7 +150,7 @@
 
       <p><strong>升级安装不需要手动关旧版。</strong>安装器会先请求正在运行的旧版本退出，等不到就强制结束它，再覆盖文件；如果确实关不掉，安装会明确报错并停下，而不是装完打不开。升级前仍建议先保存手上的工作。</p>
 
-      <p class="small">Windows 安装包是一个 Inno Setup 打包的单文件 .exe：默认装到 <code>C:\Program Files\Nonead DSH Desktop</code>，向导支持简体中文、English、日本語、Español、Français、Deutsch、Русский、Português (Brasil) 八种语言（默认跟随系统界面语言，可在向导首页切换）；运行安装包或卸载程序时，会先关闭正在运行的 Nonead DSH Desktop，再动文件。</p>
+      <p class="small">Windows 安装包是一个 Inno Setup 打包的单文件 .exe：默认装到 <code>%LOCALAPPDATA%\Programs\Nonead DSH Desktop</code>（无需管理员权限：按当前用户安装），向导支持简体中文、English、日本語、Español、Français、Deutsch、Русский、Português (Brasil) 八种语言（默认跟随系统界面语言，可在向导首页切换）；运行安装包或卸载程序时，会先关闭正在运行的 Nonead DSH Desktop，再动文件。</p>
 
       <p class="small">注：Windows ARM64 目前是实验性构建。主程序是 ARM64 原生，但包内部分载荷（内置 Python / Node 解释器与 Office 文档库、部分原生模块）仍是 x64，未在 ARM 设备上完成完整验证，普通用户建议使用 x64 版本。ARM64 有独立的单文件安装包，其中的解释器载荷按设计复用 x64 版本。</p>
     </section>

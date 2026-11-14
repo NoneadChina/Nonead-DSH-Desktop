@@ -4,6 +4,8 @@
  * 与 `package.ts win` 的区别只在最后一步：那条线走 electron-builder 自带的 NSIS，
  * 这条线走 Inno Setup 7 的 ISCC（`scripts/inno/desktop.iss`），产物同为单文件 Setup.exe，
  * 安装前/卸载前主动结束正在运行的 Nonead DSH Desktop，界面支持 8 种语言。
+ * 安装程序以当前用户身份运行（`PrivilegesRequired=lowest`），默认装到
+ * `%LOCALAPPDATA%\Programs\Nonead DSH Desktop`，安装与卸载都不需要管理员权限。
  *
  * 用法（仓库根执行，或直接用 `yarn workspace nonead-dsh-desktop dist:inno`）：
  *   $env:DSH_PACKAGE_ARCH='x64';   $env:DSH_PACKAGE_OUTPUT_DIR='dist';         node nonead-dsh-desktop/scripts/package.ts inno
@@ -14,7 +16,7 @@
  *   DSH_PACKAGE_CHECK_ALREADY_RAN 1 = 跳过 check:win-package（一次打两架构时第二遍用）
  *   DSH_PACKAGE_SKIP_PAYLOAD      1 = 复用已有 unpacked 目录，只重编安装包
  *   DSH_PACKAGE_PAYLOAD_DIR       复用载荷的绝对/相对路径（缺省为 <output>/win-unpacked）
- *   DSH_PACKAGE_SMOKE             1 = 冒烟构建（/DSMOKE）：不收尾宿主进程、不需要管理员权限
+ *   DSH_PACKAGE_SMOKE             1 = 冒烟构建（/DSMOKE）：不收尾宿主进程
  *   INNO_SETUP_ISCC               ISCC.exe 路径（默认 C:\Program Files\Inno Setup 7\ISCC.exe）
  */
 import { createHash } from 'node:crypto'

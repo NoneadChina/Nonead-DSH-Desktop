@@ -26,6 +26,7 @@ nonead-dsh-desktop/.desktop-build/
 dsh-plugin-desktop-beta/.desktop-build/
 
 # Local scratch directories and runtime logs: not product source.
+.desktop-build/
 .tmp-investigate/
 .tmp_*
 /.tmp-*/

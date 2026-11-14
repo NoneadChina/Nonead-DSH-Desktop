@@ -8,10 +8,13 @@
 ;   OutputDir   安装包输出目录
 ;   IconFile    安装包图标 .ico（默认 ..\build\app-icon.ico，由 build/app-icon.png 导出）
 ;   WizardImage / WizardSmallImage  安装向导配图 .bmp（由 build/app-icon.png 生成）
-;   SMOKE       定义了它 = 冒烟构建：不结束宿主进程、不要求管理员权限，仅供自动化安装验证
+;   SMOKE       定义了它 = 冒烟构建：不结束宿主进程，仅供自动化安装验证
 ;
 ; 硬性要求（2026-11-14 用户指令）：
 ;   · x86(x64) 与 ARM64 各一份单文件可执行安装包
+;   · **无需管理员权限即可安装**：以当前用户身份安装，默认落在
+;     %LOCALAPPDATA%\Programs\Nonead DSH Desktop（{autopf} 在非提权下即 {userpf}），
+;     卸载同样以当前用户身份进行，安装/卸载全程不弹 UAC
 ;   · 安装前主动关闭正在运行的 Nonead DSH Desktop
 ;   · 卸载前同样主动关闭正在运行的 Nonead DSH Desktop
 ;   · 8 种语言：简体中文 / English / 日本語 / Español / Français / Deutsch / Русский / Português (Brasil)
@@ -51,13 +54,9 @@
   #define ArchInstallMode "x64compatible"
 #endif
 
-#ifdef SMOKE
-  ; 冒烟构建：宿主进程就是承载自动化测试的 Nonead DSH Desktop，不能在这里 taskkill 自己；
-  ; 同时不需要提权（装入用户目录即可）。
-  #define Privileges "lowest"
-#else
-  #define Privileges "admin"
-#endif
+; 不申请管理员权限：安装程序始终以当前用户身份运行（asInvoker），装到用户目录，
+; 升级/卸载也不需要提权。需要整机安装的场景可通过命令行 /ALLUSERS 显式提权。
+#define Privileges "lowest"
 
 [Setup]
 ; 固定的产品标识：升级安装会复用同一条卸载记录
@@ -69,7 +68,12 @@ AppPublisher={#AppPublisher}
 AppPublisherURL={#AppUrl}
 AppSupportURL={#AppUrl}
 AppUpdatesURL={#AppUrl}
+; 非提权安装时 {autopf} 解析为 {userpf}（%LOCALAPPDATA%\Programs），因此默认安装到当前用户目录；
+; 只有显式 /ALLUSERS 提权时才会落到 C:\Program Files。
 DefaultDirName={autopf}\{#AppName}
+; 不继承上一版记录的安装目录：2.2.11 及更早是按机器安装（Program Files），
+; 若沿用旧目录，非提权安装会因无权写入而失败。
+UsePreviousAppDir=no
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
 AllowNoIcons=yes
@@ -86,6 +90,8 @@ Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired={#Privileges}
+; 默认不弹权限选择页；只有命令行显式 /ALLUSERS（或 /CURRENTUSER）才会改变安装范围。
+PrivilegesRequiredOverridesAllowed=commandline
 ArchitecturesAllowed={#ArchAllowed}
 ArchitecturesInstallIn64BitMode={#ArchInstallMode}
 ; 进程由下方 [Code] 主动结束，交给 Restart Manager 反而会弹「文件被占用」对话框
