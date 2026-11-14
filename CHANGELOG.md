@@ -21,6 +21,7 @@
 - 桌面定制：24 个构建产物补丁全部重定基到 `@0.2.2-rc.3`。上游只改动了补丁触点附近的打包元数据：`dsh-web-frontend` 的入口资产随构建改名（`index-ghOpC9uV.js` → `index-Ciz7DZxv.js`），`dsh-client-ui-workspace` 的类型声明因新增 toast 契约多一行插入。
 - Linux 打包：恢复 AppImage / deb / rpm 的双架构构建，`meshcall` router 的原生二进制移出 `app.asar`，afterPack 审计不再以 native code is packed 失败。
 - 随包市场：`dshmarket` 由 1.73.17 升到 1.73.19，自更新补丁无需改动即可套用。
+- Windows 打包：fuses 校验不再从 `win-arm64-unpacked` 推断运行时 CPU。Windows 发布只带 x64 运行时载荷，此前按目录名推断会让 arm64 安装包声明一个它从未构建过的 arm64 运行时并失败；arm64 安装包由此重新通过完整校验。
 - 兼容性：随包的 AA 桥按上游 v2.2.0 提交 `aa12e7a`（许可证随上游改为 Apache-2.0）以 `0.2.2-rc.3` peers 重建；`upstream-reference.json` 复核后保留 35 条。
 - 版本号：产品 2.2.11 → **2.2.13**（两个桌面工作区同步）。
 ## 2.2.11 — 2026-11-12

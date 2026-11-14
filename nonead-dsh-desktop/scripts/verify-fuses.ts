@@ -67,15 +67,19 @@ function elfMachine(path: string): number {
  * The platform and CPU one packaged tree was built for.
  *
  * electron-builder names the CPU in the output directory (`linux-unpacked`, `linux-arm64-unpacked`,
- * `win-arm64-unpacked`), so a batch that holds both CPUs is verified against each tree's own
+ * `win-arm64-unpacked`), so a Linux batch that holds both CPUs is verified against each tree's own
  * target instead of the host's default architecture.
+ *
+ * Windows needs no such inference: the release carries one x64 runtime payload, so an arm64
+ * installer wraps the same payload and `nextPackagingTarget('win32')` names it directly. Reading
+ * the CPU off `win-arm64-unpacked` would ask that tree to declare a payload it was never built for.
  * @param path - Packaged executable path inside `outDir`.
  * @returns Platform and architecture the tree must declare.
  */
 function packagedTarget(path: string): ReturnType<typeof nextPackagingTarget> {
   if (path.includes('.app/')) return nextPackagingTarget('darwin')
-  const platform: NodeJS.Platform = path.endsWith('.exe') ? 'win32' : 'linux'
-  return { platform, archs: [path.includes('-arm64-unpacked') ? 'arm64' : 'x64'] }
+  if (path.endsWith('.exe')) return nextPackagingTarget('win32')
+  return { platform: 'linux', archs: [path.includes('-arm64-unpacked') ? 'arm64' : 'x64'] }
 }
 
 /** Verify one packaged executable end to end. */

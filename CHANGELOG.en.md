@@ -21,6 +21,7 @@ A kernel and packaging follow-up release:
 - Desktop customisation: all 24 build-output patches were rebased to `@0.2.2-rc.3`. Upstream only changed packaging metadata near the patch sites: the `dsh-web-frontend` entry asset was renamed by the build (`index-ghOpC9uV.js` → `index-Ciz7DZxv.js`), and the `dsh-client-ui-workspace` typings gained one inserted line for the new toast contract.
 - Linux packaging: AppImage / deb / rpm dual-architecture builds are restored, and the `meshcall` router native binaries now sit outside `app.asar`, so the afterPack audit no longer fails with "native code is packed".
 - Bundled market: `dshmarket` raised from 1.73.17 to 1.73.19; the self-update patch applies unchanged.
+- Windows packaging: the fuses check no longer reads the CPU out of `win-arm64-unpacked`. The Windows release ships one x64 runtime payload, so inferring from the directory name asked an arm64 installer to declare an arm64 runtime it never contained; the arm64 installer passes the full verification again.
 - Compatibility: the bundled AA bridge is rebuilt from upstream v2.2.0 commit `aa12e7a` (relicensed to Apache-2.0 upstream) with `0.2.2-rc.3` peers; `upstream-reference.json` keeps 35 entries after re-verification.
 - Version: product 2.2.11 → **2.2.13** (both desktop workspaces in lockstep).
 ## 2.2.11 — 2026-11-12

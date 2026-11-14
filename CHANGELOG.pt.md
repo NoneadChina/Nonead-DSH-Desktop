@@ -21,6 +21,7 @@ Uma versão focada em acompanhar o núcleo e o empacotamento:
 - Personalização de desktop: os 24 patches de artefatos de build foram rebaseados para `@0.2.2-rc.3`. O upstream alterou apenas metadados de empacotamento próximos aos pontos patchados: o asset de entrada do `dsh-web-frontend` foi renomeado pelo build (`index-ghOpC9uV.js` → `index-Ciz7DZxv.js`) e as tipagens do `dsh-client-ui-workspace` ganharam uma linha inserida para o novo contrato de toast.
 - Empacotamento Linux: os builds de arquitetura dupla AppImage / deb / rpm foram restaurados e os binários nativos do roteador `meshcall` ficam fora do `app.asar`, então a auditoria afterPack não falha mais com "native code is packed".
 - Mercado embarcado: `dshmarket` sobe de 1.73.17 para 1.73.19; o patch de autoatualização se aplica sem alterações.
+- Empacotamento do Windows: a verificação de fuses não deduz mais a CPU do diretório `win-arm64-unpacked`. A versão do Windows traz apenas a runtime x64, então deduzir pelo nome do diretório obrigava o instalador arm64 a declarar uma runtime arm64 inexistente; o instalador arm64 volta a passar na verificação completa.
 - Compatibilidade: a ponte AA embarcada é reconstruída a partir do commit upstream v2.2.0 `aa12e7a` (licença alterada para Apache-2.0 no upstream) com peers `0.2.2-rc.3`; o `upstream-reference.json` mantém 35 entradas após a verificação.
 - Versão: produto 2.2.11 → **2.2.13** (ambos os workspaces de desktop em sincronia).
 ## 2.2.11 — 2026-11-12
