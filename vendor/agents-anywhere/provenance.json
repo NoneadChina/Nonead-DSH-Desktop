@@ -4,22 +4,21 @@
   "commit": "e8f0cb9e1d9aeca45331224653d0b7cacba39a3a",
   "packageDirectory": "dsh-bridge-next",
   "sourceVersion": "2.1.0",
-  "desktopVersion": "2.1.0-desktop.ce8f0cb9e1d9a.r33fd0a0e",
-  "artifact": "agents-anywhere-dsh-bridge-next-2.1.0-desktop.ce8f0cb9e1d9a.r33fd0a0e.tgz",
-  "sha256": "30230d6dad3f06915d0eb17e6b47f08dfd2cbc7d068a411fe9cef5c1f0911f6c",
+  "desktopVersion": "2.1.0-desktop.ce8f0cb9e1d9a.r216dce97",
+  "artifact": "agents-anywhere-dsh-bridge-next-2.1.0-desktop.ce8f0cb9e1d9a.r216dce97.tgz",
+  "sha256": "b0920c353404a7781f23469772a1a4eaf67d183135e1b212188750029b7baa92",
   "runtimePeers": {
-    "@deepseek-ai/dsh-typert-protocol": "0.2.2-rc.2",
-    "@deepseek-ai/dsh-llm": "0.2.2-rc.2",
-    "@deepseek-ai/dsh-session": "0.2.2-rc.2"
+    "@deepseek-ai/dsh-typert-protocol": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-llm": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-session": "0.2.2-rc.3"
   },
   "manifestChanges": [
-    "version set to 2.1.0-desktop.ce8f0cb9e1d9a.r33fd0a0e",
+    "version set to 2.1.0-desktop.ce8f0cb9e1d9a.r216dce97",
     "release staging removes prepack/postpack hooks; build, typecheck and check:build run explicitly",
-    "release staging pins the AA build-time DSH type graph to the vendored 0.2.2-rc.2 runtime",
-    "@deepseek-ai/dsh-typert-protocol peer accepts 0.2.2-rc.2",
-    "@deepseek-ai/dsh-llm peer accepts 0.2.2-rc.2",
-    "@deepseek-ai/dsh-session peer accepts 0.2.2-rc.2",
-    "connector payload carried over unchanged from agents-anywhere-dsh-bridge-next-2.1.0-desktop.c296f70ed4036.rc2b11bfc.tgz (the build this desktop shipped before and the one patches/agents-anywhere-connector-httpx.patch targets); the two patched Python files are normalised to LF so the yarn patch applies deterministically"
+    "release staging pins the AA build-time DSH type graph to the source devDependencies",
+    "@deepseek-ai/dsh-typert-protocol peer accepts 0.2.2-rc.3",
+    "@deepseek-ai/dsh-llm peer accepts 0.2.2-rc.3",
+    "@deepseek-ai/dsh-session peer accepts 0.2.2-rc.3"
   ],
   "sourceChanges": [],
   "pinnedCommit": "e8f0cb9e1d9aeca45331224653d0b7cacba39a3a",

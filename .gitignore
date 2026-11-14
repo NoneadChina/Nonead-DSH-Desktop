@@ -79,7 +79,7 @@ patches/*@0.2.1-rc.2.patch
 # Agents Anywhere artifacts accumulate one file per release build; only the
 # bridge referenced by package.json and yarn.lock is consumed.
 vendor/agents-anywhere/*.tgz
-!vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.ce8f0cb9e1d9a.r33fd0a0e.tgz
+!vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.1.0-desktop.ce8f0cb9e1d9a.r216dce97.tgz
 
 # Packaging output dirs used when dist is locked
 build-out-*/

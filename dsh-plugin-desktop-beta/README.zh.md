@@ -144,7 +144,7 @@ dsh plugin update
 
 显式 `--profile <name>` 始终具有更高优先级，可用于在切换前准备其他 profile。
 
-`dshmarket` 是本 workspace 固定版本、带补丁的 dependency，不是由用户自行安装的第三方 package。已提交的 manifest 固定 `dshmarket@1.73.17`，根 manifest 带有与之匹配的 `dshmarket@npm:1.73.17` resolution 以应用 `.yarn/patches/dshmarket-desktop.patch`；`corepack yarn market:prepare` 会把该包刷新到 npm `latest` 并安装依赖树，`corepack yarn market:check` 则是构建时跑的离线一致性校验 —— 不联网、不写入，只确认已提交的版本、lockfile 与补丁彼此相符。Launcher 每个 generation 只组合一个 Market provider —— `dsh-market`、`community-market` 或 `disabled` —— 取自 Electron user-data 目录下自身的机器级状态，并会拒绝泄漏了其它 provider 的 Loader 图。已安装应用不会在启动时热更新内置市场。用户主动安装第三方 package 与 Desktop 将某个包嵌入 application archive 或 installer 是两个独立边界。
+`dshmarket` 是本 workspace 固定版本、带补丁的 dependency，不是由用户自行安装的第三方 package。已提交的 manifest 固定 `dshmarket@1.73.19`，根 manifest 带有与之匹配的 `dshmarket@npm:1.73.19` resolution 以应用 `.yarn/patches/dshmarket-desktop.patch`；`corepack yarn market:prepare` 会把该包刷新到 npm `latest` 并安装依赖树，`corepack yarn market:check` 则是构建时跑的离线一致性校验 —— 不联网、不写入，只确认已提交的版本、lockfile 与补丁彼此相符。Launcher 每个 generation 只组合一个 Market provider —— `dsh-market`、`community-market` 或 `disabled` —— 取自 Electron user-data 目录下自身的机器级状态，并会拒绝泄漏了其它 provider 的 Loader 图。已安装应用不会在启动时热更新内置市场。用户主动安装第三方 package 与 Desktop 将某个包嵌入 application archive 或 installer 是两个独立边界。
 
 Required injection、可选 Desktop 适配、TypeScript 示例、cancellation 与 fallback 指南详见[面向插件作者的 service 文档](docs/plugin-services.zh.md)。
 
@@ -284,7 +284,7 @@ corepack.cmd yarn dist:win-portable:beta
 - 共享 carrier 使用 HTTP 与 WebSocket，而不是 Electron IPC；默认只绑定 loopback，并支持经过明确确认的全接口局域网监听。替换 carrier 需要上游 DSH 提供 transport 扩展点，不属于该独立包的范围。
 - 内置的 Agents Anywhere bridge 由 `corepack yarn aa:prepare-release` 在固定 commit 上从源码构建。根的 `dist:*:beta` 命令会在打包前执行该准备并校验发布产物，通道升级后需要重建。
 - `corepack yarn check` 需要 `.git` 目录：bilingual-docs 门禁通过 Git 解析受跟踪的 `*.i18n.yaml` 记录与文档 blob hash。
-- Beta 使用固定官方 release 源码构建的 DSH `0.2.2-rc.2` 运行时（`upstream.json` 的 `beta` 通道）；桌面构建解析这些包接口，不直接链接源码 checkout。随包运行时当前的 Session 格式为 v4，上游迁移包会把历史的 v0–v3 会话向前迁移并保留原日志，桌面端不再生成预设别名。旧运行时无法读取 V4 会话。扩展和增强模式接入右侧 Sidebar 的文档预览、分栏和全屏，并通过 keyed `main` 槽位支持独立于会话选择的全局插件面板。
+- Beta 使用固定官方 release 源码构建的 DSH `0.2.2-rc.3` 运行时（`upstream.json` 的 `beta` 通道）；桌面构建解析这些包接口，不直接链接源码 checkout。随包运行时当前的 Session 格式为 v4，上游迁移包会把历史的 v0–v3 会话向前迁移并保留原日志，桌面端不再生成预设别名。旧运行时无法读取 V4 会话。扩展和增强模式接入右侧 Sidebar 的文档预览、分栏和全屏，并通过 keyed `main` 槽位支持独立于会话选择的全局插件面板。
 - `package:dir:beta` 是用于 smoke 的未封装产物。`dist:win` 会额外生成未签名的 NSIS 测试安装包，但不会建立 Authenticode 身份或 SmartScreen 信誉。安装与升级行为、原生通知与终端、Windows ACL sandbox，以及每台目标机器上的原生材质外观仍属于目标平台验证边界。
 
 ### 开发者日志

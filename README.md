@@ -14,7 +14,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-0078D6" alt="Windows, macOS, Linux">
   <img src="https://img.shields.io/badge/Electron-44-47848F?logo=electron&amp;logoColor=white" alt="Electron 44">
-  <img src="https://img.shields.io/badge/DSH%20runtime-0.2.2--rc.2-4B32C3" alt="DSH runtime 0.2.2-rc.2">
+  <img src="https://img.shields.io/badge/DSH%20runtime-0.2.2--rc.3-4B32C3" alt="DSH runtime 0.2.2-rc.3">
   <img src="https://img.shields.io/badge/node-%5E22.19%20%7C%20%3E%3D24-339933?logo=node.js&amp;logoColor=white" alt="Node.js">
 </p>
 
@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  产品版本 <code>2.2.11</code> · DSH 运行时 <code>0.2.2-rc.2</code> · Electron 44 · MIT License
+  产品版本 <code>2.2.13</code> · DSH 运行时 <code>0.2.2-rc.3</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">一键下载，开箱即用。</a></h3>
@@ -79,19 +79,19 @@ Nonead DSH Desktop 把 [DeepSeek Harness](https://github.com/deepseek-ai/deepsee
 
 | 项 | 值 |
 | --- | --- |
-| 产品版本 | `2.2.11`（`nonead-dsh-desktop` 与 `dsh-plugin-desktop-beta` 同步） |
+| 产品版本 | `2.2.13`（`nonead-dsh-desktop` 与 `dsh-plugin-desktop-beta` 同步） |
 | 稳定通道工作区 | `nonead-dsh-desktop`（根脚本 `:stable` 后缀） |
 | Beta 通道工作区 | `dsh-plugin-desktop-beta`（根脚本 `:beta` 后缀） |
-| DSH 运行时 | `0.2.2-rc.2`，所有 `@deepseek-ai/dsh*` 依赖精确 pin，运行时就地 vendored |
-| 已 vendored 运行时 | `vendor/dsh-runtime/0.2.2-rc.2/`（另有若干历史版本目录保留） |
-| 上游 pin | `ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c`（`upstream.json` 的 `channels.beta`，同时记在 `nonead-dsh-desktop/upstream-reference.json`） |
+| DSH 运行时 | `0.2.2-rc.3`，所有 `@deepseek-ai/dsh*` 依赖精确 pin，运行时就地 vendored |
+| 已 vendored 运行时 | `vendor/dsh-runtime/0.2.2-rc.3/`（另有若干历史版本目录保留） |
+| 上游 pin | `38a6a5c965aa99ab525161efb7cc5cf1fe62fced`（`upstream.json` 的 `channels.beta`，同时记在 `nonead-dsh-desktop/upstream-reference.json`） |
 | Electron / 打包器 | Electron `44.0.0` / electron-builder `26.15.7`（`app-builder-lib` 带补丁） |
 | Node / Yarn | Node `^22.19.0` 或 `>=24.0.0`；Yarn `4.18.0`（经 Corepack，`nodeLinker: node-modules`） |
-| 插件市场 | `dshmarket` `1.73.17`，另有本仓库的 `dsh-community-market` `0.1.0-dev.0` |
+| 插件市场 | `dshmarket` `1.73.19`，另有本仓库的 `dsh-community-market` `0.1.0-dev.0` |
 | 手机远控桥 | `@agents-anywhere/dsh-bridge-next` `2.1.0-desktop`（上游提交 `e8f0cb9`） |
 | 品牌皮肤 | `dsh-nonead-client-skin`（随安装包分发，按 profile 组合加载） |
 
-`upstream.json` 记录两条 vendored 运行时线：`stable` 对应上游 `0.2.0-rc.2`，`beta` 对应上游 `0.2.2-rc.2`；真正打进安装包的是工作区精确 pin 的那一条，当前两个桌面工作区都 pin 在 `0.2.2-rc.2`。**通道名描述的是"运行时线"，不是工作区查询的发布通道。**
+`upstream.json` 记录两条 vendored 运行时线：`stable` 对应上游 `0.2.0-rc.2`，`beta` 对应上游 `0.2.2-rc.3`；真正打进安装包的是工作区精确 pin 的那一条，当前两个桌面工作区都 pin 在 `0.2.2-rc.3`。**通道名描述的是"运行时线"，不是工作区查询的发布通道。**
 
 <a id="download"></a>
 

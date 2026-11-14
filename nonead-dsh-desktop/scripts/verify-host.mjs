@@ -1,4 +1,4 @@
-/** Exercise the actual 0.2.2-rc.2 Host, credentials, Market routes and AA manifest without Electron UI. */
+/** Exercise the actual 0.2.2-rc.3 Host, credentials, Market routes and AA manifest without Electron UI. */
 import assert from 'node:assert/strict'
 import crypto from 'node:crypto'
 import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, rmdirSync, writeFileSync } from 'node:fs'
@@ -155,7 +155,7 @@ try {
   }
   console.log('verify-host: Web-composed Schedule switch and restart persistence passed')
   const availableBundles = await rpc('listBundles')
-  // dsh 0.2.2-rc.2 retires `-agent-team-profile`: Agent Team is now mounted by
+  // dsh 0.2.2-rc.3 retires `-agent-team-profile`: Agent Team is now mounted by
   // the base and Web compositions themselves (`agent-team`, `tool-agent-team`,
   // `ui-agent-team` in their cordis.patch.yml), so no optional bundle is offered.
   const retiredAgentTeam = '@deepseek-ai/dsh-experimental-agent-team-profile'
@@ -388,7 +388,7 @@ try {
     await stop()
     console.log('Onboarding Cua native provider activation and teardown passed without capturing screens, sending input or prompting for OS permissions.')
   }
-  console.log(`Next Host smoke passed (${process.argv.includes('--electron') ? 'Electron Node mode' : 'Node'}): authenticated 0.2.2-rc.2 Web, exclusive market selection and independent AA persisted, official row toggles, dshmarket offline install and cross-market toggle and removal through the official manager, official install/remove with a freshly published locked dependency, native dshmarket update origin gate, graceful shutdown, recovery boot and profile switch.`)
+  console.log(`Next Host smoke passed (${process.argv.includes('--electron') ? 'Electron Node mode' : 'Node'}): authenticated 0.2.2-rc.3 Web, exclusive market selection and independent AA persisted, official row toggles, dshmarket offline install and cross-market toggle and removal through the official manager, official install/remove with a freshly published locked dependency, native dshmarket update origin gate, graceful shutdown, recovery boot and profile switch.`)
 } finally {
   await runner?.dispose()
   await host?.stop()

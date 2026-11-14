@@ -13,6 +13,16 @@ Conventions de maintenance :
 - Les entrées ne décrivent que les changements perceptibles par l’utilisateur et les changements de limite que les responsables de maintenance doivent connaître ; les refactorisations pures ne font pas l’objet d’une entrée.
 - L’historique plus ancien se trouve dans les étiquettes Git (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) et dans le journal des commits.
 
+## 2.2.13 — 2026-11-14
+
+Une version centrée sur le suivi du noyau et du packaging :
+
+- Runtime : DSH passe à `0.2.2-rc.3`, le pin upstream à `38a6a5c965aa99ab525161efb7cc5cf1fe62fced`, et le runtime embarqué est reconstruit avec 375 paquets. Le paquet optionnel `@deepseek-ai/dsh-deepseek-chat-import`, ajouté upstream, est désormais déclaré à sa version exacte dans le manifeste d'installation.
+- Personnalisation de bureau : les 24 patchs d'artefacts de build sont rebasés sur `@0.2.2-rc.3`. Upstream n'a modifié que des métadonnées de packaging autour des zones patchées : l'asset d'entrée de `dsh-web-frontend` a été renommé par le build (`index-ghOpC9uV.js` → `index-Ciz7DZxv.js`) et les typages de `dsh-client-ui-workspace` ont gagné une ligne insérée pour le nouveau contrat toast.
+- Packaging Linux : les builds double architecture AppImage / deb / rpm sont rétablis et les binaires natifs du routeur `meshcall` sortent de `app.asar`, si bien que l'audit afterPack n'échoue plus avec « native code is packed ».
+- Marché embarqué : `dshmarket` passe de 1.73.17 à 1.73.19 ; le patch d'auto-mise à jour s'applique sans modification.
+- Compatibilité : le pont AA embarqué est reconstruit depuis le commit upstream v2.1.0 `e8f0cb9` avec des peers `0.2.2-rc.3` ; `upstream-reference.json` conserve 35 entrées après vérification.
+- Version : produit 2.2.11 → **2.2.13** (les deux espaces de travail de bureau restent synchronisés).
 ## 2.2.11 — 2026-11-12
 
 Une version centrée sur le suivi du runtime :

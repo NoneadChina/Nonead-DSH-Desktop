@@ -1,4 +1,4 @@
 # Bilingual-pair consistency record. Both languages carry equal authority.
 # Update both files and record their Git blob hashes after editing either side.
-plugin-services.md: cb6200274d1e27ce8544a1e5fca19f326139c701
-plugin-services.zh.md: f4d76b3449c67d890058dd6a4400be0c42b1ff4e
+plugin-services.md: 07b85a13f1946118f0d7d4472578e88417ef5197
+plugin-services.zh.md: 0eedca28333dc644b42e11f191ef9971f7392da9

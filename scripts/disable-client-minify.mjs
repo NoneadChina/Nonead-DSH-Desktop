@@ -3,7 +3,7 @@
  * Keep upstream client bundles multi-line so `patches/*@<runtime>.patch` stay
  * line-addressable.
  *
- * deepseek-harness 0.2.2-rc.2 enables whitespace-only minification for browser
+ * deepseek-harness 0.2.2-rc.3 enables whitespace-only minification for browser
  * bundles (`minify: { compress: false, mangle: false }` in
  * packages/client/tsdown.client.ts). That collapses every bundle onto a couple
  * of very long lines, so the desktop patches — which edit readable, multi-line

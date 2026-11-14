@@ -13,6 +13,16 @@ Maintenance conventions:
 - Entries record only changes users can perceive and boundary changes maintainers must know about; pure refactors do not get their own entry.
 - Earlier history lives in the Git tags (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) and in the commit log.
 
+## 2.2.13 — 2026-11-14
+
+A kernel and packaging follow-up release:
+
+- Runtime: DSH raised to `0.2.2-rc.3`, the upstream pin moved to `38a6a5c965aa99ab525161efb7cc5cf1fe62fced`, and the vendored runtime was repacked as 375 packages. The optional package `@deepseek-ai/dsh-deepseek-chat-import` added upstream is now declared at its exact version in the installation manifest.
+- Desktop customisation: all 24 build-output patches were rebased to `@0.2.2-rc.3`. Upstream only changed packaging metadata near the patch sites: the `dsh-web-frontend` entry asset was renamed by the build (`index-ghOpC9uV.js` → `index-Ciz7DZxv.js`), and the `dsh-client-ui-workspace` typings gained one inserted line for the new toast contract.
+- Linux packaging: AppImage / deb / rpm dual-architecture builds are restored, and the `meshcall` router native binaries now sit outside `app.asar`, so the afterPack audit no longer fails with "native code is packed".
+- Bundled market: `dshmarket` raised from 1.73.17 to 1.73.19; the self-update patch applies unchanged.
+- Compatibility: the bundled AA bridge is rebuilt from upstream v2.1.0 commit `e8f0cb9` with `0.2.2-rc.3` peers; `upstream-reference.json` keeps 35 entries after re-verification.
+- Version: product 2.2.11 → **2.2.13** (both desktop workspaces in lockstep).
 ## 2.2.11 — 2026-11-12
 
 A runtime-follow-up release:

@@ -13,6 +13,16 @@
 - 条目只写"用户能感知的变化"与"维护者必须知道的边界变化"；纯重构不单独成条。
 - 更早的历史见 Git 标签（`v1.7.3`、`v2.0.7`、`v2.0.8`、`v2.1.3`、`v2.1.4`、`v2.1.5`）与提交记录。
 
+## 2.2.13 — 2026-11-14
+
+一次以内核与打包跟进为主的发布：
+
+- 运行时：DSH 升级到 `0.2.2-rc.3`，上游 pin 改为 `38a6a5c965aa99ab525161efb7cc5cf1fe62fced`，预置运行时重新打包为 375 个包；上游新增的可选包 `@deepseek-ai/dsh-deepseek-chat-import` 已在安装清单中按版本声明。
+- 桌面定制：24 个构建产物补丁全部重定基到 `@0.2.2-rc.3`。上游只改动了补丁触点附近的打包元数据：`dsh-web-frontend` 的入口资产随构建改名（`index-ghOpC9uV.js` → `index-Ciz7DZxv.js`），`dsh-client-ui-workspace` 的类型声明因新增 toast 契约多一行插入。
+- Linux 打包：恢复 AppImage / deb / rpm 的双架构构建，`meshcall` router 的原生二进制移出 `app.asar`，afterPack 审计不再以 native code is packed 失败。
+- 随包市场：`dshmarket` 由 1.73.17 升到 1.73.19，自更新补丁无需改动即可套用。
+- 兼容性：随包的 AA 桥按上游 v2.1.0 提交 `e8f0cb9` 以 `0.2.2-rc.3` peers 重建；`upstream-reference.json` 复核后保留 35 条。
+- 版本号：产品 2.2.11 → **2.2.13**（两个桌面工作区同步）。
 ## 2.2.11 — 2026-11-12
 
 一次以内核跟进为主的发布：
