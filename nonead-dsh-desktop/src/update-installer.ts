@@ -17,19 +17,31 @@ export function assertNextMacBundle(identifier: string, manifest: unknown, versi
   }
 }
 
+/**
+ * Inno Setup pads its version strings with spaces to fixed widths (`ProductVersion` comes out as
+ * `2.2.13` followed by 44 spaces), and PowerShell's VersionInfo exposes those spaces verbatim.
+ * Compare the meaningful text only, and drop stray NULs some builds carry.
+ */
+function versionInfoText(value: unknown): string {
+  return typeof value === 'string' ? value.replace(/\u0000/gu, '').trim() : ''
+}
+
 export function assertNextWindowsInstaller(info: { ProductName?: unknown; ProductVersion?: unknown }, version: string): void {
-  if (info.ProductName !== 'Nonead DSH Desktop' || info.ProductVersion !== version) throw new Error('The installer does not match this Next release')
+  if (versionInfoText(info.ProductName) !== 'Nonead DSH Desktop' || versionInfoText(info.ProductVersion) !== version.trim()) {
+    throw new Error('The installer does not match this Next release')
+  }
 }
 
 /**
- * Arguments for the downloaded NSIS installer.
+ * Arguments for the downloaded Windows installer.
  *
- * `/S` silences the whole run, which looked like "nothing started" and gave the user no way to see
- * progress or a failure; the assisted installer is launched visibly instead. `--updated` keeps the
- * upgrade in place without re-asking for the install options.
+ * The Windows build ships an Inno Setup installer, which does not understand the NSIS-style
+ * `--updated` switch older releases passed; Inno may reject or ignore it, so none is passed.
+ * `/S` and Inno's `/SILENT` hide the wizard, which made a working install look like nothing
+ * started, so the assisted wizard opens and the user finishes it.
  */
-export function nextInstallerArguments(platform: string): readonly string[] {
-  return platform === 'win32' ? ['--updated'] : []
+export function nextInstallerArguments(_platform: string): readonly string[] {
+  return []
 }
 
 export class NextUpdateInstaller {

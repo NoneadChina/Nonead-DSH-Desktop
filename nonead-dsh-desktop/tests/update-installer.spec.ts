@@ -31,11 +31,23 @@ it('rejects Stable/Beta installers and an unexpected release even when the archi
   expect(() => assertNextWindowsInstaller({ ProductName: 'DSH Desktop Beta', ProductVersion: '2.0.14-next' }, '2.0.14-next')).toThrow()
 })
 
-it('launches the Windows installer visibly in update mode', () => {
+it('accepts the space padding Inno Setup writes into the version resource', () => {
+  // Inno pads ProductName/ProductVersion to 60/50 UTF-16 code units; comparing verbatim made
+  // every downloaded update fail with "the installer does not match this Next release".
+  const padded = {
+    ProductName: 'Nonead DSH Desktop'.padEnd(60, ' '),
+    ProductVersion: '2.0.18-next.1'.padEnd(50, ' '),
+  }
+  expect(padded.ProductVersion).not.toBe(VERSION)
+  expect(() => assertNextWindowsInstaller(padded, VERSION)).not.toThrow()
+  expect(() => assertNextWindowsInstaller({ ProductName: 'Nonead DSH Desktop\u0000', ProductVersion: '2.0.18-next.1\u0000  ' }, VERSION)).not.toThrow()
+  expect(() => assertNextWindowsInstaller({ ProductName: 'Nonead DSH Desktop', ProductVersion: '2.0.19-next.1' }, VERSION)).toThrow()
+})
+
+it('launches the Windows installer visibly without NSIS-only switches', () => {
   const args = nextInstallerArguments('win32')
-  expect(args).toContain('--updated')
-  // `/S` silences the whole run, which made a working install look like nothing started.
-  expect(args).not.toContain('/S')
+  // Inno Setup does not understand the NSIS `--updated` switch, and `/S` silences the whole run.
+  expect(args).toEqual([])
 })
 
 it('passes no installer arguments on other platforms', () => {
@@ -52,7 +64,7 @@ it('spawns the Windows installer once when the shutdown handoff launches it agai
   const first = installer.launch()
   const second = installer.launch()
   expect(spawn).toHaveBeenCalledOnce()
-  expect(spawn).toHaveBeenCalledWith(INSTALLER, ['--updated'], { detached: true, stdio: 'ignore', shell: false, windowsHide: false })
+  expect(spawn).toHaveBeenCalledWith(INSTALLER, [], { detached: true, stdio: 'ignore', shell: false, windowsHide: false })
   child.emit('spawn')
   await expect(Promise.all([first, second])).resolves.toEqual([undefined, undefined])
   await expect(installer.launch()).resolves.toBeUndefined()

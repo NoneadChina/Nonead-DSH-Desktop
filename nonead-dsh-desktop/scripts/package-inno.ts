@@ -25,6 +25,7 @@ import { closeSync, existsSync, openSync, readdirSync, readFileSync, readSync, s
 import { join, resolve } from 'node:path'
 import { windowsTargetArch, type WindowsTargetArch } from '../../dsh-plugin-desktop-beta/scripts/package-win.ts'
 import { expectedNextVersion } from './prepare-runtime.ts'
+import { stripVersionInfoPadding } from './inno/version-info.ts'
 
 const require = createRequire(import.meta.url)
 const DEFAULT_ISCC = 'C:\\Program Files\\Inno Setup 7\\ISCC.exe'
@@ -162,6 +163,14 @@ export function packageInnoInstaller(options: InnoPackageOptions): string {
   options.run(iscc, [...defines, iss], options.desktopRoot, env)
 
   if (!existsSync(installer)) throw new Error(`ISCC produced no installer: ${installer}`)
+  // Inno pads its version resource with spaces (ProductVersion `2.2.13` + 44 spaces), and the
+  // in-app updater compares ProductVersion verbatim, so every downloaded update failed. Trim the
+  // padding in place before the size and digest that releases.json records.
+  const versionInfo = stripVersionInfoPadding(installer)
+  if (versionInfo.productVersion !== version) {
+    throw new Error(`Installer ProductVersion ${JSON.stringify(versionInfo.productVersion)} does not match ${version}`)
+  }
+  options.log(`  VersionInfo: ${versionInfo.productName} ${versionInfo.productVersion} (${String(versionInfo.savedBytes)} padding bytes removed)`)
   const size = statSync(installer).size
   if (size < MIN_INSTALLER_BYTES) throw new Error(`Installer is suspiciously small: ${size} bytes`)
   options.log(`Installer: ${installer}`)
