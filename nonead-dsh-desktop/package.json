@@ -34,6 +34,7 @@
     "dist:mac": "node scripts/package.ts mac",
     "dist:mac-smoke": "node scripts/package.ts mac-smoke",
     "dist:win": "node scripts/package.ts win",
+    "dist:inno": "node scripts/package.ts inno",
     "check:mac-package": "yarn check",
     "check:win-package": "yarn check"
   },

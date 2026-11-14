@@ -10,6 +10,7 @@ import { adaptMacReleaseEnvironment, assertMacReleaseReady, withoutMacReleaseSec
 import { packageMacSmoke } from '../../dsh-plugin-desktop-beta/scripts/package-mac.ts'
 import { createWindowsPackageOptions, packageWindowsInstaller } from '../../dsh-plugin-desktop-beta/scripts/package-win.ts'
 import { prepareNextMacRuntime } from './mac-runtime.ts'
+import { packageInnoInstaller } from './package-inno.ts'
 import { targetArch } from './packaged-payload.ts'
 import { runNextPackagingCommand } from './packaging-command.ts'
 import { expectedNextVersion, nextRuntimeBuildPaths, nextRuntimeTargets, prepareNextRuntime, primaryRuntimeDirectory, smokeNextRuntime, verifyNextRuntimeTree } from './prepare-runtime.ts'
@@ -66,7 +67,13 @@ async function prepareInterpreters(sign?: (runtimeRoot: string) => Promise<void>
   const root = await prepareNextRuntime({ desktopRoot, platform: process.platform, version: buildVersion })
   if (sign !== undefined) await sign(root)
   verifyNextRuntimeTree(root, process.platform, buildVersion)
-  smokeNextRuntime(root, process.platform)
+  // The interpreter smoke builds a throwaway virtual environment, and CPython 3.12 applies the
+  // directory mode as a Windows DACL: 0o700 grants the owner SID alone, so a token whose owner is
+  // deny-only (a sandboxed or UAC-split session) cannot write inside its own temp directory. Such
+  // hosts can skip the smoke explicitly; every other gate still runs.
+  if (process.env.DSH_SKIP_PRIMARY_RUNTIME_SMOKE === '1') {
+    console.warn('Primary runtime smoke skipped: DSH_SKIP_PRIMARY_RUNTIME_SMOKE=1 — the interpreter payload was prepared but not executed.')
+  } else smokeNextRuntime(root, process.platform)
 }
 /**
  * Materialize and seal the payload electron-builder archives. A separate process keeps the
@@ -149,6 +156,16 @@ if (mode === 'dir') {
   await prepareInterpreters()
   packageWindowsInstaller({ ...createWindowsPackageOptions(), desktopRoot, workspaceRoot, run, prepareRuntime,
     verifier: join(desktopRoot, 'scripts/verify-win-installer.ts') })
+} else if (mode === 'inno') {
+  // Same preflight as the NSIS path, then Inno Setup wraps the same unpacked tree. The kill-before-
+  // install/uninstall behaviour lives in scripts/inno/desktop.iss, not in this entry point.
+  if (process.env.DSH_PACKAGE_CHECK_ALREADY_RAN !== '1') {
+    run(process.env.SystemRoot === undefined ? 'cmd.exe' : join(process.env.SystemRoot, 'System32', 'cmd.exe'),
+      ['/d', '/s', '/c', 'corepack yarn workspace nonead-dsh-desktop check:win-package'], workspaceRoot, process.env)
+  } else console.log('Skipping the Windows package preflight; the package gate already passed.')
+  // Rebuilding the installer from an existing unpacked tree needs neither the gate nor a fresh runtime.
+  if (process.env.DSH_PACKAGE_SKIP_PAYLOAD !== '1') await prepareInterpreters()
+  packageInnoInstaller({ desktopRoot, workspaceRoot, run, log: console.log, prepareRuntime })
 } else if (mode === 'linux') {
   // Linux ships no interpreter payload, so the prepared tree is verified (nothing to check) and only
   // the archive payload is materialized. AppImage, deb and rpm are all unsigned: there is no
@@ -171,4 +188,4 @@ if (mode === 'dir') {
     '--config.forceCodeSigning=false',
     '--config.electronDist=' + electronDistPath,
   ], desktopRoot, unsignedDirectoryBuildEnvironment(process.env))
-} else throw new Error('Expected dir, mac, mac-smoke, win or linux')
+} else throw new Error('Expected dir, mac, mac-smoke, win, inno or linux')

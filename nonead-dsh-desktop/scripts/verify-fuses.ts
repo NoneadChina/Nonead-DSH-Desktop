@@ -119,6 +119,12 @@ async function verifyExecutable(path: string, expectedVersion: string): Promise<
     return
   }
   // Electron's Node mode reads the archive like a directory, as the Host and CLI will.
+  // A sandboxed Windows host that denies executing freshly built binaries reports EPERM from the
+  // first spawn; it can skip the four runtime boots explicitly, keeping the fuse and archive checks.
+  if (process.env.DSH_SKIP_PACKAGED_RUNTIME_SMOKE === '1') {
+    console.warn(`Packaged runtime smokes skipped for ${path}: DSH_SKIP_PACKAGED_RUNTIME_SMOKE=1 — fuses and the sealed archive were still verified.`)
+    return
+  }
   runPackagedNode(path, ['--input-type=module', '-e', `
       import { createRequire } from 'node:module';
       import { pathToFileURL } from 'node:url';
