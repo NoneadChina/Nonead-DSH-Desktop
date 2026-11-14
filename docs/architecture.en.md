@@ -2,7 +2,7 @@
 
 DSH Desktop is a desktop product built around the **unmodified DeepSeek Harness upstream**: an Electron shell plus a Host process that runs the official Web application, with the upstream renderer as the front end. This repository does not change upstream semantics; it fills in what a desktop form factor needs at the process boundary, in profile composition, packaging and the release channel.
 
-This document describes the code as it stands (HEAD `8111224`, product version 2.2.13, DSH Beta runtime `0.2.2-rc.3`). Where it disagrees with the code, the code wins.
+This document describes the code as it stands (HEAD `e7e9419`, product version 2.2.13, DSH Beta runtime `0.2.2-rc.3`). Where it disagrees with the code, the code wins.
 
 ## Overview
 
