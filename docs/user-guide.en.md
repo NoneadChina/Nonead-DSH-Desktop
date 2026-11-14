@@ -1,6 +1,6 @@
 # Nonead DSH Desktop User Guide
 
-This guide is for people who install and use Nonead DSH Desktop. It covers installation and first launch, windows and the tray, profiles, plugins, the terminal, updates, and troubleshooting. The stable Nonead DSH Desktop build is the baseline; differences in DSH Desktop Beta (a separate installer and product identity) are called out explicitly. The current product version is 2.1.15.
+This guide is for people who install and use Nonead DSH Desktop. It covers installation and first launch, windows and the tray, profiles, plugins, the terminal, updates, and troubleshooting. The stable Nonead DSH Desktop build is the baseline; differences in DSH Desktop Beta (a separate installer and product identity) are called out explicitly. The current product version is 2.2.13.
 
 ## Installation and first launch
 

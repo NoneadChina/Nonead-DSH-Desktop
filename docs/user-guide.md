@@ -1,6 +1,6 @@
 # Nonead DSH Desktop 用户指南
 
-本指南面向安装并使用 Nonead DSH Desktop 的普通用户，覆盖安装与首次启动、窗口与托盘、Profile、插件、终端、更新与排查。稳定版 Nonead DSH Desktop 的行为是本文基准；涉及 Beta 版（DSH Desktop Beta，另一个安装包与产品标识）的差异会单独标出。当前产品版本为 2.1.15。
+本指南面向安装并使用 Nonead DSH Desktop 的普通用户，覆盖安装与首次启动、窗口与托盘、Profile、插件、终端、更新与排查。稳定版 Nonead DSH Desktop 的行为是本文基准；涉及 Beta 版（DSH Desktop Beta，另一个安装包与产品标识）的差异会单独标出。当前产品版本为 2.2.13。
 
 ## 安装与首次启动
 
