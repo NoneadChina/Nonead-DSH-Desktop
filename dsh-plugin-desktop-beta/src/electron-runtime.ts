@@ -1048,17 +1048,21 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
     await resolveDesktopUpdateArtifact(userDataPath, artifact, result.response === 0)
   }
 
-  /** Start the downloaded NSIS installer visibly before releasing the current process. */
+  /**
+   * Start the downloaded Windows installer visibly before releasing the current process.
+   * The installer is an Inno Setup package now: it takes no NSIS switches (`--updated`,
+   * `--force-run`) and asks for its own choices, so it starts without arguments.
+   */
   private async launchWindowsUpdateInstaller(installerPath: string): Promise<void> {
     await new Promise<void>((resolve, reject) => {
       let child: ReturnType<typeof spawn>
       try {
-        child = spawn(installerPath, ['--updated', '--force-run'], {
+        child = spawn(installerPath, [], {
           detached: true,
           stdio: 'ignore',
           shell: false,
           // UV_PROCESS_WINDOWS_HIDE also applies SW_HIDE to GUI processes,
-          // which leaves an interactive NSIS installer running invisibly.
+          // which leaves an interactive installer running invisibly.
           windowsHide: false,
         })
       } catch (cause) {

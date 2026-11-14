@@ -31,9 +31,23 @@ it('rejects Stable/Beta installers and an unexpected release even when the archi
   expect(() => assertNextWindowsInstaller({ ProductName: 'DSH Desktop Beta', ProductVersion: '2.0.14-next' }, '2.0.14-next')).toThrow()
 })
 
-it('launches the Windows installer visibly in update mode', () => {
+// Inno Setup writes every VersionInfo field into a fixed-width buffer, so a real installer reports
+// `ProductVersion` as the version plus trailing spaces and `ProductName` as the name plus trailing
+// spaces. Comparing the raw strings rejected every genuine download as "更新未完成，请重试".
+it('accepts the space- and NUL-padded version resource Inno Setup produces', () => {
+  const padded = { ProductName: `${'Nonead DSH Desktop'.padEnd(60)}`, ProductVersion: '2.0.14-next'.padEnd(50) }
+  expect(padded.ProductVersion.length).toBe(50)
+  expect(() => assertNextWindowsInstaller(padded, '2.0.14-next')).not.toThrow()
+  expect(() => assertNextWindowsInstaller({ ProductName: '\uFEFFNonead DSH Desktop  \u0000', ProductVersion: `\uFEFF${'2.0.14-next'.padEnd(20, '\u0000')}` }, '2.0.14-next')).not.toThrow()
+  // Padding is not a whitespace-only difference: a different release is still rejected.
+  expect(() => assertNextWindowsInstaller({ ProductName: 'Nonead DSH Desktop   ', ProductVersion: '2.0.13-next'.padEnd(50) }, '2.0.14-next')).toThrow()
+})
+
+it('launches the Windows installer visibly with no arguments', () => {
   const args = nextInstallerArguments('win32')
-  expect(args).toContain('--updated')
+  // The NSIS-era `--updated` switch no longer exists and the Inno Setup installer rejects switches
+  // it does not recognise; the wizard itself asks whatever it still needs.
+  expect(args).toEqual([])
   // `/S` silences the whole run, which made a working install look like nothing started.
   expect(args).not.toContain('/S')
 })
@@ -52,7 +66,7 @@ it('spawns the Windows installer once when the shutdown handoff launches it agai
   const first = installer.launch()
   const second = installer.launch()
   expect(spawn).toHaveBeenCalledOnce()
-  expect(spawn).toHaveBeenCalledWith(INSTALLER, ['--updated'], { detached: true, stdio: 'ignore', shell: false, windowsHide: false })
+  expect(spawn).toHaveBeenCalledWith(INSTALLER, [], { detached: true, stdio: 'ignore', shell: false, windowsHide: false })
   child.emit('spawn')
   await expect(Promise.all([first, second])).resolves.toEqual([undefined, undefined])
   await expect(installer.launch()).resolves.toBeUndefined()

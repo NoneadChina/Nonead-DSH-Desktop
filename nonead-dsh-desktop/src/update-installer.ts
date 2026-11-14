@@ -17,19 +17,34 @@ export function assertNextMacBundle(identifier: string, manifest: unknown, versi
   }
 }
 
+/**
+ * Compare against the text a human would read, not against the raw resource bytes.
+ *
+ * Inno Setup stores every VersionInfo field in a fixed-width buffer, so the installer reports
+ * `ProductVersion` as `"2.2.12"` followed by dozens of spaces (ProductName is padded the same way),
+ * and some writers leave a BOM or NUL in place. An exact comparison therefore rejects every genuine
+ * Inno installer, which surfaced as "更新未完成，请重试" after a complete download.
+ */
+function versionText(value: unknown): string {
+  return typeof value === 'string' ? value.replace(/[\u0000\uFEFF]/g, '').trim() : ''
+}
+
 export function assertNextWindowsInstaller(info: { ProductName?: unknown; ProductVersion?: unknown }, version: string): void {
-  if (info.ProductName !== 'Nonead DSH Desktop' || info.ProductVersion !== version) throw new Error('The installer does not match this Next release')
+  if (versionText(info.ProductName) !== 'Nonead DSH Desktop' || versionText(info.ProductVersion) !== versionText(version)) {
+    throw new Error('The installer does not match this Next release')
+  }
 }
 
 /**
- * Arguments for the downloaded NSIS installer.
+ * Arguments for the downloaded installer.
  *
  * `/S` silences the whole run, which looked like "nothing started" and gave the user no way to see
- * progress or a failure; the assisted installer is launched visibly instead. `--updated` keeps the
- * upgrade in place without re-asking for the install options.
+ * progress or a failure; the assisted installer is launched visibly instead, and its own wizard asks
+ * whatever it still needs. Nothing is passed on Windows: the installer is Inno Setup now, which
+ * rejects switches it does not know, and the old NSIS `--updated` flag no longer exists.
  */
-export function nextInstallerArguments(platform: string): readonly string[] {
-  return platform === 'win32' ? ['--updated'] : []
+export function nextInstallerArguments(_platform: string): readonly string[] {
+  return []
 }
 
 export class NextUpdateInstaller {

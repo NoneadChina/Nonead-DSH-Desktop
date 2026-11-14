@@ -18,9 +18,10 @@
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { trimVersionInfoStrings } from './trim-version-info.ts'
 import { electronBuilderEnvironment } from '../../dsh-plugin-desktop-beta/scripts/electron-builder-environment.ts'
 import { withoutWindowsSigningSecrets } from '../../dsh-plugin-desktop-beta/scripts/package-win.ts'
 import { prepareNextMacRuntime } from './mac-runtime.ts'
@@ -90,6 +91,25 @@ function peMachine(path: string): number {
 
 function sha256(path: string): string {
   return createHash('sha256').update(readFileSync(path)).digest('hex').toUpperCase()
+}
+
+/**
+ * 削掉 Inno 写进 PE 版本资源里的补齐空格。
+ *
+ * Inno 把每个 VersionInfo 字段放进定宽缓冲、右侧补空格（ProductName 60、ProductVersion 50、
+ * LegalCopyright 100…）。已发布的 2.2.11 / 2.2.12 客户端用 `!==` 比对 `ProductName` 与
+ * `ProductVersion`，带补齐的新安装包会被判成「不是这次发布」，现象就是下载完成后报
+ * 「更新未完成，请重试」。就地裁剪不改任何节点长度，只改字符串值与它的 wValueLength，
+ * 于是老客户端读到的就是干净的版本号。
+ */
+function trimVersionInfoPadding(path: string): void {
+  const image = readFileSync(path)
+  const changes = trimVersionInfoStrings(image)
+  if (changes.length === 0) { console.log('  VersionInfo：无需裁剪'); return }
+  writeFileSync(path, image)
+  for (const change of changes) {
+    console.log(`  VersionInfo：${change.key} 去掉 ${change.before.length - change.after.length} 个补齐字符（"${change.after}"）`)
+  }
 }
 
 function findFile(root: string, name: string): string | undefined {
@@ -187,6 +207,7 @@ async function main(): Promise<void> {
   )
 
   if (!existsSync(installer)) throw new Error(`ISCC 未产出安装包：${installer}`)
+  trimVersionInfoPadding(installer)
   const size = statSync(installer).size
   if (size < MIN_INSTALLER_BYTES) throw new Error(`安装包体积异常：${size} 字节`)
   const runtimeNode = findFile(join(unpacked, 'resources'), 'node.exe')
