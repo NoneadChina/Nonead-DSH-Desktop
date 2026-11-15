@@ -4,8 +4,10 @@
  * 与 `package.ts win` 的区别只在最后一步：那条线走 electron-builder 自带的 NSIS，
  * 这条线走 Inno Setup 7 的 ISCC（`scripts/inno/desktop.iss`），产物同为单文件 Setup.exe，
  * 安装前/卸载前主动结束正在运行的 Nonead DSH Desktop，界面支持 8 种语言。
- * 安装程序以当前用户身份运行（`PrivilegesRequired=lowest`），默认装到
- * `%LOCALAPPDATA%\Programs\Nonead DSH Desktop`，安装与卸载都不需要管理员权限。
+ * 安装程序默认按「所有用户」安装（`PrivilegesRequired=admin` + `PrivilegesRequiredOverridesAllowed=dialog`），
+ * 落在 `C:\Program Files\Nonead DSH Desktop`，这一步会向用户申请管理员权限；安装程序自身清单仍是
+ * asInvoker，因此非管理员也能直接双击，在首个权限页选「仅为我安装」即装到
+ * `%LOCALAPPDATA%\Programs\Nonead DSH Desktop` 且不弹 UAC。安装与卸载前都会先结束正在运行的宿主。
  *
  * 用法（仓库根执行，或直接用 `yarn workspace nonead-dsh-desktop dist:inno`）：
  *   $env:DSH_PACKAGE_ARCH='x64';   $env:DSH_PACKAGE_OUTPUT_DIR='dist';         node nonead-dsh-desktop/scripts/package.ts inno

@@ -10,11 +10,11 @@
 ;   WizardImage / WizardSmallImage  安装向导配图 .bmp（由 build/app-icon.png 生成）
 ;   SMOKE       定义了它 = 冒烟构建：不结束宿主进程，仅供自动化安装验证
 ;
-; 硬性要求（2026-11-14 用户指令）：
+; 硬性要求（2026-11-14 用户指令，2026-11-15 修订）：
 ;   · x86(x64) 与 ARM64 各一份单文件可执行安装包
-;   · **无需管理员权限即可安装**：以当前用户身份安装，默认落在
-;     %LOCALAPPDATA%\Programs\Nonead DSH Desktop（{autopf} 在非提权下即 {userpf}），
-;     卸载同样以当前用户身份进行，安装/卸载全程不弹 UAC
+;   · **默认安装路径 C:\Program Files\Nonead DSH Desktop**（按「所有用户」安装，此步需 UAC）
+;   · **非管理员也能运行并安装**：安装程序清单为 asInvoker，首个权限页选「仅为我安装」即在
+;     不提权的情况下装到 %LOCALAPPDATA%\Programs\Nonead DSH Desktop
 ;   · 安装前主动关闭正在运行的 Nonead DSH Desktop
 ;   · 卸载前同样主动关闭正在运行的 Nonead DSH Desktop
 ;   · 8 种语言：简体中文 / English / 日本語 / Español / Français / Deutsch / Русский / Português (Brasil)
@@ -54,9 +54,11 @@
   #define ArchInstallMode "x64compatible"
 #endif
 
-; 不申请管理员权限：安装程序始终以当前用户身份运行（asInvoker），装到用户目录，
-; 升级/卸载也不需要提权。需要整机安装的场景可通过命令行 /ALLUSERS 显式提权。
-#define Privileges "lowest"
+; 默认按「所有用户」安装：落 C:\Program Files\Nonead DSH Desktop（这一步需要 UAC 提权）。
+; 但安装程序自身清单是 asInvoker（PrivilegesRequiredOverridesAllowed 生效时 Inno 生成的是
+; asInvoker 清单、提权在运行期按需申请），所以非管理员也能直接双击运行，在首个页面选
+; 「Only for me / 仅为我安装」即可不提权装到 %LOCALAPPDATA%\Programs\Nonead DSH Desktop。
+#define Privileges "admin"
 
 [Setup]
 ; 固定的产品标识：升级安装会复用同一条卸载记录
@@ -68,11 +70,12 @@ AppPublisher={#AppPublisher}
 AppPublisherURL={#AppUrl}
 AppSupportURL={#AppUrl}
 AppUpdatesURL={#AppUrl}
-; 非提权安装时 {autopf} 解析为 {userpf}（%LOCALAPPDATA%\Programs），因此默认安装到当前用户目录；
-; 只有显式 /ALLUSERS 提权时才会落到 C:\Program Files。
+; 默认（所有用户）解析为 C:\Program Files\Nonead DSH Desktop；
+; 在权限选择页选「仅为我安装」时 {autopf} 解析为 {userpf}（%LOCALAPPDATA%\Programs），
+; 于是同一个安装包在非管理员账号下也能装进用户目录、不需要提权。
 DefaultDirName={autopf}\{#AppName}
 ; 不继承上一版记录的安装目录：2.2.11 及更早是按机器安装（Program Files），
-; 若沿用旧目录，非提权安装会因无权写入而失败。
+; 若沿用旧目录，非提权安装会因无权写入而失败；反之从用户目录升级到整机安装也会串目录。
 UsePreviousAppDir=no
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
@@ -90,8 +93,9 @@ Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired={#Privileges}
-; 默认不弹权限选择页；只有命令行显式 /ALLUSERS（或 /CURRENTUSER）才会改变安装范围。
-PrivilegesRequiredOverridesAllowed=commandline
+; 首个页面让用户选「所有用户（默认，落 Program Files，需 UAC）/ 仅为我（落用户目录，不提权）」。
+; 安装程序自身清单因此是 asInvoker：非管理员可以正常启动并完成按用户安装。
+PrivilegesRequiredOverridesAllowed=dialog
 ArchitecturesAllowed={#ArchAllowed}
 ArchitecturesInstallIn64BitMode={#ArchInstallMode}
 ; 进程由下方 [Code] 主动结束，交给 Restart Manager 反而会弹「文件被占用」对话框
