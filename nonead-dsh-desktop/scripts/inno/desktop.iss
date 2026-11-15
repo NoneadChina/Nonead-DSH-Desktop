@@ -64,11 +64,14 @@ UninstallDisplayName={#AppName} {#AppVersion}
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
-; 默认「仅为我安装」：不弹 UAC，装到 {autopf} = %LOCALAPPDATA%\Programs\Nonead DSH Desktop。
-; 想装到 C:\Program Files\Nonead DSH Desktop 时，在「选择安装模式」页选「为所有用户安装」，
-; 那时才会提权、{autopf} 解析为 %ProgramFiles%。两种模式共用同一套 [Tasks]/[Icons]/[Code]。
-PrivilegesRequired=lowest
-PrivilegesRequiredOverridesAllowed=dialog
+; 默认「为所有用户安装」：默认路径就是 C:\Program Files\Nonead DSH Desktop
+; （管理员安装模式下 {autopf} 解析为 {commonpf}），启动后由 Setup 自行提权，manifest 仍是 asInvoker。
+; 非管理员（或不想写入 Program Files 的用户）：在「选择安装模式」页选「仅为我安装」，
+; 那时不请求提权、{autopf} 解析为 %LOCALAPPDATA%\Programs\Nonead DSH Desktop，装完照样能运行。
+; 两种模式共用同一套 [Tasks]/[Icons]/[Code]。
+PrivilegesRequired=admin
+; commandline 让无人值守安装能显式选模式（/ALLUSERS 或 /CURRENTUSER），dialog 让交互安装能改选。
+PrivilegesRequiredOverridesAllowed=commandline dialog
 ArchitecturesAllowed={#ArchAllowed}
 ArchitecturesInstallIn64BitMode={#ArchInstallMode}
 ; 进程由下方 [Code] 主动结束，交给 Restart Manager 反而会弹「文件被占用」对话框
