@@ -88,6 +88,25 @@ it('archives the application like upstream Desktop while keeping fuses and nativ
   for (const name of ['@deepseek-ai/dsh-skill-office', '@deepseek-ai/dsh-tool-workspace-dependencies']) expect(next.dependencies[name], name).toBe(next.dependencies['@deepseek-ai/dsh'])
   expect(next.build.mac.icon).toBe('build/app-icon.icon')
   expect(existsSync(new URL('../build/app-icon.icon/icon.json', import.meta.url))).toBe(true)
-  expect(next.build.nsis).toMatchObject({ oneClick: false, perMachine: false, allowElevation: true, allowToChangeInstallationDirectory: true })
+  // The Windows installer is one all-users NSIS executable per CPU: eight wizard languages, artwork built
+  // from the shipped icon, and the hook script that closes a running application before install and uninstall.
+  expect(next.build.win.target).toEqual([{ target: 'nsis', arch: ['x64', 'arm64'] }])
+  expect(next.build.nsis).toMatchObject({
+    oneClick: false,
+    perMachine: true,
+    allowElevation: true,
+    allowToChangeInstallationDirectory: true,
+    multiLanguageInstaller: true,
+    displayLanguageSelector: false,
+    installerLanguages: ['en_US', 'zh_CN', 'ja_JP', 'es_ES', 'fr_FR', 'de_DE', 'ru_RU', 'pt_BR'],
+    include: 'dsh-installer-hooks.nsh',
+    installerHeader: 'build/nsis-header.bmp',
+    installerSidebar: 'build/nsis-sidebar.bmp',
+    uninstallerSidebar: 'build/nsis-sidebar.bmp',
+    installerIcon: 'build/app-icon.ico',
+    uninstallerIcon: 'build/app-icon.ico',
+    installerHeaderIcon: 'build/app-icon.ico',
+  })
+  for (const name of ['app-icon.ico', 'nsis-header.bmp', 'nsis-sidebar.bmp', 'dsh-installer-hooks.nsh']) expect(existsSync(new URL(`../build/${name}`, import.meta.url)), name).toBe(true)
   expect(next.build.mac.notarize).toBe(true)
 })

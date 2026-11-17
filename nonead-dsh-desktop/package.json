@@ -404,7 +404,8 @@
         {
           "target": "nsis",
           "arch": [
-            "x64"
+            "x64",
+            "arm64"
           ]
         }
       ],
@@ -419,7 +420,7 @@
     },
     "nsis": {
       "oneClick": false,
-      "perMachine": false,
+      "perMachine": true,
       "allowElevation": true,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
@@ -430,6 +431,22 @@
       "artifactName": "Nonead-DSH-Desktop-${version}-${arch}-Setup.${ext}",
       "installerIcon": "build/app-icon.ico",
       "uninstallerIcon": "build/app-icon.ico",
+      "installerHeaderIcon": "build/app-icon.ico",
+      "installerHeader": "build/nsis-header.bmp",
+      "installerSidebar": "build/nsis-sidebar.bmp",
+      "uninstallerSidebar": "build/nsis-sidebar.bmp",
+      "installerLanguages": [
+        "en_US",
+        "zh_CN",
+        "ja_JP",
+        "es_ES",
+        "fr_FR",
+        "de_DE",
+        "ru_RU",
+        "pt_BR"
+      ],
+      "multiLanguageInstaller": true,
+      "displayLanguageSelector": false,
       "include": "dsh-installer-hooks.nsh"
     },
     "linux": {
