@@ -1,5 +1,5 @@
 /** Native installer handoff. No application files are replaced by our own code. */
-import { execFile, spawn } from 'node:child_process'
+import { execFile } from 'node:child_process'
 import { lstat, mkdir, readdir, readFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { promisify } from 'node:util'
@@ -8,6 +8,16 @@ import { serveMacUpdate } from './mac-update-feed.ts'
 
 const execute = promisify(execFile)
 export const NEXT_APP_ID = 'ai.deepseek.dsh.desktop'
+
+/**
+ * Run one PowerShell statement with the installer path handed over through the environment, which
+ * keeps it out of the command line and out of any quoting rule.
+ */
+async function runPowerShell(script: string, installer: string, options: { signal?: AbortSignal; timeout: number }): Promise<{ stdout: string; stderr: string }> {
+  return execute(join(process.env.SystemRoot ?? 'C:\\Windows', 'System32/WindowsPowerShell/v1.0/powershell.exe'),
+    ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')],
+    { ...options, windowsHide: true, env: { ...process.env, DSH_UPDATE_INSTALLER: installer }, maxBuffer: 16_384 })
+}
 
 /** Check both bundle identity and embedded SemVer, before Squirrel validates the signature. */
 export function assertNextMacBundle(identifier: string, manifest: unknown, version: string): void {
@@ -18,9 +28,9 @@ export function assertNextMacBundle(identifier: string, manifest: unknown, versi
 }
 
 /**
- * Inno Setup pads its version strings with spaces to fixed widths (`ProductVersion` comes out as
- * `2.2.13` followed by 44 spaces), and PowerShell's VersionInfo exposes those spaces verbatim.
- * Compare the meaningful text only, and drop stray NULs some builds carry.
+ * Compare the meaningful text only: the NSIS installer writes clean values, but the Inno Setup
+ * builds up to 2.2.13 padded them to fixed widths and some linker versions leave trailing NULs,
+ * and an installed release has to keep accepting its own kind of installer.
  */
 function versionInfoText(value: unknown): string {
   return typeof value === 'string' ? value.replace(/\u0000/gu, '').trim() : ''
@@ -30,18 +40,6 @@ export function assertNextWindowsInstaller(info: { ProductName?: unknown; Produc
   if (versionInfoText(info.ProductName) !== 'Nonead DSH Desktop' || versionInfoText(info.ProductVersion) !== version.trim()) {
     throw new Error('The installer does not match this Next release')
   }
-}
-
-/**
- * Arguments for the downloaded Windows installer.
- *
- * The Windows build ships an Inno Setup installer, which does not understand the NSIS-style
- * `--updated` switch older releases passed; Inno may reject or ignore it, so none is passed.
- * `/S` and Inno's `/SILENT` hide the wizard, which made a working install look like nothing
- * started, so the assisted wizard opens and the user finishes it.
- */
-export function nextInstallerArguments(_platform: string): readonly string[] {
-  return []
 }
 
 export class NextUpdateInstaller {
@@ -57,9 +55,7 @@ export class NextUpdateInstaller {
     this.prepared = undefined; this.nativeReady = false; this.launchTask = undefined
     if (this.options.platform === 'win32') {
       const script = '$ErrorActionPreference="Stop"; (Get-Item -LiteralPath $env:DSH_UPDATE_INSTALLER).VersionInfo | Select-Object ProductName,ProductVersion | ConvertTo-Json -Compress'
-      const info = await execute(join(process.env.SystemRoot ?? 'C:\\Windows', 'System32/WindowsPowerShell/v1.0/powershell.exe'),
-        ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')],
-        { signal, timeout: 30_000, windowsHide: true, env: { ...process.env, DSH_UPDATE_INSTALLER: path }, maxBuffer: 16_384 })
+      const info = await runPowerShell(script, path, { signal, timeout: 30_000 })
       assertNextWindowsInstaller(JSON.parse(info.stdout.replace(/^\uFEFF/, '')), version)
       this.prepared = { path, version }; return
     }
@@ -133,14 +129,22 @@ export class NextUpdateInstaller {
     })
     return this.launchTask
   }
+  /**
+   * Start the Windows installer through the shell instead of `child_process`.
+   *
+   * The assisted NSIS installer declares `requireAdministrator`. CreateProcess — what `spawn`
+   * uses — cannot raise the consent prompt for such an image and fails with 740
+   * (ERROR_ELEVATION_REQUIRED) before anything becomes visible, which is exactly the dead end the
+   * Install action hit after the Inno route was replaced: that installer was `asInvoker` and
+   * elevated itself. ShellExecute does prompt, so the handoff goes through PowerShell's
+   * `Start-Process` with the `RunAs` verb. The call resolves once the prompt was accepted and
+   * rejects when it was declined, which keeps the retry action usable.
+   */
   private async startInstaller(): Promise<void> {
     if (this.options.platform === 'darwin' && this.nativeReady) { autoUpdater.quitAndInstall(); return }
     const prepared = this.prepared
     if (this.options.platform !== 'win32' || !prepared) throw new Error('No prepared update installer')
-    await new Promise<void>((resolve, reject) => {
-      const child = spawn(prepared.path, [...nextInstallerArguments('win32')], { detached: true, stdio: 'ignore', shell: false, windowsHide: false })
-      child.once('error', reject)
-      child.once('spawn', () => { child.off('error', reject); child.on('error', this.options.log); child.unref(); resolve() })
-    })
+    // A user can sit on the consent prompt, so the timeout only stops an abandoned one.
+    await runPowerShell('$ErrorActionPreference="Stop"; Start-Process -FilePath $env:DSH_UPDATE_INSTALLER -Verb RunAs', prepared.path, { timeout: 5 * 60_000 })
   }
 }

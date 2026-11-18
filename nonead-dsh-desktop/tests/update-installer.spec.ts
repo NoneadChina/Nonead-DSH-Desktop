@@ -1,23 +1,31 @@
-import { EventEmitter } from 'node:events'
-import { spawn, type ChildProcess } from 'node:child_process'
 import { beforeEach, expect, it, vi } from 'vitest'
 vi.mock('electron', () => ({ autoUpdater: { on: vi.fn() } }))
-// `prepare` reads the Windows version resource through PowerShell; the callback shape is what
-// promisify(execFile) actually awaits, so a resolved mock alone would hang.
-vi.mock('node:child_process', () => ({
-  execFile: vi.fn((_file: string, _args: readonly string[], _options: unknown, callback: (error: Error | null, result: { stdout: string; stderr: string }) => void) => {
-    callback(null, { stdout: JSON.stringify({ ProductName: 'Nonead DSH Desktop', ProductVersion: '2.0.18-next.1' }), stderr: '' })
-  }),
-  spawn: vi.fn(),
+// `prepare` and the launch both read through PowerShell; the callback shape is what
+// promisify(execFile) actually awaits, so a resolved mock alone would hang. Each call answers from
+// a queue so a launch can fail while the earlier version probe succeeded.
+const helper = vi.hoisted(() => ({
+  answers: [] as { error?: Error; stdout?: string }[],
+  runs: [] as { script: string; installer?: string }[],
 }))
-import { NextUpdateInstaller, assertNextMacBundle, assertNextWindowsInstaller, nextInstallerArguments } from '../src/update-installer.ts'
+vi.mock('node:child_process', () => ({
+  execFile: vi.fn((_file: string, args: readonly string[], options: { env?: Record<string, string | undefined> }, callback: (error: Error | null, result: { stdout: string; stderr: string }) => void) => {
+    const index = args.indexOf('-EncodedCommand')
+    const script = index < 0 ? '' : Buffer.from(args[index + 1] ?? '', 'base64').toString('utf16le')
+    helper.runs.push({ script, installer: options.env?.DSH_UPDATE_INSTALLER })
+    const answer = helper.answers.shift()
+    if (answer?.error) callback(answer.error, { stdout: '', stderr: '' })
+    else callback(null, { stdout: answer?.stdout ?? '', stderr: '' })
+  }),
+}))
+import { NextUpdateInstaller, assertNextMacBundle, assertNextWindowsInstaller } from '../src/update-installer.ts'
 
-beforeEach(() => { vi.clearAllMocks() })
+beforeEach(() => { vi.clearAllMocks(); helper.answers.length = 0; helper.runs.length = 0 })
 
 const VERSION = '2.0.18-next.1'
 const INSTALLER = 'C:/cache/download-1/Nonead-DSH-Desktop-Setup.exe'
 
 async function preparedWindowsInstaller(): Promise<NextUpdateInstaller> {
+  helper.answers.push({ stdout: JSON.stringify({ ProductName: 'Nonead DSH Desktop', ProductVersion: '2.0.18-next.1' }) })
   const installer = new NextUpdateInstaller({ platform: 'win32', executable: 'C:/app/Nonead DSH Desktop.exe', log: vi.fn() })
   await installer.prepare(INSTALLER, VERSION, 'C:/cache/download-1', new AbortController().signal)
   return installer
@@ -31,9 +39,10 @@ it('rejects Stable/Beta installers and an unexpected release even when the archi
   expect(() => assertNextWindowsInstaller({ ProductName: 'DSH Desktop Beta', ProductVersion: '2.0.14-next' }, '2.0.14-next')).toThrow()
 })
 
-it('accepts the space padding Inno Setup writes into the version resource', () => {
-  // Inno pads ProductName/ProductVersion to 60/50 UTF-16 code units; comparing verbatim made
-  // every downloaded update fail with "the installer does not match this Next release".
+it('still accepts the space padding the Inno Setup installers wrote into the version resource', () => {
+  // Inno padded ProductName/ProductVersion to 60/50 UTF-16 code units, and comparing verbatim made
+  // every downloaded update fail with "the installer does not match this Next release". Releases up
+  // to 2.2.13 are Inno builds that keep updating themselves from exactly this resource.
   const padded = {
     ProductName: 'Nonead DSH Desktop'.padEnd(60, ' '),
     ProductVersion: '2.0.18-next.1'.padEnd(50, ' '),
@@ -44,42 +53,35 @@ it('accepts the space padding Inno Setup writes into the version resource', () =
   expect(() => assertNextWindowsInstaller({ ProductName: 'Nonead DSH Desktop', ProductVersion: '2.0.19-next.1' }, VERSION)).toThrow()
 })
 
-it('launches the Windows installer visibly without NSIS-only switches', () => {
-  const args = nextInstallerArguments('win32')
-  // Inno Setup does not understand the NSIS `--updated` switch, and `/S` silences the whole run.
-  expect(args).toEqual([])
-})
-
-it('passes no installer arguments on other platforms', () => {
-  expect(nextInstallerArguments('darwin')).toEqual([])
-  expect(nextInstallerArguments('linux')).toEqual([])
-})
-
-it('spawns the Windows installer once when the shutdown handoff launches it again', async () => {
-  const child = Object.assign(new EventEmitter(), { unref: vi.fn() })
-  vi.mocked(spawn).mockReturnValue(child as unknown as ChildProcess)
+it('starts the Windows installer through the shell so the elevation prompt can appear', async () => {
   const installer = await preparedWindowsInstaller()
+  helper.answers.push({ stdout: '' })
+  await expect(installer.launch()).resolves.toBeUndefined()
+  const run = helper.runs.at(-1)!
+  // The assisted NSIS installer requires administrator, and CreateProcess cannot raise the consent
+  // prompt for it (740), so the launch has to go through ShellExecute — Start-Process — instead.
+  expect(run.script).toContain('Start-Process -FilePath $env:DSH_UPDATE_INSTALLER -Verb RunAs')
+  expect(run.script).not.toContain('-ArgumentList')
+  expect(run.installer).toBe(INSTALLER)
+})
+
+it('launches the Windows installer once when the shutdown handoff launches it again', async () => {
+  const installer = await preparedWindowsInstaller()
+  helper.answers.push({ stdout: '' }, { stdout: '' })
   // The Install action starts the installer before quitting; before-quit then re-enters launch
-  // while the first attempt is still in flight (or already finished) and must join it.
+  // and must join the attempt already in flight.
   const first = installer.launch()
   const second = installer.launch()
-  expect(spawn).toHaveBeenCalledOnce()
-  expect(spawn).toHaveBeenCalledWith(INSTALLER, [], { detached: true, stdio: 'ignore', shell: false, windowsHide: false })
-  child.emit('spawn')
   await expect(Promise.all([first, second])).resolves.toEqual([undefined, undefined])
   await expect(installer.launch()).resolves.toBeUndefined()
-  expect(spawn).toHaveBeenCalledOnce()
+  expect(helper.runs).toHaveLength(2)
 })
 
 it('keeps a failed Windows launch retryable instead of caching the rejection', async () => {
-  const child = Object.assign(new EventEmitter(), { unref: vi.fn() })
-  vi.mocked(spawn).mockReturnValue(child as unknown as ChildProcess)
   const installer = await preparedWindowsInstaller()
-  const failed = installer.launch()
-  child.emit('error', new Error('spawn ENOENT'))
-  await expect(failed).rejects.toThrow('spawn ENOENT')
-  const retry = installer.launch()
-  expect(spawn).toHaveBeenCalledTimes(2)
-  child.emit('spawn')
-  await expect(retry).resolves.toBeUndefined()
+  helper.answers.push({ error: new Error('The operation was canceled by the user') }, { stdout: '' })
+  await expect(installer.launch()).rejects.toThrow('canceled')
+  // Cancelling the consent prompt must leave the downloaded package usable for another attempt.
+  await expect(installer.launch()).resolves.toBeUndefined()
+  expect(helper.runs).toHaveLength(3)
 })
