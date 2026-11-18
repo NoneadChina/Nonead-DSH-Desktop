@@ -23,6 +23,21 @@ const pluginDir = join(root, 'plugin')
 const registry = 'https://registry.npmjs.org'
 const ARCHIVE = /\.(?:tgz|tar\.gz)$/u
 
+/**
+ * Packages that must not follow the `latest` dist-tag:
+ *
+ * - `@deepseek-ai/dsh-tool-subagent` ships in lockstep with the bundled dsh runtime, and its
+ *   `latest` tag still points at the ancient 0.0.1-rc.1. Its peerDependencies pin the exact
+ *   runtime version, so this entry moves only when `vendor/dsh-runtime` moves.
+ * - `dsh-ppt-master` 6.1.0 is the locally maintained 6.x line. The npm package with the same
+ *   name is a different product whose only published line is 1.0.x, so `latest` must never
+ *   replace it.
+ */
+const PINNED = {
+  '@deepseek-ai/dsh-tool-subagent': '0.2.2-rc.3',
+  'dsh-ppt-master': '6.1.0',
+}
+
 /** Minimal ustar reader, matching build-plugin-manifest.mjs (Windows bsdtar mishandles -O). */
 function readTarMember(archive, target) {
   const buffer = gunzipSync(readFileSync(archive))
@@ -53,12 +68,19 @@ function archivedIdentity(file) {
   } catch { return undefined }
 }
 
-async function latest(name) {
-  const response = await fetch(`${registry}/${name.replace('/', '%2F')}/latest`, {
+async function packageMeta(name) {
+  const pinned = PINNED[name]
+  const path = name.replace('/', '%2F')
+  const url = pinned === undefined ? `${registry}/${path}/latest` : `${registry}/${path}/${pinned}`
+  const response = await fetch(url, {
     headers: { accept: 'application/json' }, signal: AbortSignal.timeout(30_000),
   })
   if (!response.ok) throw new Error(`HTTP ${response.status}`)
-  return response.json()
+  const meta = await response.json()
+  if (pinned !== undefined && meta.version !== pinned) {
+    throw new Error(`pinned ${pinned} resolved to ${meta.version}`)
+  }
+  return meta
 }
 
 const manifest = JSON.parse(readFileSync(join(pluginDir, 'manifest.json'), 'utf8'))
@@ -67,8 +89,19 @@ const report = []
 for (const plugin of manifest.plugins) {
   const entry = { name: plugin.name, from: plugin.version, to: undefined, action: 'unchanged', note: undefined }
   try {
-    const meta = await latest(plugin.name)
-    if (typeof meta.version !== 'string') throw new Error('latest has no version')
+    const pinned = PINNED[plugin.name]
+    if (pinned !== undefined) {
+      const pinnedFile = archiveName(plugin.name, pinned)
+      const existingPinned = existsSync(join(pluginDir, pinnedFile)) ? archivedIdentity(pinnedFile) : undefined
+      if (existingPinned && existingPinned.name === plugin.name && existingPinned.version === pinned) {
+        entry.to = pinned
+        entry.action = 'pinned'
+        report.push(entry)
+        continue
+      }
+    }
+    const meta = await packageMeta(plugin.name)
+    if (typeof meta.version !== 'string') throw new Error('dist-tag has no version')
     entry.to = meta.version
     const targetFile = archiveName(meta.name ?? plugin.name, meta.version)
     const targetPath = join(pluginDir, targetFile)
@@ -106,8 +139,9 @@ for (const plugin of manifest.plugins) {
 const width = Math.max(...report.map(row => row.name.length))
 for (const row of report) {
   const state = row.action === 'skipped' ? `SKIP ${row.note}`
-    : row.action === 'present' || row.action === 'unchanged' ? 'unchanged'
-      : `${row.action} ${row.from} -> ${row.to}`
+    : row.action === 'pinned' ? `pinned ${row.to}`
+      : row.action === 'present' || row.action === 'unchanged' ? 'unchanged'
+        : `${row.action} ${row.from} -> ${row.to}`
   console.log(`${row.name.padEnd(width)}  ${state}`)
 }
 const updated = report.filter(row => row.action === 'updated' || row.action === 'refreshed').length
