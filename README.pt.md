@@ -73,7 +73,7 @@ Shell e Host se comunicam por exatamente um canal IPC de processo filho. Trocar 
 | Pin upstream | `38a6a5c965aa99ab525161efb7cc5cf1fe62fced` (`channels.beta` no `upstream.json`, replicado em `nonead-dsh-desktop/upstream-reference.json`) |
 | Electron / empacotador | Electron `44.0.0` / electron-builder `26.15.7` (`app-builder-lib` com patch) |
 | Node / Yarn | Node `^22.19.0` ou `>=24.0.0`; Yarn `4.18.0` via Corepack (`nodeLinker: node-modules`) |
-| Mercado de plugins | `dshmarket` `1.73.19`, além do `dsh-community-market` `0.1.0-dev.0` deste repositório |
+| Mercado de plugins | `dshmarket` `1.73.20`, além do `dsh-community-market` `0.1.0-dev.0` deste repositório |
 | Ponte de controle remoto | `@agents-anywhere/dsh-bridge-next` `2.2.0-desktop` (commit upstream `aa12e7a`) |
 | Skin da marca | `dsh-nonead-client-skin` (distribuída no instalador, montada por perfil) |
 

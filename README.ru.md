@@ -73,7 +73,7 @@ Nonead DSH Desktop объединяет локальный Web UI, службу 
 | Пин апстрима | `38a6a5c965aa99ab525161efb7cc5cf1fe62fced` (`channels.beta` в `upstream.json`, продублирован в `nonead-dsh-desktop/upstream-reference.json`) |
 | Electron / упаковщик | Electron `44.0.0` / electron-builder `26.15.7` (`app-builder-lib` с патчем) |
 | Node / Yarn | Node `^22.19.0` или `>=24.0.0`; Yarn `4.18.0` через Corepack (`nodeLinker: node-modules`) |
-| Магазин плагинов | `dshmarket` `1.73.19`, а также `dsh-community-market` `0.1.0-dev.0` из этого репозитория |
+| Магазин плагинов | `dshmarket` `1.73.20`, а также `dsh-community-market` `0.1.0-dev.0` из этого репозитория |
 | Мост удалённого управления | `@agents-anywhere/dsh-bridge-next` `2.2.0-desktop` (коммит апстрима `aa12e7a`) |
 | Фирменная тема оформления | `dsh-nonead-client-skin` (поставляется в установщике, подключается для каждого профиля) |
 

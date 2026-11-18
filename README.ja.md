@@ -73,7 +73,7 @@ Nonead DSH Desktop は、[DeepSeek Harness](https://github.com/deepseek-ai/deeps
 | 上流の pin | `38a6a5c965aa99ab525161efb7cc5cf1fe62fced`（`upstream.json` の `channels.beta`、`nonead-dsh-desktop/upstream-reference.json` にも記録） |
 | Electron / パッケージャー | Electron `44.0.0` / electron-builder `26.15.7`（`app-builder-lib` にパッチあり） |
 | Node / Yarn | Node `^22.19.0` または `>=24.0.0`、Yarn `4.18.0`（Corepack 経由、`nodeLinker: node-modules`） |
-| プラグインマーケット | `dshmarket` `1.73.19`、加えて本リポジトリの `dsh-community-market` `0.1.0-dev.0` |
+| プラグインマーケット | `dshmarket` `1.73.20`、加えて本リポジトリの `dsh-community-market` `0.1.0-dev.0` |
 | スマートフォン遠隔操作ブリッジ | `@agents-anywhere/dsh-bridge-next` `2.2.0-desktop`（上流コミット `aa12e7a`） |
 | ブランドスキン | `dsh-nonead-client-skin`（インストーラーに同梱、プロファイルごとに組み込み読み込み） |
 

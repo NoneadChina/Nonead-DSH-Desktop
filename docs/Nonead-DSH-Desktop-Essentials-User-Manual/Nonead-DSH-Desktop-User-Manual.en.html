@@ -84,7 +84,7 @@
       <ul>
         <li><strong>1 · What this is</strong> — three layers; everyday use touches only the top one.</li>
         <li><strong>2 · Installation</strong> — which package for each platform, and how to install it.</li>
-        <li><strong>3 · First launch</strong> — the six-step wizard, and "closing the window is not quitting".</li>
+        <li><strong>3 · First-time setup</strong> — a whole chapter of 105 screenshots, from double-clicking the installer to a configured model and a finished self-check.</li>
         <li><strong>4 · Main interface at a glance</strong> — what each of the four areas handles.</li>
         <li><strong>5 · Your first conversation</strong> — how to state a request clearly.</li>
         <li><strong>6 · Tray menu</strong> — every system-level entry point lives here.</li>
@@ -156,32 +156,801 @@
     </section>
 
     <section class="flow-block">
-      <h2>3. First launch</h2>
-      <p>The first startup prepares a default configuration automatically (a Profile named <code>desktop</code>) and starts the interface service locally. You will see a wizard first — six steps in all, and you can choose "Skip setup" at any point and fill things in later on the settings page:</p>
+      <h2>3. First-time setup</h2>
+
+      <p class="lead">This chapter records one complete first installation: from 09:04 to 11:19 on 15 November 2026, on a Windows 11 machine, starting with a double-click on the installer and ending with three command-line tools added and the first self-check finished. 105 screenshots were taken along the way, ordered by capture time and numbered Figure 3-1 through Figure 3-105; every step says which screen you were looking at, what was clicked, and why it was clicked that way.</p>
+
+      <p>The hands-on part takes less than ten minutes; the rest is waiting — for the 27 bundled plugins to finish installing one by one, for the 239 MB speech model to download, for one health check to repair the machine. If you only want to get working quickly, sections 3.1 to 3.5 are enough. If you want everything configured in one pass, with the AI also checking this machine over, keep reading from 3.6.</p>
+
+      <table>
+        <thead>
+          <tr><th class="w-16">Time</th><th class="w-44">What this stretch covers</th><th>Section / figures</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>09:04–09:08</td><td>Double-click the installer, click through the setup</td><td>3.1 / Figure 3-1 – 3-6</td></tr>
+          <tr><td>09:08–09:09</td><td>First launch, six-step wizard</td><td>3.2 / Figure 3-7 – 3-13</td></tr>
+          <tr><td>09:09–09:15</td><td>The 27 bundled plugins install one by one</td><td>3.3 / Figure 3-14 – 3-17</td></tr>
+          <tr><td>09:16–09:18</td><td>Memory hub, memory-plugin guide, cost linkage</td><td>3.4 / Figure 3-18 – 3-30</td></tr>
+          <tr><td>09:18–09:19</td><td>Enter the model API key</td><td>3.5 / Figure 3-31 – 3-33</td></tr>
+          <tr><td>09:20–09:25</td><td>Plugin page, switch on experimental plugins</td><td>3.6 / Figure 3-34 – 3-39</td></tr>
+          <tr><td>09:26–09:29</td><td>Walk through the settings page item by item</td><td>3.7 / Figure 3-40 – 3-60</td></tr>
+          <tr><td>09:29–09:32</td><td>A few dropdowns, the first question</td><td>3.8 / Figure 3-61 – 3-68</td></tr>
+          <tr><td>09:33–09:34</td><td>The health check runs into two permission prompts</td><td>3.9 / Figure 3-69 – 3-70</td></tr>
+          <tr><td>09:34–09:36</td><td>Voice-input plugin, download the local model</td><td>3.10 / Figure 3-71 – 3-77</td></tr>
+          <tr><td>09:36</td><td>The three kinds of restart in the "Restart" dropdown</td><td>3.11 / Figure 3-78</td></tr>
+          <tr><td>09:37–10:33</td><td>The health check finishes, three real faults repaired</td><td>3.12 / Figure 3-79 – 3-82</td></tr>
+          <tr><td>10:34–10:49</td><td>Add gh / ffmpeg / uv, download the new version</td><td>3.13 / Figure 3-83 – 3-94</td></tr>
+          <tr><td>10:56–10:57</td><td>Cycle the interface language through a few</td><td>3.14 / Figure 3-95 – 3-98</td></tr>
+          <tr><td>11:02–11:03</td><td>Check the tool versions, restart to apply</td><td>3.15 / Figure 3-99 – 3-102</td></tr>
+          <tr><td>11:18–11:19</td><td>How it looks when done: context panel and simulator panel</td><td>3.16 / Figure 3-103 – 3-105</td></tr>
+        </tbody>
+        <caption>Table 3-1　The timeline of this installation. Figures are numbered chapter-sequence: this chapter runs from Figure 3-1 straight through to Figure 3-105.</caption>
+      </table>
+
+      <h3>3.1　Preparation and installation (09:04–09:08)</h3>
+
+      <p>Once the package has been downloaded from the website it sits on the desktop, its filename carrying the version and architecture: <code>Nonead-DSH-Desktop-2.2.12-x64-Setup.exe</code>. Double-click it to start; there is nothing to unpack first and no runtime to install — the runtime is inside the package.</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_090443.jpg" loading="lazy" decoding="async" alt="Windows desktop with the 2.2.12 installer on it" width="1988" height="1196">
+        <figcaption>Figure 3-1　The <code>Nonead-DSH-Desktop-2.2.12-x64-Setup</code> installer on the desktop. The Nonead icon next to it is a desktop shortcut left by an earlier version and has nothing to do with this installation.</figcaption>
+      </figure>
+
+      <p>The first screen asks exactly one thing: <strong>who is it for</strong>. "Install for all users" needs administrator rights, puts the program in the system directory, and makes it available to every account on the machine; "Install for me only" needs no elevation, goes into your own user directory, and only you can see it. On a personal machine either is fine; on a computer people share, choose the first.</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_090512.jpg" loading="lazy" decoding="async" alt="Inno setup: choose the installation mode" width="1988" height="1196">
+        <figcaption>Figure 3-2　"Choose installation mode". This choice decides whether a UAC prompt follows; only after clicking does the destination page appear.</figcaption>
+      </figure>
+
+      <p>The destination page comes next (no screenshot was taken of it). Its default follows the previous step: all users go to <code>C:\Program Files\Nonead DSH Desktop</code>, "me only" goes to the user directory. Here the directory was moved to the data drive, <code>D:\Software\Nonead DSH Desktop</code>, and that is the path that appears in every later screenshot — if you installed to the default location, substitute your own path wherever this chapter shows it.</p>
+
+      <p>After that comes "Select additional tasks". This version offers exactly one: <strong>create a desktop shortcut</strong>. Leave it ticked; when the installation ends there is one more entry point on the desktop, and the tray icon stays resident.</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_090531.jpg" loading="lazy" decoding="async" alt="Select additional tasks: create a desktop shortcut" width="1988" height="1196">
+          <figcaption>Figure 3-3　"Select additional tasks". Ticking the single box is enough; whether the app starts with Windows is decided later, in the settings.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_090540.jpg" loading="lazy" decoding="async" alt="Ready to install: summary of the selected task" width="1988" height="1196">
+          <figcaption>Figure 3-4　"Ready to install". The box lists the task selected in the previous step; confirm it and click "Install".</figcaption>
+        </figure>
+      </div>
+
+      <p>Click "Install" and the progress bar starts moving. What the installer does is simple: unpack the runtime and the 27 plugin packages into the destination directory. This takes about three minutes, and during it you should not touch the files in that directory.</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_090554.jpg" loading="lazy" decoding="async" alt="Installing: extracting files into D:\Software\Nonead DSH Desktop" width="1988" height="1196">
+        <figcaption>Figure 3-5　"Installing", with the log naming the file being extracted. The path shown is the destination you chose in the previous step.</figcaption>
+      </figure>
+
+      <p>At the end, tick "Run Nonead DSH Desktop" to start it right away and save a double-click; if you would rather look at what was installed first, clear the box.</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_090806.jpg" loading="lazy" decoding="async" alt="Completing the wizard with Run Nonead DSH Desktop ticked" width="1988" height="1196">
+        <figcaption>Figure 3-6　"Completing the Nonead DSH Desktop Setup Wizard". With "Run Nonead DSH Desktop" ticked, click "Finish" and the app starts immediately.</figcaption>
+      </figure>
+
+      <h3>3.2　First launch and the six-step wizard (09:08–09:09)</h3>
+
+      <p>The first launch opens on a black startup screen. It is scanning the Profile and loading plugins; the first run also has to build indexes, so it is slower than usual and <code>Loading plugins...</code> sitting there for ten-odd seconds is normal.</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_090819.jpg" loading="lazy" decoding="async" alt="The black Loading plugins startup screen on first launch" width="1988" height="1196">
+        <figcaption>Figure 3-7　The startup screen. At this moment the interface service is not up yet, so there is only one line of text and a spinner.</figcaption>
+      </figure>
+
+      <p>Once the interface is up the wizard starts by itself. It asks one thing at a time; the <code>1 / 6</code> counter in the top right tells you how many steps remain, and every step has a "Skip" in the bottom right — skipping does not mean "never ask again", it means "continue with the defaults".</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_090835.jpg" loading="lazy" decoding="async" alt="Wizard 1/6, the welcome page" width="1988" height="1196">
+          <figcaption>Figure 3-8　1 / 6, the welcome page. This configuration is written into a Profile named <code>desktop</code>; you can create other Profiles later.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_090844.jpg" loading="lazy" decoding="async" alt="Wizard 2/6, choosing a plugin marketplace" width="1988" height="1196">
+          <figcaption>Figure 3-9　2 / 6, plugin marketplace — pick one of three: the community market, <code>dsh-market</code> (data from awesome-dsh-plugin), or none for now. Here <code>dsh-market</code> was chosen.</figcaption>
+        </figure>
+      </div>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_090856.jpg" loading="lazy" decoding="async" alt="Wizard 3/6, the remote control switch" width="1988" height="1196">
+          <figcaption>Figure 3-10　3 / 6, remote control: once enabled you can reach this machine from a phone or a browser. It was left off here and can be turned on later under "Remote Control" in the sidebar.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_090905.jpg" loading="lazy" decoding="async" alt="Wizard 4/6, the Computer Use switch" width="1988" height="1196">
+          <figcaption>Figure 3-11　4 / 6, Computer Use: let the AI look at the screen and drive the mouse and keyboard. Also left off; it needs a model that accepts images, and even switched on every action still asks for approval.</figcaption>
+        </figure>
+      </div>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_090912.jpg" loading="lazy" decoding="async" alt="Wizard 5/6, explaining recovery mode" width="1988" height="1196">
+          <figcaption>Figure 3-12　5 / 6, recovery mode: how to reach the recovery assistant when the app will not start. Nothing to do here — just remember the tray has "Recovery assistant…".</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_090919.jpg" loading="lazy" decoding="async" alt="Wizard 6/6, the 27 bundled plugins by category" width="1988" height="1196">
+          <figcaption>Figure 3-13　6 / 6, bundled plugins, 27 in all, counted by category: memory and context 4, interface and workspace 7, agents and skills 7, documents and media 3, code and engineering 2, connectivity and automation 4.</figcaption>
+        </figure>
+      </div>
 
       <table>
         <thead>
           <tr><th class="w-20">Step</th><th class="w-46">What it asks</th><th>Suggestion</th></tr>
         </thead>
         <tbody>
-          <tr><td>1 Welcome</td><td>What the wizard is going to configure</td><td>Click "Start setup"</td></tr>
-          <tr><td>2 Plugin marketplace</td><td>Off / <code>dsh-community-market</code> (Beta) / <code>dsh-market</code>; only one can be enabled at a time</td><td>Leaving it off works fine; pick one if you want a marketplace, and you can change it later</td></tr>
-          <tr><td>3 Remote control</td><td>Whether to use Agents-Anywhere (Beta) to reach this computer from a phone or a browser</td><td>Leave it off if unsure; once it is on, finish pairing in the sidebar's "Phone connection"</td></tr>
-          <tr><td>4 Computer Use</td><td>Whether to let the AI operate the desktop (click, type, look at the screen)</td><td>Turn it off if you do not need it; even when it is on, every action still needs your approval</td></tr>
-          <tr><td>5 Recovery mode</td><td>Explains how to get into the recovery assistant when the app will not start</td><td>Just have a look, and remember the tray has "Recovery assistant…"</td></tr>
-          <tr><td>6 Bundled plugins</td><td>Introduces the plugins that ship in this installer across six broad categories, then installs them one by one</td><td>Click "Finish and start" and wait for it to finish</td></tr>
+          <tr><td>1 Welcome</td><td>Explains what the wizard is going to configure</td><td>Just click "Next"</td></tr>
+          <tr><td>2 Plugin marketplace</td><td>Off / <code>dsh-community-market</code> (Beta) / <code>dsh-market</code>; only one can be enabled at a time</td><td>Leaving it off works; pick one if you want a marketplace, and you can change it later</td></tr>
+          <tr><td>3 Remote control</td><td>Whether to reach this computer from a phone, tablet or another computer over Agents Anywhere</td><td>Leave it off if unsure; once on, pair it under "Remote Control" in the sidebar</td></tr>
+          <tr><td>4 Computer Use</td><td>Whether the AI may operate the desktop (look at the screen, click, type)</td><td>Turn it off if you do not need it; even when on, every action still needs approval</td></tr>
+          <tr><td>5 Recovery mode</td><td>Explains how to reach the recovery assistant when the app will not start</td><td>Just have a look</td></tr>
+          <tr><td>6 Bundled plugins</td><td>Describes the 27 bundled plugins across six categories, then installs them one by one</td><td>Click "Finish and start" and let it finish</td></tr>
         </tbody>
-        <caption>Table 2　The six steps of the first-launch wizard.</caption>
+        <caption>Table 3-2　The six steps of the first-launch wizard. This installation took the more conservative option in every row.</caption>
       </table>
 
-      <p>The last page first gives you a <strong>category overview</strong>: memory and context, interface and workspace, agents and skills, documents and media, code and engineering, connectivity and automation — each category states what it can do for you and how many plugins it contains. Only after you click "Finish and start" does the wizard install them one at a time, showing each plugin's name, version, category, full description and a line of thanks to whoever made it. <strong>No input is needed during the installation — just let the progress run through</strong>: 27 packages go in one by one, so the first launch takes a little longer than usual.</p>
-
       <div class="callout">
-        <strong>What happens if I skip setup?</strong> "Skip setup" takes you straight to the main interface, and this batch of bundled plugins is <strong>not</strong> installed automatically. To get them back: Settings → Desktop tools → "Setup wizard", run it again and click Finish on the last page.
+        <strong>What happens if I skip setup?</strong> "Skip setup" drops you straight into the main interface and this batch of bundled plugins is <strong>not</strong> installed. To get them back: Settings → Desktop tools → "Setup wizard", run it again and click "Finish and start" on the last page.
       </div>
 
-      <p>When the wizard finishes you land in the main interface. <strong>Closing the window is not quitting the app</strong>: by default a close only puts the window in the tray, while the background service and any running tasks carry on. To quit for real, use "Quit" in the tray menu.</p>
+      <h3>3.3　Installing the 27 plugins (09:09–09:15)</h3>
+
+      <p>After clicking "Finish and start" the wizard turns into an installation panel: a fixed explanation on the left, progress on the right. For every plugin it shows one card — name, category, version, the full description, and a line thanking whoever contributed it — with a progress bar and an <code>8 / 27</code> counter underneath.</p>
+
+      <p><strong>Nothing is required from you in this stretch.</strong> The 27 packages install in manifest order with no confirmation dialogs in between, and the interface service restarts once when they are done. This is the main reason the first launch takes longer than usual.</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_090928.jpg" loading="lazy" decoding="async" alt="Install progress 0/27, the first plugin dsh-auto-memory" width="1988" height="1196">
+          <figcaption>Figure 3-14　<code>0 / 27</code>; the first one in is <code>@a9i5k4/dsh-auto-memory</code> v3.3.17 (memory and context).</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_091048.jpg" loading="lazy" decoding="async" alt="Install progress 8/27, dsh-skills-manager" width="1988" height="1196">
+          <figcaption>Figure 3-15　<code>8 / 27</code>, now on <code>@michengai/dsh-skills-manager</code> v1.4.6 (agents and skills).</figcaption>
+        </figure>
+      </div>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_091340.jpg" loading="lazy" decoding="async" alt="Install progress 22/27, dsh-mcp-connector" width="1988" height="1196">
+          <figcaption>Figure 3-16　<code>22 / 27</code>, <code>dsh-mcp-connector</code> v0.2.106 (connectivity and automation).</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_091555.jpg" loading="lazy" decoding="async" alt="Back to Loading plugins after the 27 finished" width="1988" height="1196">
+          <figcaption>Figure 3-17　All 27 done: the interface service restarts and you are back at the startup screen. This load is far quicker than the first one.</figcaption>
+        </figure>
+      </div>
+
+      <p>Of the 105 screenshots, only four were kept for this stretch — all 27 progress pages look the same and posting each in turn would be repetition. What each plugin can do is described in Section 9; the package manifest itself is <code>plugin/manifest.json</code> inside the installer.</p>
+
+      <h3>3.4　The three guides on first entry (09:16–09:18)</h3>
+
+      <p>After the restart, before the main interface, a dialog appears: <strong>Create the "memory hub"</strong>. It belongs to the memory plugin <code>dsh-auto-memory</code>, and what it wants to do is create a dedicated workspace (the directory <code>~\.dsh\aik_auto_memory_use</code>) plus a background session to host memory consolidation, so that Q&amp;A, summarising and consolidation do not crowd into your session list.</p>
+
+      <p>Four items in the dialog are worth checking: workspace location, permission, issue number, workspace registration. The <strong>permission must be "full access"</strong> — a restricted permission puts the background task outside the sandbox, where it cannot read the memory directory; nothing visibly fails, but the feature silently stops working. The small print at the bottom says the same thing: until it is created, every background memory task is paused and sends no requests.</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_091602.jpg" loading="lazy" decoding="async" alt="Create memory hub dialog with four items to confirm" width="1988" height="1196">
+        <figcaption>Figure 3-18　"Create the memory hub". Item ②, <code>danger-full-access</code>, is what makes the feature work — do not switch it to a restricted mode.</figcaption>
+      </figure>
+
+      <p>Click "Agree and create"; a few seconds later all four items are ticked, the status becomes <code>ok</code>, and the background memory tasks start. This dialog will not appear again; to change the workspace directory or the rotation period, go to Settings → Auto Memory.</p>
+
+      <p>Next comes the memory plugin's own nine-step guide. The page is a <strong>switch per mechanism</strong>: each page explains one mechanism and offers a switch marked "recommended on"; changes are saved immediately, and the counter in the top right reads <code>01 / 09</code>.</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_091613.jpg" loading="lazy" decoding="async" alt="Memory hub created, four items ticked, status ok" width="1988" height="1196">
+          <figcaption>Figure 3-19　"Memory hub created". All four items ticked and the status <code>ok</code>; click "OK, start using it" to continue.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_091622.jpg" loading="lazy" decoding="async" alt="dsh-auto-memory guide 01/09, the welcome page" width="1988" height="1196">
+          <figcaption>Figure 3-20　Guide <code>01 / 09</code>, the welcome page. The whole guide can be skipped at any time and every switch changed later under Settings → Auto Memory.</figcaption>
+        </figure>
+      </div>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_091637.jpg" loading="lazy" decoding="async" alt="Guide 03/09, periodic memory injection with two switches" width="1988" height="1196">
+          <figcaption>Figure 3-21　<code>03 / 09</code>, periodic memory injection: a digest of the project notes is injected on first enable, then re-injected every so many turns or after the context is compacted.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_091710.jpg" loading="lazy" decoding="async" alt="Guide 07/09, three-tier semantic engine, model download at 9%" width="1988" height="1196">
+          <figcaption>Figure 3-22　<code>07 / 09</code>, the three-tier semantic engine: lexical search as the fallback, a built-in semantic engine (about 129 MB), and an optional Python tier. Here the built-in tier is downloading, <code>9.8 / 112.8 MB</code>.</figcaption>
+        </figure>
+      </div>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_091740.jpg" loading="lazy" decoding="async" alt="Guide 07/09, the built-in model is ready" width="1988" height="1196">
+          <figcaption>Figure 3-23　The same page after the download, with the built-in tier reporting "ready (SHA-256 verified, inference self-test passed)", <code>C2 · 129 MB</code>. The download needs no supervision; once it is done you can move on.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_091752.jpg" loading="lazy" decoding="async" alt="Guide 08/09, recall, consolidation and skill capture" width="1988" height="1196">
+          <figcaption>Figure 3-24　<code>08 / 09</code>, acting only when it should: memory recall (detect in the chain, then insert), memory consolidation (settle automatically at the end of each turn), and skill capture with injection.</figcaption>
+        </figure>
+      </div>
+
+      <p>The last page turns every switch so far into one list of coloured tags — on in green, off in grey. Seeing that page means the guide is finished. Two of them, "overnight/batch auto-hosting" and "scheduled summary", are off by default; enable them if you want unattended runs.</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_091800.jpg" loading="lazy" decoding="async" alt="Guide 09/09, everything ready, the switch list" width="1988" height="1196">
+          <figcaption>Figure 3-25　<code>09 / 09</code>, everything ready. The tags are the status list and can be changed in the settings at any time; "Start using" in the bottom right closes the guide.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_091812.jpg" loading="lazy" decoding="async" alt="Memory hub ready, checked a second time" width="1988" height="1196">
+          <figcaption>Figure 3-26　"Memory hub ready" — the same four items checked once more after the guide, this time as "already there" rather than creating anything.</figcaption>
+        </figure>
+      </div>
+
+      <p>Right after that comes a prompt about linking two plugins: <code>dsh-context</code> (shows what the context consists of) and <code>dsh-cost-meter</code> (works out the money) have found each other version-compatible and ask whether to join up — the left half is the panel before enabling, the right half the extra "context cost breakdown" you get afterwards. It is an optional enhancement: "Enable linkage" adds the cost block to the context panel, and "Not now" costs you nothing.</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_091819.jpg" loading="lazy" decoding="async" alt="dsh-context and dsh-cost-meter linkage dialog, before and after" width="1988" height="1196">
+        <figcaption>Figure 3-27　"Make context usage and cost visible together": the left half is the context panel before enabling, the right half the cost ring that appears afterwards. The floating panel behind it is the <code>dsh-auto-memory</code> release notes.</figcaption>
+      </figure>
+
+      <p>Then the desktop shell's own closing page: one line saying "desktop setup is complete", a reminder to collect an API key from the DeepSeek website, and two buttons — "Visit NONEAD" opens the website, "Skip for now" goes straight into the main interface. A toast in the top right also announces "set up cost display as needed", which concerns the balance bar in the sidebar; click "Got it" to dismiss it.</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_091826.jpg" loading="lazy" decoding="async" alt="Desktop setup complete, with a cost-display hint in the top right" width="1988" height="1196">
+          <figcaption>Figure 3-28　"Desktop setup complete" plus a hint about cost display. The panel in the bottom left is the memory plugin's release notes and can be closed.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_091839.jpg" loading="lazy" decoding="async" alt="Desktop setup done page: visit NONEAD or skip for now" width="1988" height="1196">
+          <figcaption>Figure 3-29　What remains once the hint is closed: get an API key from the DeepSeek website, then start using Profile "desktop".</figcaption>
+        </figure>
+      </div>
+
+      <p>Click "Skip for now" to enter the main interface. The sidebar now has two workspaces ("memory hub" just created, "default workspace" built in), and the bottom shows today's spend as <code>¥0</code> — no key is configured yet, so not one request has gone out.</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_091846.jpg" loading="lazy" decoding="async" alt="First entry into the main interface, sidebar and input box" width="1988" height="1196">
+        <figcaption>Figure 3-30　The main interface on first entry. The extra sidebar entries — "Task Board", "Context Insights", "MCP Connector" — are all doors opened by those 27 plugins.</figcaption>
+      </figure>
+
+      <h3>3.5　Entering the model API key (09:18–09:19)</h3>
+
+      <p>Without a key you can look at the interface but not talk to anything, so the first thing after installing is <strong>Settings → Models</strong>. The page already carries the official DeepSeek provider, <code>deepseek-official</code>; only a key is missing.</p>
+
+      <p>The orange line under the key field is worth reading: it first looks for the environment variable <code>DEEPSEEK_API_KEY</code> and only asks you to type something if it finds none. In other words, if you manage keys through environment variables you can leave the field empty, and after a restart it will read as configured.</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_091859.jpg" loading="lazy" decoding="async" alt="Settings, Models: empty API key with a hint that no environment variable was found" width="1988" height="1196">
+          <figcaption>Figure 3-31　The initial state of the Models page: "no environment variable detected", so either type the key here or set <code>DEEPSEEK_API_KEY</code>.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_091940.jpg" loading="lazy" decoding="async" alt="API key entered and shown masked" width="1988" height="1196">
+          <figcaption>Figure 3-32　With the key typed in, only dots are shown; the eye icon on the right reveals it temporarily. Click "Save" once it looks right.</figcaption>
+        </figure>
+      </div>
+
+      <p>After saving, a green line appears at the top — "Saved DeepSeek (deepseek-official)" — and the card below turns into "DeepSeek" with a green dot and an "Edit" button. The green dot means the route is usable; to switch models or add a relay later, use "Add model provider" underneath.</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_091948.jpg" loading="lazy" decoding="async" alt="After saving, the DeepSeek card with a green dot and Edit button" width="1988" height="1196">
+        <figcaption>Figure 3-33　Saved. From now on the model selector in the bottom right of the input box offers <code>DeepSeek-V4.1-Flash</code>.</figcaption>
+      </figure>
+
+      <h3>3.6　The plugin page and experimental plugins (09:20–09:25)</h3>
+
+      <p>With the key in place, the next stop is the "Plugins" entry in the sidebar. The page has three parts: <strong>switches</strong> at the top (marketplace either-or, remote control, Computer Use), three tabs in the middle — <strong>Installed / Plugin market / Discover</strong> — and <strong>built-in plugin configuration</strong> at the bottom, which is where plugins like sub-agents, web search and fetch, or the Agent loop — plugins with a switch but no page of their own — are configured.</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_092042.jpg" loading="lazy" decoding="async" alt="Plugin page: marketplace switch, remote control, Computer Use, installed list" width="1988" height="1196">
+        <figcaption>Figure 3-34　The upper half of the plugin page. Note the balance in the sidebar already reads <code>¥2435.81</code> — with the key in place the cost channel has started working.</figcaption>
+      </figure>
+
+      <p>Scrolling down brings the "Experimental plugins" area. They are <strong>all off by default</strong>, because they are "usable early, not guaranteed stable"; this run switched on the handful worth having: voice input, custom plugin index, automatic authorization review, and change requests with worktrees.</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092100.jpg" loading="lazy" decoding="async" alt="Experimental plugins all off by default" width="1988" height="1196">
+          <figcaption>Figure 3-35　The default state of experimental plugins: four grey switches, with "More" on the right for the full list.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092204.jpg" loading="lazy" decoding="async" alt="All four experimental switches turned on" width="1988" height="1196">
+          <figcaption>Figure 3-36　After switching them on. A "Discover" tab has also appeared — that door was added by the custom plugin index plugin.</figcaption>
+        </figure>
+      </div>
+
+      <p>The full list makes the trade-offs clearer: what is on comes first, what is off follows. "Developer tools" carries a red "Error" tag — it loaded, but one of its self-checks did not pass. That does not affect day-to-day use, and when you are troubleshooting it is a useful warning that this one may not be trustworthy.</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092213.jpg" loading="lazy" decoding="async" alt="Experimental plugin list, upper half, enabled ones first" width="1988" height="1196">
+          <figcaption>Figure 3-37　The upper half of the full list: voice input, custom plugin index, automatic authorization review and change requests are on; personalised suggestions, developer tools and others are still off.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092441.jpg" loading="lazy" decoding="async" alt="Experimental plugin list, lower half, developer tools flagged as erroring" width="1988" height="1196">
+          <figcaption>Figure 3-38　The lower half: developer tools flagged in red, DeepSeek chat import on, and the Codex / Claude Code sub-agent plugins shown as "not installed".</figcaption>
+        </figure>
+      </div>
+
+      <p>Last, look at "Plugin market → Installed": that is the ledger of the 27. Each card gives the name, version, source (a local development plugin shows its path), a description, "add a note", and "new version vX.Y.Z available" — upgrades happen right here, no command line needed.</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_092544.jpg" loading="lazy" decoding="async" alt="Installed list in the plugin market, with card details and upgrade hints" width="1988" height="1196">
+        <figcaption>Figure 3-39　The installed list. Entries such as <code>@michengai/...</code> marked "local development" shipped inside the package; the source path is printed under the description.</figcaption>
+      </figure>
+
+      <h3>3.7　Walking through the settings page (09:26–09:29)</h3>
+
+      <p>Settings is where this release carries the most information: the list on the left grows with every plugin, and the full order here is General, Models, Built-in plugins, Agent presets, Experts, Skills, Auto Memory, Cost, Plugin market, Archived sessions, Backup &amp; migration, Rewind history, Remotion, MCP connector, Prompt history, Sidebar cards, Desktop settings, bili settings. What follows describes only what each page decides; change the switches as you need.</p>
+
+      <p><strong>General</strong> is the first page and the one most worth touching. The values used here: permission "Workspace write", language Chinese, appearance "Follow system", font size 14 px, work details "Standard", collapse timing "After the reply", and "All replies" kept after collapsing.</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092602.jpg" loading="lazy" decoding="async" alt="Settings, General page" width="1988" height="1196">
+          <figcaption>Figure 3-40　General. Permission decides where new sessions may write; "Workspace write" is the least troublesome default.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092617.jpg" loading="lazy" decoding="async" alt="General opened again later, unchanged" width="1988" height="1196">
+          <figcaption>Figure 3-41　A few minutes later the same page is unchanged — the plugin guides above did not quietly rewrite the general settings.</figcaption>
+        </figure>
+      </div>
+
+      <p><strong>Built-in plugins</strong> lays out the "session plugins" as cards by purpose: agent persona, workspace instruction loading, time context, Bash tool, PowerShell tool, file tools. What is on here is <strong>installed into every session</strong>; disabling it turns it off globally.</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092626.jpg" loading="lazy" decoding="async" alt="Settings, built-in plugins, session plugin cards" width="1988" height="1196">
+          <figcaption>Figure 3-42　The built-in plugins page. The English tags in the card corners (<code>persona</code>, <code>tool-fs</code> and so on) are plugin ids, which are the precise thing to quote when reporting a problem.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092634.jpg" loading="lazy" decoding="async" alt="Settings, Agent presets, four built-in modes" width="1988" height="1196">
+          <figcaption>Figure 3-43　Agent presets: Standard (the default for new tasks), PTC, Minimal, and Creator. Day to day use Standard; use PTC for batch tool work.</figcaption>
+        </figure>
+      </div>
+
+      <p><strong>Experts</strong> and <strong>Skills</strong> are two families of capability packs: an expert is a role with a prompt prepared for a domain, a skill is a reusable set of operating instructions. Out of the box there are well over three hundred experts but only two enabled (the more you enable, the more context they cost), while all 45 skills are enabled, most of them from the WorkBuddy directory.</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092650.jpg" loading="lazy" decoding="async" alt="Settings, Experts: 331 experts, 2 enabled" width="1988" height="1196">
+          <figcaption>Figure 3-44　The Experts page. Each expert has its own switch, and "Expert teams" in the top right are ready-made combinations. Switch on what you will actually use; the rest cost nothing while off.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092658.jpg" loading="lazy" decoding="async" alt="Settings, Skills: 45 skills, all enabled" width="1988" height="1196">
+          <figcaption>Figure 3-45　The Skills page. The "≈1,425 token" line at the top is what these skill descriptions cost in the system prompt; the more you install, the larger that number gets.</figcaption>
+        </figure>
+      </div>
+
+      <p><strong>Auto Memory</strong> has four tabs: search and recall, recording and usage, appearance and directories, continuation and maintenance. This page and the guide in 3.4 are two doors onto the same set of switches — the guide decides how to configure it the first time, this page how to change it afterwards.</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092705.jpg" loading="lazy" decoding="async" alt="Settings, Auto Memory, memory settings page" width="1988" height="1196">
+          <figcaption>Figure 3-46　Auto Memory. "Actively look for related memories" costs a few extra tokens; "what to do with what it finds" decides whether a hit is merely observed or handed to the model.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092721.jpg" loading="lazy" decoding="async" alt="Settings, Cost, cost panel preview" width="1988" height="1196">
+          <figcaption>Figure 3-47　The Cost page. The preview on the left is the sidebar card itself: today's tokens, balance, plan progress, budget. Pick its layout from the four options on the right.</figcaption>
+        </figure>
+      </div>
+
+      <p>The <strong>Plugin market</strong> page reads the same data as the marketplace entry, except that here you can change shell-level preferences such as whether it shows in the sidebar or "do not remind again until restart".</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092730.jpg" loading="lazy" decoding="async" alt="Settings, plugin market, Discover tab and 27 installed" width="1988" height="1196">
+          <figcaption>Figure 3-48　The plugin market page: <code>dsh-market v1.73.19</code>. The line "0 plugins hidden as incompatible with DSH 0.2.2-rc.3" is the result of its own version check.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092739.jpg" loading="lazy" decoding="async" alt="Settings, archived sessions, nothing archived yet" width="1988" height="1196">
+          <figcaption>Figure 3-49　Archived sessions. Freshly installed, this is naturally empty; once you have many sessions this is where you archive them in batches by workspace and time.</figcaption>
+        </figure>
+      </div>
+
+      <p><strong>Backup &amp; migration</strong> packs the configuration up for you to carry: it is what you use when moving to another machine, reinstalling, or syncing. Opening the page popped a release note (config manager v0.9.0); notes like this appear only once after a version change.</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092752.jpg" loading="lazy" decoding="async" alt="Release note floating over the Backup and migration page" width="1988" height="1196">
+          <figcaption>Figure 3-50　The Backup &amp; migration page with the config manager v0.9.0 release note on top. Click "OK" to close it, or "Never show again" to stop it coming back.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092805.jpg" loading="lazy" decoding="async" alt="Settings, rewind history, snapshot backup and auto cleanup" width="1988" height="1196">
+          <figcaption>Figure 3-51　Rewind history. Snapshot backup and automatic cleanup are both on, so snapshots untouched for three days are removed — these two switches are your way back when you edit files.</figcaption>
+        </figure>
+      </div>
+
+      <p><strong>Remotion</strong> is the video-rendering plugin; the first use has to download its official dependencies (in the screenshot it is at <code>3 / 6</code>). If you are not going to make videos, you can leave this page alone indefinitely.</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092816.jpg" loading="lazy" decoding="async" alt="Settings, Remotion, downloading official dependencies 3/6" width="1988" height="1196">
+          <figcaption>Figure 3-52　Remotion, <code>dsh-remotion 0.10.6</code>. The rendering environment is only needed the first time you use it, and the download is not small — do it when the network is idle.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092832.jpg" loading="lazy" decoding="async" alt="Settings, MCP connector, where the entry point appears" width="1988" height="1196">
+          <figcaption>Figure 3-53　MCP connector. It only decides where the entry point appears (both places / sidebar only / settings only); actual connections are added in the panel.</figcaption>
+        </figure>
+      </div>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092839.jpg" loading="lazy" decoding="async" alt="Settings, prompt history, capture enabled" width="1988" height="1196">
+          <figcaption>Figure 3-54　Prompt history <code>v0.8.7</code>. Its effect is that ↑ in the input box recalls the previous prompt; the cap is 500 entries per workspace, and 0 days of retention means forever.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092850.jpg" loading="lazy" decoding="async" alt="Settings, sidebar cards, DSH-better-sidebar" width="1988" height="1196">
+          <figcaption>Figure 3-55　Sidebar cards, <code>DSH-better-sidebar v0.32.1</code>. Only with "inject a sidebar-open tool for the model" enabled can the model push a file or a web page into the sidebar itself.</figcaption>
+        </figure>
+      </div>
+
+      <p><strong>Desktop settings</strong> configures the desktop shell rather than the DSH core: Profile management, browser access, notifications, system permissions, app updates, launch and background behaviour, logging and the recovery assistant. Marketplace and remote control have moved off this page, and the top of the page keeps a one-line note plus a jump button to their new home.</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092901.jpg" loading="lazy" decoding="async" alt="Settings, desktop settings, Profile and browser access" width="1988" height="1196">
+          <figcaption>Figure 3-56　The upper half of desktop settings. Profile <code>desktop</code> is marked "current"; "Allow opening in a browser" is off, and turning it on is what lets a browser reach the same Profile.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092911.jpg" loading="lazy" decoding="async" alt="Desktop settings: notification switches, system permissions, app updates" width="1988" height="1196">
+          <figcaption>Figure 3-57　The lower half. All four notification types are off, the system-permissions entry lives here, and app updates have already found <code>2.2.13</code>.</figcaption>
+        </figure>
+      </div>
+
+      <p>Further down are the update details and launch behaviour. That stretch of copy is in English — the release notes are written that way and it changes nothing about the decision: the three buttons are "Download update", "Check again" and "Skip this version". "Keep running in the background when the window is closed" is on by default, which is exactly why closing the window is not quitting.</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092922.jpg" loading="lazy" decoding="async" alt="Update details plus launch and background switches" width="1988" height="1196">
+          <figcaption>Figure 3-58　Update details and launch items. "Start automatically when you sign in" is off; "keep running in the background when the window is closed" is on, and the tray can reopen the window.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092932.jpg" loading="lazy" decoding="async" alt="Desktop tools: setup wizard, directory shortcuts, log level" width="1988" height="1196">
+          <figcaption>Figure 3-59　Desktop tools. The five buttons open the setup wizard, the data directory, the Profile directory, the log directory and developer tools; log level is <code>info</code>, and this is the first place to look when something misbehaves.</figcaption>
+        </figure>
+      </div>
+
+      <p>The last item, <strong>bili settings</strong>, comes from the context compression plugin <code>billion-context</code>; its overview page shows three notes — a host-side plugin detected, <code>prompt_cache_key</code> auto-injection off by default, and incremental parsing for large contexts. It governs how long conversations save tokens, and needs no attention in daily use.</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_092943.jpg" loading="lazy" decoding="async" alt="Settings, bili settings, billion-context compression proxy overview" width="1988" height="1196">
+        <figcaption>Figure 3-60　The compression proxy overview inside bili settings. All three notes can be dismissed with "Close" or "Got it"; the settings themselves are on the "Configuration" tab.</figcaption>
+      </figure>
+
+      <div class="callout">
+        <strong>Only five things on the settings page are worth changing right now:</strong> the model key (done in 3.5), the default permission (General), work details (Standard / Detailed), app updates (used in 3.13) and start-at-sign-in (optional). Every other default has been tuned; leave it alone for the moment.
+      </div>
+
+      <h3>3.8　A few dropdowns, and the first question (09:29–09:32)</h3>
+
+      <p>Back in the main interface, the small dropdowns around the input box are worth knowing — they decide which workspace, how much permission, which mode, which experts and which model are used <em>this time</em>.</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092956.jpg" loading="lazy" decoding="async" alt="Workspace dropdown: memory hub, default workspace, add workspace" width="1988" height="1196">
+          <figcaption>Figure 3-61　The workspace dropdown. A session can only read and write inside the current workspace; the "memory hub" workspace belongs to the plugin, so do not work in it.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_093008.jpg" loading="lazy" decoding="async" alt="Permission dropdown: view only, workspace write, full access, automatic review" width="1988" height="1196">
+          <figcaption>Figure 3-62　The permission dropdown. Four levels from "view only" to "full access"; the middle one is the everyday default, and <code>EXP</code> marks the experimental one.</figcaption>
+        </figure>
+      </div>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_093015.jpg" loading="lazy" decoding="async" alt="Loop mode dropdown: follow default, off, recovery only, autonomous loop" width="1988" height="1196">
+          <figcaption>Figure 3-63　The loop-mode dropdown. It decides whether a task picks itself back up after an interruption: it follows the global default by default, and "autonomous loop" suits long tasks.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_093023.jpg" loading="lazy" decoding="async" alt="Expert dropdown: experts and expert teams tabs" width="1988" height="1196">
+          <figcaption>Figure 3-64　The expert dropdown. The two tabs are single experts and ready-made teams, both searchable; only enabled ones are listed.</figcaption>
+        </figure>
+      </div>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_093031.jpg" loading="lazy" decoding="async" alt="Model dropdown: model, reasoning level, agent team collaboration" width="1988" height="1196">
+          <figcaption>Figure 3-65　The model dropdown. Three adjustable things: the model, the reasoning level (<code>High</code> here) and "enable agent team collaboration".</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_093150.jpg" loading="lazy" decoding="async" alt="Input hint: you can optimise once there is content" width="1988" height="1196">
+          <figcaption>Figure 3-66　With the input box empty the star in the corner is grey and the tooltip reads "you can optimise once there is content" — that is prompt rewriting, not sending.</figcaption>
+        </figure>
+      </div>
+
+      <p>The first question is the most ordinary one there is: let it examine itself. There is no trick to the wording, it merely states the whole job — <strong>what to do (a full health check) and how far to go (fix what it finds)</strong>.</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_093230.jpg" loading="lazy" decoding="async" alt="The self-check instruction typed into the input box" width="1988" height="1196">
+          <figcaption>Figure 3-67　"Run a full health check on yourself and fix the problems you find." Permission is still "Workspace write", and later you will see why that is not enough.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_093242.jpg" loading="lazy" decoding="async" alt="Session page: analysing the request, tab bar with trace and context" width="1988" height="1196">
+          <figcaption>Figure 3-68　The session page after sending. The tabs at the top — conversation, trace, context, formation, statistics, memory — are different views of the same run.</figcaption>
+        </figure>
+      </div>
+
+      <h3>3.9　The health check hits two permission prompts (09:33–09:34)</h3>
+
+      <p>The first thing it wants to do is enumerate the plugins, and that means reading the Profile directory — which, under the current permission mode, counts as "outside the workspace", so an approval bar appears: <strong>allow this operation to use danger-full-access</strong>, with a line of English below stating what the operation is and what the risk is, and two buttons, "Deny" and "Allow once".</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_093346.jpg" loading="lazy" decoding="async" alt="Awaiting approval: allow full access for list_plugins" width="1988" height="1196">
+          <figcaption>Figure 3-69　The first approval. <code>list_plugins</code> only lists things, but it reads the Profile directory, so it still needs elevation; "Allow once" is enough, there is no need to open the global switch.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_093402.jpg" loading="lazy" decoding="async" alt="Confirm enabling full access dialog" width="1988" height="1196">
+          <figcaption>Figure 3-70　The second one right after: having judged that it will keep reading and writing configuration, it asks whether to simply enable full access. Tick "I understand the risk" and confirm.</figcaption>
+        </figure>
+      </div>
+
+      <div class="callout">
+        <strong>Know the difference between the two buttons.</strong> "Allow once" clears this one call; "Enable full access" changes the level for the whole session so it stops asking each time. Use the first for a one-off investigation; use the second only when you have decided the AI should genuinely rework the configuration on this machine — as in this round, fixing the Host config — and put the level back afterwards.
+      </div>
+
+      <h3>3.10　The voice-input plugin and its local model (09:34–09:36)</h3>
+
+      <p>While configuring, the microphone in the input box was clicked once, and it answered with a reminder: the voice-input plugin is enabled, but <strong>the local recognition model is not installed yet</strong>. This is the typical shape of an experimental plugin — the switch exists, the capability has to be downloaded.</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_093423.jpg" loading="lazy" decoding="async" alt="Reminder that the model must be installed before using voice input" width="1988" height="1196">
+        <figcaption>Figure 3-71　"Voice input needs an installation first". "Go to install" opens the plugin detail; "Later" leaves everything else working.</figcaption>
+      </figure>
+
+      <p>The detail page has three rows of choices: input device, recognition service, recognition language. In the screenshot the input device reads <strong>system default — unavailable</strong>, because no microphone is plugged into this machine; that does not stop you preparing the model, and once a device is plugged in it appears in the dropdown. The recognition service is <code>SenseVoiceSmall (INT8)</code>.</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_093457.jpg" loading="lazy" decoding="async" alt="Voice-input plugin detail page, device unavailable, SenseVoiceSmall" width="1988" height="1196">
+          <figcaption>Figure 3-72　The plugin detail. Version <code>v0.2.2-rc.3</code>, marked experimental; below the three dropdowns sits the recognition service's description card.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_093504.jpg" loading="lazy" decoding="async" alt="Preparation notes: 1 GB disk, 1 GB RAM, 1-10 minutes" width="1988" height="1196">
+          <figcaption>Figure 3-73　The preparation panel tells the truth: about 1 GB of disk, about 1 GB of memory, 1–10 minutes the first time, and no Python to install. The model download source is "choose automatically".</figcaption>
+        </figure>
+      </div>
+
+      <p>Click "Download and prepare" and the checklist below starts ticking itself off. The five steps are: check local resources, prepare the speech recognition model, prepare the voice-activity model, verify the model files, load the model. In between you can watch exactly which file is being transferred, how large it is, and what percentage is done.</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_093512.jpg" loading="lazy" decoding="async" alt="Preparation steps: local resources checked" width="1988" height="1196">
+          <figcaption>Figure 3-74　Step 1, "check local resources", is ticked and the recognition model is being installed.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_093521.jpg" loading="lazy" decoding="async" alt="Downloading model.int8.onnx, 0.8/239.2MB at 0%" width="1988" height="1196">
+          <figcaption>Figure 3-75　The download detail: <code>model.int8.onnx</code>, <code>239.2 MB</code> in total. This is the slowest part of the whole chapter; you can do something else while it runs.</figcaption>
+        </figure>
+      </div>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_093553.jpg" loading="lazy" decoding="async" alt="First two preparation steps done, preparing the activity model" width="1988" height="1196">
+          <figcaption>Figure 3-76　The recognition model is in place and the voice-activity model is next (it decides when someone has started talking). The two models do different jobs and both have to be downloaded.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_093616.jpg" loading="lazy" decoding="async" alt="All five preparation steps complete" width="1988" height="1196">
+          <figcaption>Figure 3-77　All five steps ticked. The components "Speech recognition" and "SenseVoice local recognition" both read "running", and the microphone icon works from then on.</figcaption>
+        </figure>
+      </div>
+
+      <h3>3.11　The three kinds of restart (09:36)</h3>
+
+      <p>Installing a model or changing a permission both need the change to take effect. The "Restart" button in the top right of the settings page is not a single action but a dropdown, and its three levels differ considerably.</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_093643.jpg" loading="lazy" decoding="async" alt="Restart dropdown: reload interface, restart, restart into recovery mode" width="1988" height="1196">
+        <figcaption>Figure 3-78　Three kinds of restart. "Reload interface" refreshes only the front end and is the quickest; "Restart" brings the Host back up too, which is what actually applies plugins and configuration; "Restart into recovery mode" is for when it will not start at all.</figcaption>
+      </figure>
+
+      <h3>3.12　The health check finishes and repairs three real faults (09:37–10:33)</h3>
+
+      <p>With the permission granted, the run gets going in the background. The interface only shows two things: which tool is being called right now, and the task list on the left, where it has split the work into six steps — collect runtime and log evidence, check configuration and profile integrity, check plugin/bundle load errors and missing dependencies, check the MCP / skills / memory / task subsystems, repair what is confirmed and verify it, then produce a health report and write it to memory.</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_093707.jpg" loading="lazy" decoding="async" alt="Health check in progress, task list with one running and five pending" width="1988" height="1196">
+        <figcaption>Figure 3-79　In progress. The task panel on the left is the map of the investigation; "12 steps" in the top right counts the tool calls made so far.</figcaption>
+      </figure>
+
+      <p>Fifteen minutes and forty-two seconds later it wraps up, and the conclusion is blunt: the log held 15 errors and 29 warnings, each traced to its origin, <strong>three of them real faults, now repaired and re-verified</strong>; the rest were behaviour by design or had already healed.</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_103250.jpg" loading="lazy" decoding="async" alt="Health check complete after 15m42s, three real faults repaired" width="1988" height="1196">
+        <figcaption>Figure 3-80　The conclusion. The green box summarises the result in a sentence, and the table below lists problem and root cause: a missing <code>git.exe</code> causing a spawn ENOENT every 30 seconds, an inspector plugin that kept failing to start, and so on.</figcaption>
+      </figure>
+
+      <p>Each of the three repairs gets a paragraph explaining why it was done that way. That stretch is worth reading in full, because it explains several things on this machine that otherwise look inexplicable:</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_103303.jpg" loading="lazy" decoding="async" alt="Detailed description of the three repairs" width="1988" height="1196">
+          <figcaption>Figure 3-81　The three repairs: git missing (PortableGit 2.54.0 added), the inspector plugin failing to load (<code>captureFetch:false</code>), and <code>pnpm-workspace.yaml</code> left in an illegal intermediate state.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_103341.jpg" loading="lazy" decoding="async" alt="End of report: one thing needing a decision, and the edited files" width="1988" height="1196">
+          <figcaption>Figure 3-82　The end of the report. It singles out what needs your decision — gh / ffmpeg / uv are not installed — and lists the two files it changed.</figcaption>
+        </figure>
+      </div>
+
+      <div class="callout">
+        <strong>Worth doing once, as suggested.</strong> Running this on the day you install answers, in one pass, whether this build has any hidden faults on this machine. The prompt is the one in the screenshot and needs no changes; afterwards, look at which files it edited.
+      </div>
+
+      <h3>3.13　Adding gh / ffmpeg / uv, and the new version alongside (10:34–10:49)</h3>
+
+      <p>For the three tools the report named, it is enough to answer with one line — "please install gh, ffmpeg and uv". It had changed two files in the current session (<code>cordis.patch.yml</code> and <code>pnpm-workspace.yaml</code>), and then opened a new session to do this job — a long task in a fresh session keeps the trace clean.</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_103408.jpg" loading="lazy" decoding="async" alt="Follow-up asking to install gh ffmpeg uv, above it the two edited files" width="1988" height="1196">
+          <figcaption>Figure 3-83　The follow-up. The upper half is the previous round's wrap-up (two files edited, <code>+10 −3</code>); the lower half is the new instruction.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_103807.jpg" loading="lazy" decoding="async" alt="New session installing the tools, trace expanded, tray menu open" width="1988" height="1196">
+          <figcaption>Figure 3-84　The new session, "install gh ffmpeg uv". The trace shows it probing winget and the existing tools first, then deciding to go around winget.</figcaption>
+        </figure>
+      </div>
+
+      <p>It does not use <code>winget</code> directly but takes portable binaries, and the trace says why plainly: all three packages in winget are machine-scope MSIs, the session has no administrator rights, and an install would fail halfway. The screenshot below is the task-output panel while gh downloads — long tasks like this can be watched in the right-hand panel instead of sitting on the conversation.</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_103942.jpg" loading="lazy" decoding="async" alt="Task output panel showing gh v2.104.0 downloading" width="1988" height="1196">
+        <figcaption>Figure 3-85　The task-output panel. The log resolves the version line by line — <code>gh v2.104.0 → gh_2.104.0_windows_amd64.zip (14.5 MB)</code> — and when something breaks this panel is the first-hand evidence.</figcaption>
+      </figure>
+
+      <p>While the download runs, it is a good moment to learn the right-hand column. Click the square icon in the top right of a session to open the "Start" panel, a row of common views: files, code review and changes, context, new terminal, Git, browser, task management, side chat, session data diagnostics, and "More".</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_103953.jpg" loading="lazy" decoding="async" alt="The list of views in the right-hand Start panel" width="1988" height="1196">
+          <figcaption>Figure 3-86　The "Start" panel on the right. These are not plugins but workspaces built into the shell; the conversation stays on the left while two of these sit side by side on the right.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_104040.jpg" loading="lazy" decoding="async" alt="Git and files sidebars side by side, with this round's file counts" width="1988" height="1196">
+          <figcaption>Figure 3-87　"Git" and "files" open together. The Git sidebar counts what this round touched — all 5, written 0, edited 2, read 3 — and clicking an entry jumps straight to that change.</figcaption>
+        </figure>
+      </div>
+
+      <p>The same row also holds an "Import DeepSeek chat log" entry, for bringing a <code>deepseek_data-*.zip</code> exported from the website into one workspace. There was no old conversation to migrate here, so it was opened, looked at and cancelled.</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_104052.jpg" loading="lazy" decoding="async" alt="The import DeepSeek chat log dialog" width="1988" height="1196">
+          <figcaption>Figure 3-88　The import dialog. Choose the ZIP exported from the website and the workspace that should receive the conversations; every conversation imported becomes a session in that workspace.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_104107.jpg" loading="lazy" decoding="async" alt="A blank new-session page" width="1988" height="1196">
+          <figcaption>Figure 3-89　The new-session page after closing the dialog. With the right-hand panel folded away the main interface is at its plainest.</figcaption>
+        </figure>
+      </div>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_104133.jpg" loading="lazy" decoding="async" alt="Mid-way through the install session, scrolling the trace with the file tree" width="1988" height="1196">
+          <figcaption>Figure 3-90　Back in the install session, scrolling down. The trace is on the left and the file tree stays on that workspace; in long sessions "scroll back to see what it actually did" is the normal move.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_104209.jpg" loading="lazy" decoding="async" alt="Plugin market searched for nonead, four family plugins" width="1988" height="1196">
+          <figcaption>Figure 3-91　Searching the plugin market for <code>nonead</code>: the four Nonead plugins, two of them already installed. Once the bundled batch is in, this search box is where adding capability starts.</figcaption>
+        </figure>
+      </div>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_104218.jpg" loading="lazy" decoding="async" alt="Lower half of the search results: universal-robots and prompt-rewind" width="1988" height="1196">
+          <figcaption>Figure 3-92　The lower half of the same search: <code>dsh-nonead-universal-robots v0.9.0</code> (robot-arm control) and <code>dsh-nonead-prompt-rewind v0.5.4</code> (conversation rewind).</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_104802.jpg" loading="lazy" decoding="async" alt="App update downloading at 33%, release notes for 2.2.13" width="1988" height="1196">
+          <figcaption>Figure 3-93　The new version downloading along the way: the update is at 33%, with the <code>2.2.13</code> release notes (runtime 0.2.2-rc.3, Agents Anywhere bridge 2.2.0 and so on).</figcaption>
+        </figure>
+      </div>
+
+      <p>The download continues in the background and the same progress shows in the tray menu. <strong>Updating does not require quitting a running task</strong>: it downloads on its own and asks you when it is time to install.</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_104946.jpg" loading="lazy" decoding="async" alt="Update at 42%, with the same progress line in the tray menu" width="1988" height="1196">
+        <figcaption>Figure 3-94　42% downloaded, with "downloading update 41%" in the tray menu — the same job seen twice. The tray menu is also the only proper way out of the program.</figcaption>
+      </figure>
+
+      <h3>3.14　Cycling the interface language (10:56–10:57)</h3>
+
+      <p>"Language" in the general settings is a dropdown of nine items: Chinese, English, Japanese, Spanish, French, German, Russian and Portuguese. Switching is immediate, needs no restart, and does not disturb a running session.</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_105632.jpg" loading="lazy" decoding="async" alt="The language dropdown open, nine languages" width="1988" height="1196">
+        <figcaption>Figure 3-95　The language dropdown. Nine interface languages; conversation text and existing output are not translated, only the interface copy changes.</figcaption>
+      </figure>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_105653.jpg" loading="lazy" decoding="async" alt="Interface switched to English" width="1988" height="1196">
+          <figcaption>Figure 3-96　English. Shell-level copy changes with it — <code>Application / Edit</code>, <code>Settings</code>, <code>General</code> — and the permission item reads <code>Workspace Write</code>.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_105712.jpg" loading="lazy" decoding="async" alt="Interface switched to Japanese" width="1988" height="1196">
+          <figcaption>Figure 3-97　Japanese. The sidebar follows too: 新規セッション / 自動化タスク / コンテキストインサイト.</figcaption>
+        </figure>
+      </div>
+
+      <p>Switching to Russian reveals one detail: in the sidebar, <code>Task Board</code> and <code>MCP 连接器</code> stay in their original wording. It is not a failed switch — those two labels are supplied by plugins, and the plugins carry no translation for that language. The interface language only covers the host's own copy.</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_105728.jpg" loading="lazy" decoding="async" alt="Interface switched to Russian, some plugin labels unchanged" width="1988" height="1196">
+        <figcaption>Figure 3-98　Russian. All host copy changes; <code>Task Board</code> and <code>MCP 连接器</code> stay as they were, because those entries come from plugins.</figcaption>
+      </figure>
+
+      <h3>3.15　Wrapping up: check the versions, restart to apply (11:02–11:03)</h3>
+
+      <p>With the language back on Chinese, the long tool-installation task comes back into view. It finished in twenty-eight minutes and eleven seconds, with all four binaries landing in <code>C:\Users\nonead\.local\bin</code> — a directory already on the user PATH and on the current DSH process's PATH, so <strong>plugins can call them without a restart</strong>, and no administrator rights were needed at any point.</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_110238.jpg" loading="lazy" decoding="async" alt="Tool installation results table: gh, uv, ffmpeg, ffprobe" width="1988" height="1196">
+        <figcaption>Figure 3-99　The results: gh 2.104.0 (39.9 MB), uv / uvx 0.13.8 (31 MB), ffmpeg 9.0.2-essentials (100.5 MB), ffprobe 5.1.0 (77.2 MB).</figcaption>
+      </figure>
+
+      <p>The explanation that follows, of why it went through mirrors, is worth reading: on this machine a direct connection to <code>github.com</code> release downloads is blocked — the connection is made and then zero bytes arrive — and only a proxy succeeds. That is not a one-off; installing tools hosted on GitHub from mainland networks runs into it almost every time. The four sources it used were <code>gh-proxy.com</code> for gh, the Tsinghua PyPI mirror for uv, and npmmirror's installer package for ffmpeg with gyan's official binary swapped in.</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_110250.jpg" loading="lazy" decoding="async" alt="Explaining why mirrors were used, and where each tool actually came from" width="1988" height="1196">
+        <figcaption>Figure 3-100　"Why mirrors instead of winget", and where each tool came from. The three sources differ, all of them substitutes forced by blocked direct downloads.</figcaption>
+      </figure>
+
+      <p>Settings changed and tools installed, the last step is a restart so the host re-reads its configuration. This time "work details" was moved from "Standard" to "Detailed" — while troubleshooting, seeing more detail saves time, and it can be moved back for everyday use.</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_110307.jpg" loading="lazy" decoding="async" alt="Setting work details to Detailed in the general settings" width="1988" height="1196">
+          <figcaption>Figure 3-101　Work details set to "Detailed". On the same page, the collapse timing and what remains after collapsing decide when that detail gets folded away.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_110316.jpg" loading="lazy" decoding="async" alt="Restart confirmation: the current Host will stop and running tasks will be interrupted" width="1988" height="1196">
+          <figcaption>Figure 3-102　The restart confirmation. It states plainly that the current Host stops and running tasks are interrupted; if a long task is running, let it finish first.</figcaption>
+        </figure>
+      </div>
+
+      <div class="callout">
+        <strong>Installed is not the same as signed in.</strong> gh still needs <code>gh auth login</code> once in a terminal, which goes through a browser OAuth flow; behind a blocked network, set <code>GH_HOST</code> or <code>HTTPS_PROXY</code> first. That step cannot be done for you — you have to click through the authorization yourself.
+      </div>
+
+      <h3>3.16　How it looks when you are done (11:18–11:19)</h3>
+
+      <p>Coming back after the restart, the right-hand "Start" panel has two new views: Nonead UR Digital Twin and Nonead UR Simulator — supplied by the UR plugins seen in the marketplace a moment ago. Installing a plugin does not only add tools; it also adds entry points to the sidebar and panels.</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_111854.jpg" loading="lazy" decoding="async" alt="Session wrap-up, two new UR panels in the right-hand Start panel" width="1988" height="1196">
+        <figcaption>Figure 3-103　The session wraps up: the work is done, one thing still needs a human (<code>gh auth login</code>). The digital twin and simulator entries have appeared on the right.</figcaption>
+      </figure>
+
+      <p>Opening the "Context" panel shows the whole account: about 10.3 M tokens in total, a 95.89% cache hit rate, 42 minutes 38 seconds of active time, most of it in tool execution and model waiting. These are the numbers to judge "was this round expensive" by from now on.</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_111906.jpg" loading="lazy" decoding="async" alt="Context panel: token statistics and timing statistics" width="1988" height="1196">
+          <figcaption>Figure 3-104　The context panel. <code>10.3 M</code> in total, a <code>95.89%</code> cache hit rate, <code>42m38s</code> active; the colour bar below breaks the time down by phase.</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_111954.jpg" loading="lazy" decoding="async" alt="The Nonead UR simulator panel with a UR12e simulation view" width="1988" height="1196">
+          <figcaption>Figure 3-105　The Nonead UR Simulator. A 3D view on the left, TCP coordinates and joint sliders on the right, and a status bar giving the safety mode and program state.</figcaption>
+        </figure>
+      </div>
+
+      <p>That completes one full first installation: the program installed, 27 plugins in place, the model connected, permissions and directories adjusted as needed, three external command-line tools added, the speech model usable, and both the language switch and the update tried out. What remains is Section 4, to learn your way around the interface.</p>
+
+      <div class="callout">
+        <strong>Six things to confirm once you are done (add whichever is missing):</strong>
+        <br>① the model key is saved, and the model name shows in the bottom right of the input box;
+        <br>② when you create a session, the workspace is the directory you actually work in, not "memory hub";
+        <br>③ the default permission matches your habits (workspace write / full access);
+        <br>④ a health check has been run once and you know what it changed;
+        <br>⑤ the external tools you need (gh, ffmpeg, uv and the like) print a version with <code>--version</code>;
+        <br>⑥ "Quit" is there in the tray menu — and remember that closing the window is not quitting.
+      </div>
     </section>
+
 
     <section class="flow-block">
       <h2>4. Main interface at a glance</h2>
@@ -354,7 +1123,7 @@
       <div class="callout">
         <strong>Why "bundled" rather than "built in"?</strong> Strictly speaking they are ordinary plugins <strong>distributed with the installer and installed into your Profile by the first wizard</strong>, the same kind of thing as what you install yourself on the plugins page — which is why they can be disabled, uninstalled and updated. That differs from genuinely built-in, non-removable base components such as <code>dsh-base</code> and <code>dsh-web-app</code> (the latter are visible under "Settings → Built-in plugins").
       </div>
-<p class="small">The plugin marketplace offered in step 2 of the wizard (<code>dsh-market</code>, i.e. <code>dshmarket</code> 1.73.19, or the built-in <code>dsh-community-market</code>) is a separate option and is not one of these bundled plugins.</p>
+<p class="small">The plugin marketplace offered in step 2 of the wizard (<code>dsh-market</code>, i.e. <code>dshmarket</code> 1.73.20, or the built-in <code>dsh-community-market</code>) is a separate option and is not one of these bundled plugins.</p>
 
       <h3>9.2 How bundling happens</h3>
 

@@ -365,6 +365,12 @@
     figure { margin: 4mm 0 5mm; }
     .figure-block svg { display: block; width: 100%; height: auto; border: 1px solid var(--line); background: #fbfcfc; }
     .caption, figcaption { color: var(--muted); font-size: 8.8pt; margin-top: 1.5mm; margin-bottom: 5mm; }
+    /* Step-by-step screenshot figures (Section 3) */
+    .shot-block { break-inside: avoid; page-break-inside: avoid; }
+    .shot-block img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 1.6mm; background: #fff; }
+    .shot-block figcaption { margin-bottom: 0; }
+    .shot-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3mm 3.5mm; margin: 4mm 0 2mm; align-items: start; }
+    .shot-grid .shot-block figcaption { font-size: 8pt; }
     .small { font-size: 9.2pt; color: var(--muted); }
     .acknowledgement { break-before: column; break-inside: avoid-column; }
     .acknowledgement ul { margin: 2mm 0 4mm; }

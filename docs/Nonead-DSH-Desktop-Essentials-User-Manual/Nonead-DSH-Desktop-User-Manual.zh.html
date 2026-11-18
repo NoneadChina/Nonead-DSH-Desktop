@@ -84,7 +84,7 @@
       <ul>
         <li><strong>一 · 这是什么</strong>——三层结构，日常只碰最上面那一层。</li>
         <li><strong>二 · 安装</strong>——三个平台各取哪个包、怎么装。</li>
-        <li><strong>三 · 第一次打开</strong>——六步向导，以及「关闭不等于退出」。</li>
+        <li><strong>三 · 初次安装设置</strong>——一整章 105 张截图，从双击安装包到配好模型、跑完第一次自检。</li>
         <li><strong>四 · 主界面速览</strong>——四个区域各自管什么。</li>
         <li><strong>五 · 第一次对话</strong>——怎么把需求说清楚。</li>
         <li><strong>六 · 托盘菜单</strong>——系统级入口都在这里。</li>
@@ -156,31 +156,799 @@
     </section>
 
     <section class="flow-block">
-      <h2>三、第一次打开</h2>
-      <p>首次启动会自动准备好一套默认配置（名为 <code>desktop</code> 的 Profile），并在本机启动界面服务。你会先看到一段向导，共六步，随时可以「跳过设置」，之后在设置页里补：</p>
+      <h2>三、初次安装设置</h2>
+
+      <p class="lead">这一章记录一次完整的首次安装：2026 年 11 月 15 日 09:04 到 11:19，在一台 Windows 11 机器上，从双击安装包一路做到补装命令行工具、跑完第一次自检。全程截了 105 张图，按拍摄时间排序，编号 图 3-1 到 图 3-105；每一步都写清「当时在哪个界面、点了什么、为什么这么点」。</p>
+
+      <p>实际动手的部分不到十分钟，其余时间都在等：等 27 个内置插件逐个装完，等 239 MB 的语音模型下载，等一次健康检查把自己修好。如果你只是想尽快用起来，照 3.1 到 3.5 走完就够了；想把各项配置一次配齐、顺手让 AI 把这台机器检查一遍，接着看 3.6 以后。</p>
+
+      <table>
+        <thead>
+          <tr><th class="w-16">时间</th><th class="w-44">这一段在做什么</th><th>小节 / 图号</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>09:04–09:08</td><td>双击安装包，走完安装器</td><td>3.1 / 图 3-1 – 3-6</td></tr>
+          <tr><td>09:08–09:09</td><td>首次启动，六步向导</td><td>3.2 / 图 3-7 – 3-13</td></tr>
+          <tr><td>09:09–09:15</td><td>27 个内置插件逐个安装</td><td>3.3 / 图 3-14 – 3-17</td></tr>
+          <tr><td>09:16–09:18</td><td>记忆中枢、记忆插件引导、费用联动</td><td>3.4 / 图 3-18 – 3-30</td></tr>
+          <tr><td>09:18–09:19</td><td>填模型 API Key</td><td>3.5 / 图 3-31 – 3-33</td></tr>
+          <tr><td>09:20–09:25</td><td>插件页，打开实验性插件</td><td>3.6 / 图 3-34 – 3-39</td></tr>
+          <tr><td>09:26–09:29</td><td>设置页逐项过一遍</td><td>3.7 / 图 3-40 – 3-60</td></tr>
+          <tr><td>09:29–09:32</td><td>主界面的几个下拉、第一次提问</td><td>3.8 / 图 3-61 – 3-68</td></tr>
+          <tr><td>09:33–09:34</td><td>健康检查撞上两次权限审批</td><td>3.9 / 图 3-69 – 3-70</td></tr>
+          <tr><td>09:34–09:36</td><td>语音输入插件，下载本地识别模型</td><td>3.10 / 图 3-71 – 3-77</td></tr>
+          <tr><td>09:36</td><td>「重启」下拉里的三种重启</td><td>3.11 / 图 3-78</td></tr>
+          <tr><td>09:37–10:33</td><td>健康检查跑完，修掉三处真实故障</td><td>3.12 / 图 3-79 – 3-82</td></tr>
+          <tr><td>10:34–10:49</td><td>补装 gh / ffmpeg / uv，顺手下载新版本</td><td>3.13 / 图 3-83 – 3-94</td></tr>
+          <tr><td>10:56–10:57</td><td>把界面语言换一圈看看</td><td>3.14 / 图 3-95 – 3-98</td></tr>
+          <tr><td>11:02–11:03</td><td>核对工具版本，重启生效</td><td>3.15 / 图 3-99 – 3-102</td></tr>
+          <tr><td>11:18–11:19</td><td>装完之后的样子：上下文面板与仿真器面板</td><td>3.16 / 图 3-103 – 3-105</td></tr>
+        </tbody>
+        <caption>表 3-1　这次安装的时间线。图号按「章-序」编号，本章从 图 3-1 起连续到 图 3-105。</caption>
+      </table>
+
+      <h3>3.1　准备与安装（09:04–09:08）</h3>
+
+      <p>安装包从官网下载好之后就在桌面上，文件名带着版本号和架构：<code>Nonead-DSH-Desktop-2.2.12-x64-Setup.exe</code>。双击它开始，不需要先解压，也不需要先装运行库——运行时是打进去的。</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_090443.jpg" loading="lazy" decoding="async" alt="Windows 桌面上放着 2.2.12 安装包" width="1988" height="1196">
+        <figcaption>图 3-1　桌面上的 `Nonead-DSH-Desktop-2.2.12-x64-Setup` 安装包。旁边那个 Nonead 图标是之前版本留下的桌面快捷方式，与这次安装无关。</figcaption>
+      </figure>
+
+      <p>第一个界面只问一件事：<strong>装给谁</strong>。「为所有用户安装」需要管理员权限，程序装到系统目录，这台机器上所有账户都能用；「仅为我安装」不需要提权，装进当前用户目录，只有你能看到。单机自用选哪个都行，公司共用一台机器时选前者。</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_090512.jpg" loading="lazy" decoding="async" alt="Inno 安装器：选择安装模式" width="1988" height="1196">
+        <figcaption>图 3-2　「选择安装模式」。这一步决定后续要不要弹 UAC；点选之后才会进入目标目录页。</figcaption>
+      </figure>
+
+      <p>紧接着是目标目录页（这一页当时没有截图）。默认位置跟着上一步走：所有用户装到 <code>C:\Program Files\Nonead DSH Desktop</code>，仅为我安装则装到用户目录。这次把目录改到了数据盘 <code>D:\Software\Nonead DSH Desktop</code>，后面所有截图里出现的安装路径都是它——如果你按默认装，把文中这个路径替换成你自己的即可。</p>
+
+      <p>再往后是「选择附加任务」。这一版只提供一项：<strong>创建桌面快捷方式</strong>。保持勾选，安装完成后桌面上会多一个入口，托盘图标也会常驻。</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_090531.jpg" loading="lazy" decoding="async" alt="选择附加任务：创建桌面快捷方式" width="1988" height="1196">
+          <figcaption>图 3-3　「选择附加任务」。只勾一项就够，开机自启在装好后到设置里决定。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_090540.jpg" loading="lazy" decoding="async" alt="准备安装：确认附加任务摘要" width="1988" height="1196">
+          <figcaption>图 3-4　「准备安装」。方框里是上一步选中的任务清单，确认无误再点「安装」。</figcaption>
+        </figure>
+      </div>
+
+      <p>点「安装」后进度条开始走。安装器做的事很简单：把运行时和 27 个插件的包解到目标目录。这一步大约三分多钟，期间不要动目标目录里的文件。</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_090554.jpg" loading="lazy" decoding="async" alt="正在安装：正在提取文件到 D:\Software\Nonead DSH Desktop" width="1988" height="1196">
+        <figcaption>图 3-5　「正在安装」，日志逐行显示正在提取哪个文件。这里的路径就是你上一步选的目标目录。</figcaption>
+      </figure>
+
+      <p>结束时勾选「运行 Nonead DSH Desktop」直接启动，省一次双击；如果打算先看安装结果再启动，把勾去掉也行。</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_090806.jpg" loading="lazy" decoding="async" alt="完成安装向导，勾选运行 Nonead DSH Desktop" width="1988" height="1196">
+        <figcaption>图 3-6　「完成安装向导」。勾选「运行 Nonead DSH Desktop」后点「完成」，程序立刻启动。</figcaption>
+      </figure>
+
+      <h3>3.2　首次启动与六步向导（09:08–09:09）</h3>
+
+      <p>第一次启动会先出现一块黑底启动屏。它在扫描 Profile、加载插件；第一次启动要建索引，比平时慢，看到 <code>Loading plugins...</code> 停十几秒是正常的。</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_090819.jpg" loading="lazy" decoding="async" alt="首次启动的黑底 Loading plugins 启动屏" width="1988" height="1196">
+        <figcaption>图 3-7　启动屏。这一刻界面服务还没起来，所以只有一行字和一个转圈。</figcaption>
+      </figure>
+
+      <p>界面起来之后自动进入向导。向导一次只问一件事，右上角 <code>1 / 6</code> 这类计数告诉你还剩几步；每一步右下角都有「跳过」，跳过的意思不是「以后不再问」，而是「用默认值继续」。</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_090835.jpg" loading="lazy" decoding="async" alt="向导 1/6 欢迎页" width="1988" height="1196">
+          <figcaption>图 3-8　1 / 6 欢迎页。这套配置会写进名为 <code>desktop</code> 的 Profile，之后可以再建别的 Profile。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_090844.jpg" loading="lazy" decoding="async" alt="向导 2/6 选择插件市场" width="1988" height="1196">
+          <figcaption>图 3-9　2 / 6 插件市场，三选一：社区市场、<code>dsh-market</code>（数据来自 awesome-dsh-plugin）、暂不开启。这次选了 <code>dsh-market</code>。</figcaption>
+        </figure>
+      </div>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_090856.jpg" loading="lazy" decoding="async" alt="向导 3/6 远程控制开关" width="1988" height="1196">
+          <figcaption>图 3-10　3 / 6 远程控制：开启后可以从手机或浏览器连这台机器。这次保持关闭，之后要用到侧边栏「远程控制」里开。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_090905.jpg" loading="lazy" decoding="async" alt="向导 4/6 Computer Use 开关" width="1988" height="1196">
+          <figcaption>图 3-11　4 / 6 Computer Use：让 AI 看屏幕、动鼠标键盘。这次也保持关闭；它需要支持图片输入的模型，开启后仍需逐次授权。</figcaption>
+        </figure>
+      </div>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_090912.jpg" loading="lazy" decoding="async" alt="向导 5/6 恢复模式说明" width="1988" height="1196">
+          <figcaption>图 3-12　5 / 6 恢复模式：介绍起不来的时候怎么进恢复助手。这一步不用操作，记住托盘里有「恢复助手…」即可。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_090919.jpg" loading="lazy" decoding="async" alt="向导 6/6 内置插件 27 个的分类概览" width="1988" height="1196">
+          <figcaption>图 3-13　6 / 6 内置插件 27，按六类给出数量：记忆与上下文 4、界面与工作区 7、智能体与技能 7、文档与媒体 3、代码与工程 2、连接与自动化 4。</figcaption>
+        </figure>
+      </div>
 
       <table>
         <thead>
           <tr><th class="w-20">步骤</th><th class="w-46">这一步在问什么</th><th>建议</th></tr>
         </thead>
         <tbody>
-          <tr><td>1 欢迎</td><td>说明向导会配置哪些内容</td><td>点「开始设置」</td></tr>
+          <tr><td>1 欢迎</td><td>说明向导会配置哪些内容</td><td>直接「下一步」</td></tr>
           <tr><td>2 插件市场</td><td>关闭 / <code>dsh-community-market</code>（Beta）/ <code>dsh-market</code>，一次只能启用一个</td><td>先关掉也能用；想要市场就选一个，之后可改</td></tr>
-          <tr><td>3 远程控制</td><td>是否用 Agents-Anywhere（Beta）从手机或浏览器访问这台电脑</td><td>不清楚就先关；开启后需在侧边栏「手机连接」里完成配对</td></tr>
-          <tr><td>4 Computer Use</td><td>是否允许 AI 操作桌面（点击、输入、看屏幕）</td><td>不需要就关；开启后仍需逐次授权</td></tr>
-          <tr><td>5 恢复模式</td><td>介绍起不来时怎么进恢复助手</td><td>看一眼即可，记住托盘里有「恢复助手…」</td></tr>
-          <tr><td>6 内置插件</td><td>按六个大类说明本安装包自带的插件，并开始逐个安装</td><td>点「完成并开始」，等它装完</td></tr>
+          <tr><td>3 远程控制</td><td>是否用 Agents Anywhere 从手机、平板或其他电脑访问这台电脑</td><td>不清楚就先关；开启后需在侧边栏「远程控制」里配对</td></tr>
+          <tr><td>4 Computer Use</td><td>是否允许 AI 操作桌面（看屏幕、点鼠标、敲键盘）</td><td>不需要就关；开启后仍需逐次授权</td></tr>
+          <tr><td>5 恢复模式</td><td>介绍起不来时怎么进恢复助手</td><td>看一眼即可</td></tr>
+          <tr><td>6 内置插件</td><td>按六个大类说明自带的 27 个插件，并开始逐个安装</td><td>点「完成并开始」，等它装完</td></tr>
         </tbody>
-        <caption>表 2　首次启动向导的六步。</caption>
+        <caption>表 3-2　首次启动向导的六步。这次安装按「表中间那一列」里偏保守的选项走。</caption>
       </table>
 
-      <p>最后一页会先给你一张<strong>大类概览</strong>：记忆与上下文、界面与工作区、智能体与技能、文档与媒体、代码与工程、连接与自动化，每一类写明「这一类能帮你做什么」和插件数量。点「完成并开始」后，向导才会逐个安装，并在每个插件轮到时展示它的名称、版本、所属大类、完整说明，以及一句「感谢某某带来这个插件」。<strong>安装期间不需要你操作，等进度走完即可</strong>——27 个包逐个装，首次启动会比平时多花一点时间。</p>
-
       <div class="callout">
-        <strong>跳过设置会怎样？</strong>点「跳过设置」会直接进主界面，这批预装插件<strong>不会</strong>自动安装。想补回来：设置 → 桌面工具 →「设置向导」重跑一遍，在最后一页点完成。
+        <strong>跳过设置会怎样？</strong>点「跳过设置」会直接进主界面，这批预装插件<strong>不会</strong>自动安装。想补回来：设置 → 桌面工具 →「设置向导」重跑一遍，在最后一页点「完成并开始」。
       </div>
 
-      <p>向导完成后会进入主界面。<strong>关闭窗口不等于退出应用</strong>：默认关闭只是把窗口收进托盘，后台服务与正在跑的任务继续运行；要真正退出，请用托盘菜单里的「退出」。</p>
+      <h3>3.3　27 个插件的安装过程（09:09–09:15）</h3>
+
+      <p>点「完成并开始」之后，向导变成一块安装面板：左边固定几句解释，右边是进度。每轮到一个插件，就换一张卡片，上面写着插件名、所属大类、版本号、完整说明，以及一句「感谢某某带来这个插件」；卡片下面是一条进度条和 <code>8 / 27</code> 这样的计数。</p>
+
+      <p><strong>这一段不需要你做任何操作。</strong>27 个包按清单顺序装，中间不弹确认框；装完会自动重启一次界面服务。第一次启动之所以比平时久，主要就是花在这里。</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_090928.jpg" loading="lazy" decoding="async" alt="安装进度 0/27，第一个插件 dsh-auto-memory" width="1988" height="1196">
+          <figcaption>图 3-14　<code>0 / 27</code>，第一个进场的是 <code>@a9i5k4/dsh-auto-memory</code> v3.3.17（记忆与上下文）。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_091048.jpg" loading="lazy" decoding="async" alt="安装进度 8/27，dsh-skills-manager" width="1988" height="1196">
+          <figcaption>图 3-15　<code>8 / 27</code>，轮到 <code>@michengai/dsh-skills-manager</code> v1.4.6（智能体与技能）。</figcaption>
+        </figure>
+      </div>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_091340.jpg" loading="lazy" decoding="async" alt="安装进度 22/27，dsh-mcp-connector" width="1988" height="1196">
+          <figcaption>图 3-16　<code>22 / 27</code>，<code>dsh-mcp-connector</code> v0.2.106（连接与自动化）。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_091555.jpg" loading="lazy" decoding="async" alt="安装完成后再次进入 Loading plugins" width="1988" height="1196">
+          <figcaption>图 3-17　27 个装完，界面服务重启，回到启动屏。这一次的加载比首次快得多。</figcaption>
+        </figure>
+      </div>
+
+      <p>105 张截图里，这一段只留了四张代表——二十七个进度页长得一样，逐张贴出来只是重复。每个插件装完能做什么，写在第九节；打包清单本身在安装包的 <code>plugin/manifest.json</code> 里。</p>
+
+      <h3>3.4　首次进入的三个引导（09:16–09:18）</h3>
+
+      <p>重启之后，界面还没到主界面，先来一个弹窗：<strong>建立「记忆中枢」</strong>。它属于记忆插件 <code>dsh-auto-memory</code>，要做的事是新建一个专用工作区（目录 <code>~\.dsh\aik_auto_memory_use</code>）和一个后台会话来托管记忆整理，这样问答、总结、沉淀这些后台任务不会挤进你的会话列表。</p>
+
+      <p>弹窗里四项要核对：工作区位置、权限、期号、工作区登记。其中<strong>权限必须是「完全访问」</strong>——受限权限会把后台任务挡在沙箱外面，它读不到记忆目录，表面上不报错，功能其实静默失效。底下一行小字也说明了：建立完成前所有后台记忆任务都暂停，不会发任何请求。</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_091602.jpg" loading="lazy" decoding="async" alt="建立记忆中枢弹窗，四项待确认" width="1988" height="1196">
+        <figcaption>图 3-18　「建立「记忆中枢」」。四项里第 ② 项 <code>danger-full-access</code> 是这一功能能工作的前提，不要改成受限。</figcaption>
+      </figure>
+
+      <p>点「同意并建立」，几秒后四项都打勾，状态变成 <code>ok</code>，后台记忆任务开始运行。这个对话框之后不会再出现；想改工作区目录或轮换周期，在 设置 → 自动记忆 里改。</p>
+
+      <p>接着是记忆插件自己的九步引导，页面是<strong>逐项开关</strong>：每一页讲一个机制，配一个「推荐开」的开关，改完立刻保存，右上角有计数 <code>01 / 09</code>。</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_091613.jpg" loading="lazy" decoding="async" alt="记忆中枢建立成功，四项打勾，状态 ok" width="1988" height="1196">
+          <figcaption>图 3-19　「记忆中枢建立成功」。四项全部打勾、状态 <code>ok</code>，点「好，开始使用」继续。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_091622.jpg" loading="lazy" decoding="async" alt="dsh-auto-memory 引导 01/09 欢迎页" width="1988" height="1196">
+          <figcaption>图 3-20　引导 <code>01 / 09</code> 欢迎页。整套引导可以随时「跳过向导」，之后在 设置 → 自动记忆 里逐项改。</figcaption>
+        </figure>
+      </div>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_091637.jpg" loading="lazy" decoding="async" alt="引导 03/09 周期性记忆注入，两个开关" width="1988" height="1196">
+          <figcaption>图 3-21　<code>03 / 09</code> 周期性记忆注入：首次启用时注入一段项目笔记摘要，之后按轮次或在上下文被压缩后重新注入。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_091710.jpg" loading="lazy" decoding="async" alt="引导 07/09 三级语义引擎，模型下载 9%" width="1988" height="1196">
+          <figcaption>图 3-22　<code>07 / 09</code> 三级语义引擎：词法检索兜底、内置语义引擎（约 129 MB）、可选 Python 进阶档。这里正在下内置档，<code>9.8 / 112.8 MB</code>。</figcaption>
+        </figure>
+      </div>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_091740.jpg" loading="lazy" decoding="async" alt="引导 07/09 内置模型就绪" width="1988" height="1196">
+          <figcaption>图 3-23　同一页，内置档显示「就绪（SHA256 校验 + 推理自检已通过）」，<code>C2 · 129 MB</code>。下载过程不用管，走完就能往下走。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_091752.jpg" loading="lazy" decoding="async" alt="引导 08/09 记忆唤起、记忆固化、技能固化" width="1988" height="1196">
+          <figcaption>图 3-24　<code>08 / 09</code> 该出手时才出手：记忆唤起（链中检测再插入）、记忆固化（每轮结束自动沉淀）、技能固化与注入。</figcaption>
+        </figure>
+      </div>
+
+      <p>最后一页把前面所有开关汇成一张彩色标签清单——开着的标绿、关着的写灰字。看到这一页说明引导走完了；其中「夜间/批量自动托管」与「定时总结」默认是关的，想要无人值守再开。</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_091800.jpg" loading="lazy" decoding="async" alt="引导 09/09 一切就绪，开关清单" width="1988" height="1196">
+          <figcaption>图 3-25　<code>09 / 09</code> 一切就绪。标签即状态清单，之后随时能在设置里改；右下角「开始使用」收尾。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_091812.jpg" loading="lazy" decoding="async" alt="记忆中枢已就绪，第二次检查" width="1988" height="1196">
+          <figcaption>图 3-26　「记忆中枢已就绪」——引导结束后又核对了一遍四项，这次是「已经有」，不再新建。</figcaption>
+        </figure>
+      </div>
+
+      <p>紧接着弹的是两个插件之间的联动提示：<code>dsh-context</code>（看上下文构成）和 <code>dsh-cost-meter</code>（算钱）发现对方版本兼容，问要不要合到一起——左边是启用前的样子，右边是启用后多出来的「上下文费用构成」。这是可选增强，点「启用联动」就在上下文面板里多一块费用；点「暂不启用」也不影响任何功能。</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_091819.jpg" loading="lazy" decoding="async" alt="dsh-context 与 dsh-cost-meter 联动弹窗，启用前后对比" width="1988" height="1196">
+        <figcaption>图 3-27　「让上下文占用与费用一起可见」：左半边是启用前的上下文面板，右半边是启用后多出的费用环。背景那张浮层是 <code>dsh-auto-memory</code> 的版本更新说明。</figcaption>
+      </figure>
+
+      <p>再往后是桌面壳自己的收尾页：一句「桌面设置已完成」，提醒你去 DeepSeek 官网拿 API Key，另外给两个按钮——「访问 NONEAD」跳到官网，「暂时跳过」直接进主界面。右上角还会飘一条「按需设置费用显示」的提示，说的是侧边栏余额条怎么调，点「知道了」即可。</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_091826.jpg" loading="lazy" decoding="async" alt="桌面设置已完成，右上角费用显示提示" width="1988" height="1196">
+          <figcaption>图 3-28　「桌面设置已完成」加一条「按需设置费用显示」的提示。左下角是记忆插件的更新说明，可以关掉。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_091839.jpg" loading="lazy" decoding="async" alt="桌面设置完成页，访问 NONEAD 或暂时跳过" width="1988" height="1196">
+          <figcaption>图 3-29　提示关掉之后剩下的正文：请到 DeepSeek 官网获取 API Key，然后开始使用 Profile「desktop」。</figcaption>
+        </figure>
+      </div>
+
+      <p>点「暂时跳过」进主界面。此时侧边栏已经有两个工作区（「记忆中枢」是刚才建的，「默认工作区」是自带的），底部显示今日花费 <code>¥0</code>——因为还没配密钥，一次请求都没发出去。</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_091846.jpg" loading="lazy" decoding="async" alt="首次进入主界面，侧边栏与输入框" width="1988" height="1196">
+        <figcaption>图 3-30　首次进入的主界面。侧边栏上多出来的「任务看板」「上下文洞察」「MCP 连接器」都是刚才那 27 个插件加的入口。</figcaption>
+      </figure>
+
+      <h3>3.5　填上模型 API Key（09:18–09:19）</h3>
+
+      <p>没有密钥就只能看界面不能对话，所以装完第一件事是去 <strong>设置 → 模型</strong>。这一页已经预置了 DeepSeek 官方提供商 <code>deepseek-official</code>，只差一个密钥。</p>
+
+      <p>密钥框下面那行橘色小字值得读一遍：它先找环境变量 <code>DEEPSEEK_API_KEY</code>，找不到才要求你手填。也就是说，习惯用环境变量管理密钥的人可以什么都不填，重启之后那一栏会自动变成已配置。</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_091859.jpg" loading="lazy" decoding="async" alt="设置-模型页，API 密钥为空并提示未检测到环境变量" width="1988" height="1196">
+          <figcaption>图 3-31　模型页的初始状态：提示「未检测到环境变量」，需要手填密钥，或去设一个 <code>DEEPSEEK_API_KEY</code>。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_091940.jpg" loading="lazy" decoding="async" alt="填入 API 密钥，显示为掩码" width="1988" height="1196">
+          <figcaption>图 3-32　填入密钥，输入框只显示掩码，右侧眼睛图标可以临时看清；确认无误再点「保存」。</figcaption>
+        </figure>
+      </div>
+
+      <p>保存之后顶部出现一行绿字「已保存 DeepSeek（deepseek-official）」，下面的卡片换成一个带绿点的「DeepSeek」和「编辑」按钮。绿点表示这条通道可用，之后想换模型或加中转，走卡片下面的「添加模型提供商」。</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_091948.jpg" loading="lazy" decoding="async" alt="密钥保存后，DeepSeek 卡片带绿点与编辑按钮" width="1988" height="1196">
+        <figcaption>图 3-33　保存成功。此后输入框右下角的模型选择器里就有 <code>DeepSeek-V4.1-Flash</code> 可选。</figcaption>
+      </figure>
+
+      <h3>3.6　插件页与实验性插件（09:20–09:25）</h3>
+
+      <p>填完密钥，接着把侧边栏「插件」翻一遍。这一页分三段：上面是<strong>开关类</strong>（插件市场二选一、远程控制、Computer Use），中间是<strong>已安装 / 插件市场 / 发现</strong>三个标签，下面是<strong>内置插件配置</strong>——子智能体、网页搜索与获取、Agent 循环这些属于「有开关但没有独立界面」的插件，配置入口都收在这里。</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_092042.jpg" loading="lazy" decoding="async" alt="插件页：市场开关、远程控制、Computer Use、已安装列表" width="1988" height="1196">
+        <figcaption>图 3-34　插件页上半。注意左侧余额已经显示 <code>¥2435.81</code>——密钥生效后费用通道开始工作。</figcaption>
+      </figure>
+
+      <p>往下滚是「实验性插件」区。默认<strong>全部关闭</strong>，因为它们「能提前用，但不保证稳定」；这一版把常用的几个都打开了：语音输入、自定义插件索引、自动授权审查、变更请求与工作树。</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092100.jpg" loading="lazy" decoding="async" alt="实验性插件默认全部关闭" width="1988" height="1196">
+          <figcaption>图 3-35　实验性插件默认状态：四个开关全灰，右侧「更多」进入完整列表。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092204.jpg" loading="lazy" decoding="async" alt="实验性插件四个开关全部打开" width="1988" height="1196">
+          <figcaption>图 3-36　打开之后。同时标签栏多出「发现」——那是「自定义插件索引」插件加的入口。</figcaption>
+        </figure>
+      </div>
+
+      <p>完整列表更能看清取舍：开了的排在前面，没开的在后面。其中「开发者工具」被标了红色的「异常」——它加载成功了，但有一项自检没过；不影响日常使用，排查问题时那条标记正好提醒你它可能不可靠。</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092213.jpg" loading="lazy" decoding="async" alt="实验性插件详情页上半，已开启的插件在前" width="1988" height="1196">
+          <figcaption>图 3-37　实验性插件完整列表上半：语音输入、自定义插件索引、自动授权审查、变更请求与工作树已开；个性化推荐、开发者工具等仍关。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092441.jpg" loading="lazy" decoding="async" alt="实验性插件列表下半，开发者工具标异常" width="1988" height="1196">
+          <figcaption>图 3-38　下半部分：开发者工具带红色「异常」，DeepSeek 会话导入已开，Codex / Claude Code 子智能体显示「未安装」。</figcaption>
+        </figure>
+      </div>
+
+      <p>最后看「插件市场 → 已安装」，这里才是 27 个插件的账本。每张卡片给出名字、版本、来源（本地开发会写路径）、一段说明、「添加备注」，以及「有新版本 vX.Y.Z」——升级就在这里点，不用去命令行。</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_092544.jpg" loading="lazy" decoding="async" alt="插件市场已安装列表，卡片信息与升级提示" width="1988" height="1196">
+        <figcaption>图 3-39　已安装清单。<code>@michengai/...</code> 这类标着「本地开发」的是随包装进来的插件，来源路径显示在说明下面。</figcaption>
+      </figure>
+
+      <h3>3.7　设置页逐项过一遍（09:26–09:29）</h3>
+
+      <p>设置是这一版信息密度最高的地方：左侧列表随着插件增加会越来越长，这一版的完整顺序是——通用设置、模型、内置插件、Agent 预设、专家、技能、自动记忆、费用、插件市场、归档会话、备份与迁移、回退历史、Remotion、MCP 连接器、提示词历史、侧边卡片、桌面设置、bili 设置。下面对每一页只写「这一页决定什么」，具体开关按需改。</p>
+
+      <p><strong>通用设置</strong>是第一页，也是最该改的一页。这次的取值：权限「工作区内修改」、语言中文、外观跟随系统、字号 14 px、工作步骤展示「标准」、收起时机「回答结束后」、收起后显示「全部回复」。</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092602.jpg" loading="lazy" decoding="async" alt="设置-通用设置页" width="1988" height="1196">
+          <figcaption>图 3-40　通用设置。权限决定新会话默认能改哪里；「工作区内修改」是最省心的默认值。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092617.jpg" loading="lazy" decoding="async" alt="再次打开通用设置，内容与上一张一致" width="1988" height="1196">
+          <figcaption>图 3-41　几分钟后再看同一页，内容没变——说明前面那些插件向导没有偷偷改掉通用设置。</figcaption>
+        </figure>
+      </div>
+
+      <p><strong>内置插件</strong>把「会话插件」按作用排成卡片：智能体角色设定、工作区指令加载、时间感知、Bash 命令工具、PowerShell 命令工具、文件读写工具。开着的是<strong>会被装进每个会话</strong>的，停用等于全局关掉。</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092626.jpg" loading="lazy" decoding="async" alt="设置-内置插件，会话插件卡片列表" width="1988" height="1196">
+          <figcaption>图 3-42　内置插件页。卡片右下角的英文标签（<code>persona</code>、<code>tool-fs</code> 等）是插件 id，排查问题时报这个更准。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092634.jpg" loading="lazy" decoding="async" alt="设置-Agent 预设，四种内置模式" width="1988" height="1196">
+          <figcaption>图 3-43　Agent 预设：标准模式（新任务默认）、PTC 模式、极简模式、创造模式。日常用标准，批量调工具用 PTC。</figcaption>
+        </figure>
+      </div>
+
+      <p><strong>专家</strong>与<strong>技能</strong>是两套「能力包」：专家是按领域配好提示词的角色，技能是一段可复用的操作说明。出厂状态下专家有三百多个但只启用两个（越多越吃上下文），技能 45 个全部启用，绝大部分来自 WorkBuddy 目录。</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092650.jpg" loading="lazy" decoding="async" alt="设置-专家，331 个专家，已启用 2 个" width="1988" height="1196">
+          <figcaption>图 3-44　专家页。每个专家有独立开关，右上角「专家团」是成套的组合。只用得上的开着，其余留着不影响。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092658.jpg" loading="lazy" decoding="async" alt="设置-技能，45 个技能全部启用" width="1988" height="1196">
+          <figcaption>图 3-45　技能页。顶上那行「≈1,425 token」是这些技能的简介常驻系统提示词的开销，装得越多这行越大。</figcaption>
+        </figure>
+      </div>
+
+      <p><strong>自动记忆</strong>分成四个标签：查找与回忆、记录与使用、外观与目录、接续与维护。这一页和 3.4 里那套引导是同一组开关的两个入口——引导负责「第一次怎么配」，这里负责「以后怎么改」。</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092705.jpg" loading="lazy" decoding="async" alt="设置-自动记忆，记忆设置页" width="1988" height="1196">
+          <figcaption>图 3-46　自动记忆。「主动查找相关记忆」开着会多花一点 token；「找到后如何使用」决定找到的记忆是只观察还是直接塞给模型。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092721.jpg" loading="lazy" decoding="async" alt="设置-费用，成本面板预览" width="1988" height="1196">
+          <figcaption>图 3-47　费用页。左边预览的就是侧边栏那张卡：今日 token、余额、各套餐进度、预算。样式在右边四个布局里挑。</figcaption>
+        </figure>
+      </div>
+
+      <p><strong>插件市场</strong>页和市场里那个入口是同一份数据，区别是这里能改「是否显示在侧边栏」「重启前都不再提醒」这类壳层面的偏好。</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092730.jpg" loading="lazy" decoding="async" alt="设置-插件市场，发现与已安装 27" width="1988" height="1196">
+          <figcaption>图 3-48　插件市场页。<code>dsh-market v1.73.19</code>；下面一行「已隐藏 0 个与 DSH 0.2.2-rc.3 不兼容的插件」是版本自检的结果。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092739.jpg" loading="lazy" decoding="async" alt="设置-归档会话，暂无已归档会话" width="1988" height="1196">
+          <figcaption>图 3-49　归档会话。刚装好当然是空的；会话多起来之后，这里用于按工作区、时间批量归档。</figcaption>
+        </figure>
+      </div>
+
+      <p><strong>备份与迁移</strong>负责把配置打包带走：换机器、重装、同步都用它。打开这一页时弹了一张版本更新说明（配置管理器 v0.9.0），这类说明只在版本变化后出现一次。</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092752.jpg" loading="lazy" decoding="async" alt="备份与迁移页上方的版本更新说明浮层" width="1988" height="1196">
+          <figcaption>图 3-50　备份与迁移页，浮层是配置管理器 v0.9.0 的更新内容。点「确认」关掉，选「永不提示」以后就不再弹。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092805.jpg" loading="lazy" decoding="async" alt="设置-回退历史，快照备份与自动清理" width="1988" height="1196">
+          <figcaption>图 3-51　回退历史。快照备份与自动清理都开着，不活跃 3 天的快照会被清掉——改文件前想留退路，就靠这两项。</figcaption>
+        </figure>
+      </div>
+
+      <p><strong>Remotion</strong> 是视频渲染插件，第一次用要下载官方依赖（截图里正走到 <code>3 / 6</code>）。不打算做视频的话，这一页可以一直不碰。</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092816.jpg" loading="lazy" decoding="async" alt="设置-Remotion，正在下载官方依赖 3/6" width="1988" height="1196">
+          <figcaption>图 3-52　Remotion。<code>dsh-remotion 0.10.6</code>，渲染环境首次使用才需要准备，下载量不小，建议网络空闲时再做。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092832.jpg" loading="lazy" decoding="async" alt="设置-MCP 连接器，入口展示位置" width="1988" height="1196">
+          <figcaption>图 3-53　MCP 连接器。只决定入口出现在哪（两边 / 仅侧边栏 / 仅设置），真正的连接在面板里加。</figcaption>
+        </figure>
+      </div>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092839.jpg" loading="lazy" decoding="async" alt="设置-提示词历史，捕获已开启" width="1988" height="1196">
+          <figcaption>图 3-54　提示词历史 <code>v0.8.7</code>。作用是输入框里按 ↑ 调出上一条；每工作区上限 500 条，保留 0 天表示永久。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092850.jpg" loading="lazy" decoding="async" alt="设置-侧边卡片，DSH-better-sidebar" width="1988" height="1196">
+          <figcaption>图 3-55　侧边卡片 <code>DSH-better-sidebar v0.32.1</code>。「为模型注入侧边栏打开工具」开着时，模型才能主动把文件或网页推到侧栏。</figcaption>
+        </figure>
+      </div>
+
+      <p><strong>桌面设置</strong>是桌面壳自己的配置，和 DSH 内核无关：Profile 管理、浏览器访问、通知、系统权限、应用更新、启动与后台、日志与恢复助手。插件市场与远程控制从这一页挪走了，页面顶部专门留了一句说明和跳转按钮。</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092901.jpg" loading="lazy" decoding="async" alt="设置-桌面设置，Profile 与浏览器访问" width="1988" height="1196">
+          <figcaption>图 3-56　桌面设置上半。Profile <code>desktop</code> 标着「当前」；「允许在浏览器中打开」关着，开了才能用浏览器访问同一个 Profile。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092911.jpg" loading="lazy" decoding="async" alt="桌面设置：通知开关、系统权限、应用更新" width="1988" height="1196">
+          <figcaption>图 3-57　下半。四类通知都关着；系统权限入口在这里；应用更新已经发现新版本 <code>2.2.13</code>。</figcaption>
+        </figure>
+      </div>
+
+      <p>再往下是更新的详情与启动行为。这一段文案是英文的——更新说明原文如此，不影响判断：三个按钮分别是「下载更新」「重新检查」「跳过此版本」。「关闭窗口后保持后台运行」默认开着，这也是为什么关窗口不等于退出。</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092922.jpg" loading="lazy" decoding="async" alt="应用更新详情与启动、后台运行开关" width="1988" height="1196">
+          <figcaption>图 3-58　更新详情与启动项。「登录系统时自动启动」关着；「关闭窗口后保持后台运行」开着，可从托盘重新打开窗口。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092932.jpg" loading="lazy" decoding="async" alt="桌面工具：设置向导、目录入口、日志级别" width="1988" height="1196">
+          <figcaption>图 3-59　桌面工具。五个按钮分别进设置向导、数据目录、Profile 目录、日志目录、开发者工具；日志级别 <code>info</code>，出问题时先来这里。</figcaption>
+        </figure>
+      </div>
+
+      <p>最后一项 <strong>bili 设置</strong>来自上下文压缩插件 <code>billion-context</code>，概览页给三条提示：检测到宿主侧插件、<code>prompt_cache_key</code> 自动注入默认关闭、以及大上下文增量解析。它管的是「长会话怎么省 token」，日常不用动。</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_092943.jpg" loading="lazy" decoding="async" alt="设置-bili 设置，billion-context 压缩代理概览" width="1988" height="1196">
+        <figcaption>图 3-60　bili 设置里的压缩代理概览。三条提示都可以点「关闭 / 我知道了」收起，配置在「配置」标签页里改。</figcaption>
+      </figure>
+
+      <div class="callout">
+        <strong>设置页真正值得现在就改的只有五项：</strong>模型密钥（3.5 已经做了）、默认权限（通用设置）、工作步骤展示（标准 / 详细）、应用更新（3.13 会用到）、登录自启动（按需）。其余默认值都经过调优，先别动。
+      </div>
+
+      <h3>3.8　主界面的几个下拉、第一次提问（09:29–09:32）</h3>
+
+      <p>回到主界面，输入框周围那几个小下拉值得认识一下——它们决定「这一次」用哪个工作区、多大权限、哪个模式、哪套专家、哪个模型。</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_092956.jpg" loading="lazy" decoding="async" alt="工作区下拉：记忆中枢、默认工作区、添加工作区" width="1988" height="1196">
+          <figcaption>图 3-61　工作区下拉。会话只能读写当前工作区的目录；「记忆中枢」那个工作区是插件专用，别在这里办公。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_093008.jpg" loading="lazy" decoding="async" alt="权限下拉：仅可查看、工作区内修改、完全权限、自动审查" width="1988" height="1196">
+          <figcaption>图 3-62　权限下拉。四档从「只能看」到「完全权限」，中间那档是日常默认；<code>EXP</code> 表示实验性。</figcaption>
+        </figure>
+      </div>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_093015.jpg" loading="lazy" decoding="async" alt="循环模式下拉：跟随默认、关闭、仅故障恢复、自主循环" width="1988" height="1196">
+          <figcaption>图 3-63　循环模式下拉。决定任务中断后要不要自动接着跑：默认跟随全局，「自主循环」适合长任务。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_093023.jpg" loading="lazy" decoding="async" alt="专家下拉：专家与专家团两个标签" width="1988" height="1196">
+          <figcaption>图 3-64　专家下拉。两个标签分别是单个专家与成套专家团，可以直接搜索；只列出已启用的那些。</figcaption>
+        </figure>
+      </div>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_093031.jpg" loading="lazy" decoding="async" alt="模型下拉：模型、推理等级、智能体团队协作" width="1988" height="1196">
+          <figcaption>图 3-65　模型下拉。三个可调项：模型、推理等级（这里 <code>High</code>）、以及「启用智能体团队协作」。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_093150.jpg" loading="lazy" decoding="async" alt="输入框提示：输入内容后可以优化" width="1988" height="1196">
+          <figcaption>图 3-66　输入框空着时，右上角那颗星是灰的，悬停提示「输入内容后可以优化」——它是提示词改写，不是发送。</figcaption>
+        </figure>
+      </div>
+
+      <p>第一次提问用的就是最常见的一句：让它给自己做体检。这句话没什么技巧，只是把事情说全：<strong>做什么（全面健康检查）、做到什么程度（修复发现的问题）</strong>。</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_093230.jpg" loading="lazy" decoding="async" alt="输入框里填入自检指令" width="1988" height="1196">
+          <figcaption>图 3-67　输入「对自己做一个全面的健康检查，修复发现的问题」。权限仍是「工作区内修改」，后面会看到它为什么不够。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_093242.jpg" loading="lazy" decoding="async" alt="会话页：正在分析请求，标签栏对话轨迹上下文" width="1988" height="1196">
+          <figcaption>图 3-68　发送后的会话页。顶部标签「对话 / 轨迹 / 上下文 / 编队 / 统计 / 记忆」是同一次运行的不同视角。</figcaption>
+        </figure>
+      </div>
+
+      <h3>3.9　健康检查撞上两次权限审批（09:33–09:34）</h3>
+
+      <p>它要做的第一件事是枚举插件，而这需要读 Profile 目录——在当前权限模式下，这属于「工作区之外」，于是弹出审批条：<strong>允许本次操作使用 danger-full-access 权限</strong>，下面用英文写明这次操作是什么、风险是什么，两个按钮「拒绝 / 允许一次」。</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_093346.jpg" loading="lazy" decoding="async" alt="等待审批：允许本次操作使用完全权限调用 list_plugins" width="1988" height="1196">
+          <figcaption>图 3-69　第一次审批。<code>list_plugins</code> 只是列清单，但读的是 Profile 目录，所以仍需提权；「允许一次」即可，不必放开全局。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_093402.jpg" loading="lazy" decoding="async" alt="确认启用完全权限对话框" width="1988" height="1196">
+          <figcaption>图 3-70　紧接着的第二次：它判断后面还要反复读写配置，问要不要直接开完全权限。勾「我已了解风险」再确认。</figcaption>
+        </figure>
+      </div>
+
+      <div class="callout">
+        <strong>看清两个按钮的区别。</strong>「允许一次」只放行当前这次调用；「启用完全权限」是把整个会话的档位换掉，之后不再逐次问。做一次性排查用前者；确定要让 AI 在这台机器上大改配置（比如这一轮的修 Host 配置）才用后者，改完回设置里调回来。
+      </div>
+
+      <h3>3.10　语音输入插件，下载本地识别模型（09:34–09:36）</h3>
+
+      <p>配置过程中顺手点了一下输入框的麦克风，收到一个提醒：语音输入插件已经启用，但<strong>本地识别模型还没装</strong>。这就是「实验性插件」的典型形态——开关在，能力要靠下载补齐。</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_093423.jpg" loading="lazy" decoding="async" alt="提示使用语音输入前需要安装模型" width="1988" height="1196">
+        <figcaption>图 3-71　「使用语音输入前需要安装」。点「前往安装」进插件详情；点「稍后」不影响其他功能。</figcaption>
+      </figure>
+
+      <p>详情页有三行选择：输入设备、识别服务、识别语言。截图时「输入设备」显示<strong>系统默认 — 不可用</strong>，因为这台机器没插麦克风——不影响先把模型装好，插上之后下拉里会出现设备。识别服务是 <code>SenseVoiceSmall (INT8)</code>。</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_093457.jpg" loading="lazy" decoding="async" alt="语音输入插件详情页，设备不可用，识别服务 SenseVoiceSmall" width="1988" height="1196">
+          <figcaption>图 3-72　插件详情。版本 <code>v0.2.2-rc.3</code>，属「实验性」；三行下拉之下是识别服务的说明卡。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_093504.jpg" loading="lazy" decoding="async" alt="准备区：硬盘 1GB、内存 1GB、1-10 分钟" width="1988" height="1196">
+          <figcaption>图 3-73　准备区。给的是实话：硬盘约 1 GB、内存约 1 GB、首次准备 1–10 分钟，不需要装 Python；模型下载源「自动选择」。</figcaption>
+        </figure>
+      </div>
+
+      <p>点「下载并准备」，下面的清单开始逐项打勾。五步依次是：检查本地资源、准备语音识别模型、准备语音检测模型、校验模型文件、加载模型。中途可以看到具体在传哪个文件、多大、多少百分比。</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_093512.jpg" loading="lazy" decoding="async" alt="准备步骤：检查本地资源已完成" width="1988" height="1196">
+          <figcaption>图 3-74　第 1 步「检查本地资源」已打勾，正在装识别模型。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_093521.jpg" loading="lazy" decoding="async" alt="下载 model.int8.onnx 0.8/239.2MB 0%" width="1988" height="1196">
+          <figcaption>图 3-75　下载细节：<code>model.int8.onnx</code>，总量 <code>239.2 MB</code>。这一步最花时间，走完之前可以去做别的。</figcaption>
+        </figure>
+      </div>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_093553.jpg" loading="lazy" decoding="async" alt="准备步骤前两项完成，正在准备检测模型" width="1988" height="1196">
+          <figcaption>图 3-76　识别模型装好，接着是检测模型（用于判断什么时候有人开始说话）。两个模型分工不同，都要下。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_093616.jpg" loading="lazy" decoding="async" alt="五个准备步骤全部完成" width="1988" height="1196">
+          <figcaption>图 3-77　五步全部打勾。下面「语音识别」「SenseVoice 本地识别」两个组件都显示「运行中」，麦克风图标此后可用。</figcaption>
+        </figure>
+      </div>
+
+      <h3>3.11　「重启」下拉里的三种重启（09:36）</h3>
+
+      <p>装完模型、改过权限，都需要让改动生效。设置页右上角那颗「重启」按钮不是单选，而是一个下拉，三种力度差别很大。</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_093643.jpg" loading="lazy" decoding="async" alt="重启下拉：重新加载界面、重启、重启到恢复模式" width="1988" height="1196">
+        <figcaption>图 3-78　三种重启。「重新加载界面」只刷新前端，最快；「重启」连 Host 一起重起，插件与配置才真正生效；「重启到恢复模式」留给起不来的时候。</figcaption>
+      </figure>
+
+      <h3>3.12　健康检查跑完，修掉三处真实故障（09:37–10:33）</h3>
+
+      <p>权限给到位之后，这一轮开始在后台跑。界面上只显示两件事：当前在调什么工具，以及右侧那张任务清单——它自己把活拆成了六步：收集运行环境与日志证据、检查配置与 profile 完整性、检查插件/捆绑包加载错误与依赖缺失、检查 MCP/技能/记忆/任务子系统、修复确认的问题并复验、输出健康报告与记忆归档。</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_093707.jpg" loading="lazy" decoding="async" alt="健康检查进行中，任务清单 1 进行中 5 待处理" width="1988" height="1196">
+        <figcaption>图 3-79　进行中。左侧任务面板是这次排查的地图，右上角「12 步」是已经执行的工具调用次数。</figcaption>
+      </figure>
+
+      <p>十五分四十二秒后收尾，结论很干脆：日志里 15 条 error、29 条 warn 逐条溯源，<strong>其中 3 个是真实故障，已修复并复验</strong>，其余属于设计内行为或已自愈。</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_103250.jpg" loading="lazy" decoding="async" alt="健康检查完成，15 分 42 秒，3 项真实故障已修复" width="1988" height="1196">
+        <figcaption>图 3-80　结论。上方绿框一句话说清结果，下面的表格列出问题与根因：<code>git.exe</code> 缺失导致每 30 秒报一次 spawn ENOENT、inspector 插件反复启动失败等。</figcaption>
+      </figure>
+
+      <p>三处修复各写了一段「为什么这么修」。这一段值得完整读一遍，因为它解释了这台机器上几个看起来「莫名其妙」的现象：</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_103303.jpg" loading="lazy" decoding="async" alt="三项修复的具体动作说明" width="1988" height="1196">
+          <figcaption>图 3-81　三项修复：git 缺失（补 PortableGit 2.54.0）、inspector 插件加载失败（改 <code>captureFetch:false</code>）、<code>pnpm-workspace.yaml</code> 处于非法中间态。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_103341.jpg" loading="lazy" decoding="async" alt="报告结尾：需要你决定的一件事与已编辑文件" width="1988" height="1196">
+          <figcaption>图 3-82　报告结尾。它把「需要你拍板」的事单独拎出来：gh / ffmpeg / uv 三个外部 CLI 没装；并列出改动过的两个文件。</figcaption>
+        </figure>
+      </div>
+
+      <div class="callout">
+        <strong>建议照做一次。</strong>装完当天跑这一轮，能把「装的这一版在这台机器上有没有暗病」一次问清。提示词就是图里那句，不需要改；跑完记得看一眼它改过哪几个文件。
+      </div>
+
+      <h3>3.13　补装 gh / ffmpeg / uv，顺手下载新版本（10:34–10:49）</h3>
+
+      <p>报告里点名的那三个工具，直接回一句「帮我安装 gh、ffmpeg、uv」就够。它在当前会话里改了 2 个文件（<code>cordis.patch.yml</code>、<code>pnpm-workspace.yaml</code>），随后开了个新会话专做这件事——长任务换新会话，轨迹更干净。</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_103408.jpg" loading="lazy" decoding="async" alt="追问安装 gh ffmpeg uv，上方是已编辑两个文件" width="1988" height="1196">
+          <figcaption>图 3-83　追问。上半部分是上一轮的收尾（已编辑 2 个文件 <code>+10 −3</code>），下半部分是新的指令。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_103807.jpg" loading="lazy" decoding="async" alt="新会话安装工具，轨迹展开，托盘菜单打开" width="1988" height="1196">
+          <figcaption>图 3-84　新会话「安装 gh ffmpeg uv 工具」。轨迹里能看到它先探测 winget 与已有工具，再决定绕开 winget。</figcaption>
+        </figure>
+      </div>
+
+      <p>它没有直接用 <code>winget</code>，而是拿便携二进制。原因在轨迹里写得很清楚：winget 里这三个包都是 machine 作用域的 MSI，当前会话没有管理员权限，装到一半必失败。下面的截图是下载 gh 时的任务输出面板——这类长任务可以用右侧面板盯着进度，不必守着对话。</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_103942.jpg" loading="lazy" decoding="async" alt="任务输出面板显示正在下载 gh v2.104.0" width="1988" height="1196">
+        <figcaption>图 3-85　任务输出面板。日志逐行给出解析版本、<code>gh v2.104.0 → gh_2.104.0_windows_amd64.zip (14.5 MB)</code>，出问题时这面板是第一手证据。</figcaption>
+      </figure>
+
+      <p>等下载的空当，顺手认一下右侧栏。点会话右上角的方块图标展开「开始」面板，这里是一排常用视图：文件、代码审查和变更、上下文、新建终端、Git、浏览器、任务管理、侧边对话、会话数据诊断，以及「更多」。</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_103953.jpg" loading="lazy" decoding="async" alt="右侧「开始」面板的视图清单" width="1988" height="1196">
+          <figcaption>图 3-86　右侧「开始」面板。这些不是插件，是壳自带的工作区视图；开着的会话左侧仍是对话，右侧可以并排放两块。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_104040.jpg" loading="lazy" decoding="async" alt="Git 与文件两个侧栏并排，本轮文件统计" width="1988" height="1196">
+          <figcaption>图 3-87　同时开「Git」与「文件」。Git 侧栏按「全部 5 / 写入 0 / 编辑 2 / 读取 3」统计本轮动过的文件，点击直接跳到那一段改动。</figcaption>
+        </figure>
+      </div>
+
+      <p>同一排里还有个「导入 DeepSeek 会话记录」的入口，用于把官网导出的 <code>deepseek_data-*.zip</code> 导进某个工作区。这次没有旧会话要迁，点开看一眼就取消了。</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_104052.jpg" loading="lazy" decoding="async" alt="导入 DeepSeek 会话记录弹窗" width="1988" height="1196">
+          <figcaption>图 3-88　导入弹窗。要选官网导出的 ZIP，并指定接收这些会话的工作区；导进来的每一段对话都会成为该工作区里的一个会话。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_104107.jpg" loading="lazy" decoding="async" alt="新建会话的空白页" width="1988" height="1196">
+          <figcaption>图 3-89　关掉弹窗后的新建会话页。右侧面板收起后，主界面回到最干净的样子。</figcaption>
+        </figure>
+      </div>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_104133.jpg" loading="lazy" decoding="async" alt="安装会话中段，滚动查看轨迹与文件树" width="1988" height="1196">
+          <figcaption>图 3-90　回到安装会话往下翻。左侧是轨迹，右侧文件树停在该工作区；长会话里「翻回去看它到底做了什么」是常态。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_104209.jpg" loading="lazy" decoding="async" alt="插件市场搜索 nonead，四个家族插件" width="1988" height="1196">
+          <figcaption>图 3-91　插件市场搜索 <code>nonead</code>：拓德的四个插件，其中两个已安装。装完预置的那批之后，要加能力就从这个搜索框开始。</figcaption>
+        </figure>
+      </div>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_104218.jpg" loading="lazy" decoding="async" alt="搜索结果下半：universal-robots 与 prompt-rewind" width="1988" height="1196">
+          <figcaption>图 3-92　同一次搜索的下半部分：<code>dsh-nonead-universal-robots v0.9.0</code>（机械臂控制）、<code>dsh-nonead-prompt-rewind v0.5.4</code>（对话回退）。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_104802.jpg" loading="lazy" decoding="async" alt="应用更新正在下载 33%，更新说明 2.2.13" width="1988" height="1196">
+          <figcaption>图 3-93　顺手下载新版本：应用更新走到 33%，更新说明是 <code>2.2.13</code> 的变更（内核 0.2.2-rc.3、AA 桥 2.2.0 等）。</figcaption>
+        </figure>
+      </div>
+
+      <p>下载在后台走，托盘菜单里也能看到同一条进度。<strong>更新不需要退出正在跑的任务</strong>，它会自己下完，安装时再问你。</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_104946.jpg" loading="lazy" decoding="async" alt="更新下载 42%，托盘菜单里的更新进度" width="1988" height="1196">
+        <figcaption>图 3-94　下载 42%，托盘菜单里有一行「正在下载更新 41%」，两边是同一个任务。托盘菜单也是退出程序的唯一正门。</figcaption>
+      </figure>
+
+      <h3>3.14　把界面语言换一圈看看（10:56–10:57）</h3>
+
+      <p>通用设置里的「语言」是一个九项下拉：中文、English、日本語、Español、Français、Deutsch、Русский、Português。切换是即时的，不用重启，也不影响正在跑的会话。</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_105632.jpg" loading="lazy" decoding="async" alt="语言下拉展开，九种语言" width="1988" height="1196">
+        <figcaption>图 3-95　语言下拉。九种界面语言；会话正文与已有输出不会被翻译，只有界面文案会换。</figcaption>
+      </figure>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_105653.jpg" loading="lazy" decoding="async" alt="界面切到英文" width="1988" height="1196">
+          <figcaption>图 3-96　English。<code>Application / Edit</code>、<code>Settings</code>、<code>General</code> 这些壳层文案一起变；权限项显示为 <code>Workspace Write</code>。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_105712.jpg" loading="lazy" decoding="async" alt="界面切到日文" width="1988" height="1196">
+          <figcaption>图 3-97　日本語。侧边栏同步变成「新規セッション / 自動化タスク / コンテキストインサイト」。</figcaption>
+        </figure>
+      </div>
+
+      <p>切到俄语时能看到一个细节：侧边栏里 <code>Task Board</code>、<code>MCP 连接器</code> 仍是原文没变。这不是没生效，而是这两处文案由插件提供，插件本身没带该语言的翻译——界面语言只覆盖宿主自己那部分。</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_105728.jpg" loading="lazy" decoding="async" alt="界面切到俄文，部分插件文案仍是原文" width="1988" height="1196">
+        <figcaption>图 3-98　Русский。宿主文案全变，<code>Task Board</code> 与 <code>MCP 连接器</code> 停留原文，因为它们是插件提供的入口。</figcaption>
+      </figure>
+
+      <h3>3.15　收尾：核对工具版本，重启生效（11:02–11:03）</h3>
+
+      <p>语言切回中文，那个装工具的长任务也回来了。二十八分十一秒结束，四个二进制都落在 <code>C:\Users\nonead\.local\bin</code>——这个目录本来就在用户 PATH 里，也在当前 DSH 进程的 PATH 里，所以<strong>不用重启就能被插件直接调用</strong>，而且全程没要管理员权限。</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_110238.jpg" loading="lazy" decoding="async" alt="工具安装结果表：gh、uv、ffmpeg、ffprobe" width="1988" height="1196">
+        <figcaption>图 3-99　安装结果：gh 2.104.0（39.9 MB）、uv / uvx 0.13.8（31 MB）、ffmpeg 9.0.2-essentials（100.5 MB）、ffprobe 5.1.0（77.2 MB）。</figcaption>
+      </figure>
+
+      <p>后面那段解释为什么要绕镜像，值得一读：这台机器上 <code>github.com</code> 的 release 直连是被拦的——连接能建立，数据 0 字节；换到代理才成功。这不是个例，国内网络里装 GitHub 上的工具基本都会遇到。它给的四个工具来源分别是 gh 走 <code>gh-proxy.com</code>、uv 走清华 PyPI、ffmpeg 走 npmmirror 的安装包再换上 gyan 的官方二进制。</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_110250.jpg" loading="lazy" decoding="async" alt="解释为什么走镜像，以及各工具的实际来源" width="1988" height="1196">
+        <figcaption>图 3-100　「为什么走镜像而不是 winget」与各工具来源。三个工具的实际来源各不相同，都是被直连失败逼出来的替代路径。</figcaption>
+      </figure>
+
+      <p>改完设置、装完工具，最后一步是重启让宿主重新读配置。这一次把「工作步骤展示」从「标准」改成了「详细」——排查阶段看得细一点更省事，日常可以再调回去。</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_110307.jpg" loading="lazy" decoding="async" alt="通用设置中把工作步骤展示改为详细" width="1988" height="1196">
+          <figcaption>图 3-101　工作步骤展示改为「详细」。同一页的「收起时机」「收起后显示」决定这些细节什么时候收起来。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_110316.jpg" loading="lazy" decoding="async" alt="重启确认框：将停止当前 Host，运行中的任务会中断" width="1988" height="1196">
+          <figcaption>图 3-102　重启确认。它明说会停掉当前 Host、中断正在运行的任务；有长任务在跑就先等它结束。</figcaption>
+        </figure>
+      </div>
+
+      <div class="callout">
+        <strong>gh 装好不等于已登录。</strong>它需要在终端里跑一次 <code>gh auth login</code>（走浏览器 OAuth）；被墙时先设 <code>GH_HOST</code> 或 <code>HTTPS_PROXY</code>。这一步没法代劳，得你自己在终端里点完授权。
+      </div>
+
+      <h3>3.16　装完之后的样子（11:18–11:19）</h3>
+
+      <p>重启之后再回来，右侧「开始」面板里多了两块新视图：拓德 UR 数字孪生、拓德 UR 仿真器——那是刚在插件市场看到的 UR 插件提供的。装插件不只是加工具，还会往侧边栏和面板里加入口。</p>
+
+      <figure class="shot-block">
+        <img src="assets/2026-11-15_111854.jpg" loading="lazy" decoding="async" alt="会话收尾，右侧开始面板新增两个 UR 面板" width="1988" height="1196">
+        <figcaption>图 3-103　会话收尾：作业已完成，剩一件需要人做的事（<code>gh auth login</code>）。右侧多了数字孪生与仿真器两个入口。</figcaption>
+      </figure>
+
+      <p>顺手点开「上下文」面板，能看到这一路下来的账：总 token 约 10.3 M，缓存命中 95.89%，活跃时长 42 分 38 秒，其中大头花在工具执行与模型等待上。这组数字以后就是判断「这一轮贵不贵」的依据。</p>
+
+      <div class="shot-grid">
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_111906.jpg" loading="lazy" decoding="async" alt="上下文面板：Token 统计与耗时统计" width="1988" height="1196">
+          <figcaption>图 3-104　上下文面板。<code>10.3 M</code> 总量、缓存命中 <code>95.89%</code>、活跃时长 <code>42m38s</code>；下方色条是各阶段耗时占比。</figcaption>
+        </figure>
+        <figure class="shot-block">
+          <img src="assets/2026-11-15_111954.jpg" loading="lazy" decoding="async" alt="拓德 UR 仿真器面板，UR12e 仿真视图" width="1988" height="1196">
+          <figcaption>图 3-105　拓德 UR 仿真器。左边是 3D 视图，右边是 TCP 坐标与关节滑块，底部状态栏给出安全模式与程序状态。</figcaption>
+        </figure>
+      </div>
+
+      <p>到这里，一次完整的首次安装就结束了：程序装好、27 个插件到位、模型接通、权限与目录按需调过、三个外部 CLI 补齐、语音模型可用、语言与更新都试过一遍。接下来读第四节认界面就行。</p>
+
+      <div class="callout">
+        <strong>装完请确认这六件事（缺哪件补哪件）：</strong>
+        <br>① 模型密钥已保存，输入框右下角能看到模型名字；
+        <br>② 新建会话时工作区选的是你要干活的那个目录，不是「记忆中枢」；
+        <br>③ 权限默认值与你的习惯一致（工作区内修改 / 完全权限）；
+        <br>④ 跑过一次健康检查，知道它改了什么；
+        <br>⑤ 需要的外部工具（gh、ffmpeg、uv 之类）能用 <code>--version</code> 打出版本；
+        <br>⑥ 托盘菜单里找得到「退出」——记住关窗口不等于退出。
+      </div>
     </section>
 
     <section class="flow-block">
@@ -354,7 +1122,7 @@
       <div class="callout">
         <strong>为什么是「预装」而不是「内置」？</strong>严格说，它们是<strong>随安装包分发、由首次向导装进你的 Profile</strong> 的普通插件，和你在插件页自己装的是同一种东西——所以能停用、能卸载、能更新。这与 <code>dsh-base</code>、<code>dsh-web-app</code> 那种真正内置、不可卸载的基础组件不同（后者在「设置 → 内置插件」里看）。
       </div>
-<p class="small">向导第二步里的插件市场（<code>dsh-market</code>，即 <code>dshmarket</code> 1.73.19，或内置的 <code>dsh-community-market</code>）是另一个选项，不属于这些随包插件。</p>
+<p class="small">向导第二步里的插件市场（<code>dsh-market</code>，即 <code>dshmarket</code> 1.73.20，或内置的 <code>dsh-community-market</code>）是另一个选项，不属于这些随包插件。</p>
 
       <h3>9.2 预装是怎么发生的</h3>
 
