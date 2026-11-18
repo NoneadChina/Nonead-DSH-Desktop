@@ -148,8 +148,8 @@
     },
     {
       "name": "dsh-context",
-      "version": "0.85.1",
-      "file": "dsh-context-0.85.1.tgz",
+      "version": "0.86.0",
+      "file": "dsh-context-0.86.0.tgz",
       "category": "core",
       "author": "bowenliang123",
       "description": "上下文洞察与管理：用仪表板查看上下文由什么组成、怎么增长，并在需要时压缩。提供 /context 命令与侧边栏面板，适合排查上下文被谁占满。",

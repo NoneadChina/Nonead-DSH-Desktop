@@ -13,6 +13,17 @@ Conventions de maintenance :
 - Les entrées ne décrivent que les changements perceptibles par l’utilisateur et les changements de limite que les responsables de maintenance doivent connaître ; les refactorisations pures ne font pas l’objet d’une entrée.
 - L’historique plus ancien se trouve dans les étiquettes Git (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) et dans le journal des commits.
 
+## 2.2.14 — 2026-11-19
+
+Runtime porté à DSH 0.2.2-rc.5, avec le pont et les dépendances embarquées reconstruits :
+
+- Runtime : DeepSeek Harness embarqué passe de 0.2.2-rc.3 à **0.2.2-rc.5** (commit upstream `9c2670d3b`, 375 paquets re-vendored, les 24 patchs desktop rebasés sur les nouveaux artefacts).
+- Pont : le pont Agents Anywhere est réempaqueté pour la plage de peers de rc.5 (`2.2.0-desktop.caa12e7a2c181.r97f2390e`).
+- Plugins embarqués : les 27 ont été comparés à npm latest ; `dsh-context` passe à **0.86.0**, les 26 autres sont à jour.
+- Marché de plugins : `dshmarket` 1.73.20 → **1.73.21**, avec le patch desktop adapté au nouveau chemin de mise à jour host-provided.
+- Mises à jour dans l'app : l'installateur Windows repasse le commutateur NSIS `--updated`, la mise à niveau sur place ne tombe plus dans l'état « installateur conservé ».
+- Version : produit 2.2.12 → **2.2.14** (les deux workspaces desktop restent synchronisés).
+
 ## 2.2.12 — 2026-11-14
 
 Le runtime passe à DSH 0.2.2-rc.3, le pont Agents Anywhere suit en 2.2.0 et les plugins embarqués sont rafraîchis à nouveau :

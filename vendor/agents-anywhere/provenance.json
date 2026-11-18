@@ -4,23 +4,23 @@
   "commit": "aa12e7a2c181df29c0cf0a88959dccbefef45a92",
   "packageDirectory": "dsh-bridge-next",
   "sourceVersion": "2.2.0",
-  "desktopVersion": "2.2.0-desktop.caa12e7a2c181.r216dce97",
-  "artifact": "agents-anywhere-dsh-bridge-next-2.2.0-desktop.caa12e7a2c181.r216dce97.tgz",
-  "sha256": "15fe55cfb6c14a5f2518cb275cc305e581dedfaeb022e5c745535d16dcf06e38",
+  "desktopVersion": "2.2.0-desktop.caa12e7a2c181.r97f2390e",
+  "artifact": "agents-anywhere-dsh-bridge-next-2.2.0-desktop.caa12e7a2c181.r97f2390e.tgz",
+  "sha256": "42606f6c09e62b2c5042e6c1798d5dd65cc881b05474673797a3349a9a772024",
   "runtimePeers": {
-    "@deepseek-ai/dsh-typert-protocol": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-llm": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-session": "0.2.2-rc.3"
+    "@deepseek-ai/dsh-typert-protocol": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-llm": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-session": "0.2.2-rc.5"
   },
   "manifestChanges": [
-    "version set to 2.2.0-desktop.caa12e7a2c181.r216dce97",
+    "version set to 2.2.0-desktop.caa12e7a2c181.r97f2390e",
     "release staging removes prepack/postpack hooks; build, typecheck and check:build run explicitly",
     "release staging pins the AA build-time DSH type graph to the source devDependencies",
-    "@deepseek-ai/dsh-typert-protocol peer accepts 0.2.2-rc.3",
-    "@deepseek-ai/dsh-llm peer accepts 0.2.2-rc.3",
-    "@deepseek-ai/dsh-session peer accepts 0.2.2-rc.3"
+    "@deepseek-ai/dsh-typert-protocol peer accepts 0.2.2-rc.5",
+    "@deepseek-ai/dsh-llm peer accepts 0.2.2-rc.5",
+    "@deepseek-ai/dsh-session peer accepts 0.2.2-rc.5"
   ],
   "sourceChanges": [],
   "pinnedCommit": "aa12e7a2c181df29c0cf0a88959dccbefef45a92",
-  "pinReason": "Pin to the Agents Anywhere v2.2.0 release line (commit aa12e7a2c181): AA Desktop and Connector 2.2.x ship the matching 2.2.0 bridge, and 2.2.0 is the release built against DSH 0.2.2-rc.3."
+  "pinReason": "Pin to the Agents Anywhere v2.2.0 release line (commit aa12e7a2c181): AA Desktop and Connector 2.2.x ship the matching 2.2.0 bridge; the desktop build is re-staged whenever the bundled DSH runtime peer range changes."
 }

@@ -13,6 +13,17 @@ Konventionen für die Pflege:
 - Einträge halten ausschließlich Änderungen fest, die Nutzer wahrnehmen können, sowie Grenzänderungen, die Maintainer kennen müssen; reine Refactorings erhalten keinen eigenen Eintrag.
 - Die frühere Historie findet sich in den Git-Tags (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) und in der Commit-Historie.
 
+## 2.2.14 — 2026-11-19
+
+Runtime auf DSH 0.2.2-rc.5 angehoben, Bridge und mitgelieferte Abhängigkeiten neu gebaut:
+
+- Runtime: mitgeliefertes DeepSeek Harness von 0.2.2-rc.3 auf **0.2.2-rc.5** (Upstream-Commit `9c2670d3b`, 375 Pakete neu vendored, alle 24 Desktop-Patches auf die neuen Artefakte rebased).
+- Bridge: die Agents-Anywhere-Bridge wird für den Peer-Bereich von rc.5 neu gepackt (`2.2.0-desktop.caa12e7a2c181.r97f2390e`).
+- Mitgelieferte Plugins: alle 27 gegen npm latest geprüft; `dsh-context` geht auf **0.86.0**, die übrigen 26 sind aktuell.
+- Plugin-Markt: `dshmarket` 1.73.20 → **1.73.21**, der Desktop-Patch ist an den neuen host-provided-Updatepfad angepasst.
+- In-App-Updates: der Windows-Installer übergibt wieder den NSIS-Schalter `--updated`, ein In-Place-Upgrade landet nicht mehr im Zustand „Installer beibehalten".
+- Version: Produkt 2.2.12 → **2.2.14** (beide Desktop-Workspaces im Gleichschritt).
+
 ## 2.2.12 — 2026-11-14
 
 Die Laufzeit steigt auf DSH 0.2.2-rc.3, die Agents-Anywhere-Brücke zieht auf 2.2.0 nach, und die mitgelieferten Plugins werden erneut aktualisiert:

@@ -1,4 +1,4 @@
 # Bilingual-pair consistency record. Both languages carry equal authority.
 # Update both files and record their Git blob hashes after editing either side.
-plugin-ecosystem.md: 09b7c67f4c2b6b15f9a71c424999106652df62f1
-plugin-ecosystem.en.md: 022905a73879e92cb79286fd25368b7ce46735fe
+plugin-ecosystem.md: 82c69666bc98f2b1672a7c1df3dbb67fdef2c0b8
+plugin-ecosystem.en.md: 8aaca53852d437208a22bef549e00affdbfad5e2

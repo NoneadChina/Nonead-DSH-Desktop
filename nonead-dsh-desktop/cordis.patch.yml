@@ -4,7 +4,9 @@
   disabled: false
 - insert:
     - id: nonead-dsh-desktop-capabilities
-      name: nonead-dsh-desktop
+      # Relative to this patch file: the loader rewrites it to a file URL, so the
+      # capability bundle resolves from the installer (app.asar) as well as a checkout.
+      name: ./lib/extensions.js
     - id: computer-use
       name: '@deepseek-ai/dsh-computer-use'
     - id: computer-use-cua-driver-native

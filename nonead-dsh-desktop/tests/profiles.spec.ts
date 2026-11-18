@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process'
 import { existsSync, lstatSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { afterEach, expect, it, vi } from 'vitest'
 import { composeEntries, loadOverlayPatches, loadProfileDirectory } from '@deepseek-ai/dsh-app-boot'
 import { OPTIONAL_BUNDLES } from '@deepseek-ai/dsh-official-bundles'
@@ -264,15 +264,17 @@ it('composes optional AA and Market while retaining the official Web layout', ()
   expect(rows.some(row => row.id === 'ui-layout' && !row.disabled)).toBe(true)
   expect(rows.some(row => row.name === '@deepseek-ai/dsh-computer-use' && !row.disabled)).toBe(true)
   expect(rows.some(row => row.name === '@deepseek-ai/dsh-experimental-computer-use-cua-driver-native' && row.disabled)).toBe(true)
-  // Client module discovery requires a package root, not the previous /extensions subpath.
-  expect(rows.find(row => row.id === 'nonead-dsh-desktop-capabilities')?.name).toBe('nonead-dsh-desktop')
+  // A relative entry stays resolvable from app.asar: the loader anchors it beside the patch file.
+  const capabilityEntry = pathToFileURL(fileURLToPath(new URL('../lib/extensions.js', import.meta.url))).href
+  expect(rows.find(row => row.id === 'nonead-dsh-desktop-capabilities')?.name).toBe(capabilityEntry)
   const overlays = [fileURLToPath(new URL('../host.cordis.patch.yml', import.meta.url)),
     join(dir, 'nonead-dsh-desktop.cordis.patch.json')]
   const reread = readNextProfilePatches(dir, manager.home, overlays)
   const reconciled = composeEntries([reread])
   expect(reconciled.some(row => row.name === 'dsh-community-market' && !row.disabled)).toBe(true)
   expect(reconciled.find(row => row.id === 'webserver')?.disabled).toBe(true)
-  expect(reconciled.some(row => row.name === 'nonead-dsh-desktop/webserver' && !row.disabled)).toBe(true)
+  const webserverEntry = pathToFileURL(fileURLToPath(new URL('../lib/webserver.js', import.meta.url))).href
+  expect(reconciled.some(row => row.name === webserverEntry && !row.disabled)).toBe(true)
   writeFileSync(profile.patchPath, '- id: ui-sidebar-browser\n  disabled: true\n- id: computer-use-cua-driver-native\n  disabled: false\n')
   const updated = composeEntries([readNextProfilePatches(dir, manager.home, overlays)])
   expect(updated.find(row => row.id === 'ui-sidebar-browser')?.disabled).toBe(true)

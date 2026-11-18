@@ -3,7 +3,9 @@
   disabled: true
 - insert:
     - id: nonead-dsh-desktop-webserver
-      name: nonead-dsh-desktop/webserver
+      # Relative to this patch file: the loader rewrites it to a file URL, so the
+      # webserver bundle resolves from the installer (app.asar) as well as a checkout.
+      name: ./lib/webserver.js
       inject: [webStartup]
       config:
         host: 127.0.0.1

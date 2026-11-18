@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  产品版本 <code>2.2.12</code> · DSH 运行时 <code>0.2.2-rc.3</code> · Electron 44 · MIT License
+  产品版本 <code>2.2.14</code> · DSH 运行时 <code>0.2.2-rc.5</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">一键下载，开箱即用。</a></h3>
@@ -65,19 +65,19 @@ Nonead DSH Desktop 把 [DeepSeek Harness](https://github.com/deepseek-ai/deepsee
 
 | 项 | 值 |
 | --- | --- |
-| 产品版本 | `2.2.12`（`nonead-dsh-desktop` 与 `dsh-plugin-desktop-beta` 同步） |
+| 产品版本 | `2.2.14`（`nonead-dsh-desktop` 与 `dsh-plugin-desktop-beta` 同步） |
 | 稳定通道工作区 | `nonead-dsh-desktop`（根脚本 `:stable` 后缀） |
 | Beta 通道工作区 | `dsh-plugin-desktop-beta`（根脚本 `:beta` 后缀） |
-| DSH 运行时 | `0.2.2-rc.3`，所有 `@deepseek-ai/dsh*` 依赖精确 pin，运行时就地 vendored |
-| 已 vendored 运行时 | `vendor/dsh-runtime/0.2.2-rc.3/`（另有若干历史版本目录保留） |
-| 上游 pin | `38a6a5c965aa99ab525161efb7cc5cf1fe62fced`（`upstream.json` 的 `channels.beta`，同时记在 `nonead-dsh-desktop/upstream-reference.json`） |
+| DSH 运行时 | `0.2.2-rc.5`，所有 `@deepseek-ai/dsh*` 依赖精确 pin，运行时就地 vendored |
+| 已 vendored 运行时 | `vendor/dsh-runtime/0.2.2-rc.5/`（另有若干历史版本目录保留） |
+| 上游 pin | `9c2670d3bce5275e0d1610272958121af87787bb`（`upstream.json` 的 `channels.beta`，同时记在 `nonead-dsh-desktop/upstream-reference.json`） |
 | Electron / 打包器 | Electron `44.0.0` / electron-builder `26.15.7`（`app-builder-lib` 带补丁） |
 | Node / Yarn | Node `^22.19.0` 或 `>=24.0.0`；Yarn `4.18.0`（经 Corepack，`nodeLinker: node-modules`） |
 | 插件市场 | `dshmarket` `1.73.20`，另有本仓库的 `dsh-community-market` `0.1.0-dev.0` |
 | 手机远控桥 | `@agents-anywhere/dsh-bridge-next` `2.2.0-desktop`（上游提交 `aa12e7a`） |
 | 品牌皮肤 | `dsh-nonead-client-skin`（随安装包分发，按 profile 组合加载） |
 
-`upstream.json` 记录两条 vendored 运行时线：`stable` 对应上游 `0.2.0-rc.2`，`beta` 对应上游 `0.2.2-rc.3`；真正打进安装包的是工作区精确 pin 的那一条，当前两个桌面工作区都 pin 在 `0.2.2-rc.3`。**通道名描述的是"运行时线"，不是工作区查询的发布通道。**
+`upstream.json` 记录两条 vendored 运行时线：`stable` 对应上游 `0.2.0-rc.2`，`beta` 对应上游 `0.2.2-rc.5`；真正打进安装包的是工作区精确 pin 的那一条，当前两个桌面工作区都 pin 在 `0.2.2-rc.5`。**通道名描述的是"运行时线"，不是工作区查询的发布通道。**
 
 <a id="download"></a>
 
@@ -283,6 +283,7 @@ Nonead DSH Desktop 是基于 [DeepSeek Harness](https://github.com/deepseek-ai/d
 
 | 版本 | 日期 | 要点 |
 | --- | --- | --- |
+| `2.2.14` | 2026-11-19 | 运行时升到 DSH `0.2.2-rc.5`（375 包重新 vendored、24 个补丁重定基），Agents Anywhere 桥接按 rc.5 peer 重新打包；随包插件 27 个（`dsh-context` 0.86.0）；`dshmarket` 1.73.21 |
 | `2.2.12` | 2026-11-14 | 运行时升到 DSH `0.2.2-rc.3`（375 包重新 vendored、24 个补丁重定基），Agents Anywhere 桥接升到 2.2.0 并对齐 rc.3 peer；随包插件全部对过 npm latest（13 个更新）；`dshmarket` 1.73.19 |
 | `2.2.10` | 2026-11-12 | 运行时升到 DSH `0.2.2-rc.2`（374 包重新 vendored、24 个补丁重定基），适配 agent-team 转正与 peer 依赖变更；Agents Anywhere 桥接经 Profile 豁免继续可用；随包插件 27 个 |
 | `2.2.9` | 2026-11-10 | 运行时升到 DSH `0.2.2-rc.1`（373 包重新 vendored、24 个补丁重定基），内置插件补到 35 个，引导页改为按大类介绍并逐个致谢作者；Agents Anywhere 桥接升到 2.1.0 |
