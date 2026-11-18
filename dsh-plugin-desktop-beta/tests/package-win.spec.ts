@@ -80,13 +80,22 @@ describe('Windows x64 installer packaging', () => {
         SAFE_VALUE: 'kept',
         CSC_IDENTITY_AUTO_DISCOVERY: 'false',
         DSH_ELECTRON_BUILDER_TRAVERSAL_ONLY: '1',
+        // The packaging hooks run inside electron-builder, which sees neither our
+        // argv nor the target arch, so the target has to travel in the environment.
+        DSH_PACKAGE_ARCH: 'x64',
       },
     })
     expect(calls[2]).toEqual({
       command: 'C:\\Program Files\\nodejs\\node.exe',
       args: ['C:\\repo\\dsh-plugin-desktop\\scripts\\verify-win-installer.ts'],
       cwd: 'C:\\repo\\dsh-plugin-desktop',
-      env: { PATH: 'C:\\Windows\\System32', SAFE_VALUE: 'kept' },
+      // The verifier resolves the artifact name from the arch, and --arm64 only
+      // lives in argv, so the arch has to be handed over explicitly.
+      env: {
+        PATH: 'C:\\Windows\\System32',
+        SAFE_VALUE: 'kept',
+        DSH_PACKAGE_ARCH: 'x64',
+      },
     })
     expect(logs).toEqual([
       'Building an unsigned Windows x64 installer; Authenticode is a separate release step.',

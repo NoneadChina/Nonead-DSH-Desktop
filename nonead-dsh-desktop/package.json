@@ -29,6 +29,7 @@
     "verify:desktop-runtime": "node scripts/verify-desktop-runtime.mjs",
     "verify:safe-cleanup": "node scripts/verify-safe-cleanup.mjs",
     "icons:export": "node ../scripts/export-app-icons.mjs --channel stable",
+    "icons:sidebar": "node scripts/build-installer-sidebar.mjs",
     "prepare:runtime": "node scripts/prepare-runtime.ts",
     "package:dir": "yarn build && node scripts/package.ts dir",
     "dist:mac": "node scripts/package.ts mac",
@@ -225,7 +226,7 @@
     "@deepseek-ai/schemastery": "~3.19.0",
     "dsh-community-market": "0.1.0-dev.0",
     "dsh-nonead-client-skin": "file:../dsh-nonead-client-skin",
-    "dshmarket": "1.73.19",
+    "dshmarket": "1.73.20",
     "mdast-util-from-markdown": "^2.0.3",
     "mdast-util-gfm": "^3.1.0",
     "mdast-util-to-string": "^4.0.0",
@@ -463,6 +464,17 @@
     "nsis": {
       "oneClick": false,
       "perMachine": false,
+      "selectPerMachineByDefault": true,
+      "installerLanguages": [
+        "zh_CN",
+        "en_US",
+        "ja_JP",
+        "es_ES",
+        "fr_FR",
+        "de_DE",
+        "ru_RU",
+        "pt_BR"
+      ],
       "allowElevation": true,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
@@ -473,6 +485,8 @@
       "artifactName": "Nonead-DSH-Desktop-${version}-${arch}-Setup.${ext}",
       "installerIcon": "build/app-icon.ico",
       "uninstallerIcon": "build/app-icon.ico",
+      "installerSidebar": "build/installer-sidebar.bmp",
+      "uninstallerSidebar": "build/installer-sidebar.bmp",
       "include": "../dsh-plugin-desktop-beta/build/installer.nsh"
     },
     "linux": {

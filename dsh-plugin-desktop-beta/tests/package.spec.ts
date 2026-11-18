@@ -929,6 +929,13 @@ describe('published package surface', () => {
       license: 'THIRD_PARTY_NOTICES.md',
       oneClick: false,
       perMachine: false,
+      // The install-mode page stays visible, but defaults to the all-users location so an
+      // elevated run lands in Program Files instead of the per-user Local AppData folder.
+      selectPerMachineByDefault: true,
+      // Every language here must also carry a LangString block in installer.nsh: NSIS warns
+      // 6040 for any table language that references an unset $(dshCannotCloseApp*) key, and
+      // electron-builder compiles with -WX, so a mismatch fails the release build.
+      installerLanguages: ['zh_CN', 'en_US', 'ja_JP', 'es_ES', 'fr_FR', 'de_DE', 'ru_RU', 'pt_BR'],
       allowElevation: true,
       allowToChangeInstallationDirectory: true,
       createDesktopShortcut: true,

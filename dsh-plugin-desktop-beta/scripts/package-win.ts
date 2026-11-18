@@ -243,16 +243,23 @@ export function packageWindowsArtifact(
       ...(outputDirectory === undefined ? [] : [`--config.directories.output=${outputDirectory}`]),
     ],
     options.desktopRoot,
+    // electron-builder runs the hooks in its own process, so the CPU it packages must travel in the
+    // environment: a hook that resolves the target from `process.argv` sees electron-builder's
+    // arguments, and one that reads `process.arch` sees the host. Both would pick x64 for an arm64
+    // build and then look for the x64 engine inside an arm64 payload.
     electronBuilderEnvironment({
       ...cleanEnvironment,
+      DSH_PACKAGE_ARCH: options.targetArch,
       CSC_IDENTITY_AUTO_DISCOVERY: 'false',
     }),
   )
+  // A cross-arch build names its artifact after `--arm64`, but the verifier only sees the
+  // environment, so hand it the CPU the build actually produced.
   options.run(
     options.nodeExecutable,
     [options.verifier],
     options.desktopRoot,
-    cleanEnvironment,
+    { ...cleanEnvironment, DSH_PACKAGE_ARCH: options.targetArch },
   )
 }
 

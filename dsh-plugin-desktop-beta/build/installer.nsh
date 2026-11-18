@@ -2,6 +2,60 @@
 ; silently skipped and the running-app handoff below is not in the installer at all.
 !echo "DSH installer include: running-app handoff compiled"
 
+; ---------------------------------------------------------------------------
+; Localized strings for the two "cannot close the running app" situations.
+;
+; The 4 keys below carry the same texts, and the same split (title + hint), as the Inno
+; line (nonead-dsh-desktop/scripts/inno/desktop.iss [CustomMessages]); the MessageBox joins
+; them with one line break exactly like Inno's `#13#10`. NSIS LangString enumerates LCIDs
+; explicitly, so English (1033) is both one of the 8 entries and the fallback for any other
+; system locale.
+;
+; Keep the LangString definitions above all macros: the generated script includes this file
+; in the header, before templates/nsis/installer.nsi expands MUI_LANGUAGE. electron-builder
+; reads messages.yml into LangString lines in exactly the same position.
+; ---------------------------------------------------------------------------
+LangString dshCannotCloseAppInstall        1033 "Cannot close the running ${PRODUCT_NAME}."
+LangString dshCannotCloseAppInstallHint    1033 "Quit it manually, then run this installer again."
+LangString dshCannotCloseAppUninstall      1033 "Cannot close the running ${PRODUCT_NAME}."
+LangString dshCannotCloseAppUninstallHint  1033 "Quit it manually and run the uninstaller again, so no in-use files are left behind."
+
+LangString dshCannotCloseAppInstall        2052 "无法关闭正在运行的 ${PRODUCT_NAME}，安装已取消。"
+LangString dshCannotCloseAppInstallHint    2052 "请手动退出该程序后重新运行安装包。"
+LangString dshCannotCloseAppUninstall      2052 "无法关闭正在运行的 ${PRODUCT_NAME}。"
+LangString dshCannotCloseAppUninstallHint  2052 "请手动退出该程序后再次卸载，以免残留被占用的文件。"
+
+LangString dshCannotCloseAppInstall        1041 "実行中の ${PRODUCT_NAME} を終了できませんでした。インストールを中止します。"
+LangString dshCannotCloseAppInstallHint    1041 "手動で終了してから、もう一度インストーラーを実行してください。"
+LangString dshCannotCloseAppUninstall      1041 "実行中の ${PRODUCT_NAME} を終了できませんでした。"
+LangString dshCannotCloseAppUninstallHint  1041 "手動で終了してから、もう一度アンインストーラーを実行してください。使用中のファイルが残らないようにします。"
+
+LangString dshCannotCloseAppInstall        3082 "No se pudo cerrar ${PRODUCT_NAME} en ejecución. La instalación se ha cancelado."
+LangString dshCannotCloseAppInstallHint    3082 "Ciérrelo manualmente y vuelva a ejecutar el instalador."
+LangString dshCannotCloseAppUninstall      3082 "No se pudo cerrar ${PRODUCT_NAME} en ejecución."
+LangString dshCannotCloseAppUninstallHint  3082 "Ciérrelo manualmente y vuelva a ejecutar el desinstalador para no dejar archivos en uso."
+
+LangString dshCannotCloseAppInstall        1036 "Impossible de fermer ${PRODUCT_NAME} en cours d'exécution. L'installation est annulée."
+LangString dshCannotCloseAppInstallHint    1036 "Quittez-le manuellement, puis relancez l'installeur."
+LangString dshCannotCloseAppUninstall      1036 "Impossible de fermer ${PRODUCT_NAME} en cours d'exécution."
+LangString dshCannotCloseAppUninstallHint  1036 "Quittez-le manuellement, puis relancez le désinstalleur pour ne laisser aucun fichier verrouillé."
+
+LangString dshCannotCloseAppInstall        1031 "Das laufende ${PRODUCT_NAME} konnte nicht beendet werden. Die Installation wurde abgebrochen."
+LangString dshCannotCloseAppInstallHint    1031 "Beenden Sie es manuell und starten Sie das Setup erneut."
+LangString dshCannotCloseAppUninstall      1031 "Das laufende ${PRODUCT_NAME} konnte nicht beendet werden."
+LangString dshCannotCloseAppUninstallHint  1031 "Beenden Sie es manuell und starten Sie die Deinstallation erneut, damit keine gesperrten Dateien zurückbleiben."
+
+LangString dshCannotCloseAppInstall        1049 "Не удалось закрыть запущенный ${PRODUCT_NAME}. Установка отменена."
+LangString dshCannotCloseAppInstallHint    1049 "Закройте его вручную и запустите установщик снова."
+LangString dshCannotCloseAppUninstall      1049 "Не удалось закрыть запущенный ${PRODUCT_NAME}."
+LangString dshCannotCloseAppUninstallHint  1049 "Закройте его вручную и запустите деинсталлятор снова, чтобы не остались занятые файлы."
+
+LangString dshCannotCloseAppInstall        1046 "Não foi possível fechar o ${PRODUCT_NAME} em execução. A instalação foi cancelada."
+LangString dshCannotCloseAppInstallHint    1046 "Feche-o manualmente e execute o instalador novamente."
+LangString dshCannotCloseAppUninstall      1046 "Não foi possível fechar o ${PRODUCT_NAME} em execução."
+LangString dshCannotCloseAppUninstallHint  1046 "Feche-o manualmente e execute o desinstalador novamente para não deixar arquivos em uso."
+
+; ---------------------------------------------------------------------------
 ; Running-app handoff for both directions of the lifecycle.
 ;
 ; Install: the hook lives in customInit. electron-builder builds the generated script as
@@ -16,10 +70,15 @@
 ;
 ; customCheckAppRunning is kept defined but empty so the stock implementation - which offers
 ; a cancel-to-skip prompt and then Quits - is never compiled in. On install a live instance
-; is never skippable; on uninstall the explicit confirmation in customUnInstall governs.
+; is never skippable; on uninstall the close is attempted directly, mirroring the Inno line.
 ; The wait counter uses $R1 instead of a declared Var: the throwaway uninstaller stub compiles
 ; the !ifdef BUILD_UNINSTALLER branch without executing it, so a declared variable would be
 ; "never set" there and NSIS warning 6001 is fatal under warningsAsErrors.
+;
+; dshInstallerCloseRunningApp takes the title and hint LangString ids as macro arguments, so
+; the install and uninstall paths can point at their own two strings without duplicating the
+; loop - the same split the Inno line uses (CannotCloseApp* + CannotCloseApp*Hint).
+; ---------------------------------------------------------------------------
 
 ; Exact-image match by file name, independent of the install directory, so a previous
 ; version installed elsewhere is found too. Contract: the return value is 0 when the
@@ -56,8 +115,11 @@
 !macroend
 
 ; Assumes the instance is running. Asks it to quit, waits, then escalates to forced kills, and
-; aborts with a non-zero exit code when it still refuses to die.
-!macro dshInstallerCloseRunningApp
+; aborts with a non-zero exit code when it still refuses to die. ${_FAILTITLE} and
+; ${_FAILHINT} must be LangString ids; they are joined with one line break and shown as a
+; plain error notice (MB_OK), the same shape as the Inno line. /SD IDOK keeps a silent (/S)
+; install or uninstall from hanging on that notice - it still exits with code 2.
+!macro dshInstallerCloseRunningApp _FAILTITLE _FAILHINT
   DetailPrint "$(appClosing)"
   IfFileExists "$INSTDIR\${APP_EXECUTABLE_FILENAME}" 0 dsh_installer_close_force
     ; Newer versions receive this through Electron's single-instance channel and dispose
@@ -96,12 +158,62 @@
 
     ; Six orderly and forced attempts over ~10 s. Stop with a non-zero exit code instead of
     ; overwriting files that are still open: a half-copied installation is worse than none.
-    MessageBox MB_ICONSTOP "$(appCannotBeClosed)"
+    MessageBox MB_ICONSTOP `$(${_FAILTITLE})$\r$\n$(${_FAILHINT})` /SD IDOK
     SetErrorLevel 2
     Quit
 
   dsh_installer_close_done:
 !macroend
+
+; ---------------------------------------------------------------------------
+; Language selection (requirement: follow the Windows display language, and only ask when
+; it cannot be resolved to one of the 8 bundled languages).
+;
+; $LANGUAGE must not be trusted here. NSIS only knows the language files compiled into the
+; installer, and when the system language is not among them it silently falls back to the
+; first compiled one - so a system in a language we do not ship looks exactly like that
+; first language and the selector would never appear. GetUserDefaultUILanguage asks Windows
+; for the real per-user UI language instead (1033 en-US, 2052 zh-CN, 1041 ja-JP, 3082 es-ES,
+; 1036 fr-FR, 1031 de-DE, 1049 ru-RU, 1046 pt-BR - the LCIDs electron-builder maps the 8
+; `installerLanguages` entries to, es_ES being SpanishInternational and pt_BR PortugueseBR).
+;
+; The hook is named preInit because that is the name templates/nsis/installer.nsi:56 inserts
+; inside .onInit, ahead of its own DISPLAY_LANG_SELECTOR branch at :60. It runs after
+; `!insertmacro addLangs` (:44), so MUI_LANGDLL_LANGUAGES is already defined and the selector
+; lists exactly the 8 languages. displayLanguageSelector is deliberately NOT enabled: that
+; would prompt on every single run. The uninstaller stub (BUILD_UNINSTALLER) skips all of
+; this, silent installs are skipped inside MUI_LANGDLL_DISPLAY, and the elevated inner
+; instance is skipped so one run never asks twice.
+; ---------------------------------------------------------------------------
+!ifndef BUILD_UNINSTALLER
+!macro preInit
+  System::Call 'kernel32::GetUserDefaultUILanguage() i .r0'
+
+  ; Known UI language: select it explicitly, so NSIS's fallback to the first compiled
+  ; language can never win. Unknown: offer the selector once so the operator can pick.
+  ${if} $R0 == 2052
+    StrCpy $LANGUAGE 2052
+  ${elseIf} $R0 == 1033
+    StrCpy $LANGUAGE 1033
+  ${elseIf} $R0 == 1041
+    StrCpy $LANGUAGE 1041
+  ${elseIf} $R0 == 3082
+    StrCpy $LANGUAGE 3082
+  ${elseIf} $R0 == 1036
+    StrCpy $LANGUAGE 1036
+  ${elseIf} $R0 == 1031
+    StrCpy $LANGUAGE 1031
+  ${elseIf} $R0 == 1049
+    StrCpy $LANGUAGE 1049
+  ${elseIf} $R0 == 1046
+    StrCpy $LANGUAGE 1046
+  ${else}
+    ${ifNot} ${UAC_IsInnerInstance}
+      !insertmacro MUI_LANGDLL_DISPLAY
+    ${endIf}
+  ${endIf}
+!macroend
+!endif
 
 ; Install path: close a running previous version before the installer touches $INSTDIR.
 ; The throwaway uninstaller stub (BUILD_UNINSTALLER) is compiled and executed on the release
@@ -109,29 +221,36 @@
 ; the build aborts with exit code 2 instead of producing an installer.
 !ifndef BUILD_UNINSTALLER
 !macro customInit
+  ; This product line shipped an Inno Setup installer before this one. Its uninstall entry is the
+  ; only record of where that copy lives, so adopt it while no NSIS installation exists yet: an
+  ; upgrade then lands on top of the existing folder instead of a second copy in Program Files.
+  !if "${PRODUCT_NAME}" == "Nonead DSH Desktop"
+  ${if} $installMode == all
+    ReadRegStr $R4 HKLM "${INSTALL_REGISTRY_KEY}" InstallLocation
+    ${if} $R4 == ""
+      ReadRegStr $R3 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\{B3E7C1D9-4A26-4F58-8C31-6D9E5A2B7C44}_is1" "InstallLocation"
+      ${if} $R3 != ""
+        IfFileExists "$R3\${APP_EXECUTABLE_FILENAME}" 0 +2
+          StrCpy $INSTDIR $R3
+      ${endIf}
+    ${endIf}
+  ${endIf}
+  !endif
   !insertmacro dshInstallerFindApp $R0
   ${if} $R0 == 0
-    !insertmacro dshInstallerCloseRunningApp
+    !insertmacro dshInstallerCloseRunningApp `dshCannotCloseAppInstall` `dshCannotCloseAppInstallHint`
   ${endIf}
 !macroend
 !endif
 
-; Uninstall path: confirm with the operator, then close and delete everything.
-;
-; The prompt is the one requirement that must not be silent: uninstalling something that is
-; currently open is destructive, so Cancel has to leave both the installation and the running
-; instance untouched. When nothing is running this macro does nothing and the uninstaller
-; proceeds immediately with no prompt. /SD IDOK keeps a silent (/S) uninstall from hanging.
+; Uninstall path: close the running instance, then delete everything. Mirrors the Inno line:
+; the close is attempted directly; only when the app refuses to die does the operator get a
+; localized notice telling them to quit it manually and uninstall again.
 !ifdef BUILD_UNINSTALLER
 !macro customUnInstall
   !insertmacro dshInstallerFindApp $R0
   ${if} $R0 == 0
-    MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION "你的程序还在运行中，点击$\"确定$\"会主动被关闭，随后继续卸载；点击$\"取消$\"则放弃卸载。$\r$\n$\r$\n${PRODUCT_NAME} is still running: OK closes it and continues, Cancel aborts the uninstall." /SD IDOK IDOK dsh_uninstall_close_app
-    ; Cancel: stop here, leave the installation and the running instance alone.
-    Quit
-
-    dsh_uninstall_close_app:
-    !insertmacro dshInstallerCloseRunningApp
+    !insertmacro dshInstallerCloseRunningApp `dshCannotCloseAppUninstall` `dshCannotCloseAppUninstallHint`
   ${endIf}
 !macroend
 !endif

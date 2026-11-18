@@ -11,8 +11,11 @@ if (!root) throw new Error('packaged-host-smoke: expected the packaged applicati
 const { NextDesktopRuntime } = await import(pathToFileURL(join(root, 'lib', 'desktop-runtime.js')).href)
 // Electron's packaged Node runtime rejects mkdtempSync on Windows
 // (EPERM: operation not permitted), so allocate the scratch home explicitly.
-const home = join(tmpdir(), `nonead-dsh-desktop-packaged-smoke-${String(process.pid)}-${randomBytes(6).toString('hex')}`)
-mkdirSync(home)
+// The caller hands over a writable base when the OS temporary directory refuses the packaged
+// process, and the OS temporary directory is the base everywhere else.
+const scratchBase = process.env.DSH_PACKAGED_SMOKE_SCRATCH ?? tmpdir()
+const home = join(scratchBase, `nonead-dsh-desktop-packaged-smoke-${String(process.pid)}-${randomBytes(6).toString('hex')}`)
+mkdirSync(home, { recursive: true })
 let failures = 0
 // The payload of this CPU sits beside the archive, where the packaged shell selects it.
 const runtime = new NextDesktopRuntime({ root, home, primaryRuntime: join(dirname(root), 'runtime', process.arch, 'primary-runtime'), executable: process.execPath, addresses: () => [],
