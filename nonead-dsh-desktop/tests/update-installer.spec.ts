@@ -43,11 +43,11 @@ it('accepts the space- and NUL-padded version resource Inno Setup produces', () 
   expect(() => assertNextWindowsInstaller({ ProductName: 'Nonead DSH Desktop   ', ProductVersion: '2.0.13-next'.padEnd(50) }, '2.0.14-next')).toThrow()
 })
 
-it('launches the Windows installer visibly with no arguments', () => {
+it('launches the Windows installer visibly as an in-place upgrade', () => {
   const args = nextInstallerArguments('win32')
-  // The NSIS-era `--updated` switch no longer exists and the Inno Setup installer rejects switches
-  // it does not recognise; the wizard itself asks whatever it still needs.
-  expect(args).toEqual([])
+  // Windows ships electron-builder NSIS: `--updated` keeps the existing install location instead of
+  // treating the upgrade as a fresh install that asks for a directory again.
+  expect(args).toEqual(['--updated'])
   // `/S` silences the whole run, which made a working install look like nothing started.
   expect(args).not.toContain('/S')
 })
@@ -66,7 +66,7 @@ it('spawns the Windows installer once when the shutdown handoff launches it agai
   const first = installer.launch()
   const second = installer.launch()
   expect(spawn).toHaveBeenCalledOnce()
-  expect(spawn).toHaveBeenCalledWith(INSTALLER, [], { detached: true, stdio: 'ignore', shell: false, windowsHide: false })
+  expect(spawn).toHaveBeenCalledWith(INSTALLER, ['--updated'], { detached: true, stdio: 'ignore', shell: false, windowsHide: false })
   child.emit('spawn')
   await expect(Promise.all([first, second])).resolves.toEqual([undefined, undefined])
   await expect(installer.launch()).resolves.toBeUndefined()

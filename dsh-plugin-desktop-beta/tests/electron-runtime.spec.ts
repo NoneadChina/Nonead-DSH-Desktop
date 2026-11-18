@@ -2739,7 +2739,7 @@ describe('Electron desktop runtime', () => {
     await vi.waitFor(() => { expect(childProcess.spawn).toHaveBeenCalledOnce() })
     expect(childProcess.spawn).toHaveBeenCalledWith(
       'C:\\Updates\\DSH-Desktop-2.1.0-windows.exe',
-      [],
+      ['--updated', '--force-run'],
       {
         detached: true,
         stdio: 'ignore',

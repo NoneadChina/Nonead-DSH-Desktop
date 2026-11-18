@@ -1050,14 +1050,14 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
 
   /**
    * Start the downloaded Windows installer visibly before releasing the current process.
-   * The installer is an Inno Setup package now: it takes no NSIS switches (`--updated`,
-   * `--force-run`) and asks for its own choices, so it starts without arguments.
+   * The Windows artifacts are electron-builder NSIS: `--updated` keeps the in-place upgrade path,
+   * and `--force-run` launches the upgraded application because the user asked to install and open it.
    */
   private async launchWindowsUpdateInstaller(installerPath: string): Promise<void> {
     await new Promise<void>((resolve, reject) => {
       let child: ReturnType<typeof spawn>
       try {
-        child = spawn(installerPath, [], {
+        child = spawn(installerPath, ['--updated', '--force-run'], {
           detached: true,
           stdio: 'ignore',
           shell: false,

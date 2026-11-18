@@ -20,10 +20,10 @@ export function assertNextMacBundle(identifier: string, manifest: unknown, versi
 /**
  * Compare against the text a human would read, not against the raw resource bytes.
  *
- * Inno Setup stores every VersionInfo field in a fixed-width buffer, so the installer reports
- * `ProductVersion` as `"2.2.12"` followed by dozens of spaces (ProductName is padded the same way),
- * and some writers leave a BOM or NUL in place. An exact comparison therefore rejects every genuine
- * Inno installer, which surfaced as "更新未完成，请重试" after a complete download.
+ * electron-builder writes exact VersionInfo strings, so trimming is a no-op for the NSIS packages we
+ * ship now. It stays because the Inno Setup fallback route pads every field to a fixed width (and
+ * some writers leave a BOM or NUL in place), and an exact comparison against that output rejected
+ * every genuine installer as "更新未完成，请重试".
  */
 function versionText(value: unknown): string {
   return typeof value === 'string' ? value.replace(/[\u0000\uFEFF]/g, '').trim() : ''
@@ -39,12 +39,13 @@ export function assertNextWindowsInstaller(info: { ProductName?: unknown; Produc
  * Arguments for the downloaded installer.
  *
  * `/S` silences the whole run, which looked like "nothing started" and gave the user no way to see
- * progress or a failure; the assisted installer is launched visibly instead, and its own wizard asks
- * whatever it still needs. Nothing is passed on Windows: the installer is Inno Setup now, which
- * rejects switches it does not know, and the old NSIS `--updated` flag no longer exists.
+ * progress or a failure; the assisted installer is launched visibly instead. Windows artifacts are
+ * electron-builder NSIS only, so `--updated` marks the run as an in-place upgrade: it keeps the
+ * existing install location instead of walking the user through a fresh-install wizard. The app has
+ * already been asked to quit, so `--force-run` is not passed and the installer does not relaunch it.
  */
-export function nextInstallerArguments(_platform: string): readonly string[] {
-  return []
+export function nextInstallerArguments(platform: string): readonly string[] {
+  return platform === 'win32' ? ['--updated'] : []
 }
 
 export class NextUpdateInstaller {
