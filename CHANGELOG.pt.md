@@ -13,6 +13,17 @@ Convenções de manutenção:
 - As entradas registram apenas mudanças que os usuários percebem e mudanças de limite que os mantenedores precisam conhecer; refatorações puras não ganham entrada própria.
 - O histórico anterior está nas tags do Git (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) e no log de commits.
 
+## 2.2.15 — 2026-11-19
+
+Uma versão focada no acompanhamento do runtime e das dependências embarcadas:
+
+- Runtime: o DSH sobe para `0.2.2-rc.5`, o pin do upstream passa para `9c2670d3bce5275e0d1610272958121af87787bb`, e o runtime embarcado é reempacotado com 375 pacotes. Todas as dependências `@deepseek-ai/dsh*` dos dois workspaces de desktop ficam fixadas nessa versão.
+- Personalização de desktop: os 24 patches de artefatos de build são rebaseados para `@0.2.2-rc.5`. O rc.5 não alterou os pontos patchados, então cada patch foi reverificado contra os novos artefatos e regenerado diretamente; as tipagens de `dsh-client-ui-workspace` continuam carregando apenas a linha inserida do contrato de toast.
+- Mercado embarcado: o `dshmarket` passa de 1.73.19 para 1.73.21. O 1.73.21 concentra a checagem de atualizações em `createUpdateNotificationMonitor`, então a injeção de `hostProvidedNpmVersions` do patch de desktop passa para a única chamada a `checkUpdates` do monitor, e a chave de cache incorpora as versões injetadas.
+- Compatibilidade: a ponte AA embarcada é reconstruída a partir do commit upstream v2.2.0 `aa12e7a` com peers `0.2.2-rc.5` (`2.2.0-desktop.caa12e7a2c181.r97f2390e`); o patch do connector se aplica aos novos artefatos sem alterações.
+- Portões: typecheck, as duas suítes de testes (94 arquivos / 747 casos), o build, `check:layout` e `check:ci` passam.
+- Versão: produto 2.2.13 → **2.2.15** (ambos os workspaces de desktop sincronizados).
+
 ## 2.2.13 — 2026-11-14
 
 Uma versão focada em acompanhar o núcleo e o empacotamento:

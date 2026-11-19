@@ -13,6 +13,17 @@ Konventionen für die Pflege:
 - Einträge halten ausschließlich Änderungen fest, die Nutzer wahrnehmen können, sowie Grenzänderungen, die Maintainer kennen müssen; reine Refactorings erhalten keinen eigenen Eintrag.
 - Die frühere Historie findet sich in den Git-Tags (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) und in der Commit-Historie.
 
+## 2.2.15 — 2026-11-19
+
+Eine Version mit Fokus auf Laufzeit- und Bündelabhängigkeiten:
+
+- Laufzeit: DSH steigt auf `0.2.2-rc.5`, der Upstream-Pin wechselt auf `9c2670d3bce5275e0d1610272958121af87787bb`, und die vendored Laufzeit wurde mit 375 Paketen neu gepackt. Alle `@deepseek-ai/dsh*`-Abhängigkeiten beider Desktop-Workspaces sind auf diese Version gepinnt.
+- Desktop-Anpassung: Alle 24 Build-Artefakt-Patches wurden auf `@0.2.2-rc.5` rebased. rc.5 hat die Patch-Stellen nicht verändert; jeder Patch wurde gegen die neuen Artefakte erneut geprüft und direkt neu erzeugt. Die Typings von `dsh-client-ui-workspace` tragen weiterhin nur die eingefügte Zeile für den Toast-Vertrag.
+- Mitgelieferter Markt: `dshmarket` geht von 1.73.19 auf 1.73.21. 1.73.21 bündelt die Update-Prüfung in `createUpdateNotificationMonitor`; die `hostProvidedNpmVersions`-Injektion des Desktop-Patches wandert daher an den einzigen `checkUpdates`-Aufruf des Monitors, und der Cache-Schlüssel bezieht die injizierten Versionen ein.
+- Kompatibilität: Die mitgelieferte AA-Bridge wird aus dem Upstream-Commit `aa12e7a` (v2.2.0) mit `0.2.2-rc.5`-Peers neu gebaut (`2.2.0-desktop.caa12e7a2c181.r97f2390e`); der Connector-Patch lässt sich unverändert auf die neuen Artefakte anwenden.
+- Gates: Typecheck, beide Test-Suiten (94 Dateien / 747 Fälle), der Build, `check:layout` und `check:ci` laufen durch.
+- Version: Produkt 2.2.13 → **2.2.15** (beide Desktop-Workspaces synchron).
+
 ## 2.2.13 — 2026-11-14
 
 Eine Veröffentlichung zur Nachführung von Kernel und Packaging:

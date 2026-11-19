@@ -46,6 +46,13 @@ vi.mock('undici', async importOriginal => ({
   ...await importOriginal<Record<string, unknown>>(),
   fetch: registryFetch,
 }))
+// dshmarket 1.73.21's own `undici ^7.30.2` cannot hoist above the host's 8.x,
+// so it resolves to this nested copy; mocking only `undici` would leave the
+// market on the live registry.
+vi.mock('../node_modules/dshmarket/node_modules/undici/index.js', async importOriginal => ({
+  ...await importOriginal<Record<string, unknown>>(),
+  fetch: registryFetch,
+}))
 const temporaryProfiles: string[] = []
 
 afterEach(() => {

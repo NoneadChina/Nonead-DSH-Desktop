@@ -13,6 +13,17 @@ Maintenance conventions:
 - Entries record only changes users can perceive and boundary changes maintainers must know about; pure refactors do not get their own entry.
 - Earlier history lives in the Git tags (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) and in the commit log.
 
+## 2.2.15 — 2026-11-19
+
+A release focused on the runtime and bundled dependencies:
+
+- Runtime: DSH is raised to `0.2.2-rc.5`, the upstream pin moves to `9c2670d3bce5275e0d1610272958121af87787bb`, and the vendored runtime is repacked as 375 packages. Every `@deepseek-ai/dsh*` dependency in both desktop workspaces is pinned to that version.
+- Desktop customisation: all 24 build-output patches are rebased to `@0.2.2-rc.5`. rc.5 left the patch sites untouched, so each patch was re-verified against the new artifacts and regenerated directly; the `dsh-client-ui-workspace` typings still carry only the inserted line for the toast contract.
+- Bundled market: `dshmarket` goes from 1.73.19 to 1.73.21. 1.73.21 consolidates update checks into `createUpdateNotificationMonitor`, so the desktop patch's `hostProvidedNpmVersions` injection moves to the monitor's single `checkUpdates` call and the cache key folds in the injected versions.
+- Compatibility: the bundled AA bridge is rebuilt from upstream v2.2.0 commit `aa12e7a` with `0.2.2-rc.5` peers (`2.2.0-desktop.caa12e7a2c181.r97f2390e`); the connector patch applies to the new artifacts unchanged.
+- Gates: typecheck, both test suites (94 files / 747 cases), the build, `check:layout` and `check:ci` all pass.
+- Version: product 2.2.13 → **2.2.15** (both desktop workspaces in sync).
+
 ## 2.2.13 — 2026-11-14
 
 A kernel and packaging follow-up release:

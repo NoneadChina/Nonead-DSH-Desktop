@@ -13,6 +13,17 @@ Convenciones de mantenimiento:
 - Las entradas solo recogen los cambios que el usuario puede percibir y los cambios de límites que los mantenedores deben conocer; las refactorizaciones puras no tienen entrada propia.
 - El historial anterior está en las etiquetas de Git (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) y en el registro de confirmaciones.
 
+## 2.2.15 — 2026-11-19
+
+Una versión centrada en el seguimiento del runtime y de las dependencias incluidas:
+
+- Tiempo de ejecución: DSH sube a `0.2.2-rc.5`, el pin del upstream pasa a `9c2670d3bce5275e0d1610272958121af87787bb` y el tiempo de ejecución empaquetado se reconstruye con 375 paquetes. Todas las dependencias `@deepseek-ai/dsh*` de ambos espacios de trabajo de escritorio quedan fijadas a esa versión.
+- Personalización de escritorio: los 24 parches de artefactos de compilación se rebasan a `@0.2.2-rc.5`. rc.5 no tocó los puntos parcheados, por lo que cada parche se verificó de nuevo contra los artefactos y se regeneró directamente; las tipificaciones de `dsh-client-ui-workspace` siguen llevando solo la línea insertada del contrato toast.
+- Mercado incluido: `dshmarket` pasa de 1.73.19 a 1.73.21. 1.73.21 concentra la comprobación de actualizaciones en `createUpdateNotificationMonitor`, así que la inyección de `hostProvidedNpmVersions` del parche de escritorio se traslada a la única llamada a `checkUpdates` del monitor y la clave de caché incorpora las versiones inyectadas.
+- Compatibilidad: el puente AA incluido se reconstruye desde el commit upstream v2.2.0 `aa12e7a` con peers `0.2.2-rc.5` (`2.2.0-desktop.caa12e7a2c181.r97f2390e`); el parche del connector se aplica a los nuevos artefactos sin cambios.
+- Puertas: typecheck, las dos suites de pruebas (94 archivos / 747 casos), la compilación, `check:layout` y `check:ci` pasan.
+- Versión: producto 2.2.13 → **2.2.15** (ambos espacios de trabajo de escritorio sincronizados).
+
 ## 2.2.13 — 2026-11-14
 
 Una versión centrada en seguir el núcleo y el empaquetado:
