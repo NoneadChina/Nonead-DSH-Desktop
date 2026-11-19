@@ -215,6 +215,42 @@ LangString dshCannotCloseAppUninstallHint  1046 "Feche-o manualmente e execute o
 !macroend
 !endif
 
+; ---------------------------------------------------------------------------
+; Fresh-install onboarding handoff.
+;
+; electron-builder's stock finish page starts the app through its own StartApp function:
+; `--updated` for an upgrade, no argument for a first install. A first install must land in
+; the setup wizard instead of a normal window whose Profile already carries a completion
+; record from an earlier copy on this machine - that is why this file overrides the whole
+; finish page rather than only the run command.
+;
+; Overriding customFinishPage replaces assistedInstaller.nsh's default branch, so the same
+; MUI_FINISHPAGE_RUN wiring and StartApp body are reproduced here with one extra case.
+; $dshFreshInstall is decided in customInit, before any page is shown and before
+; uninstallOldVersion touches $INSTDIR.
+; ---------------------------------------------------------------------------
+!ifndef BUILD_UNINSTALLER
+Var dshFreshInstall
+
+!macro customFinishPage
+  Function StartApp
+    ${if} $dshFreshInstall == 1
+      ; src/relaunch.ts::ONBOARDING_ARGUMENT - main.ts forces the wizard for this run.
+      StrCpy $1 "--next-onboarding"
+    ${elseif} ${isUpdated}
+      StrCpy $1 "--updated"
+    ${else}
+      StrCpy $1 ""
+    ${endif}
+    ${StdUtils.ExecShellAsUser} $0 "$launchLink" "open" "$1"
+  FunctionEnd
+
+  !define MUI_FINISHPAGE_RUN
+  !define MUI_FINISHPAGE_RUN_FUNCTION "StartApp"
+  !insertmacro MUI_PAGE_FINISH
+!macroend
+!endif
+
 ; Install path: close a running previous version before the installer touches $INSTDIR.
 ; The throwaway uninstaller stub (BUILD_UNINSTALLER) is compiled and executed on the release
 ; machine, where this very application is normally running. It must not run these checks or
@@ -236,6 +272,18 @@ LangString dshCannotCloseAppUninstallHint  1046 "Feche-o manualmente e execute o
     ${endIf}
   ${endIf}
   !endif
+
+  ; Decide the onboarding handoff while $INSTDIR is final (multiUser.nsh already read the
+  ; registry and the Inno handoff above may have moved it) but before uninstallOldVersion
+  ; removes the previous copy: an executable already in place means this is an upgrade.
+  IfFileExists "$INSTDIR\${APP_EXECUTABLE_FILENAME}" dsh_installer_existing dsh_installer_fresh
+  dsh_installer_fresh:
+    StrCpy $dshFreshInstall 1
+    Goto dsh_installer_fresh_done
+  dsh_installer_existing:
+    StrCpy $dshFreshInstall 0
+  dsh_installer_fresh_done:
+
   !insertmacro dshInstallerFindApp $R0
   ${if} $R0 == 0
     !insertmacro dshInstallerCloseRunningApp `dshCannotCloseAppInstall` `dshCannotCloseAppInstallHint`
