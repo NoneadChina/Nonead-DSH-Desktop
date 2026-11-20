@@ -211,4 +211,7 @@ export const ja: DesktopDictionary = {
   'Version {version} skipped': 'バージョン {version} をスキップしました',
   'Downloading update {progress}': 'アップデートをダウンロード中 {progress}',
   '{version} downloaded — Install and restart': '{version} をダウンロードしました — インストールして再起動',
+  'Installer reported': 'インストーラーからの報告',
+  'Download the installer manually': 'インストーラーを手動でダウンロード',
+  'Tried {count} time(s). If every attempt stops at the same message, download the installer manually.': '{count} 回試行しました。毎回同じメッセージで止まる場合は、インストーラーを手動でダウンロードしてください。',
 }

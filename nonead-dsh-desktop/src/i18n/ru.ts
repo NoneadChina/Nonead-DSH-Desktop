@@ -211,4 +211,7 @@ export const ru: DesktopDictionary = {
   'Version {version} skipped': 'Версия {version} пропущена',
   'Downloading update {progress}': 'Загрузка обновления: {progress}',
   '{version} downloaded — Install and restart': 'Версия {version} загружена — установить и перезапустить',
+  'Installer reported': 'Сообщение установщика',
+  'Download the installer manually': 'Скачать установщик вручную',
+  'Tried {count} time(s). If every attempt stops at the same message, download the installer manually.': 'Попыток: {count}. Если каждая попытка останавливается на одном и том же сообщении, скачайте установщик вручную.',
 }

@@ -1,5 +1,17 @@
 /** Serializable update progress shared by settings, recovery and the tray. */
 import { desktopTemplate, desktopText } from './desktop-i18n.ts'
+
+/**
+ * Manual download pages offered when the in-app installer cannot start.
+ *
+ * This mirrors `DESKTOP_DOWNLOAD_URLS` in `dsh-plugin-desktop-beta/src/update-download.ts`. That
+ * module cannot be imported from the settings card: it pulls in `node:path` and the renderer bundle
+ * has no Node built-ins. Keep the two lists in step when an endpoint moves.
+ */
+export const MANUAL_UPDATE_DOWNLOADS: Readonly<Record<'darwin' | 'win32', string>> = Object.freeze({
+  darwin: 'https://www.nonead.com/software/ndsh-desktop/downloads/mac',
+  win32: 'https://www.nonead.com/software/ndsh-desktop/downloads/windows',
+})
 export interface NextUpdateState {
   phase: 'idle' | 'checking' | 'current' | 'available' | 'skipped' | 'downloading' | 'preparing' | 'ready' | 'installing' | 'error'
   version?: string
@@ -11,6 +23,23 @@ export interface NextUpdateState {
    * downloading the update again. Only meaningful while `phase === 'error' && error === 'install'`.
    */
   retryInstall?: boolean
+  /**
+   * Why the last install attempt failed, reduced to one line by the native handoff.
+   *
+   * The bare retry state cannot tell a declined consent prompt from a blocked installer or a
+   * missing file, and every one of them ends as the same "installation failed" sentence. Keeping
+   * the reported reason on the state lets the card say what happened instead of offering the same
+   * button again, which is what made an unrecoverable failure look like a dead button.
+   */
+  installError?: string
+  /**
+   * How many install attempts this process made against the kept package.
+   *
+   * A failure that reproduces in one tick repaints the card into exactly its previous shape, so the
+   * user sees no response at all. The count changes on every attempt, which keeps a repeated
+   * failure visibly distinct from an ignored click.
+   */
+  installAttempt?: number
   /**
    * Plain-text release summary published with the offered release. Absent when the service has no
    * usable summary; an older service that only returns `version` therefore renders no notes.

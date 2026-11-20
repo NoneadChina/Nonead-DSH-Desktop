@@ -42,6 +42,26 @@ export function keepsPreparedInstaller(
   return keepInstaller || retryInstall === true || phase === 'installing'
 }
 
+/**
+ * One-line reason for a failed install attempt.
+ *
+ * `execFile` rejects with the child's `stderr` attached, and that is where the declined consent
+ * prompt and PowerShell's own failure text land; without it the card can only repeat its fixed
+ * sentence, which is indistinguishable from the button doing nothing. PowerShell prints the
+ * actionable sentence first and the source location after it, so the first non-empty line is kept
+ * and cut to a bounded length the settings hint can render.
+ * @param error - rejection from the native installer handoff.
+ * @returns the reason to show, or an empty string when nothing usable was reported.
+ */
+export function describeInstallFailure(error: unknown): string {
+  const stderr = (error as { stderr?: unknown } | null)?.stderr
+  const text = typeof stderr === 'string' && stderr.trim() !== ''
+    ? stderr
+    : error instanceof Error ? error.message : String(error)
+  const line = text.split(/\r?\n/gu).map(part => part.trim()).find(part => part !== '') ?? ''
+  return line.length > 200 ? `${line.slice(0, 200)}…` : line
+}
+
 export class NextUpdates {
   private state: NextUpdateState
   private result?: UpdateCheckResult
@@ -74,8 +94,10 @@ export class NextUpdates {
   }
   private set(patch: Partial<NextUpdateState>): void {
     if (this.disposed) return
-    // `retryInstall` describes one failed-install state; every later transition clears it.
-    this.state = { ...this.state, error: undefined, retryInstall: undefined, ...patch }
+    // `retryInstall` describes one failed-install state; every later transition clears it. The
+    // reported reason and attempt counter belong to that same state, so they are cleared here too
+    // and only the failed-install transition puts them back.
+    this.state = { ...this.state, error: undefined, retryInstall: undefined, installError: undefined, installAttempt: undefined, ...patch }
     this.options.changed()
   }
   start(): void {
@@ -214,13 +236,19 @@ export class NextUpdates {
     await this.startInstall()
   }
   private async startInstall(): Promise<void> {
-    this.set({ phase: 'installing' })
+    // The counter must survive the transition into `installing`, and it has to be read before the
+    // state is replaced, so it is captured here instead of read back in the failure branch.
+    const attempt = (this.state.installAttempt ?? 0) + 1
+    this.set({ phase: 'installing', installAttempt: attempt })
     try { await this.options.install() }
     catch (error) {
       this.options.log(error)
       // Keep the prepared directory: the retry action reuses this verified package, and `dispose`
-      // preserves it until the next process start cleans the cache.
-      this.set({ phase: 'error', error: 'install', retryInstall: true })
+      // preserves it until the next process start cleans the cache. The reported reason and the
+      // attempt count go with it so a failure that reproduces immediately still changes the card
+      // and says what the handoff refused to do.
+      this.set({ phase: 'error', error: 'install', retryInstall: true, installAttempt: attempt,
+        installError: describeInstallFailure(error) })
     }
   }
   async dispose(keepInstaller = false): Promise<void> {

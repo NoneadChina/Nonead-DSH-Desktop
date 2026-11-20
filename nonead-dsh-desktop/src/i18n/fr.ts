@@ -211,4 +211,7 @@ export const fr: DesktopDictionary = {
   'Version {version} skipped': 'Version {version} ignorée',
   'Downloading update {progress}': 'Téléchargement de la mise à jour {progress}',
   '{version} downloaded — Install and restart': '{version} téléchargée — Installer et redémarrer',
+  'Installer reported': 'Rapport de l’installateur',
+  'Download the installer manually': 'Télécharger l’installateur manuellement',
+  'Tried {count} time(s). If every attempt stops at the same message, download the installer manually.': '{count} tentative(s). Si chaque tentative s’arrête sur le même message, téléchargez l’installateur manuellement.',
 }

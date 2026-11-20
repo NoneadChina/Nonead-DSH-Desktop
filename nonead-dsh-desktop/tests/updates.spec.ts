@@ -92,6 +92,10 @@ it('keeps the verified package after a failed install and retries it without dow
   expect(existsSync(path)).toBe(true)
   await updates.install()
   expect(updates.snapshot()).toMatchObject({ phase: 'error', error: 'install', retryInstall: true })
+  // The reason travels with the retry state: the fixed sentence alone made a refused consent prompt
+  // and an ignored click look the same.
+  expect(updates.snapshot().installError).toBe('the installer exited before handing off')
+  expect(updates.snapshot().installAttempt).toBe(1)
   expect(updateAction(updates.snapshot())).toBe('retry-install-update')
   expect(updateLabel(updates.snapshot(), 'en')).toContain('kept')
   // The failure must hand the same verified package to the retry action, not delete it.
@@ -117,6 +121,9 @@ it('stays retryable across repeated install failures and keeps the package throu
   await updates.retryInstall()
   expect(install).toHaveBeenCalledTimes(2)
   expect(updates.snapshot()).toMatchObject({ phase: 'error', error: 'install', retryInstall: true })
+  // A failure that reproduces immediately repaints the card into its previous shape; the counter is
+  // what keeps a second attempt distinguishable from a click that was ignored.
+  expect(updates.snapshot().installAttempt).toBe(2)
   await updates.dispose()
   expect(existsSync(path)).toBe(true)
 })

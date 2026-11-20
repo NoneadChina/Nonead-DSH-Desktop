@@ -211,4 +211,7 @@ export const es: DesktopDictionary = {
   'Version {version} skipped': 'Se omitió la versión {version}',
   'Downloading update {progress}': 'Descargando actualización {progress}',
   '{version} downloaded — Install and restart': '{version} descargada: instalar y reiniciar',
+  'Installer reported': 'Informe del instalador',
+  'Download the installer manually': 'Descargar el instalador manualmente',
+  'Tried {count} time(s). If every attempt stops at the same message, download the installer manually.': 'Se intentó {count} vez/veces. Si cada intento se detiene en el mismo mensaje, descargue el instalador manualmente.',
 }

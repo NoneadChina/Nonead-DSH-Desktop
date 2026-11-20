@@ -17,7 +17,7 @@ function authoredEnglishCopy(): Set<string> {
   const keys = new Set<string>()
   const shapes = [
     /\bt\('((?:[^'\\]|\\.)*)',\s*'((?:[^'\\]|\\.)*)'\)/gu,
-    /\bdesktopText\([^,\n]*,\s*'((?:[^'\\]|\\.)*)'\s*,\s*'((?:[^'\\]|\\.)*)'\)/gu,
+    /\b(?:desktopText|desktopTemplate)\([^,\n]*,\s*'((?:[^'\\]|\\.)*)'\s*,\s*'((?:[^'\\]|\\.)*)'/gu,
     /\bt\('((?:[^'\\]|\\.)*)',\s*'((?:[^'\\]|\\.)*)'\s*,\s*\{/gu,
   ]
   const decode = (value: string): string => value.replaceAll("\\'", "'").replaceAll('\\"', '"').replaceAll('\\n', '\n')
