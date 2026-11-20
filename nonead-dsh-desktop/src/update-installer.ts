@@ -1,5 +1,5 @@
 /** Native installer handoff. No application files are replaced by our own code. */
-import { execFile, spawn } from 'node:child_process'
+import { execFile } from 'node:child_process'
 import { lstat, mkdir, readdir, readFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { promisify } from 'node:util'
@@ -141,10 +141,17 @@ export class NextUpdateInstaller {
     if (this.options.platform === 'darwin' && this.nativeReady) { autoUpdater.quitAndInstall(); return }
     const prepared = this.prepared
     if (this.options.platform !== 'win32' || !prepared) throw new Error('No prepared update installer')
-    await new Promise<void>((resolve, reject) => {
-      const child = spawn(prepared.path, [...nextInstallerArguments('win32')], { detached: true, stdio: 'ignore', shell: false, windowsHide: false })
-      child.once('error', reject)
-      child.once('spawn', () => { child.off('error', reject); child.on('error', this.options.log); child.unref(); resolve() })
-    })
+    // `spawn` uses CreateProcess, which cannot raise the UAC prompt for an image that declares
+    // requireAdministrator: Windows answers ERROR_ELEVATION_REQUIRED (740) and the installer never
+    // starts, which reads to the user as "nothing happened". Start-Process hands the launch to
+    // ShellExecute, and ShellExecute reads the installer manifest by itself: a requireAdministrator
+    // manifest raises the consent prompt and runs elevated, an asInvoker manifest keeps the current
+    // user's rights. Deliberately no `-Verb RunAs` here, because that verb elevates unconditionally,
+    // which would break the perMachine:false (asInvoker) installer for users without admin rights.
+    // The command returns once Windows has started the process; the installer itself keeps running.
+    const script = '$ErrorActionPreference="Stop"; Start-Process -FilePath $env:DSH_UPDATE_INSTALLER -ArgumentList $env:DSH_UPDATE_ARGS'
+    await execute(join(process.env.SystemRoot ?? 'C:\\Windows', 'System32/WindowsPowerShell/v1.0/powershell.exe'),
+      ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')],
+      { timeout: 5 * 60_000, windowsHide: true, env: { ...process.env, DSH_UPDATE_INSTALLER: prepared.path, DSH_UPDATE_ARGS: nextInstallerArguments('win32').join(' ') }, maxBuffer: 16_384 })
   }
 }

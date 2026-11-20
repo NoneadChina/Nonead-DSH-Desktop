@@ -42,6 +42,21 @@ export function keepsPreparedInstaller(
   return keepInstaller || retryInstall === true || phase === 'installing'
 }
 
+/**
+ * The first line of what the installer launch reported, for the settings card.
+ *
+ * The launch goes through PowerShell, so a cancelled elevation prompt and an image the shell refuses
+ * both arrive as a rejected `execFile` whose `stderr` carries the reason. Anything else (a timeout, a
+ * thrown Error) still has a message worth showing. Bounded to one 200-character line so a chatty
+ * native error cannot bloat the state that is copied on every render.
+ */
+export function describeInstallFailure(error: unknown): string | undefined {
+  const stderr = (error as { stderr?: unknown } | null | undefined)?.stderr
+  const text = typeof stderr === 'string' && stderr.trim() ? stderr : error instanceof Error ? error.message : String(error ?? '')
+  const line = text.split(/\r?\n/u).map(part => part.trim()).find(part => part.length > 0)
+  return line ? line.slice(0, 200) : undefined
+}
+
 export class NextUpdates {
   private state: NextUpdateState
   private result?: UpdateCheckResult
@@ -74,8 +89,9 @@ export class NextUpdates {
   }
   private set(patch: Partial<NextUpdateState>): void {
     if (this.disposed) return
-    // `retryInstall` describes one failed-install state; every later transition clears it.
-    this.state = { ...this.state, error: undefined, retryInstall: undefined, ...patch }
+    // `retryInstall` and `installError` describe one failed-install state; every later transition
+    // clears them so a stale reason cannot outlive the attempt that produced it.
+    this.state = { ...this.state, error: undefined, retryInstall: undefined, installError: undefined, ...patch }
     this.options.changed()
   }
   start(): void {
@@ -206,13 +222,16 @@ export class NextUpdates {
     await this.startInstall()
   }
   private async startInstall(): Promise<void> {
-    this.set({ phase: 'installing' })
+    // The attempt counter is what tells the user a retry actually ran and still failed, instead of
+    // leaving them to guess whether the button did anything at all.
+    const installAttempt = (this.state.installAttempt ?? 0) + 1
+    this.set({ phase: 'installing', installAttempt, installError: undefined })
     try { await this.options.install() }
     catch (error) {
       this.options.log(error)
       // Keep the prepared directory: the retry action reuses this verified package, and `dispose`
       // preserves it until the next process start cleans the cache.
-      this.set({ phase: 'error', error: 'install', retryInstall: true })
+      this.set({ phase: 'error', error: 'install', retryInstall: true, installError: describeInstallFailure(error) })
     }
   }
   async dispose(keepInstaller = false): Promise<void> {

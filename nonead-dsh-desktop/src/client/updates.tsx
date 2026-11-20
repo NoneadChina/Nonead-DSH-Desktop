@@ -1,18 +1,24 @@
 import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { DesktopCommand, DesktopState } from '../desktop-contract.ts'
-import { updateAction, updateLabel } from '../update-state.ts'
-import { desktopText } from '../desktop-i18n.ts'
+import { MANUAL_UPDATE_DOWNLOADS, updateAction, updateLabel } from '../update-state.ts'
+import { desktopTemplate, desktopText } from '../desktop-i18n.ts'
 
 export function NextUpdateSettings({ state, language, run }: { state: DesktopState; language: string; run(command: DesktopCommand): void }) {
   const update = state.updates
   if (!update) return null
-  const t = (zh: string, en: string) => desktopText(language, zh, en)
+  const t = (zh: string, en: string, values?: Readonly<Record<string, string>>): string =>
+    values === undefined ? desktopText(language, zh, en) : desktopTemplate(language, zh, en, values)
   const action = updateAction(update)
   // Recheck and skip only make sense while a release waits for the user; a running update
   // operation owns the state machine until it settles.
   const busy = state.busy || ['checking', 'downloading', 'preparing', 'installing'].includes(update.phase)
   const notes = update.notes
   const notesUrl = update.notesUrl
+  // A failed install is the one case where the in-app path may be unable to make progress at all
+  // (the shell refused the elevation the installer needs), so the card offers the download page the
+  // documentation already points at as a way out that does not depend on this code path.
+  const failedInstall = update.phase === 'error' && update.error === 'install'
+  const manualDownload = state.platform === 'darwin' ? MANUAL_UPDATE_DOWNLOADS.darwin : state.platform === 'win32' ? MANUAL_UPDATE_DOWNLOADS.win32 : undefined
   return <section className="dshDesktopSettingsGroup" data-next-updates>
     <h3>{t('应用更新', 'App updates')}</h3>
     <p className="dshDesktopSettingsHint">Nonead DSH Desktop · {state.version}</p>
@@ -31,7 +37,13 @@ export function NextUpdateSettings({ state, language, run }: { state: DesktopSta
       </div>}
     </div>}
     {update.phase === 'ready' && <p className="dshDesktopSettingsHint">{t('安装时会重启应用并中断正在运行的任务，Profile 和会话会保留。', 'Installation restarts the app and interrupts running tasks. Profiles and sessions are retained.')}</p>}
-    {update.phase === 'error' && update.retryInstall && <p className="dshDesktopSettingsHint">{t('已下载的安装包仍保留，重试无需重新下载。', 'The downloaded installer is still on disk, so retrying does not download it again.')}</p>}
+    {update.phase === 'error' && update.retryInstall && <div data-install-failure>
+      <p className="dshDesktopSettingsHint">{t('已下载的安装包仍保留，重试无需重新下载。', 'The downloaded installer is still on disk, so retrying does not download it again.')}</p>
+      {/* The installer's own reason is the only thing that separates "you cancelled the UAC prompt"
+          from "the package is bad"; without it both failures render as the same sentence. */}
+      {update.installError !== undefined && <p className="dshDesktopSettingsHint">{t('安装器报告：{detail}', 'Installer reported: {detail}', { detail: update.installError })}</p>}
+      {update.installAttempt !== undefined && update.installAttempt > 1 && <p className="dshDesktopSettingsHint">{t('已尝试 {count} 次。', 'Attempted {count} times.', { count: String(update.installAttempt) })}</p>}
+    </div>}
     {update.phase === 'skipped' && <p className="dshDesktopSettingsHint">{t('该版本不会再次提示；发布更新的版本后会照常提示，也可以在这里恢复。', 'This version is no longer offered. A newer release is offered as usual, and you can undo the skip here.')}</p>}
     {!update.installable && <p className="dshDesktopSettingsHint">{t('应用内安装更新需要使用 macOS 或 Windows 安装版。', 'Install a packaged macOS or Windows build to use in-app updates.')}</p>}
     <div className="dshDesktopSettingsDialogActions">
@@ -41,6 +53,7 @@ export function NextUpdateSettings({ state, language, run }: { state: DesktopSta
       {update.phase === 'available' && <Button variant="outline" size="sm" disabled={busy} onClick={() => run({ type: 'check-updates' })}>{t('重新检查', 'Check again')}</Button>}
       {update.phase === 'available' && update.version !== undefined && <Button variant="outline" size="sm" disabled={busy} onClick={() => run({ type: 'skip-update' })}>{t('跳过此版本', 'Skip this version')}</Button>}
       {update.phase === 'skipped' && <Button variant="outline" size="sm" disabled={busy} onClick={() => run({ type: 'clear-skipped-update' })}>{t('不再跳过', 'Stop skipping')}</Button>}
+      {failedInstall && manualDownload !== undefined && <Button variant="outline" size="sm" onClick={() => { window.open(manualDownload, '_blank', 'noopener,noreferrer') }}>{t('手动下载安装包', 'Download installer manually')}</Button>}
     </div>
   </section>
 }

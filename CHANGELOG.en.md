@@ -22,6 +22,7 @@ Runtime raised to DSH 0.2.2-rc.5, with the bridge and bundled dependencies rebui
 - Bundled plugins: all 27 were checked against npm latest; `dsh-context` moves to **0.86.0** and the other 26 are current.
 - Plugin market: `dshmarket` 1.73.20 → **1.73.21**, with the desktop patch adapted to the new host-provided market update path.
 - In-app updates: the Windows installer passes the NSIS `--updated` switch again, so an in-place upgrade no longer lands in the "installer kept" state.
+- Installer launch: the Windows setup now starts through the system shell instead of a directly created process, so Windows raises its User Account Control prompt when the installer needs administrator rights; when the installer never starts, the update card shows the first failure reason, how many attempts were made, and a "Download installer manually" button.
 - Version: product 2.2.12 → **2.2.14** (both desktop workspaces in lockstep).
 
 ## 2.2.12 — 2026-11-14

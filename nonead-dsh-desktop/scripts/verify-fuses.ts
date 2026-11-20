@@ -49,7 +49,7 @@ function isForeignArchitecture(path: string): boolean {
 }
 
 function runPackagedNode(path: string, args: readonly string[], timeout: number, failure: string): void {
-  const env = { ...withoutWindowsSigningSecrets(withoutMacReleaseSecrets(process.env)), ELECTRON_RUN_AS_NODE: '1' }
+  const env: NodeJS.ProcessEnv = { ...withoutWindowsSigningSecrets(withoutMacReleaseSecrets(process.env)), ELECTRON_RUN_AS_NODE: '1' }
   // Electron's packaged Node rejects `mkdtemp` and `mkdir` under the OS temporary directory on this
   // host with EPERM, and libraries that allocate a scratch directory read it from TEMP/TMP rather
   // than from the smoke's own variable. Point both at the caller's writable scratch root.

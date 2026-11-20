@@ -1,18 +1,28 @@
-import { EventEmitter } from 'node:events'
-import { spawn, type ChildProcess } from 'node:child_process'
 import { beforeEach, expect, it, vi } from 'vitest'
 vi.mock('electron', () => ({ autoUpdater: { on: vi.fn() } }))
-// `prepare` reads the Windows version resource through PowerShell; the callback shape is what
-// promisify(execFile) actually awaits, so a resolved mock alone would hang.
+// Windows goes through PowerShell twice: once to read the version resource while preparing, and
+// once to start the installer through the shell. The mock records the decoded script and the
+// environment that carries the path, so a test can tell the two calls apart and inspect the launch.
+const control = vi.hoisted(() => ({
+  calls: [] as { script: string; env: NodeJS.ProcessEnv | undefined }[],
+  launchFailure: undefined as (Error & { stderr?: string }) | undefined,
+}))
 vi.mock('node:child_process', () => ({
-  execFile: vi.fn((_file: string, _args: readonly string[], _options: unknown, callback: (error: Error | null, result: { stdout: string; stderr: string }) => void) => {
-    callback(null, { stdout: JSON.stringify({ ProductName: 'Nonead DSH Desktop', ProductVersion: '2.0.18-next.1' }), stderr: '' })
+  execFile: vi.fn((_file: string, args: readonly string[], options: { env?: NodeJS.ProcessEnv }, callback: (error: Error | null, result?: { stdout: string; stderr: string }) => void) => {
+    const encoded = args[args.indexOf('-EncodedCommand') + 1] ?? ''
+    const script = Buffer.from(encoded, 'base64').toString('utf16le')
+    control.calls.push({ script, env: options.env })
+    if (!script.includes('Start-Process')) {
+      // `prepare` reads the version resource; the callback shape is what promisify(execFile) awaits.
+      callback(null, { stdout: JSON.stringify({ ProductName: 'Nonead DSH Desktop', ProductVersion: '2.0.18-next.1' }), stderr: '' })
+      return
+    }
+    callback(control.launchFailure ?? null, { stdout: '', stderr: control.launchFailure?.stderr ?? '' })
   }),
-  spawn: vi.fn(),
 }))
 import { NextUpdateInstaller, assertNextMacBundle, assertNextWindowsInstaller, nextInstallerArguments } from '../src/update-installer.ts'
 
-beforeEach(() => { vi.clearAllMocks() })
+beforeEach(() => { vi.clearAllMocks(); control.calls.length = 0; control.launchFailure = undefined })
 
 const VERSION = '2.0.18-next.1'
 const INSTALLER = 'C:/cache/download-1/Nonead-DSH-Desktop-Setup.exe'
@@ -21,6 +31,10 @@ async function preparedWindowsInstaller(): Promise<NextUpdateInstaller> {
   const installer = new NextUpdateInstaller({ platform: 'win32', executable: 'C:/app/Nonead DSH Desktop.exe', log: vi.fn() })
   await installer.prepare(INSTALLER, VERSION, 'C:/cache/download-1', new AbortController().signal)
   return installer
+}
+
+function launchCalls(): { script: string; env: NodeJS.ProcessEnv | undefined }[] {
+  return control.calls.filter(call => call.script.includes('Start-Process'))
 }
 
 it('rejects Stable/Beta installers and an unexpected release even when the archive is valid', () => {
@@ -57,31 +71,44 @@ it('passes no installer arguments on other platforms', () => {
   expect(nextInstallerArguments('linux')).toEqual([])
 })
 
-it('spawns the Windows installer once when the shutdown handoff launches it again', async () => {
-  const child = Object.assign(new EventEmitter(), { unref: vi.fn() })
-  vi.mocked(spawn).mockReturnValue(child as unknown as ChildProcess)
+it('starts the Windows installer through the shell without forcing elevation', async () => {
   const installer = await preparedWindowsInstaller()
-  // The Install action starts the installer before quitting; before-quit then re-enters launch
-  // while the first attempt is still in flight (or already finished) and must join it.
-  const first = installer.launch()
-  const second = installer.launch()
-  expect(spawn).toHaveBeenCalledOnce()
-  expect(spawn).toHaveBeenCalledWith(INSTALLER, ['--updated'], { detached: true, stdio: 'ignore', shell: false, windowsHide: false })
-  child.emit('spawn')
-  await expect(Promise.all([first, second])).resolves.toEqual([undefined, undefined])
   await expect(installer.launch()).resolves.toBeUndefined()
-  expect(spawn).toHaveBeenCalledOnce()
+  const [launch] = launchCalls()
+  expect(launch).toBeDefined()
+  // CreateProcess (plain `spawn`) fails with ERROR_ELEVATION_REQUIRED for an image that declares
+  // requireAdministrator; Start-Process goes through ShellExecute, which reads the installer
+  // manifest itself and raises the consent prompt when, and only when, it asks for elevation.
+  expect(launch!.script).toContain('Start-Process -FilePath $env:DSH_UPDATE_INSTALLER')
+  // `-Verb RunAs` would elevate unconditionally and break the asInvoker installer for users
+  // without admin rights, so the launch must not ask the shell for a specific verb.
+  expect(launch!.script).not.toContain('-Verb')
+  // The path and arguments travel through the environment, so no installer text is interpolated
+  // into the PowerShell program itself.
+  expect(launch!.env?.DSH_UPDATE_INSTALLER).toBe(INSTALLER)
+  expect(launch!.env?.DSH_UPDATE_ARGS).toBe('--updated')
 })
 
-it('keeps a failed Windows launch retryable instead of caching the rejection', async () => {
-  const child = Object.assign(new EventEmitter(), { unref: vi.fn() })
-  vi.mocked(spawn).mockReturnValue(child as unknown as ChildProcess)
+it('starts the Windows installer once when the shutdown handoff launches it again', async () => {
+  const installer = await preparedWindowsInstaller()
+  // The Install action starts the installer before quitting; before-quit then re-enters launch
+  // while the first attempt is already finished and must join it.
+  const first = installer.launch()
+  const second = installer.launch()
+  expect(launchCalls()).toHaveLength(1)
+  await expect(Promise.all([first, second])).resolves.toEqual([undefined, undefined])
+  await expect(installer.launch()).resolves.toBeUndefined()
+  expect(launchCalls()).toHaveLength(1)
+})
+
+it('keeps a failed Windows launch retryable and keeps the reported reason', async () => {
+  const failure = Object.assign(new Error('Command failed: powershell.exe'), { stderr: 'Start-Process : This operation has been cancelled by the user.\r\nAt line:1 char:1\r\n' })
+  control.launchFailure = failure
   const installer = await preparedWindowsInstaller()
   const failed = installer.launch()
-  child.emit('error', new Error('spawn ENOENT'))
-  await expect(failed).rejects.toThrow('spawn ENOENT')
-  const retry = installer.launch()
-  expect(spawn).toHaveBeenCalledTimes(2)
-  child.emit('spawn')
-  await expect(retry).resolves.toBeUndefined()
+  await expect(failed).rejects.toMatchObject({ stderr: failure.stderr })
+  // The failure is not cached: pressing Install again makes another attempt.
+  control.launchFailure = undefined
+  await expect(installer.launch()).resolves.toBeUndefined()
+  expect(launchCalls()).toHaveLength(2)
 })

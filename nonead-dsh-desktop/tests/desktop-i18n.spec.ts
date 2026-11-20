@@ -8,9 +8,10 @@ import { desktopSettingsText, settingsDictionaries } from '../src/i18n/settings.
 /**
  * Every English half of an authored `(zh, en)` pair in the shell sources.
  *
- * All three call shapes are collected - the `t('zh', 'en')` helpers, the converted
- * `desktopText(locale, 'zh', 'en')` sites and the `t('zh', 'en', { ... })` placeholder
- * templates - and escapes are decoded so the key matches the string the code produces at runtime.
+ * All four call shapes are collected - the `t('zh', 'en')` helpers, the converted
+ * `desktopText(locale, 'zh', 'en')` sites, the `t('zh', 'en', { ... })` placeholder templates and
+ * the raw `desktopTemplate(locale, 'zh', 'en', { ... })` sites the client shell uses directly -
+ * and escapes are decoded so the key matches the string the code produces at runtime.
  */
 function authoredEnglishCopy(): Set<string> {
   const root = new URL('../src/', import.meta.url).pathname.replace(/^\/(?=[A-Za-z]:)/u, '')
@@ -19,6 +20,7 @@ function authoredEnglishCopy(): Set<string> {
     /\bt\('((?:[^'\\]|\\.)*)',\s*'((?:[^'\\]|\\.)*)'\)/gu,
     /\bdesktopText\([^,\n]*,\s*'((?:[^'\\]|\\.)*)'\s*,\s*'((?:[^'\\]|\\.)*)'\)/gu,
     /\bt\('((?:[^'\\]|\\.)*)',\s*'((?:[^'\\]|\\.)*)'\s*,\s*\{/gu,
+    /\bdesktopTemplate\([^,\n]*,\s*'((?:[^'\\]|\\.)*)'\s*,\s*'((?:[^'\\]|\\.)*)'\s*,\s*\{/gu,
   ]
   const decode = (value: string): string => value.replaceAll("\\'", "'").replaceAll('\\"', '"').replaceAll('\\n', '\n')
   for (const relative of globSync('**/*.{ts,tsx}', { cwd: root })) {

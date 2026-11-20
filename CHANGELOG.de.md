@@ -22,6 +22,7 @@ Runtime auf DSH 0.2.2-rc.5 angehoben, Bridge und mitgelieferte Abhängigkeiten n
 - Mitgelieferte Plugins: alle 27 gegen npm latest geprüft; `dsh-context` geht auf **0.86.0**, die übrigen 26 sind aktuell.
 - Plugin-Markt: `dshmarket` 1.73.20 → **1.73.21**, der Desktop-Patch ist an den neuen host-provided-Updatepfad angepasst.
 - In-App-Updates: der Windows-Installer übergibt wieder den NSIS-Schalter `--updated`, ein In-Place-Upgrade landet nicht mehr im Zustand „Installer beibehalten".
+- Installer-Start: Unter Windows startet das Installationsprogramm jetzt über die System-Shell statt als direkt erzeugter Prozess, sodass Windows seine Benutzerkontensteuerung anzeigt, wenn Administratorrechte nötig sind; startet der Installer gar nicht, zeigt die Update-Karte den ersten Fehlergrund, die Anzahl der Versuche und einen Knopf „Installationsprogramm manuell herunterladen".
 - Version: Produkt 2.2.12 → **2.2.14** (beide Desktop-Workspaces im Gleichschritt).
 
 ## 2.2.12 — 2026-11-14

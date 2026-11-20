@@ -1,5 +1,15 @@
 /** Serializable update progress shared by settings, recovery and the tray. */
 import { desktopTemplate, desktopText } from './desktop-i18n.ts'
+
+/**
+ * Direct download pages, used as the documented fallback when an in-app install cannot start at all
+ * (for example an installer that needs an elevation the shell refuses to grant). They serve the
+ * newest signed build for each platform, not the release currently being offered.
+ */
+export const MANUAL_UPDATE_DOWNLOADS = {
+  darwin: 'https://www.nonead.com/software/ndsh-desktop/downloads/mac',
+  win32: 'https://www.nonead.com/software/ndsh-desktop/downloads/windows',
+} as const
 export interface NextUpdateState {
   phase: 'idle' | 'checking' | 'current' | 'available' | 'skipped' | 'downloading' | 'preparing' | 'ready' | 'installing' | 'error'
   version?: string
@@ -11,6 +21,14 @@ export interface NextUpdateState {
    * downloading the update again. Only meaningful while `phase === 'error' && error === 'install'`.
    */
   retryInstall?: boolean
+  /**
+   * First line of what the installer itself reported when the launch failed. The state layer keeps it
+   * verbatim so the settings card can show the reason instead of a generic "installation failed":
+   * an elevation cancellation and a corrupted package otherwise look identical to the user.
+   */
+  installError?: string
+  /** Install attempts made by this process, so a card can say the retry changed nothing. */
+  installAttempt?: number
   /**
    * Plain-text release summary published with the offered release. Absent when the service has no
    * usable summary; an older service that only returns `version` therefore renders no notes.

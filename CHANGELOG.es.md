@@ -22,6 +22,7 @@ Runtime elevado a DSH 0.2.2-rc.5, con el puente y las dependencias empaquetadas 
 - Plugins incluidos: los 27 se compararon con npm latest; `dsh-context` sube a **0.86.0** y los otros 26 ya están al día.
 - Mercado de plugins: `dshmarket` 1.73.20 → **1.73.21**, con el parche de escritorio adaptado a la nueva ruta de actualización host-provided.
 - Actualizaciones en la app: el instalador de Windows vuelve a pasar el conmutador NSIS `--updated`, así que la actualización in situ ya no cae en el estado de "instalador conservado".
+- Arranque del instalador: en Windows el instalador se inicia ahora a través del shell del sistema en lugar de crear un proceso directo, de modo que Windows muestra su confirmación de control de cuentas de usuario cuando se necesitan permisos de administrador; si el instalador no llega a arrancar, la tarjeta de actualización muestra el primer motivo del fallo, cuántos intentos se han hecho y un botón "Descargar el instalador manualmente".
 - Versión: producto 2.2.12 → **2.2.14** (ambos espacios de trabajo de escritorio sincronizados).
 
 ## 2.2.12 — 2026-11-14

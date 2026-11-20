@@ -101,9 +101,9 @@ dsh-desktop://settings/general
 版本响应可以携带发行说明与说明链接。设置里的更新卡片会显示“更新说明”，并可打开完整说明；Beta 在下载确认的原生对话框里也会带上发行说明。确认下载后的流程按产品不同：
 
 - **DSH Desktop Beta**：先打开原生的“保存更新安装包”对话框，默认指向下载目录，可改目录与文件名，取消对话框不会开始下载。确认目标后才请求固定平台下载地址并记住安装包位置。macOS 打开 DMG 让用户替换“应用程序”里的副本；Windows 准备 NSIS 安装包，然后询问是否退出并开始安装。升级完成并重新启动后，会询问删除安装包释放磁盘还是保留。
-- **Nonead DSH Desktop**：不弹保存对话框，安装包下载到应用自己的用户数据缓存并校验后再安装。macOS 交由系统更新器完成安装与重启，Windows 直接运行下载的 NSIS 安装包。
+- **Nonead DSH Desktop**：不弹保存对话框，安装包下载到应用自己的用户数据缓存并校验后再安装。macOS 交由系统更新器完成安装与重启；Windows 通过系统 shell 启动下载的 NSIS 安装包，由 Windows 弹出用户账户控制（UAC）确认。
 
-两个产品使用相同的固定下载地址：`https://www.nonead.com/software/ndsh-desktop/downloads/mac` 与 `https://www.nonead.com/software/ndsh-desktop/downloads/windows`。下载或安装失败不会影响当前版本，托盘操作可以重试；已下载的安装包会保留，重试安装无需重新下载。安装失败后也可以回滚到已保存的配置快照（见“Profile 与恢复”）。
+两个产品使用相同的固定下载地址：`https://www.nonead.com/software/ndsh-desktop/downloads/mac` 与 `https://www.nonead.com/software/ndsh-desktop/downloads/windows`。下载或安装失败不会影响当前版本，托盘操作可以重试；已下载的安装包会保留，重试安装无需重新下载。安装器没能启动时，更新卡片会显示安装器报告的第一行原因（例如用户取消了 UAC 确认）以及本进程已尝试的次数，并给出“手动下载安装包”按钮，用同一地址重新获取安装包。安装失败后也可以回滚到已保存的配置快照（见“Profile 与恢复”）。
 
 更新检查还提供跳过与恢复：
 
