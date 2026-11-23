@@ -105,9 +105,14 @@ export class DesktopWebServer extends WebServer {
   }
 
   override register(route: WebRoute | WebResourceRoute): () => void {
-    if (!('handler' in route)) return super.register({ ...route, resource: this.guardResource(route.resource) })
+    // Desktop routes carry their own renderer-capability gate; declaring them
+    // anonymous keeps upstream's `webserver/authorize` bail (which denies with
+    // 503 when no connection plugin is present) from shadowing it.
+    const auth = route.auth ?? 'anonymous'
+    if (!('handler' in route)) return super.register({ ...route, auth, resource: this.guardResource(route.resource) })
     return super.register({
       ...route,
+      auth,
       handler: this.traceHttp(String(route.path), async (req, res) => {
         if (!this.permits(req)) return rejectBrowserRequest(res)
         await route.handler(req, res)
@@ -117,17 +122,18 @@ export class DesktopWebServer extends WebServer {
 
   override registerFallback(fallback: WebRoute['handler'] | Pick<WebResourceRoute, 'resource'>): () => void {
     if (typeof fallback !== 'function') {
-      return super.registerFallback({ resource: this.guardResource(fallback.resource) })
+      return super.registerFallback({ auth: 'anonymous', resource: this.guardResource(fallback.resource) })
     }
-    return super.registerFallback(this.traceHttp('fallback', async (req, res) => {
+    return super.registerFallback({ auth: 'anonymous', handler: this.traceHttp('fallback', async (req, res) => {
       if (!this.permits(req)) return rejectBrowserRequest(res)
       await fallback(req, res)
-    }))
+    }) })
   }
 
   override registerUpgrade(route: WebUpgradeRoute): () => void {
     return super.registerUpgrade({
       ...route,
+      auth: route.auth ?? 'anonymous',
       handler: (req, socket, head) => {
         if (!this.permits(req)) return rejectBrowserUpgrade(socket)
         return route.handler(req, socket, head)

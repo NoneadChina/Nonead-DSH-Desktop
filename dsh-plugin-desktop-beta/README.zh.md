@@ -246,7 +246,7 @@ corepack.cmd yarn dist:win:beta
 
 该流程不要求 Python 或 Visual Studio C++ Build Tools。Windows 命令会直接使用 `node-pty` 内置的 x64 Node-API 二进制，而不会让 Electron Builder 从源码重新编译；如果安装包 staging tree 缺少这些二进制，packaged-runtime gate 会直接拒绝产物。
 
-`dist:win` 会拒绝非 Windows 或非 x64 宿主，先执行一组 Windows 可运行的 gate，其中包括 build、全部 TypeScript compiler face、打包与原生 shell 聚焦测试，以及 runtime-closure verifier；随后再构建 NSIS 安装向导，并校验生成的两个 PE 文件。完整跨平台 suite 仍由 CI 持有，因为其中部分 POSIX 执行测试不是 Windows 程序。安装向导支持当前用户安装或提升权限后的所有用户安装，可更改安装目录，会创建开始菜单与桌面快捷方式，并且卸载应用时保留 DSH 用户数据。版本 `2.2.15` 会输出到 `dsh-plugin-desktop-beta\dist\DSH-Desktop-Beta-2.2.15-x64-Setup.exe`；用于 smoke 测试的未封装程序仍位于 `dsh-plugin-desktop-beta\dist\win-unpacked\DSH Desktop Beta.exe`。
+`dist:win` 会拒绝非 Windows 或非 x64 宿主，先执行一组 Windows 可运行的 gate，其中包括 build、全部 TypeScript compiler face、打包与原生 shell 聚焦测试，以及 runtime-closure verifier；随后再构建 NSIS 安装向导，并校验生成的两个 PE 文件。完整跨平台 suite 仍由 CI 持有，因为其中部分 POSIX 执行测试不是 Windows 程序。安装向导支持当前用户安装或提升权限后的所有用户安装，可更改安装目录，会创建开始菜单与桌面快捷方式，并且卸载应用时保留 DSH 用户数据。版本 `2.3.2` 会输出到 `dsh-plugin-desktop-beta\dist\DSH-Desktop-Beta-2.3.2-x64-Setup.exe`；用于 smoke 测试的未封装程序仍位于 `dsh-plugin-desktop-beta\dist\win-unpacked\DSH Desktop Beta.exe`。
 
 该本地命令会主动移除 Windows 证书变量，并设置 `signExecutable=false`。产物可以安装测试，但没有 Authenticode publisher，因此 Windows 可能显示 Unknown publisher 或 SmartScreen 警告。签名后的 Windows release、证书校验、安装器升级与卸载测试，以及原生 UI 和 sandbox smoke 仍是独立的发布 gate。
 
@@ -258,7 +258,7 @@ corepack.cmd yarn dist:win:beta
 corepack.cmd yarn dist:win-portable:beta
 ```
 
-产物为 `dsh-plugin-desktop-beta\\dist\\DSH-Desktop-Beta-2.2.15-x64-Portable.zip`。用户解压到任意可写目录后运行其中的 `DSH Desktop Beta.exe`，不需要安装器、管理员权限、开始菜单注册或卸载步骤。它仍会把 profile、日志和缓存写入 Windows 的 Beta 用户数据目录，因此这是便携分发方式，不是把数据完全封装在 exe 旁边的自包含沙箱。绿色 ZIP 不会交给 NSIS 自动更新流程，新版本需要手动替换并重新解压。本地构建没有签名，Windows 可能显示 Unknown publisher 或 SmartScreen 警告；签名后的绿色版仍属于正式发布 gate。
+产物为 `dsh-plugin-desktop-beta\\dist\\DSH-Desktop-Beta-2.3.2-x64-Portable.zip`。用户解压到任意可写目录后运行其中的 `DSH Desktop Beta.exe`，不需要安装器、管理员权限、开始菜单注册或卸载步骤。它仍会把 profile、日志和缓存写入 Windows 的 Beta 用户数据目录，因此这是便携分发方式，不是把数据完全封装在 exe 旁边的自包含沙箱。绿色 ZIP 不会交给 NSIS 自动更新流程，新版本需要手动替换并重新解压。本地构建没有签名，Windows 可能显示 Unknown publisher 或 SmartScreen 警告；签名后的绿色版仍属于正式发布 gate。
 
 ### macOS DMG 冒烟构建
 
@@ -284,7 +284,7 @@ corepack.cmd yarn dist:win-portable:beta
 - 共享 carrier 使用 HTTP 与 WebSocket，而不是 Electron IPC；默认只绑定 loopback，并支持经过明确确认的全接口局域网监听。替换 carrier 需要上游 DSH 提供 transport 扩展点，不属于该独立包的范围。
 - 内置的 Agents Anywhere bridge 由 `corepack yarn aa:prepare-release` 在固定 commit 上从源码构建。根的 `dist:*:beta` 命令会在打包前执行该准备并校验发布产物，通道升级后需要重建。
 - `corepack yarn check` 需要 `.git` 目录：bilingual-docs 门禁通过 Git 解析受跟踪的 `*.i18n.yaml` 记录与文档 blob hash。
-- Beta 使用固定官方 release 源码构建的 DSH `0.2.2-rc.5` 运行时（`upstream.json` 的 `beta` 通道）；桌面构建解析这些包接口，不直接链接源码 checkout。随包运行时当前的 Session 格式为 v4，上游迁移包会把历史的 v0–v3 会话向前迁移并保留原日志，桌面端不再生成预设别名。旧运行时无法读取 V4 会话。扩展和增强模式接入右侧 Sidebar 的文档预览、分栏和全屏，并通过 keyed `main` 槽位支持独立于会话选择的全局插件面板。
+- Beta 使用固定官方 release 源码构建的 DSH `0.2.3-alpha.2` 运行时（`upstream.json` 的 `beta` 通道）；桌面构建解析这些包接口，不直接链接源码 checkout。随包运行时当前的 Session 格式为 v4，上游迁移包会把历史的 v0–v3 会话向前迁移并保留原日志，桌面端不再生成预设别名。旧运行时无法读取 V4 会话。扩展和增强模式接入右侧 Sidebar 的文档预览、分栏和全屏，并通过 keyed `main` 槽位支持独立于会话选择的全局插件面板。
 - `package:dir:beta` 是用于 smoke 的未封装产物。`dist:win` 会额外生成未签名的 NSIS 测试安装包，但不会建立 Authenticode 身份或 SmartScreen 信誉。安装与升级行为、原生通知与终端、Windows ACL sandbox，以及每台目标机器上的原生材质外观仍属于目标平台验证边界。
 
 ### 开发者日志

@@ -2,8 +2,8 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { join } from 'node:path'
 import type { Context, Volatile } from '@deepseek-ai/cordis'
 import type {
-  ConnectionRequestRejection,
   ConnectionTrustRequest,
+  PeerAdmission,
 } from '@deepseek-ai/dsh-client-connection'
 import type { LocaleId } from '@deepseek-ai/dsh-client-locale'
 import type { WebRoute } from '@deepseek-ai/dsh-host-webserver'
@@ -134,7 +134,7 @@ interface PluginHarness {
   browserAccess: ReturnType<typeof createDesktopBrowserAccess>
   lanHttps: DesktopLanHttpsRuntime
   setLanHttpsEnabled: ReturnType<typeof vi.fn<DesktopLanHttpsRuntime['setEnabled']>>
-  requestRejection: ReturnType<typeof vi.fn<(request: ConnectionTrustRequest) => ConnectionRequestRejection>>
+  admit: ReturnType<typeof vi.fn<(request: ConnectionTrustRequest) => PeerAdmission>>
   route(path: string): WebRoute | undefined
   routes(): readonly WebRoute[]
   /** Write a live preference edit and raise the Loader's volatile update. */
@@ -185,9 +185,9 @@ function createHarness(
       }
     },
   }
-  const requestRejection = vi.fn<(
+  const admit = vi.fn<(
     request: ConnectionTrustRequest,
-  ) => ConnectionRequestRejection>(() => undefined)
+  ) => PeerAdmission>(() => ({ peer: {} as never }))
   const routes = new Map<string, WebRoute>()
   const documentUpdated = new Set<(namespace: unknown, revision: number) => void>()
   let localePreference: LocaleId | undefined
@@ -266,7 +266,19 @@ function createHarness(
       }),
     },
     settings,
-    connection: { authenticatedUrl, requestRejection },
+    connection: { admit },
+    events: {
+      emit: vi.fn((
+        _subject: unknown,
+        event: string,
+        baseUrl: string,
+        entries: { label: string, url: string, open: boolean }[],
+      ) => {
+        if (event === 'webserver/entry-url') {
+          entries.push({ label: 'dsh web', url: authenticatedUrl(baseUrl), open: true })
+        }
+      }),
+    },
     logger: { warn: vi.fn(), error: vi.fn() },
     get: vi.fn((key: unknown) => {
       if (String(key) === 'desktopRuntime') return runtime
@@ -314,7 +326,7 @@ function createHarness(
     browserAccess,
     lanHttps,
     setLanHttpsEnabled,
-    requestRejection,
+    admit,
     route: path => routes.get(path),
     routes: () => [...routes.values()],
     notify: async (next) => {
@@ -517,7 +529,7 @@ describe('desktop Host plugin', () => {
 
     await route?.handler(req, res)
 
-    expect(harness.requestRejection).toHaveBeenCalledWith(req)
+    expect(harness.admit).toHaveBeenCalledWith(req)
     expect(harness.rendererBoot).toHaveBeenCalledWith(report)
     expect(res.statusCode).toBe(204)
   })
@@ -530,7 +542,7 @@ describe('desktop Host plugin', () => {
     body,
   ) => {
     const harness = createHarness('win32')
-    harness.requestRejection.mockReturnValue(status)
+    harness.admit.mockReturnValue({ rejection: status })
     apply(harness.ctx, harness.config)
     const expectedPaths = [
       DESKTOP_SETTINGS_PATH,
@@ -563,7 +575,7 @@ describe('desktop Host plugin', () => {
       expect(writeHead).toHaveBeenCalledWith(status)
       expect(end).toHaveBeenCalledWith(body)
     }
-    expect(harness.requestRejection).toHaveBeenCalledTimes(routes.length)
+    expect(harness.admit).toHaveBeenCalledTimes(routes.length)
     expect(harness.rendererBoot).not.toHaveBeenCalled()
     expect(harness.pickDirectory).not.toHaveBeenCalled()
     expect(harness.validateDirectory).not.toHaveBeenCalled()

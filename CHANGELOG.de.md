@@ -13,6 +13,18 @@ Konventionen für die Pflege:
 - Einträge halten ausschließlich Änderungen fest, die Nutzer wahrnehmen können, sowie Grenzänderungen, die Maintainer kennen müssen; reine Refactorings erhalten keinen eigenen Eintrag.
 - Die frühere Historie findet sich in den Git-Tags (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) und in der Commit-Historie.
 
+## 2.3.2 — 2026-11-23
+
+Eine Version, die dem Kernel und seinen mitgelieferten Abhängigkeiten folgt:
+
+- Runtime: DSH steigt auf `0.2.3-alpha.2`, der Upstream-Pin wandert auf `4b399c39a6d1479cd84ca591b4d7c88e24d38a96`, die mitgelieferte Runtime wird als 398 Pakete neu gepackt. Upstream ergänzt `dsh-cua-mcp`, `dsh-timeline`, `dsh-client-config`, `dsh-client-script-realm` und entfernt `dsh-personalized-recommendations`; beide Desktop-Workspaces und die Drittanbieterhinweise ziehen mit, die `@deepseek-ai/cordis`-Familie gleicht auf 4.2.0-alpha.1, `schemastery` auf 3.20.0-alpha.1 ab.
+- Desktop-Anpassung: die Artefakt-Patches gehen von 24 auf 23. Upstream entfernt `ELECTRON_RUN_AS_NODE` inzwischen selbst, daher entfällt der Patch für `dsh-host-open-in-app`; alle übrigen werden auf die neuen Artefakte rebasiert, die Scrollleiste der Markdown-Tabellen wird ein hover-freier Inline-Stil und der Startbildschirm zeigt `NONEAD DEEPSEEK HARNESS`.
+- Desktop-Schnittstellen: der Verbindungs-Handle bietet kein `authenticatedUrl` und kein `requestRejection` mehr; der Desktop liest `webserver/entry-url` und ruft `admit()` auf. Das `overlays` des Profilkontexts geht in die nativen `overlayPaths` und `readPatches` über, Web-Routen verlangen standardmäßig Authentifizierung, desktop-eigene Routen deklarieren sich als anonym und behalten ihre lokalen Prüfungen, und die Routen zum Öffnen externer Apps verlangen eine Eigentümer-Identität.
+- Mitgelieferter Markt: `dshmarket` steigt von 1.73.21 auf 1.80.0, die drei Injektionspunkte des Selbstupdate-Patches sind auf die neue `inventory()`/`check()`-Struktur umgeschrieben; der Einstellungs-Slot wechselt von `settings.plugins.tab` zu `settings.section`, Seite und Tests sind angepasst.
+- Kompatibilität: Die mitgelieferte AA-Bridge wird aus dem Upstream-Commit `02f04aae` mit `0.2.3-alpha.2`-Peers neu gebaut (`2.2.0-desktop.c02f04aae5bb6.r7d47d227`); der Connector-Patch greift unverändert.
+- Gates: Typecheck, Tests (1845 Fälle in beta, 320 im Markt, 729 in nonead) und Build sind grün.
+- Version: Produkt 2.2.15 → **2.3.2** (beide Desktop-Workspaces).
+
 ## 2.2.15 — 2026-11-19
 
 Eine Version mit Fokus auf Laufzeit- und Bündelabhängigkeiten:

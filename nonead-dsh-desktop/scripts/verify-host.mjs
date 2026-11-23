@@ -1,4 +1,4 @@
-/** Exercise the actual 0.2.2-rc.5 Host, credentials, Market routes and AA manifest without Electron UI. */
+/** Exercise the actual 0.2.3-alpha.2 Host, credentials, Market routes and AA manifest without Electron UI. */
 import assert from 'node:assert/strict'
 import crypto from 'node:crypto'
 import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, rmdirSync, writeFileSync } from 'node:fs'
@@ -68,6 +68,17 @@ function hostFetch(url, init = {}) {
  * credential an Electron renderer would and keeps its own cookie-based authentication on top.
  */
 async function boot(name) {
+  // The bundled market schedules its first background update check 30 seconds after boot and
+  // reaches the npm registry from inside the Host. This smoke must stay offline, so the profile's
+  // market state disables that check before the Host reads it.
+  const marketStateDirectory = join(manager.directory(name), '.dsh-market')
+  const marketStatePath = join(marketStateDirectory, 'state.json')
+  mkdirSync(marketStateDirectory, { recursive: true })
+  let marketState = {}
+  if (existsSync(marketStatePath)) {
+    try { marketState = JSON.parse(readFileSync(marketStatePath, 'utf8')) } catch { marketState = {} }
+  }
+  writeFileSync(marketStatePath, `${JSON.stringify({ ...marketState, backgroundUpdateChecks: false }, null, 2)}\n`)
   host = new DesktopHostProcess(executable, root, manager.directory(name), undefined,
     { ...process.env, DSH_HOME: home, DSH_TELEMETRY_DISABLED: '1' }, undefined, undefined, undefined,
     join(root, 'scripts', 'fixtures', 'isolated-user-host.mjs'), () => {},
@@ -388,7 +399,7 @@ try {
     await stop()
     console.log('Onboarding Cua native provider activation and teardown passed without capturing screens, sending input or prompting for OS permissions.')
   }
-  console.log(`Next Host smoke passed (${process.argv.includes('--electron') ? 'Electron Node mode' : 'Node'}): authenticated 0.2.2-rc.5 Web, exclusive market selection and independent AA persisted, official row toggles, dshmarket offline install and cross-market toggle and removal through the official manager, official install/remove with a freshly published locked dependency, native dshmarket update origin gate, graceful shutdown, recovery boot and profile switch.`)
+  console.log(`Next Host smoke passed (${process.argv.includes('--electron') ? 'Electron Node mode' : 'Node'}): authenticated 0.2.3-alpha.2 Web, exclusive market selection and independent AA persisted, official row toggles, dshmarket offline install and cross-market toggle and removal through the official manager, official install/remove with a freshly published locked dependency, native dshmarket update origin gate, graceful shutdown, recovery boot and profile switch.`)
 } finally {
   await runner?.dispose()
   await host?.stop()

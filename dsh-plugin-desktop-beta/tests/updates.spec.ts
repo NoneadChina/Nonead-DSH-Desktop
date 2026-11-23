@@ -4,8 +4,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import type {
-  ConnectionRequestRejection,
   ConnectionTrustRequest,
+  PeerAdmission,
 } from '@deepseek-ai/dsh-client-connection'
 import type { WebRoute } from '@deepseek-ai/dsh-host-webserver'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -44,9 +44,9 @@ interface Harness {
   readonly downloadAndOpen: ReturnType<typeof vi.fn>
   readonly refresh: ReturnType<typeof vi.fn>
   readonly registrationDispose: ReturnType<typeof vi.fn>
-  readonly requestRejection: ReturnType<typeof vi.fn<(
+  readonly admit: ReturnType<typeof vi.fn<(
     request: ConnectionTrustRequest,
-  ) => ConnectionRequestRejection>>
+  ) => PeerAdmission>>
   readonly route: WebRoute
   dispose(): Promise<void>
 }
@@ -78,9 +78,9 @@ async function createHarness(options: {
   const confirmDownload = vi.fn(options.confirmDownload ?? (async () => false))
   const showManualCheckResult = vi.fn(options.showManualCheckResult ?? (async () => {}))
   const downloadAndOpen = vi.fn(options.downloadAndOpen ?? (async () => {}))
-  const requestRejection = vi.fn<(
+  const admit = vi.fn<(
     request: ConnectionTrustRequest,
-  ) => ConnectionRequestRejection>(() => undefined)
+  ) => PeerAdmission>(() => ({ peer: {} as never }))
   let tray: DesktopTrayItem | undefined
   const trays: DesktopTrayItem[] = []
   let route: WebRoute | undefined
@@ -114,7 +114,7 @@ async function createHarness(options: {
         return () => {}
       },
     },
-    connection: { requestRejection },
+    connection: { admit },
     logger: { warn: (...args: unknown[]) => { warnings.push(args) } },
     effect: (register: () => (() => void | Promise<void>)) => {
       disposer = register()
@@ -136,7 +136,7 @@ async function createHarness(options: {
     downloadAndOpen,
     refresh,
     registrationDispose,
-    requestRejection,
+    admit,
     route,
     dispose: async () => { await disposer?.() },
   }
@@ -199,7 +199,7 @@ describe('desktop update Host plugin', () => {
   ) => {
     const request = vi.fn(async () => versionResponse('2.0.0'))
     const harness = await createHarness({ packaged: false, request })
-    harness.requestRejection.mockReturnValue(status)
+    harness.admit.mockReturnValue({ rejection: status })
     const req = { headers: {} } as IncomingMessage
     const writeHead = vi.fn()
     const end = vi.fn()
@@ -207,7 +207,7 @@ describe('desktop update Host plugin', () => {
 
     await harness.route.handler(req, res)
 
-    expect(harness.requestRejection).toHaveBeenCalledWith(req)
+    expect(harness.admit).toHaveBeenCalledWith(req)
     expect(writeHead).toHaveBeenCalledWith(status)
     expect(end).toHaveBeenCalledWith(body)
     expect(request).not.toHaveBeenCalled()
@@ -237,7 +237,7 @@ describe('desktop update Host plugin', () => {
 
     await harness.route.handler(req, res)
 
-    expect(harness.requestRejection).toHaveBeenCalledWith(req)
+    expect(harness.admit).toHaveBeenCalledWith(req)
     expect(request).toHaveBeenCalledOnce()
     expect(harness.showManualCheckResult).toHaveBeenCalledWith({
       status: 'up-to-date',

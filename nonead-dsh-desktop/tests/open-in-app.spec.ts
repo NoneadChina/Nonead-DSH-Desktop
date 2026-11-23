@@ -12,6 +12,9 @@ const fixture = vi.hoisted(() => ({
   directories: new Set<string>(), files: new Set<string>(),
 }))
 const workspace = '/fixture/workspace with spaces 中文'
+/** dsh 0.2.3-alpha.2 hands every WebServer handler the admitted peer and the official
+ * open-in-app routes answer 403 unless that peer is the owner. */
+const OWNER_PEER = { principal: { kind: 'owner' } }
 const localAppData = '/fixture/local'
 const githubDirectory = `${localAppData}/GitHubDesktop/app-1.0`
 const missing = () => Object.assign(new Error('Fixture path is absent'), { code: 'ENOENT' })
@@ -68,11 +71,11 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllEnvs() })
 
 function routes() {
-  const handlers = new Map<string, (request: IncomingMessage, response: ServerResponse) => Promise<void>>()
+  const handlers = new Map<string, (request: IncomingMessage, response: ServerResponse, peer?: unknown) => Promise<void>>()
   const ctx = {
     get: () => createLaunchEnvironmentSnapshot([{ source: 'process', values: {} }]),
     effect: (register: () => unknown) => register(),
-    connection: { requestRejection: () => undefined },
+    connection: { admit: () => ({ peer: {} }) },
     subprocess: { resolveExecutable: async (name: string) => name === 'code' ? '/fixture/bin/code' : null },
     webServer: { register: (route: { path: string; handler: (request: IncomingMessage, response: ServerResponse) => Promise<void> }) => {
       handlers.set(route.path, route.handler)
@@ -85,7 +88,7 @@ function routes() {
       method: 'POST', headers: { 'content-type': 'application/json' }, url: '/open-in-app/open',
     })
     const response = { statusCode: 0, body: '', setHeader() {}, end(body: string) { this.body = body } }
-    await handlers.get('/open-in-app/open')!(request as unknown as IncomingMessage, response as unknown as ServerResponse)
+    await handlers.get('/open-in-app/open')!(request as unknown as IncomingMessage, response as unknown as ServerResponse, OWNER_PEER)
     return response
   }
 }

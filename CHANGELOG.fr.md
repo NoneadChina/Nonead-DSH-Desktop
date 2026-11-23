@@ -13,6 +13,18 @@ Conventions de maintenance :
 - Les entrées ne décrivent que les changements perceptibles par l’utilisateur et les changements de limite que les responsables de maintenance doivent connaître ; les refactorisations pures ne font pas l’objet d’une entrée.
 - L’historique plus ancien se trouve dans les étiquettes Git (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) et dans le journal des commits.
 
+## 2.3.2 — 2026-11-23
+
+Une version centrée sur le suivi du noyau et de ses dépendances embarquées :
+
+- Runtime : DSH passe à `0.2.3-alpha.2`, le pin amont devient `4b399c39a6d1479cd84ca591b4d7c88e24d38a96` et le runtime embarqué est réempaqueté en 398 paquets. L'amont ajoute `dsh-cua-mcp`, `dsh-timeline`, `dsh-client-config`, `dsh-client-script-realm` et retire `dsh-personalized-recommendations` ; les dépendances des deux espaces de travail et les mentions tierces suivent, la famille `@deepseek-ai/cordis` s'aligne sur 4.2.0-alpha.1 et `schemastery` sur 3.20.0-alpha.1.
+- Personnalisation : les correctifs d'artefacts passent de 24 à 23. L'amont nettoie désormais lui-même `ELECTRON_RUN_AS_NODE`, donc le correctif de `dsh-host-open-in-app` est supprimé ; les autres sont rebasés sur les nouveaux artefacts, la barre de défilement des tableaux Markdown devient un style en ligne sans survol et l'écran d'accueil affiche `NONEAD DEEPSEEK HARNESS`.
+- Interfaces : le handle de connexion n'expose plus `authenticatedUrl` ni `requestRejection` ; le bureau lit `webserver/entry-url` et appelle `admit()`. L'`overlays` du contexte de profil rejoint les `overlayPaths` et `readPatches` natifs, les routes web exigent une authentification par défaut, les routes propres au bureau se déclarent anonymes tout en gardant leurs contrôles locaux, et les routes d'ouverture d'application exigent une identité propriétaire.
+- Marché embarqué : `dshmarket` passe de 1.73.21 à 1.80.0 et les trois points d'injection du correctif d'auto-mise à jour sont réécrits pour la nouvelle structure `inventory()`/`check()` ; l'emplacement des réglages passe de `settings.plugins.tab` à `settings.section`, page et tests mis à jour.
+- Compatibilité : le pont AA embarqué est reconstruit à partir du commit amont `02f04aae` avec les peers `0.2.3-alpha.2` (`2.2.0-desktop.c02f04aae5bb6.r7d47d227`) ; le correctif du connector s'applique sans modification.
+- Portes : typecheck, tests (1845 cas pour beta, 320 pour le marché, 729 pour nonead) et build au vert.
+- Version : produit 2.2.15 → **2.3.2** (les deux espaces de travail).
+
 ## 2.2.15 — 2026-11-19
 
 Une version centrée sur le suivi du runtime et des dépendances embarquées :

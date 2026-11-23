@@ -21,9 +21,9 @@ const ok = () => (_request: unknown, response: { writeHead(status: number): void
   response.end('ok')
 }
 
-async function start(context: Context, connection?: { requestRejection(request: unknown): number | undefined }): Promise<NextWebServer> {
+async function start(context: Context, connection?: { admit(request: unknown): { peer?: unknown } | { rejection: number } }): Promise<NextWebServer> {
   if (connection !== undefined) {
-    // The real service answers 401/403; the tests only need its rejection decision.
+    // The real service answers 401/403; the tests only need its admission decision.
     context.provide('connection', connection as never)
   }
   await context.plugin(NextWebServer, { host: '127.0.0.1', port: 0 })
@@ -89,7 +89,7 @@ describe('Next WebServer connection fence', () => {
   it('fences non-read methods elsewhere and keeps reads and the login exchange open', async () => {
     configureNextBrowserAccess(RENDERER_TOKEN, true)
     const server = await start(context(), {
-      requestRejection: request => ((request as { headers: Record<string, string> }).headers.cookie === undefined ? 401 : undefined),
+      admit: request => ((request as { headers: Record<string, string> }).headers.cookie === undefined ? { rejection: 401 } : { peer: {} }),
     })
     server.register({ kind: 'exact', path: '/api/session', handler: ok() })
     server.register({ kind: 'exact', path: '/connect', handler: ok() })
@@ -108,7 +108,7 @@ describe('Next WebServer connection fence', () => {
 
   it('fences the fallback route by its request path', async () => {
     configureNextBrowserAccess(RENDERER_TOKEN, true)
-    const server = await start(context(), { requestRejection: () => 403 })
+    const server = await start(context(), { admit: () => ({ rejection: 403 }) })
     server.registerFallback(ok())
 
     const read = await fetch(url(server, '/assets/index.js'))

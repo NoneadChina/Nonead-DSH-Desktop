@@ -1,6 +1,5 @@
 /** DSH Desktop Host plugin: owns the selected native shell generation. */
 
-import type { IncomingMessage, ServerResponse } from 'node:http'
 import { fileURLToPath } from 'node:url'
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-cmdline'
@@ -10,6 +9,10 @@ import {
   handleRendererBootRequest,
   RENDERER_BOOT_REPORT_PATH,
 } from './renderer-boot.ts'
+import {
+  desktopAuthenticatedUrl,
+  rejectDesktopRequest,
+} from './connection-fence.ts'
 import {
   DESKTOP_DIRECTORY_PICKER_PATH,
   DESKTOP_DIRECTORY_VALIDATOR_PATH,
@@ -96,19 +99,6 @@ export {
   DesktopShellConfig as Config,
   type DesktopSettings,
 } from './settings-bridge.ts'
-
-/** Apply the official Connection trust and browser-auth fence before a private Desktop route. */
-function rejectDesktopRequest(
-  ctx: Context,
-  req: IncomingMessage,
-  res: ServerResponse,
-): boolean {
-  const rejection = ctx.connection.requestRejection(req)
-  if (rejection === undefined) return false
-  res.writeHead(rejection)
-  res.end(rejection === 401 ? 'unauthorized' : 'forbidden')
-  return true
-}
 
 /** Narrow the upstream locale preference to the translations bundled by Desktop chrome. */
 function desktopLocalePreference(preference: string | undefined): DesktopLocale | undefined {
@@ -434,7 +424,7 @@ export function apply(ctx: Context, config: DesktopShellConfig): void {
         ...resolved,
         material,
         url,
-        authenticationUrl: ctx.connection.authenticatedUrl(new URL(url).origin),
+        authenticationUrl: desktopAuthenticatedUrl(ctx, new URL(url).origin),
         rendererAccessHeader: browserAccess.rendererHeader,
         productName: DESKTOP_PRODUCT_NAME,
         windowTitle: 'DeepSeek Harness Desktop',

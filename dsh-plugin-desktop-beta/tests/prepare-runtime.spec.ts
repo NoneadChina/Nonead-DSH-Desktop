@@ -32,7 +32,7 @@ function writePayload(runtimeRoot: string, arch: DesktopRuntimeArch, options: Pa
     writeFileSync(join(directory, path), content)
   }
   const skills = officeSkillsDirectory(runtimeRoot, arch)
-  for (const path of ['scripts/check_office.py', 'office-docx/SKILL.md', 'office-pptx/SKILL.md', 'office-xlsx/SKILL.md']) {
+  for (const path of ['office/SKILL.md']) {
     if (options.omit?.includes(`office-skills/${path}`)) continue
     mkdirSync(join(skills, path, '..'), { recursive: true })
     writeFileSync(join(skills, path), '')
@@ -111,11 +111,7 @@ it('rejects missing entry points and Office resources', () => {
   writePayload(python, 'arm64', { omit: ['dependencies/python/bin/python3'] })
   writePayload(python, 'x64')
   expect(() => verifyDesktopRuntimeTree(python, 'darwin', '2.0.0')).toThrow('missing arm64 Python interpreter')
-  const checker = fixture()
-  writePayload(checker, 'arm64')
-  writePayload(checker, 'x64', { omit: ['office-skills/scripts/check_office.py'] })
-  expect(() => verifyDesktopRuntimeTree(checker, 'darwin', '2.0.0')).toThrow('missing x64 Office checker')
   const skill = fixture()
-  writePayload(skill, 'arm64', { omit: ['office-skills/office-xlsx/SKILL.md'] })
-  expect(() => verifyDesktopRuntimeTree(skill, 'darwin', '2.0.0')).toThrow('missing arm64 office-xlsx skill')
+  writePayload(skill, 'arm64', { omit: ['office-skills/office/SKILL.md'] })
+  expect(() => verifyDesktopRuntimeTree(skill, 'darwin', '2.0.0')).toThrow('missing arm64 office skill')
 })

@@ -9,6 +9,7 @@ import Include from '@deepseek-ai/cordis-plugin-include'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import SkillRegistry from '@deepseek-ai/dsh-skill'
+import SessionProjection from '@deepseek-ai/dsh-session-projection'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import { expect, it } from 'vitest'
 import * as desktopOffice from '../src/desktop-office.ts'
@@ -35,6 +36,7 @@ it('loads Office skills with the bundled Node and the installed CLI, and removes
     expect('default' in desktopOffice).toBe(false)
     expect(ctx.loader.unwrapExports(desktopOffice)).toBe(desktopOffice)
     const modules = new Map<string, unknown>([
+      ['sessionProjections', SessionProjection],
       ['agents', AgentRegistry], ['systemPrompt', SystemPrompt], ['tools', ToolRuntime],
       ['skills', SkillRegistry], ['office', desktopOffice],
     ])
@@ -47,23 +49,21 @@ it('loads Office skills with the bundled Node and the installed CLI, and removes
     } as unknown as NonNullable<typeof ctx.loader.internal>
     const config = join(root, 'cordis.yml')
     await writeFile(config, [
-      '- name: agents', '- name: systemPrompt', '- name: tools', '- name: skills', '- name: office',
+      '- name: sessionProjections', '- name: agents', '- name: systemPrompt', '- name: tools', '- name: skills', '- name: office',
       '  config:', `    source: ${JSON.stringify(source)}`,
       `    root: ${JSON.stringify(join(root, 'installed'))}`, '',
     ].join('\n'))
     await ctx.loader.create({ name: 'cordis:include', config: { path: pathToFileURL(config).href } })
     await ctx.loader.await()
     for (const entry of ctx.loader.entries()) await entry.fiber?.await()
-    // rc.2's dsh-skill-office ships only the document skills; PDF conversion, recalculation and
-    // rendering moved to the LibreOffice Kit bundles.
-    expect((await ctx.skills.list()).map(skill => skill.name)).toEqual([
-      'office', 'office-docx', 'office-pptx', 'office-xlsx',
-    ])
-    expect((await ctx.skills.get('office-pptx'))?.resourceBase).toEqual({
+    // 0.2.3-alpha.2's dsh-skill-office ships a single `office` skill that covers Word,
+    // PowerPoint and Excel; the per-format documents and the LibreOffice Kit bundles are gone.
+    expect((await ctx.skills.list()).map(skill => skill.name)).toEqual(['office'])
+    expect((await ctx.skills.get('office'))?.resourceBase).toEqual({
       kind: 'directory',
-      path: join(assets, 'office-pptx').replaceAll('\\', '/'),
+      path: join(assets, 'office').replaceAll('\\', '/'),
     })
-    const content = (await ctx.skills.get('office-pptx'))?.content ?? ''
+    const content = (await ctx.skills.get('office'))?.content ?? ''
     expect(content).toContain('PowerPoint')
     expect(content.length).toBeGreaterThan(0)
     // The bundled skill document no longer interpolates the runtime paths, so only its own content

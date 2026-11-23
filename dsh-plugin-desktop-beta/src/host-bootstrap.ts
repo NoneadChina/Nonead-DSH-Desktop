@@ -18,6 +18,7 @@ import { clearDesktopProfilePreferences, desktopProfilePreferencesFromSettings, 
 import { clearDesktopProfileUsageHistory, type DesktopReleaseUserDataLocations } from './profile-channel-admission.ts'
 import { desktopInstallAnchor, type PreparedDesktopProfile } from './profile.ts'
 import { desktopLanBrowserUrls, desktopListeningPort, desktopLoopbackBrowserUrl } from './desktop-network.ts'
+import { desktopAuthenticatedUrl } from './connection-fence.ts'
 import { DESKTOP_LAN_HTTPS_CA_PATH, type DesktopLanHttpsRuntime } from './lan-https-runtime.ts'
 import type { DesktopBrowserAccess } from './desktop-browser-access.ts'
 import type { DesktopPnpmBootstrap } from './pnpm.ts'
@@ -242,10 +243,11 @@ export async function bootDesktopHost(options: DesktopHostOptions, runtime: Desk
               ? desktopLanBrowserUrls(lan.actualPort, lan.addresses)
               : []
             return {
-              localUrl: hostCtx.connection.authenticatedUrl(
+              localUrl: desktopAuthenticatedUrl(
+                hostCtx,
                 desktopLoopbackBrowserUrl(desktopListeningPort(hostCtx.webServer)),
               ),
-              lanUrls: lanOrigins.map(url => hostCtx.connection.authenticatedUrl(url)),
+              lanUrls: lanOrigins.map(url => desktopAuthenticatedUrl(hostCtx, url)),
               lanState: lan.state,
               lanError: lan.errorCode,
               lanCaFingerprint: lan.caFingerprint,

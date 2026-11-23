@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import ComputerUseRegistry from '@deepseek-ai/dsh-computer-use'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
+import SessionProjection from '@deepseek-ai/dsh-session-projection'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import * as ToolExecutorNative from '@deepseek-ai/dsh-tool-executor-native'
 import { ToolCallId } from '@deepseek-ai/dsh-llm'
@@ -26,6 +27,8 @@ beforeEach(async () => {
   native.call.mockResolvedValue({ rawJson: JSON.stringify({ content: [{ type: 'text', text: 'Actual driver: screen recording denied' }] }) })
   ctx = new Context()
   await ctx.plugin(ComputerUseRegistry)
+  // 0.2.3-alpha.2 的 systemPrompt（进而 tools）依赖 sessionProjections 服务。
+  await ctx.plugin(SessionProjection)
   await ctx.plugin(SystemPrompt)
   await ctx.plugin(ToolRuntime)
   await ctx.plugin(ToolExecutorNative)

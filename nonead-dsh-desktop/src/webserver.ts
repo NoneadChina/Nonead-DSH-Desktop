@@ -100,9 +100,10 @@ export default class NextWebServer extends WebServer {
   private fence(path: string, request: Parameters<WebRoute['handler']>[0], response: Parameters<WebRoute['handler']>[1]): boolean {
     if (!this.requiresSession(path, request.method)) return false
     const connection = this.ctx.get('connection')
-    const rejection = connection === undefined ? 503 : connection.requestRejection(request)
-    if (rejection === undefined) return false
-    this.refuse(response, path, rejection)
+    if (connection === undefined) { this.refuse(response, path, 503); return true }
+    const admission = connection.admit(request)
+    if ('peer' in admission) return false
+    this.refuse(response, path, admission.rejection)
     return true
   }
 
@@ -112,8 +113,12 @@ export default class NextWebServer extends WebServer {
     // `handler is not a function` (400). Resource routes keep their own shape: upstream's
     // `serveResource` resolves the requesting peer before calling them, so the connection
     // fence still applies there.
-    if (!('handler' in route)) return super.register(route)
-    return super.register({ ...route, handler: this.observeHttp(route.path, async (request, response) => {
+    // dsh 0.2.3-alpha.2 makes `auth` default to `required` and asks the `webserver/authorize`
+    // event before every route runs; with no listener the answer is a 503. Desktop routes are
+    // already fenced by `permits()`/`fence()` below, so they opt out of that upstream gate.
+    const auth = route.auth ?? 'anonymous'
+    if (!('handler' in route)) return super.register({ ...route, auth })
+    return super.register({ ...route, auth, handler: this.observeHttp(route.path, async (request, response) => {
       if (!this.permits(request)) { response.writeHead(403, { 'cache-control': 'no-store' }); response.end('Browser access is disabled'); return }
       if (this.fence(route.path, request, response)) return
       await route.handler(request, response)
@@ -140,7 +145,7 @@ export default class NextWebServer extends WebServer {
    */
   override registerFallback(fallback: WebRoute['handler'] | Pick<WebResourceRoute, 'resource'>): () => void {
     const resource = typeof fallback === 'function' ? undefined : fallback.resource
-    return super.registerFallback(this.observeHttp('fallback', async (request, response) => {
+    return super.registerFallback({ auth: 'anonymous', handler: this.observeHttp('fallback', async (request, response) => {
       if (!this.permits(request)) { response.writeHead(403, { 'cache-control': 'no-store' }); response.end('Browser access is disabled'); return }
       if (this.fence(requestPath(request), request, response)) return
       if (resource === undefined) { await (fallback as WebRoute['handler'])(request, response); return }
@@ -153,11 +158,11 @@ export default class NextWebServer extends WebServer {
       if (served === undefined) { response.writeHead(404, { 'cache-control': 'no-store' }); response.end(); return }
       response.writeHead(served.status, Object.fromEntries(served.headers as unknown as Iterable<[string, string]>))
       response.end(request.method === 'HEAD' ? undefined : Buffer.from(await served.arrayBuffer()))
-    }))
+    }) })
   }
 
   override registerUpgrade(route: WebUpgradeRoute): () => void {
-    return super.registerUpgrade({ ...route, handler: (request, socket, head) => {
+    return super.registerUpgrade({ ...route, auth: route.auth ?? 'anonymous', handler: (request, socket, head) => {
       hostLog({ source: 'host.http', event: 'upgrade', fields: { route: route.path }, developer: true })
       if (!this.permits(request)) { socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\nContent-Length: 0\r\n\r\n'); return }
       // An upgrade owns the socket instead of an HTTP response, so the session fence is the

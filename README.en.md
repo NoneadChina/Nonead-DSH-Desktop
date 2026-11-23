@@ -14,7 +14,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-0078D6" alt="Windows, macOS, Linux">
   <img src="https://img.shields.io/badge/Electron-44-47848F?logo=electron&amp;logoColor=white" alt="Electron 44">
-  <img src="https://img.shields.io/badge/DSH%20runtime-0.2.2--rc.5-4B32C3" alt="DSH runtime 0.2.2-rc.5">
+  <img src="https://img.shields.io/badge/DSH%20runtime-0.2.3--alpha.2-4B32C3" alt="DSH runtime 0.2.3-alpha.2">
   <img src="https://img.shields.io/badge/node-%5E22.19%20%7C%20%3E%3D24-339933?logo=node.js&amp;logoColor=white" alt="Node.js">
 </p>
 
@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  Product <code>2.2.15</code> · DSH runtime <code>0.2.2-rc.5</code> · Electron 44 · MIT License
+  Product <code>2.3.2</code> · DSH runtime <code>0.2.3-alpha.2</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">One-click download, ready to use out of the box.</a></h3>
@@ -79,11 +79,11 @@ Shell and Host communicate over exactly one child-process IPC channel. Switching
 
 | Item | Value |
 | --- | --- |
-| Product version | `2.2.15` (`nonead-dsh-desktop` and `dsh-plugin-desktop-beta` in lockstep) |
+| Product version | `2.3.2` (`nonead-dsh-desktop` and `dsh-plugin-desktop-beta` in lockstep) |
 | Stable-channel workspace | `nonead-dsh-desktop` (root scripts use the `:stable` suffix) |
 | Beta-channel workspace | `dsh-plugin-desktop-beta` (root scripts use the `:beta` suffix) |
-| DSH runtime | `0.2.2-rc.5`, every `@deepseek-ai/dsh*` dependency pinned exactly, runtime vendored |
-| Vendored runtime | `vendor/dsh-runtime/0.2.2-rc.5/` (several historical version directories are kept) |
+| DSH runtime | `0.2.3-alpha.2`, every `@deepseek-ai/dsh*` dependency pinned exactly, runtime vendored |
+| Vendored runtime | `vendor/dsh-runtime/0.2.3-alpha.2/` (several historical version directories are kept) |
 | Upstream pin | `9c2670d3bce5275e0d1610272958121af87787bb` (`channels.beta` in `upstream.json`, mirrored in `nonead-dsh-desktop/upstream-reference.json`) |
 | Electron / packager | Electron `44.0.0` / electron-builder `26.15.7` (patched `app-builder-lib`) |
 | Node / Yarn | Node `^22.19.0` or `>=24.0.0`; Yarn `4.18.0` via Corepack (`nodeLinker: node-modules`) |
@@ -91,7 +91,7 @@ Shell and Host communicate over exactly one child-process IPC channel. Switching
 | Remote-control bridge | `@agents-anywhere/dsh-bridge-next` `2.2.0-desktop` (upstream commit `aa12e7a`) |
 | Brand skin | `dsh-nonead-client-skin` (shipped in the installer, mounted per profile) |
 
-`upstream.json` records two vendored runtime lines: `stable` maps to upstream `0.2.0-rc.2` and `beta` to upstream `0.2.2-rc.5`. What actually ships inside an installer is the line a workspace pins exactly — currently both desktop workspaces pin `0.2.2-rc.5`. **Channel names describe runtime lines, not the release channel a workspace queries.**
+`upstream.json` records two vendored runtime lines: `stable` maps to upstream `0.2.0-rc.2` and `beta` to upstream `0.2.3-alpha.2`. What actually ships inside an installer is the line a workspace pins exactly — currently both desktop workspaces pin `0.2.3-alpha.2`. **Channel names describe runtime lines, not the release channel a workspace queries.**
 
 <a id="download"></a>
 

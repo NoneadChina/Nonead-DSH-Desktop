@@ -8,6 +8,7 @@ import { runProfile } from '@deepseek-ai/dsh/profile-boot'
 import type {} from '@deepseek-ai/dsh-client-connection'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import type { PeerId, PeerScope } from '@deepseek-ai/dsh-typert-protocol'
+import { desktopAuthenticatedUrl } from '../../../dsh-plugin-desktop-beta/src/connection-fence.ts'
 import { loadNextProfile, NEXT_PACKAGE, readNextProfilePatches } from '../profiles.ts'
 import { bundledPnpmEntry } from '../extensions.ts'
 import { withDesktopPnpmPolicy } from '../pnpm-policy.ts'
@@ -164,7 +165,7 @@ export async function main(): Promise<void> {
     try { await ctx.plugin(desktopOffice, office); mounted() } catch (error) { mounted(error); throw error }
   }
   hostLog({ source: 'host', event: 'process.ready' })
-  await send({ type: 'ready', url: ctx.connection.authenticatedUrl(`http://127.0.0.1:${ctx.webServer.port}`),
+  await send({ type: 'ready', url: desktopAuthenticatedUrl(ctx, `http://127.0.0.1:${ctx.webServer.port}`),
     injections: ctx.webServer.collectIndexInjections(hostPeer(ctx)) })
   const account = ctx.get('deepseekAccount') as PlatformLoginAccount | undefined
   if (account !== undefined && !stopping) {

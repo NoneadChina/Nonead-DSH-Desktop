@@ -25,7 +25,7 @@ it('applies notification edits through the real Settings and Loader without remo
   writeFileSync(join(dir, 'cordis.yml'), '[]\n')
   const profile: ProfileContext = {
     name: 'test', startedBundles: ['notification-test-bundle'], dir, patchPath: join(dir, 'cordis.patch.yml'),
-    installAnchor: join(home, 'package.json'), cwd: home, home, overlays: [], telemetryDisabledEnv: undefined,
+    installAnchor: join(home, 'package.json'), cwd: home, home, overlayPaths: [], telemetryDisabledEnv: undefined,
   }
   const notifyAttention = vi.fn()
   let jobListener: ((event: unknown) => void) | undefined

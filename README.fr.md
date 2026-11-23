@@ -14,7 +14,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-0078D6" alt="Windows, macOS, Linux">
   <img src="https://img.shields.io/badge/Electron-44-47848F?logo=electron&amp;logoColor=white" alt="Electron 44">
-  <img src="https://img.shields.io/badge/DSH%20runtime-0.2.2--rc.5-4B32C3" alt="DSH runtime 0.2.2-rc.5">
+  <img src="https://img.shields.io/badge/DSH%20runtime-0.2.3--alpha.2-4B32C3" alt="DSH runtime 0.2.3-alpha.2">
   <img src="https://img.shields.io/badge/node-%5E22.19%20%7C%20%3E%3D24-339933?logo=node.js&amp;logoColor=white" alt="Node.js">
 </p>
 
@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  Version du produit <code>2.2.15</code> · Runtime DSH <code>0.2.2-rc.5</code> · Electron 44 · Licence MIT
+  Version du produit <code>2.3.2</code> · Runtime DSH <code>0.2.3-alpha.2</code> · Electron 44 · Licence MIT
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">Téléchargement en un clic, prêt à l’emploi.</a></h3>
@@ -79,11 +79,11 @@ L’enveloppe et le Host ne communiquent que par un unique canal IPC de processu
 
 | Élément | Valeur |
 | --- | --- |
-| Version du produit | `2.2.15` (`nonead-dsh-desktop` et `dsh-plugin-desktop-beta` synchronisés) |
+| Version du produit | `2.3.2` (`nonead-dsh-desktop` et `dsh-plugin-desktop-beta` synchronisés) |
 | Espace de travail du canal stable | `nonead-dsh-desktop` (les scripts racine utilisent le suffixe `:stable`) |
 | Espace de travail du canal Beta | `dsh-plugin-desktop-beta` (les scripts racine utilisent le suffixe `:beta`) |
-| Runtime DSH | `0.2.2-rc.5`, chaque dépendance `@deepseek-ai/dsh*` épinglée exactement, runtime vendored |
-| Runtime vendored | `vendor/dsh-runtime/0.2.2-rc.5/` (plusieurs répertoires de versions historiques sont conservés) |
+| Runtime DSH | `0.2.3-alpha.2`, chaque dépendance `@deepseek-ai/dsh*` épinglée exactement, runtime vendored |
+| Runtime vendored | `vendor/dsh-runtime/0.2.3-alpha.2/` (plusieurs répertoires de versions historiques sont conservés) |
 | Pin en amont | `9c2670d3bce5275e0d1610272958121af87787bb` (`channels.beta` dans `upstream.json`, également consigné dans `nonead-dsh-desktop/upstream-reference.json`) |
 | Electron / outil de packaging | Electron `44.0.0` / electron-builder `26.15.7` (`app-builder-lib` patché) |
 | Node / Yarn | Node `^22.19.0` ou `>=24.0.0` ; Yarn `4.18.0` via Corepack (`nodeLinker: node-modules`) |
@@ -91,7 +91,7 @@ L’enveloppe et le Host ne communiquent que par un unique canal IPC de processu
 | Pont de contrôle à distance | `@agents-anywhere/dsh-bridge-next` `2.2.0-desktop` (commit en amont `aa12e7a`) |
 | Habillage de marque | `dsh-nonead-client-skin` (fourni avec l’installateur, monté par profil) |
 
-`upstream.json` consigne deux lignes de runtime vendored : `stable` correspond à l’amont `0.2.0-rc.2` et `beta` à l’amont `0.2.2-rc.5`. Ce qui est réellement embarqué dans un installateur est la ligne épinglée exactement par un espace de travail — actuellement, les deux espaces de travail de bureau épinglent `0.2.2-rc.5`. **Les noms de canal décrivent des lignes de runtime, pas le canal de publication interrogé par un espace de travail.**
+`upstream.json` consigne deux lignes de runtime vendored : `stable` correspond à l’amont `0.2.0-rc.2` et `beta` à l’amont `0.2.3-alpha.2`. Ce qui est réellement embarqué dans un installateur est la ligne épinglée exactement par un espace de travail — actuellement, les deux espaces de travail de bureau épinglent `0.2.3-alpha.2`. **Les noms de canal décrivent des lignes de runtime, pas le canal de publication interrogé par un espace de travail.**
 
 <a id="download"></a>
 

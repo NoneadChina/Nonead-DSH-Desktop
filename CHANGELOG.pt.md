@@ -13,6 +13,18 @@ Convenções de manutenção:
 - As entradas registram apenas mudanças que os usuários percebem e mudanças de limite que os mantenedores precisam conhecer; refatorações puras não ganham entrada própria.
 - O histórico anterior está nas tags do Git (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) e no log de commits.
 
+## 2.3.2 — 2026-11-23
+
+Uma versão focada em acompanhar o kernel e as suas dependências incluídas:
+
+- Runtime: o DSH sobe para `0.2.3-alpha.2`, o pin de origem passa a `4b399c39a6d1479cd84ca591b4d7c88e24d38a96` e o runtime incluído é reempacotado em 398 pacotes. A origem acrescenta `dsh-cua-mcp`, `dsh-timeline`, `dsh-client-config`, `dsh-client-script-realm` e remove `dsh-personalized-recommendations`, pelo que as dependências dos dois espaços de trabalho e os avisos de terceiros acompanham; a família `@deepseek-ai/cordis` alinha em 4.2.0-alpha.1 e o `schemastery` em 3.20.0-alpha.1.
+- Personalização: os patches de artefactos passam de 24 para 23. A origem já limpa `ELECTRON_RUN_AS_NODE`, pelo que o patch de `dsh-host-open-in-app` é removido; os restantes são rebaseados nos novos artefactos, a barra de deslocamento das tabelas Markdown passa a um estilo inline sem hover e a marca do ecrã de arranque diz `NONEAD DEEPSEEK HARNESS`.
+- Interfaces: o handle de ligação já não expõe `authenticatedUrl` nem `requestRejection`; o desktop lê `webserver/entry-url` e chama `admit()`. O `overlays` do contexto de perfil integra-se nos `overlayPaths` e `readPatches` nativos, as rotas web exigem autenticação por omissão, as rotas próprias do desktop declaram-se anónimas e mantêm as verificações locais, e as rotas de abertura de aplicações exigem identidade de proprietário.
+- Mercado incluído: `dshmarket` passa de 1.73.21 para 1.80.0 e os três pontos de injeção do patch de autoatualização são reescritos para a nova estrutura `inventory()`/`check()`; o slot de definições passa de `settings.plugins.tab` para `settings.section`, com página e testes atualizados.
+- Compatibilidade: a ponte AA incluída é reconstruída a partir do commit upstream `02f04aae` com peers `0.2.3-alpha.2` (`2.2.0-desktop.c02f04aae5bb6.r7d47d227`); o patch do connector aplica sem alterações.
+- Portões: typecheck, testes (1845 casos em beta, 320 no mercado, 729 em nonead) e build verdes.
+- Versão: produto 2.2.15 → **2.3.2** (ambos os espaços de trabalho).
+
 ## 2.2.15 — 2026-11-19
 
 Uma versão focada no acompanhamento do runtime e das dependências embarcadas:

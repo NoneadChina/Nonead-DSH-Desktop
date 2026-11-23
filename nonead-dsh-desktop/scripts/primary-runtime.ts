@@ -321,7 +321,7 @@ export function smokePrimaryRuntime(root: string, options: PrimaryRuntimeSmokeOp
   }
   run(entries.python, ['-I', '-B', '-c', 'import decimal, xml.parsers.expat, lzma, uuid, numpy, pandas; assert numpy.arange(4).sum() == 6; assert pandas.DataFrame({"n": [1, 2]}).n.sum() == 3'])
   run(entries.python, ['-I', '-B', join(UPSTREAM_PRIMARY_RUNTIME, 'smoke.py'), JSON.stringify(manifest.pythonPackages),
-    manifest.python, join(dirname(root), 'office-skills', 'scripts', 'check_office.py')])
+    manifest.python])
   run(entries.python, ['-I', '-B', '-m', 'pip', 'check'])
   run(entries.node, ['-e', `if (process.versions.node !== ${JSON.stringify(manifest.node)}) process.exit(1)`])
   run(entries.node, [entries.pnpm, '--version'])

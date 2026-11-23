@@ -91,6 +91,8 @@ function fixture() {
     install: { open: false } }
   const item = { id: 'nonead-dsh-desktop-computer-use', label: 'Computer Use' }
   const ledger = { items: [item], bundles: new Set([remote.name]), rows: new Set(),
+    // 0.2.3-alpha.2 的 ConfigLedger 新增 sections（settings.section 投影），页面会 filter 它。
+    sections: [] as { id: string; label: string }[],
     hiddenBundles: new Set([remote.name]), hiddenItems: new Set([item.id]) }
   let overview: { onOpenBundle(name: string): void; onOpenItem(id: string): void }
   const setEnabled = vi.fn()
@@ -105,6 +107,9 @@ function fixture() {
     useBundleDetails: (select: (snapshot: unknown) => unknown) => select({}),
     // 0.2.2-alpha.2 的页面还通过 useLocale 读当前语言快照。
     useLocale: (select: (snapshot: unknown) => unknown) => select({ active: "en", available: [] }),
+    // 0.2.3-alpha.2 的页面新增 ClientSyncNotice，通过 useClientSync 读模块系统同步快照。
+    useClientSync: (select: (snapshot: unknown) => unknown) => select({ syncing: false, failures: [] }),
+    retryClient: vi.fn(),
     renderSlot: (name: string, owner: Record<string, unknown>, options?: unknown) => {
       if (name === 'plugins.overview') overview = owner as typeof overview
       return jsx('slot', { name, owner, options })

@@ -48,8 +48,11 @@ try {
   const auth = runtime.auth
   if (!auth) throw new Error('Packaged Host reported ready without native credentials')
   // Only the native capability passes the request gate; a bare loopback browser request is refused.
+  // The desktop gate answers 403, and from 0.2.3 the host-wide Connection fence admits requests
+  // before any handler runs, so an unauthenticated browser can also receive its 401 challenge first.
+  // Either status proves the application itself stays closed to ordinary browsers.
   const response = await fetch(new URL(auth.url).origin)
-  if (response.status !== 403) throw new Error(`Packaged Host exposed the application to ordinary browsers: HTTP ${String(response.status)}`)
+  if (response.status !== 403 && response.status !== 401) throw new Error(`Packaged Host exposed the application to ordinary browsers: HTTP ${String(response.status)}`)
   await response.body?.cancel()
   // Diagnostics export runs a worker thread from the archive.
   const report = join(home, 'diagnostics.json')

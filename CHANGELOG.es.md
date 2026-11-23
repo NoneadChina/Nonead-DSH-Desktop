@@ -13,6 +13,18 @@ Convenciones de mantenimiento:
 - Las entradas solo recogen los cambios que el usuario puede percibir y los cambios de límites que los mantenedores deben conocer; las refactorizaciones puras no tienen entrada propia.
 - El historial anterior está en las etiquetas de Git (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) y en el registro de confirmaciones.
 
+## 2.3.2 — 2026-11-23
+
+Una versión centrada en seguir el núcleo y sus dependencias incluidas:
+
+- Runtime: DSH sube a `0.2.3-alpha.2`, el pin de origen pasa a `4b399c39a6d1479cd84ca591b4d7c88e24d38a96` y el runtime incluido se reempaqueta en 398 paquetes. El origen añade `dsh-cua-mcp`, `dsh-timeline`, `dsh-client-config`, `dsh-client-script-realm` y elimina `dsh-personalized-recommendations`, por lo que las dependencias de ambos espacios de trabajo y los avisos de terceros se ajustan a la vez; la familia `@deepseek-ai/cordis` se alinea con 4.2.0-alpha.1 y `schemastery` con 3.20.0-alpha.1.
+- Personalización: los parches de artefactos pasan de 24 a 23. El origen ya limpia `ELECTRON_RUN_AS_NODE`, así que se elimina el parche de `dsh-host-open-in-app`; el resto se rebasa sobre los nuevos artefactos, la barra de desplazamiento de las tablas Markdown pasa a un estilo en línea sin hover y la marca de la pantalla de inicio dice `NONEAD DEEPSEEK HARNESS`.
+- Interfaces: el manejador de conexión ya no expone `authenticatedUrl` ni `requestRejection`; el escritorio lee `webserver/entry-url` y llama a `admit()`. El `overlays` del contexto de perfil se integra en `overlayPaths` y `readPatches` nativos, las rutas web exigen autenticación por defecto, las rutas propias del escritorio se declaran anónimas y conservan sus comprobaciones locales, y las rutas de apertura de aplicaciones requieren identidad de propietario.
+- Mercado incluido: `dshmarket` pasa de 1.73.21 a 1.80.0 y los tres puntos de inyección del parche de autoactualización se reescriben para la nueva estructura `inventory()`/`check()`; la ranura de ajustes pasa de `settings.plugins.tab` a `settings.section`, con la página y sus pruebas actualizadas.
+- Compatibilidad: el puente AA incluido se reconstruye desde el commit upstream `02f04aae` con peers `0.2.3-alpha.2` (`2.2.0-desktop.c02f04aae5bb6.r7d47d227`); el parche del connector se aplica sin cambios.
+- Puertas: typecheck, pruebas (1845 casos en beta, 320 en el mercado, 729 en nonead) y compilación en verde.
+- Versión: producto 2.2.15 → **2.3.2** (ambos espacios de trabajo).
+
 ## 2.2.15 — 2026-11-19
 
 Una versión centrada en el seguimiento del runtime y de las dependencias incluidas:

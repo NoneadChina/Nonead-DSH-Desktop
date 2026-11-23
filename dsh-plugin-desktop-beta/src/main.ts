@@ -72,6 +72,7 @@ import {
   desktopListeningPort,
   desktopLoopbackBrowserUrl,
 } from './desktop-network.ts'
+import { desktopAuthenticatedUrl } from './connection-fence.ts'
 import { desktopLanAddresses } from './lan-addresses.ts'
 import {
   buildDesktopProxyOverlay,
@@ -1826,10 +1827,11 @@ async function start(): Promise<void> {
                 ? desktopLanBrowserUrls(lan.actualPort, lan.addresses)
                 : []
               return {
-                localUrl: hostCtx.connection.authenticatedUrl(
+                localUrl: desktopAuthenticatedUrl(
+                  hostCtx,
                   desktopLoopbackBrowserUrl(desktopListeningPort(hostCtx.webServer)),
                 ),
-                lanUrls: lanOrigins.map(url => hostCtx.connection.authenticatedUrl(url)),
+                lanUrls: lanOrigins.map(url => desktopAuthenticatedUrl(hostCtx, url)),
                 lanState: lan.state,
                 lanError: lan.errorCode,
                 lanCaFingerprint: lan.caFingerprint,

@@ -163,8 +163,9 @@ export function verifyDesktopRuntimeTree(runtimeRoot: string, platform: NodeJS.P
       }
     }
     const skills = officeSkillsDirectory(runtimeRoot, arch)
-    requireFile(join(skills, 'scripts', 'check_office.py'), `${arch} Office checker`)
-    for (const skill of ['office-docx', 'office-pptx', 'office-xlsx']) requireFile(join(skills, skill, 'SKILL.md'), `${arch} ${skill} skill`)
+    // 0.2.3-alpha.2 folds the three Office skills into one consolidated `office` skill and drops the
+    // legacy `scripts/check_office.py` helper, so verify the resources this line actually ships.
+    requireFile(join(skills, 'office', 'SKILL.md'), `${arch} office skill`)
     verified.push({ arch, directory, manifest })
   }
   return verified

@@ -14,7 +14,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-0078D6" alt="Windows, macOS, Linux">
   <img src="https://img.shields.io/badge/Electron-44-47848F?logo=electron&amp;logoColor=white" alt="Electron 44">
-  <img src="https://img.shields.io/badge/DSH%20runtime-0.2.2--rc.5-4B32C3" alt="DSH runtime 0.2.2-rc.5">
+  <img src="https://img.shields.io/badge/DSH%20runtime-0.2.3--alpha.2-4B32C3" alt="DSH runtime 0.2.3-alpha.2">
   <img src="https://img.shields.io/badge/node-%5E22.19%20%7C%20%3E%3D24-339933?logo=node.js&amp;logoColor=white" alt="Node.js">
 </p>
 
@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  Версия продукта <code>2.2.15</code> · среда выполнения DSH <code>0.2.2-rc.5</code> · Electron 44 · MIT License
+  Версия продукта <code>2.3.2</code> · среда выполнения DSH <code>0.2.3-alpha.2</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">Скачайте в один клик — готово к работе.</a></h3>
@@ -79,11 +79,11 @@ Nonead DSH Desktop объединяет локальный Web UI, службу 
 
 | Пункт | Значение |
 | --- | --- |
-| Версия продукта | `2.2.15` (`nonead-dsh-desktop` и `dsh-plugin-desktop-beta` синхронно) |
+| Версия продукта | `2.3.2` (`nonead-dsh-desktop` и `dsh-plugin-desktop-beta` синхронно) |
 | Рабочее пространство стабильного канала | `nonead-dsh-desktop` (корневые скрипты с суффиксом `:stable`) |
 | Рабочее пространство бета-канала | `dsh-plugin-desktop-beta` (корневые скрипты с суффиксом `:beta`) |
-| Среда выполнения DSH | `0.2.2-rc.5`, все зависимости `@deepseek-ai/dsh*` закреплены точно, среда выполнения хранится в репозитории (vendored) |
-| Vendored-среда выполнения | `vendor/dsh-runtime/0.2.2-rc.5/` (сохраняются каталоги и нескольких прошлых версий) |
+| Среда выполнения DSH | `0.2.3-alpha.2`, все зависимости `@deepseek-ai/dsh*` закреплены точно, среда выполнения хранится в репозитории (vendored) |
+| Vendored-среда выполнения | `vendor/dsh-runtime/0.2.3-alpha.2/` (сохраняются каталоги и нескольких прошлых версий) |
 | Пин апстрима | `9c2670d3bce5275e0d1610272958121af87787bb` (`channels.beta` в `upstream.json`, продублирован в `nonead-dsh-desktop/upstream-reference.json`) |
 | Electron / упаковщик | Electron `44.0.0` / electron-builder `26.15.7` (`app-builder-lib` с патчем) |
 | Node / Yarn | Node `^22.19.0` или `>=24.0.0`; Yarn `4.18.0` через Corepack (`nodeLinker: node-modules`) |
@@ -91,7 +91,7 @@ Nonead DSH Desktop объединяет локальный Web UI, службу 
 | Мост удалённого управления | `@agents-anywhere/dsh-bridge-next` `2.2.0-desktop` (коммит апстрима `aa12e7a`) |
 | Фирменная тема оформления | `dsh-nonead-client-skin` (поставляется в установщике, подключается для каждого профиля) |
 
-`upstream.json` фиксирует две линии среды выполнения: `stable` соответствует апстриму `0.2.0-rc.2`, `beta` — `0.2.2-rc.5`. В установщик попадает та линия, которую рабочее пространство закрепляет точно, — сейчас оба настольных рабочих пространства закреплены на `0.2.2-rc.5`. **Названия каналов описывают линии среды выполнения, а не канал выпуска, к которому обращается рабочее пространство.**
+`upstream.json` фиксирует две линии среды выполнения: `stable` соответствует апстриму `0.2.0-rc.2`, `beta` — `0.2.3-alpha.2`. В установщик попадает та линия, которую рабочее пространство закрепляет точно, — сейчас оба настольных рабочих пространства закреплены на `0.2.3-alpha.2`. **Названия каналов описывают линии среды выполнения, а не канал выпуска, к которому обращается рабочее пространство.**
 
 <a id="download"></a>
 

@@ -83,7 +83,10 @@ Function dsh_CloseRunningApp
     Goto dsh_close_done
   ${endIf}
 
-  IfFileExists "$INSTDIR\$dshTargetExe" 0 dsh_close_force
+  ; 目录里没有我们的主程序：说明这个安装位置根本没装过（典型是首次安装，
+  ; 或打包机上装了另一份到别的目录）。此时按进程名强杀会误伤同名的其它实例，
+  ; 所以直接判定“无需关闭”，绝不进入 kill 分支。
+  IfFileExists "$INSTDIR\$dshTargetExe" 0 dsh_close_done
 
   DetailPrint "$(appClosing)"
   ; 用 Exec 而不是 ExecWait：旧版本若忽略该参数会启动一个新窗口，ExecWait 会永远等下去。
@@ -101,7 +104,8 @@ Function dsh_CloseRunningApp
       Goto dsh_close_wait_graceful
     ${endIf}
 
-  dsh_close_force:
+  ; 等满 30 秒仍未退出：从上面的循环自然落入这里强杀。
+  ; 这里不再有 Goto 指向，若保留标签会被 -WX 判成 warning 6012，故只留代码。
     DetailPrint "$(appClosing)"
     nsProcess::_KillProcess /NOUNLOAD "$dshTargetExe"
     Pop $0
@@ -150,7 +154,9 @@ Function un.dsh_CloseRunningApp
     Goto un_dsh_close_done
   ${endIf}
 
-  IfFileExists "$INSTDIR\$dshTargetExe" 0 un_dsh_close_force
+  ; 同安装器：主程序已不在这个目录里，就没有“正在运行的旧实例”需要关闭；
+  ; 按进程名强杀会误伤从其它目录运行的同名实例。
+  IfFileExists "$INSTDIR\$dshTargetExe" 0 un_dsh_close_done
 
   DetailPrint "$(appClosing)"
   Exec '"$INSTDIR\$dshTargetExe" --dsh-installer-quit'
@@ -167,7 +173,7 @@ Function un.dsh_CloseRunningApp
       Goto un_dsh_close_wait_graceful
     ${endIf}
 
-  un_dsh_close_force:
+  ; 同上：等满 30 秒仍未退出，从循环自然落入强杀，标签会触发 -WX 的 6012 警告。
     DetailPrint "$(appClosing)"
     nsProcess::_KillProcess /NOUNLOAD "$dshTargetExe"
     Pop $0
@@ -341,20 +347,33 @@ FunctionEnd
         Call dsh_AdoptInstallDir
       ${EndIf}
 
+      ; Inno 路线（2.2.13 及更早）是 32 位安装器，卸载键落在 WOW6432Node；
+      ; .onInit 里 check64BitAndSetRegView 已把视图切到 64 位，直接读会读空，
+      ; 所以这里临时切回 32 位视图，读完再恢复。
       ${If} $R2 == 0
+        ${If} ${RunningX64}
+        ${OrIf} ${IsNativeARM64}
+          SetRegView 32
+        ${EndIf}
+
         ReadRegStr $R1 HKLM "${DSH_INNO_UNINSTALL_KEY}" "InstallLocation"
         ${If} $R1 == ""
           ReadRegStr $R1 HKLM "${DSH_INNO_UNINSTALL_KEY}" "Inno Setup: App Path"
         ${EndIf}
         Call dsh_AdoptInstallDir
-      ${EndIf}
 
-      ${If} $R2 == 0
-        ReadRegStr $R1 HKCU "${DSH_INNO_UNINSTALL_KEY}" "InstallLocation"
-        ${If} $R1 == ""
-          ReadRegStr $R1 HKCU "${DSH_INNO_UNINSTALL_KEY}" "Inno Setup: App Path"
+        ${If} $R2 == 0
+          ReadRegStr $R1 HKCU "${DSH_INNO_UNINSTALL_KEY}" "InstallLocation"
+          ${If} $R1 == ""
+            ReadRegStr $R1 HKCU "${DSH_INNO_UNINSTALL_KEY}" "Inno Setup: App Path"
+          ${EndIf}
+          Call dsh_AdoptInstallDir
         ${EndIf}
-        Call dsh_AdoptInstallDir
+
+        ${If} ${RunningX64}
+        ${OrIf} ${IsNativeARM64}
+          SetRegView 64
+        ${EndIf}
       ${EndIf}
 
       ; 注册表指向的目录已经没有主程序（卸载残留 / 手工删除）：回到默认位置。

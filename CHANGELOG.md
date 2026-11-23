@@ -13,6 +13,18 @@
 - 条目只写"用户能感知的变化"与"维护者必须知道的边界变化"；纯重构不单独成条。
 - 更早的历史见 Git 标签（`v1.7.3`、`v2.0.7`、`v2.0.8`、`v2.1.3`、`v2.1.4`、`v2.1.5`）与提交记录。
 
+## 2.3.2 — 2026-11-23
+
+一次以内核与随包依赖跟进为主的发布：
+
+- 运行时：DSH 升级到 `0.2.3-alpha.2`，上游 pin 改为 `4b399c39a6d1479cd84ca591b4d7c88e24d38a96`，预置运行时重新打包为 398 个包。上游新增 `dsh-cua-mcp`、`dsh-timeline`、`dsh-client-config`、`dsh-client-script-realm` 等包并删除 `dsh-personalized-recommendations`，两个桌面工作区的依赖与第三方公告同步调整；`@deepseek-ai/cordis` 家族对齐到 4.2.0-alpha.1、`schemastery` 到 3.20.0-alpha.1。
+- 桌面定制：构建产物补丁由 24 个变为 23 个。`dsh-host-open-in-app` 的环境变量清理已被上游接管，其补丁删除；其余补丁全部重定基到新产物，Markdown 表格的横向滚动条改为不依赖悬停的内联样式，启动屏品牌词改为 `NONEAD DEEPSEEK HARNESS`。
+- 桌面接口适配：连接句柄不再提供 `authenticatedUrl` 与 `requestRejection`，改用 `webserver/entry-url` 事件与 `admit()`；配置上下文的 `overlays` 并入上游原生的 `overlayPaths` 与 `readPatches`；Web 路由默认要求认证，桌面自管路由显式声明匿名并保留本地能力校验，外部应用跳转路由要求 owner 身份。
+- 随包市场：`dshmarket` 由 1.73.21 升到 1.80.0，自更新补丁的三处注入点按 `inventory()`/`check()` 新结构重写；设置页槽位由 `settings.plugins.tab` 改为 `settings.section`，页面与测试同步更新。
+- 兼容性：随包的 AA 桥按上游提交 `02f04aae` 以 `0.2.3-alpha.2` peers 重建（`2.2.0-desktop.c02f04aae5bb6.r7d47d227`）；connector 补丁对新产物无需改动。
+- 门禁：typecheck、测试（beta 1845 个用例、市场 320 个、nonead 729 个）与构建全绿。
+- 版本号：产品 2.2.15 → **2.3.2**（两个桌面工作区同步）。
+
 ## 2.2.15 — 2026-11-19
 
 一次以内核与随包依赖跟进为主的发布：

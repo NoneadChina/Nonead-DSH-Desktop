@@ -311,21 +311,26 @@ describe('published package surface', () => {
     const patchPath = `./patches/dsh-client-ui-primitives@${runtimeVersion}.patch`
     expect(dshResolution('@deepseek-ai/dsh-client-ui-primitives')).toContain(patchPath)
     const patch = readFileSync(new URL(patchPath, workspaceRoot), 'utf8')
+    // Upstream inlines module CSS into the client bundle, so the styles are read
+    // from `lib/index.js` instead of a standalone `MarkdownText.module.css`.
     const installedStyles = readFileSync(new URL(
-      'node_modules/@deepseek-ai/dsh-client-ui-primitives/lib/markdown/MarkdownText.module.css',
+      'node_modules/@deepseek-ai/dsh-client-ui-primitives/lib/index.js',
       packageRoot,
     ), 'utf8')
     for (const styles of [patch, installedStyles]) {
-      expect(styles).toContain('overflow-x: auto;')
-      expect(styles).toContain('scrollbar-width: thin;')
-      expect(styles).toContain('::-webkit-scrollbar-thumb')
-      expect(styles).toContain('height: 8px;')
-      expect(styles).toContain('background: var(--dsw-alias-label-tertiary, #9098a3);')
+      expect(styles).toContain(
+        'overflow-x:auto;scrollbar-width:thin;scrollbar-color:var(--dsw-alias-label-tertiary,#9098a3) transparent',
+      )
+      expect(styles).toContain('::-webkit-scrollbar{height:8px}')
+      expect(styles).toContain(
+        '::-webkit-scrollbar-thumb{border-radius:4px;background:var(--dsw-alias-label-tertiary,#9098a3)}',
+      )
+      expect(styles).toContain(
+        '::-webkit-scrollbar-thumb:hover{background:var(--dsw-alias-label-secondary,#c9ced8)}',
+      )
     }
-    expect(installedStyles).not.toContain('overflow-x: hidden;')
-    expect(installedStyles).not.toMatch(
-      /\.tableScroll:global\(\.md-table-wide\):hover,[\s\S]*?overflow-x: auto;/u,
-    )
+    expect(installedStyles).not.toContain('overflow-x:hidden')
+    expect(installedStyles).not.toContain('.md-table-wide:hover{padding-bottom:0;overflow-x:scroll}')
   })
 
   // The `dsh-settings` compatibility patch is not forward-ported to
