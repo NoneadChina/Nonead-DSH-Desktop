@@ -7,16 +7,19 @@ import { loadLayeredEnv } from '@deepseek-ai/dsh-app-boot'
 import { runProfile } from '@deepseek-ai/dsh/profile-boot'
 import type {} from '@deepseek-ai/dsh-client-connection'
 import type {} from '@deepseek-ai/dsh-host-webserver'
+import * as DesktopAuthentication from '@deepseek-ai/dsh-host-authentication-desktop'
 import type { PeerId, PeerScope } from '@deepseek-ai/dsh-typert-protocol'
 import { loadNextProfile, NEXT_PACKAGE, readNextProfilePatches } from '../profiles.ts'
 import { bundledPnpmEntry } from '../extensions.ts'
 import { withDesktopPnpmPolicy } from '../pnpm-policy.ts'
 import { configureNextBrowserAccess } from '../desktop-browser-access.ts'
 import { readRendererCredential } from './credential.ts'
+import { receiveDesktopSecret } from './authentication.ts'
 import { parsePreferences } from '../desktop-preferences.ts'
 import { atomicJson } from '../private-files.ts'
 import { existingPath, LEGACY } from '../legacy-names.ts'
 import type NextWebServer from '../webserver.ts'
+import { nextBrowserLoginUrl } from '../webserver.ts'
 import { disableAsarArchiveView, unpackedPath } from '../asar-archive-policy.ts'
 import { maskSecrets } from '../mask-secrets.ts'
 import { parseSystemProxyProbe, SYSTEM_PROXY_ENV, withSystemProxy } from '../system-proxy.ts'
@@ -36,6 +39,10 @@ export async function main(): Promise<void> {
   const primaryRuntime = process.argv[4]
   const home = process.env.DSH_HOME
   if (!runtimeDir || !projectDir || !home || !process.send) throw new Error('Next Host requires runtime, profile, home and IPC')
+  // The Desktop parent hands over its private session credential on the IPC channel; the receiver
+  // must exist before the profile mounts plugins, because the parent sends it as soon as the
+  // channel opens and Node buffers an early message until a listener appears.
+  const desktopSession = receiveDesktopSecret(process)
   // The renderer credential arrives on the private stdin pipe the launcher writes and closes;
   // it never travels in the environment, where any same-user process could read it.
   const rendererCredential = await readRendererCredential()
@@ -79,6 +86,8 @@ export async function main(): Promise<void> {
   for (const line of [proxy.summary, ...proxy.diagnostics]) process.stderr.write(`nonead-dsh-desktop: ${maskSecrets(line)}\n`)
   // The Web server renders its injection table per Peer; the Host's startup snapshot speaks for the owner.
   const hostPeerSignal = new AbortController().signal
+  // The Peer the parent's session credential admits, once it has been verified below.
+  let desktopPeer: PeerScope | undefined
   const hostPeer = (ctx: Parameters<typeof auditHostPlugins>[0]): PeerScope => ({
     id: 'desktop-host' as PeerId,
     ctx,
@@ -134,7 +143,7 @@ export async function main(): Promise<void> {
       if (!Number.isSafeInteger(query.requestId)) return
       void application.then(async ({ ctx }) => {
         if (stopping) throw new Error('Next Host is stopping')
-        await send({ type: 'injections', requestId: query.requestId, injections: ctx.webServer.collectIndexInjections(hostPeer(ctx)) })
+        await send({ type: 'injections', requestId: query.requestId, injections: ctx.webServer.collectIndexInjections(desktopPeer ?? hostPeer(ctx)) })
       }).catch(async () => { await send({ type: 'injections', requestId: query.requestId, error: 'Could not collect Web boot injections' }) }).catch(fatal)
       return
     }
@@ -158,9 +167,21 @@ export async function main(): Promise<void> {
     const mounted = hostOperation('host', 'office.mount', { source: office.source })
     try { await ctx.plugin(desktopOffice, office); mounted() } catch (error) { mounted(error); throw error }
   }
+  // The Desktop model of dsh 0.2.3: the parent process owns one session credential, and this Host
+  // only verifies it. There is no launch token to publish, so the root URL is handed over bare and
+  // the shell authenticates with the cookie the parent already holds.
+  const sessionSecret = await desktopSession.secret
+  const sessionMounted = hostOperation('host', 'authentication.mount')
+  try { await ctx.plugin(DesktopAuthentication, { readSecret: () => sessionSecret }); sessionMounted() } catch (error) { sessionMounted(error); throw error }
+  const admission = ctx.connection.authentication.authenticate({ headers: { cookie: `dsh-desktop-session=${sessionSecret}` } })
+  if ('rejection' in admission) throw new Error('Desktop authentication provider did not accept its session credential')
+  desktopPeer = admission.peer
+  const hostRoot = `${ctx.webServer.protocol}//127.0.0.1:${String(ctx.webServer.port)}/`
   hostLog({ source: 'host', event: 'process.ready' })
-  await send({ type: 'ready', url: ctx.connection.authenticatedUrl(`http://127.0.0.1:${ctx.webServer.port}`),
-    injections: ctx.webServer.collectIndexInjections(hostPeer(ctx)) })
+  await send({ type: 'ready', url: hostRoot,
+    // Kept separate from `url`: only a browser needs the token-bearing login address.
+    browserUrl: nextBrowserLoginUrl(ctx, hostRoot),
+    injections: ctx.webServer.collectIndexInjections(admission.peer) })
   const account = ctx.get('deepseekAccount') as PlatformLoginAccount | undefined
   if (account !== undefined && !stopping) {
     // A broken watcher only loses the automatic browser hand-off; the dialog still offers the link.

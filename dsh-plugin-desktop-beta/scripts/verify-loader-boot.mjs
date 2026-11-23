@@ -13,6 +13,7 @@ import {
 import { installDesktopPnpmRuntime } from '../lib/desktop-runtime-environment.js'
 import { installProfilePackageResolver } from '../lib/module-resolution.js'
 import { prepareDesktopProfile } from '../lib/profile.js'
+import { desktopSessionSecret } from '../lib/desktop-network.js'
 
 const BIN_NAME = 'dsh-plugin-desktop-loader-smoke'
 const THIRD_PARTY_NAME = 'dsh-desktop-loader-smoke-plugin'
@@ -43,7 +44,8 @@ const LAN_HTTPS = Object.freeze({
   async setEnabled() { return LAN_HTTPS_SNAPSHOT },
   async stop() { return LAN_HTTPS_SNAPSHOT },
 })
-const AUTHENTICATION_TOKEN = Buffer.alloc(32, 3).toString('base64url')
+/** The credential the launcher mounts, compared against what the shell spec carried. */
+const sessionSecret = desktopSessionSecret()
 const RUNNER_ENVIRONMENT_NAMES = new Set([
   'ELECTRON_RUN_AS_NODE',
   'NPM_CONFIG_RUNTIME',
@@ -157,19 +159,15 @@ try {
       host.provide('desktopBrowserAccess', BROWSER_ACCESS)
       host.provide('desktopLanHttps', LAN_HTTPS)
       host.provide('desktopRuntime', runtime)
+      // The stub connection carries no authentication provider, so the session
+      // credential is exposed directly instead of being mounted behind one.
+      host.provide('desktopSessionSecret', Object.freeze({ secret: sessionSecret }))
       host.provide('webServer', {
         host: '127.0.0.1',
         port: 43120,
         register() { return () => {} },
       })
       host.provide('connection', {
-        authenticatedUrl(baseUrl) {
-          const url = new URL(baseUrl)
-          url.pathname = '/'
-          url.search = ''
-          url.searchParams.set('token', AUTHENTICATION_TOKEN)
-          return url.href
-        },
         requestRejection() { return undefined },
       })
       host.provide('webRuntime', {})
@@ -208,11 +206,15 @@ try {
   if (mountedSpec?.url !== expectedUrl) {
     throw new Error(`desktop plugin produced an unexpected renderer URL: ${String(mountedSpec?.url)}`)
   }
-  const expectedAuthenticationUrl = `http://127.0.0.1:43120/?token=${AUTHENTICATION_TOKEN}`
+  // The window exchanges its session cookie for the document at the Host root.
+  const expectedAuthenticationUrl = 'http://127.0.0.1:43120/'
   if (mountedSpec?.authenticationUrl !== expectedAuthenticationUrl) {
     throw new Error(
       `desktop plugin produced an unexpected authentication URL: ${String(mountedSpec?.authenticationUrl)}`,
     )
+  }
+  if (mountedSpec?.sessionSecret !== sessionSecret) {
+    throw new Error('desktop plugin did not carry the session secret the launcher mounted')
   }
   if (mountedSpec?.rendererAccessHeader !== BROWSER_ACCESS.rendererHeader) {
     throw new Error('desktop plugin did not preserve the launcher browser capability')

@@ -37,6 +37,7 @@ import { DesktopRendererRecovery } from './renderer-recovery.ts'
 import { PlatformLoginWindow } from './platform-login-window.ts'
 import { RENDERER_SURFACE_PROBE, RendererSurfaceWatchdog } from './renderer-surface-watchdog.ts'
 import type { DesktopRendererAccessHeader } from './desktop-browser-access.ts'
+import { DESKTOP_SESSION_COOKIE } from './desktop-network.ts'
 import {
   fitMainWindowBounds,
   sameMainWindowBounds,
@@ -65,10 +66,12 @@ function pairedWebSocketOrigin(origin: string): string {
 }
 
 /**
- * Exchange the upstream process token inside the BrowserWindow's own
- * persistent session before its marker-bearing renderer URL is loaded.
- * Keeping the exchange separate preserves the Desktop query markers across
- * the upstream redirect and keeps the launch token out of renderer history.
+ * Install the desktop session credential inside the BrowserWindow's own
+ * persistent session before its marker-bearing renderer URL is loaded. The
+ * upstream process token exchange needs a browser round trip; the desktop
+ * session cookie carries the credential the host's authentication provider
+ * verifies, so the window can request the document directly and keeps the
+ * secret out of renderer history.
  */
 async function authenticateRendererSession(
   renderer: WebContents,
@@ -78,6 +81,15 @@ async function authenticateRendererSession(
   const headers = {
     [spec.rendererAccessHeader.name]: spec.rendererAccessHeader.value,
   }
+  await traceRendererBootStage('authentication-cookie', async () => {
+    await session.cookies.set({
+      url: new URL('/', spec.authenticationUrl).href,
+      name: DESKTOP_SESSION_COOKIE,
+      value: spec.sessionSecret,
+      httpOnly: true,
+      sameSite: 'lax',
+    })
+  })
   const authenticated = await traceRendererBootStage('authentication-request', () => session.fetch(spec.authenticationUrl, {
     method: 'GET',
     credentials: 'include',

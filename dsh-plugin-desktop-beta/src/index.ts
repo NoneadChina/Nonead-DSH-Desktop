@@ -103,10 +103,15 @@ function rejectDesktopRequest(
   req: IncomingMessage,
   res: ServerResponse,
 ): boolean {
-  const rejection = ctx.connection.requestRejection(req)
-  if (rejection === undefined) return false
-  res.writeHead(rejection)
-  res.end(rejection === 401 ? 'unauthorized' : 'forbidden')
+  const admission = ctx.connection.admit(req)
+  if ('peer' in admission) return false
+  const label = admission.rejection === 401
+    ? 'unauthorized'
+    : admission.rejection === 503
+      ? 'unavailable'
+      : 'forbidden'
+  res.writeHead(admission.rejection)
+  res.end(label)
   return true
 }
 
@@ -169,6 +174,11 @@ export function apply(ctx: Context, config: DesktopShellConfig): void {
   if (lanHttps === undefined) {
     throw new Error('dsh-plugin-desktop: the launcher did not provide ctx.desktopLanHttps')
   }
+  // The window's only renderer credential; the launcher mounts the provider that admits it.
+  const desktopSession = ctx.get('desktopSessionSecret')
+  if (desktopSession === undefined) {
+    throw new Error('dsh-plugin-desktop: the launcher did not provide ctx.desktopSessionSecret')
+  }
   const resolved = resolveDesktopConfig(config)
   if (ctx.webServer.host !== desktopWebServerHost(resolved.networkExposure)) {
     throw new Error('dsh-plugin-desktop: desktop shell WebServer host does not match networkExposure')
@@ -192,6 +202,9 @@ export function apply(ctx: Context, config: DesktopShellConfig): void {
     () => ctx.webServer.register({
       kind: 'exact',
       path: DESKTOP_LAN_HTTPS_CA_PATH,
+      // The CA artifact is public by design: a client that has not authenticated yet must be
+      // able to fetch it to trust the LAN listener.
+      auth: 'anonymous',
       handler: (req, res) => {
         if (req.method !== 'GET' && req.method !== 'HEAD') {
           res.statusCode = 405
@@ -434,7 +447,8 @@ export function apply(ctx: Context, config: DesktopShellConfig): void {
         ...resolved,
         material,
         url,
-        authenticationUrl: ctx.connection.authenticatedUrl(new URL(url).origin),
+        authenticationUrl: new URL('/', new URL(url).origin).href,
+        sessionSecret: desktopSession.secret,
         rendererAccessHeader: browserAccess.rendererHeader,
         productName: DESKTOP_PRODUCT_NAME,
         windowTitle: 'DeepSeek Harness Desktop',

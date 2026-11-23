@@ -82,11 +82,19 @@ async function boot(name) {
   const url = new URL(ready.url)
   assert.equal(url.hostname, '127.0.0.1')
   assert.ok(Number(url.port) > 0)
+  assert.equal(url.pathname, '/')
+  assert.equal(url.search, '')
   assert.ok(Array.isArray(ready.injections))
-  const login = await hostFetch(url, { redirect: 'manual', headers: { 'x-dsh-desktop-renderer': rendererCredential } })
-  assert.equal(login.status, 303)
-  const cookie = login.headers.get('set-cookie')?.split(';')[0]
-  assert.ok(cookie)
+  // The session credential is the parent's own: it arrives with readiness, so there is no launch
+  // token to exchange and no redirect to follow.
+  const cookie = ready.authenticationCookie
+  assert.ok(cookie.startsWith('dsh-desktop-session='), 'the Host must hand over the Desktop session cookie')
+  // A browser is never handed that parent-owned Cookie, so this fork still needs the kernel's
+  // one-time login token for its loopback and LAN links.
+  assert.ok(typeof ready.browserUrl === 'string' && new URL(ready.browserUrl).searchParams.has('token'),
+    'the Host must publish a token-bearing browser login address')
+  const login = await hostFetch(ready.browserUrl, { redirect: 'manual' })
+  assert.equal(login.status, 303, 'the browser login token must still mint a cookie')
   await login.body?.cancel()
   return { origin: url.origin, cookie }
 }

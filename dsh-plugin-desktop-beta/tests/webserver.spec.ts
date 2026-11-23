@@ -2,6 +2,7 @@ import { createServer, type Server } from 'node:http'
 import { connect } from 'node:net'
 import { afterEach, describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
+import { Peer } from '@deepseek-ai/dsh-client-connection'
 import {
   createDesktopBrowserAccess,
   type DesktopBrowserAccess,
@@ -34,6 +35,12 @@ async function startWebServer(access?: DesktopBrowserAccess): Promise<DesktopWeb
   const context = new Context()
   contexts.push(context)
   if (access !== undefined) context.provide('desktopBrowserAccess', access)
+  // The Desktop suite registers kernel-style routes without the Connection plugin, so the
+  // fixture answers `webserver/authorize` with a live owner Peer instead of leaving the
+  // kernel to answer 503 for every route that defaults to `required`.
+  const peer = new Peer(context, { principal: { kind: 'owner' }, interactions: 'none' })
+  context.effect(() => () => { void peer.dispose() }, 'desktop webserver fixture peer')
+  context.on('webserver/authorize', () => ({ kind: 'allow', peer }))
   await context.plugin(DesktopWebServer, { host: '127.0.0.1', port: 0 })
   const server = context.get('webServer')
   if (!(server instanceof DesktopWebServer)) throw new Error('Desktop WebServer did not start')
@@ -177,6 +184,43 @@ describe('Desktop WebServer browser gate', () => {
     await expect(requestUpgrade(port, '/socket', {
       [access.rendererHeader.name]: access.rendererHeader.value,
     })).resolves.toContain('101 Switching Protocols')
+  })
+
+  it('hands the admitted Peer to every responder, because an RPC channel answers nothing without one', async () => {
+    const access = createDesktopBrowserAccess(false, Buffer.alloc(32, 9).toString('base64url'))
+    const server = await startWebServer(access)
+    const headers = { [access.rendererHeader.name]: access.rendererHeader.value }
+    const report = (peer: unknown) => JSON.stringify({ admitted: peer !== undefined })
+    // The connection plugin's `/api` channel returns without writing when it receives no Peer, so
+    // a gate wrapper that drops the third argument hangs the caller until its own header timeout.
+    server.register({
+      kind: 'exact',
+      path: '/api/rpc-like',
+      handler: (_req, res, peer) => { res.end(report(peer)) },
+    })
+    server.registerFallback((_req, res, peer) => { res.end(report(peer)) })
+    server.registerUpgrade({
+      path: '/rpc-socket',
+      handler: (_req, socket, _head, peer) => {
+        socket.end([
+          'HTTP/1.1 101 Switching Protocols',
+          'Connection: Upgrade',
+          'Upgrade: websocket',
+          `X-Peer-Admitted: ${String(peer !== undefined)}`,
+          '',
+          '',
+        ].join('\r\n'))
+      },
+    })
+    const root = `http://127.0.0.1:${String(server.port)}`
+
+    await expect(fetch(`${root}/api/rpc-like`, { headers }).then(response => response.text()))
+      .resolves.toBe('{"admitted":true}')
+    await expect(fetch(`${root}/assets/app.js`, { headers }).then(response => response.text()))
+      .resolves.toBe('{"admitted":true}')
+    const port = server.port
+    if (port === undefined) throw new Error('beta webserver spec: the server is not listening')
+    await expect(requestUpgrade(port, '/rpc-socket', headers)).resolves.toContain('X-Peer-Admitted: true')
   })
 })
 

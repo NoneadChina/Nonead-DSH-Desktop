@@ -9,16 +9,11 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Readable } from 'node:stream'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { DEFAULT_PREFERENCES } from '../src/desktop-contract.ts'
 import { NextDesktopRuntime } from '../src/desktop-runtime.ts'
 import { DesktopHostProcess } from '../src/host-process.ts'
 import { readRendererCredential } from '../src/host/credential.ts'
-
-vi.mock('../src/web-document.ts', async importOriginal => ({
-  ...await importOriginal<typeof import('../src/web-document.ts')>(),
-  authenticateWebHost: vi.fn(async (_url: string, token: string) => `dsh-session=${token}`),
-}))
 
 const TOKEN = Buffer.alloc(32, 5).toString('base64url')
 
@@ -48,7 +43,7 @@ function listenOnFetchablePort(remaining) {
       server.close(() => listenOnFetchablePort(remaining - 1))
       return
     }
-    process.send({ type: 'ready', url: 'http://127.0.0.1:' + port + '/?token=fixture', injections: [] })
+    process.send({ type: 'ready', url: 'http://127.0.0.1:' + port + '/', injections: [] })
   })
 }
 listenOnFetchablePort(20)

@@ -9,7 +9,7 @@ import { chromium } from 'playwright'
 import { DesktopHostProcess } from '../lib/host-process.js'
 import { desktopKeybindings } from '../lib/keybindings.js'
 import { NextProfiles } from '../lib/profiles.js'
-import { authenticateWebHost, serveWebDocument } from '../lib/web-document.js'
+import { serveWebDocument } from '../lib/web-document.js'
 import { browserFixture, verifySidebarBrowser, verifyWebBrowserFallback } from './verify-sidebar-browser-ui.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
@@ -43,7 +43,7 @@ try {
   assert.ok(roster.includes('@deepseek-ai/dsh-client-ui-directory-picker-browse'), 'the Host mounted the browse directory flow')
   assert.ok(!roster.includes('@deepseek-ai/dsh-client-ui-directory-picker-native'), 'the Host left the native directory flow unmounted')
   const streamBaseUrl = new URL(ready.url).origin
-  const cookie = await authenticateWebHost(ready.url)
+  const cookie = ready.authenticationCookie
   const cookieSeparator = cookie.indexOf('=')
   const documentResponse = await serveWebDocument(new Request('dsh-app://app/'), webRoot)
   assert.equal(documentResponse.status, 200)

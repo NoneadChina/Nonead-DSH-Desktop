@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url'
 import { expect, it } from 'vitest'
 import { prepareDesktopProfile } from '../src/profile.ts'
 import { desktopReleaseUserDataLocations } from '../src/profile-channel-admission.ts'
+import { DESKTOP_SESSION_COOKIE } from '../src/desktop-network.ts'
 import { installDesktopPnpmRuntime } from '../src/desktop-runtime-environment.ts'
 import { HostRpc } from '../src/host-rpc.ts'
 import { bindNativeRuntime, runtimeSnapshot } from '../src/host-runtime-bridge.ts'
@@ -95,10 +96,9 @@ it.skipIf(process.env.DSH_DESKTOP_HOST_INTEGRATION !== '1').each([false, true])(
     const unauthorized = await fetch(spec.url, { headers })
     await unauthorized.body?.cancel()
     expect(unauthorized.status).toBe(401)
-    const authentication = await fetch(spec.authenticationUrl, { headers, redirect: 'manual' })
-    await authentication.body?.cancel()
-    expect(authentication.status).toBe(303)
-    const cookie = authentication.headers.get('set-cookie')!.split(';')[0]!
+    // The window's own session carries the credential, so the host admits the document
+    // directly: no token exchange hop stands between the boot and the first paint.
+    const cookie = `${DESKTOP_SESSION_COOKIE}=${spec.sessionSecret}`
     const response = await fetch(spec.url, { headers: { ...headers, Cookie: cookie } })
     expect(response.status).toBe(200)
     const html = await response.text()

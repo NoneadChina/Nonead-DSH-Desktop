@@ -15,7 +15,6 @@ import { NextRecovery } from './recovery.ts'
 import { maskSecrets } from './mask-secrets.ts'
 import { privateDirectory } from './private-files.ts'
 import { applyProfilePluginPatches } from './profile-plugin-patches.ts'
-import { authenticateWebHost } from './web-document.ts'
 import { DesktopLanHttpsRuntime } from './lan-https-runtime.ts'
 import type { DesktopLanHttpsCertificate } from './lan-https-certificate.ts'
 import type { DesktopPermission, DesktopPermissionAction, DesktopPermissionSnapshot } from './permissions.ts'
@@ -66,7 +65,7 @@ export class NextDesktopRuntime {
   failure = ''
   startup: Promise<void> = Promise.resolve()
   /** Main-process transport only; never copied into a DesktopState. */
-  auth: { url: string; cookie: string; token: string; injections: readonly unknown[] } | undefined
+  auth: { url: string; browserUrl?: string | undefined; cookie: string; token: string; injections: readonly unknown[] } | undefined
   lan: DesktopLanHttpsRuntime | undefined
   private safeHome: string | undefined
   private hostProcess: DesktopHostProcess | undefined
@@ -246,7 +245,9 @@ export class NextDesktopRuntime {
 
   browserLinks(): DesktopBrowserLinks {
     if (!this.auth || this.closing || this.recoveryMode || this.backend.state.phase !== 'ready' || !this.preferences.browserAccess || this.safeMode) return { localUrl: null, lanUrls: [] }
-    const localUrl = new URL(this.auth.url).href
+    // A browser is never handed the parent-owned session Cookie, so it gets the separate
+    // token-bearing address the Host publishes; the native window keeps using `auth.url`.
+    const localUrl = new URL(this.auth.browserUrl ?? this.auth.url).href
     const edge = this.lan?.snapshot()
     const lanUrls = this.preferences.networkExposure === 'lan' && edge?.state === 'ready' && edge.actualPort
       ? edge.addresses.map(address => {
@@ -329,9 +330,11 @@ export class NextDesktopRuntime {
           const url = new URL(ready.url)
           if (url.protocol !== 'http:' || url.hostname !== '127.0.0.1') throw new Error('Next Host must use loopback HTTP')
           if (!ready.injections) throw new Error('Next Host omitted Web boot injections')
-          const cookie = await authenticateWebHost(ready.url, token)
+          // Upstream's Desktop model: this process already owns the session credential, so the
+          // document cookie is handed over with readiness instead of being exchanged for a token.
+          const cookie = ready.authenticationCookie
           if (stopped) { started(); return }
-          this.auth = { url: ready.url, cookie, token, injections: ready.injections }
+          this.auth = { url: ready.url, browserUrl: ready.browserUrl, cookie, token, injections: ready.injections }
           lan.attach(Number(url.port))
           if (effective.browserAccess && effective.networkExposure === 'lan') {
             const edge = await lan.setEnabled(true)

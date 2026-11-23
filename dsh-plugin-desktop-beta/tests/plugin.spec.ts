@@ -2,8 +2,8 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { join } from 'node:path'
 import type { Context, Volatile } from '@deepseek-ai/cordis'
 import type {
-  ConnectionRequestRejection,
   ConnectionTrustRequest,
+  PeerAdmission,
 } from '@deepseek-ai/dsh-client-connection'
 import type { LocaleId } from '@deepseek-ai/dsh-client-locale'
 import type { WebRoute } from '@deepseek-ai/dsh-host-webserver'
@@ -60,6 +60,8 @@ const DEFAULT_SETTINGS: DesktopSettings = {
 
 /** Geometry fields the shell adopts once at window construction. */
 const GEOMETRY = { width: 1280, height: 840, minWidth: 900, minHeight: 640 } as const
+/** The credential the fake Host exposes to the shell spec. */
+const DESKTOP_SESSION_SECRET = Buffer.alloc(32, 5).toString('base64url')
 
 /**
  * A live configuration fixture.
@@ -134,7 +136,7 @@ interface PluginHarness {
   browserAccess: ReturnType<typeof createDesktopBrowserAccess>
   lanHttps: DesktopLanHttpsRuntime
   setLanHttpsEnabled: ReturnType<typeof vi.fn<DesktopLanHttpsRuntime['setEnabled']>>
-  requestRejection: ReturnType<typeof vi.fn<(request: ConnectionTrustRequest) => ConnectionRequestRejection>>
+  admit: ReturnType<typeof vi.fn<(request: ConnectionTrustRequest) => PeerAdmission>>
   route(path: string): WebRoute | undefined
   routes(): readonly WebRoute[]
   /** Write a live preference edit and raise the Loader's volatile update. */
@@ -185,9 +187,9 @@ function createHarness(
       }
     },
   }
-  const requestRejection = vi.fn<(
+  const admit = vi.fn<(
     request: ConnectionTrustRequest,
-  ) => ConnectionRequestRejection>(() => undefined)
+  ) => PeerAdmission>(() => ({ peer: {} as never }))
   const routes = new Map<string, WebRoute>()
   const documentUpdated = new Set<(namespace: unknown, revision: number) => void>()
   let localePreference: LocaleId | undefined
@@ -198,11 +200,18 @@ function createHarness(
   )
   const lanHttps = new DesktopLanHttpsRuntime({ addresses: [] })
   const setLanHttpsEnabled = vi.spyOn(lanHttps, 'setEnabled')
-  const authenticatedUrl = vi.fn((baseUrl: string) => {
+  const entryUrl = vi.fn((baseUrl: string) => {
     const url = new URL(baseUrl)
     url.pathname = '/'
     url.search = 'token=test-token'
     return url.href
+  })
+  // The credential-bearing entry URL is contributed by the `host-authentication-token`
+  // bundle plugin through `webserver/entry-url`; this stub plays that role.
+  const emit = vi.fn((_scope: unknown, event: string, ...args: unknown[]) => {
+    if (event !== 'webserver/entry-url') return
+    const entries = args[1] as { label: string; url: string; open: boolean }[]
+    entries.push({ label: 'dsh web', url: entryUrl(String(args[0])), open: true })
   })
   const runtime: DesktopRuntime = {
     platform,
@@ -254,6 +263,7 @@ function createHarness(
     update,
   }
   const fiber = { id: DESKTOP_SETTINGS_ENTRY_ID }
+  const sessionSecret = Object.freeze({ secret: DESKTOP_SESSION_SECRET })
   const ctx = {
     fiber,
     desktopRuntime: runtime,
@@ -266,12 +276,14 @@ function createHarness(
       }),
     },
     settings,
-    connection: { authenticatedUrl, requestRejection },
+    connection: { admit },
+    emit,
     logger: { warn: vi.fn(), error: vi.fn() },
     get: vi.fn((key: unknown) => {
       if (String(key) === 'desktopRuntime') return runtime
       if (String(key) === 'desktopBrowserAccess') return browserAccess
       if (String(key) === 'desktopLanHttps') return lanHttps
+      if (String(key) === 'desktopSessionSecret') return sessionSecret
       if (String(key) === 'settings') return settings
       if (String(key) === 'deepseekAccount') return account
       return () => {}
@@ -314,7 +326,7 @@ function createHarness(
     browserAccess,
     lanHttps,
     setLanHttpsEnabled,
-    requestRejection,
+    admit,
     route: path => routes.get(path),
     routes: () => [...routes.values()],
     notify: async (next) => {
@@ -461,7 +473,8 @@ describe('desktop Host plugin', () => {
     expect(harness.shell()).toEqual(expect.objectContaining({
       mode: 'compatibility',
       url: 'http://127.0.0.1:43120/?dsh-desktop-mode=compatibility&dsh-desktop-platform=darwin&dsh-desktop-version=2.0.0&dsh-desktop-material=transparent&dsh-desktop-titlebar-inset=36',
-      authenticationUrl: 'http://127.0.0.1:43120/?token=test-token',
+      authenticationUrl: 'http://127.0.0.1:43120/',
+      sessionSecret: DESKTOP_SESSION_SECRET,
       productName: 'DSH Desktop Beta',
       windowTitle: 'DeepSeek Harness Desktop',
       rendererAccessHeader: {
@@ -515,7 +528,7 @@ describe('desktop Host plugin', () => {
 
     await route?.handler(req, res)
 
-    expect(harness.requestRejection).toHaveBeenCalledWith(req)
+    expect(harness.admit).toHaveBeenCalledWith(req)
     expect(harness.rendererBoot).toHaveBeenCalledWith(report)
     expect(res.statusCode).toBe(204)
   })
@@ -528,7 +541,7 @@ describe('desktop Host plugin', () => {
     body,
   ) => {
     const harness = createHarness('win32')
-    harness.requestRejection.mockReturnValue(status)
+    harness.admit.mockReturnValue({ rejection: status })
     apply(harness.ctx, harness.config)
     const expectedPaths = [
       DESKTOP_SETTINGS_PATH,
@@ -561,7 +574,7 @@ describe('desktop Host plugin', () => {
       expect(writeHead).toHaveBeenCalledWith(status)
       expect(end).toHaveBeenCalledWith(body)
     }
-    expect(harness.requestRejection).toHaveBeenCalledTimes(routes.length)
+    expect(harness.admit).toHaveBeenCalledTimes(routes.length)
     expect(harness.rendererBoot).not.toHaveBeenCalled()
     expect(harness.pickDirectory).not.toHaveBeenCalled()
     expect(harness.validateDirectory).not.toHaveBeenCalled()

@@ -1,7 +1,7 @@
 /** Keep upstream HTTP routing while requiring Host credentials for browser-reachable routes. */
 import { hostLog, hostOperation } from './host/logging.ts'
-import WebServer, { type WebResource, type WebResourceRoute, type WebRoute, type WebUpgradeRoute } from '@deepseek-ai/dsh-host-webserver'
-import type {} from '@deepseek-ai/dsh-client-connection'
+import WebServer, { type WebAuthenticationRule, type WebAuthPolicy, type WebAuthRequest, type WebEntryUrl, type WebFallback, type WebResource, type WebResourceRoute, type WebRoute, type WebUpgradeRoute } from '@deepseek-ai/dsh-host-webserver'
+import type { Context } from '@deepseek-ai/cordis'
 import { decideDesktopBrowserAccess, nextBrowserAccess } from './desktop-browser-access.ts'
 import type { Duplex } from 'node:stream'
 
@@ -14,13 +14,19 @@ const READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
 
 const matchesRoute = (path: string, prefix: string): boolean => path === prefix || path.startsWith(`${prefix}/`)
 
-function requestPath(request: Parameters<WebRoute['handler']>[0]): string {
-  if (request.url === undefined) return '/'
-  try {
-    return new URL(request.url, 'http://127.0.0.1').pathname
-  } catch {
-    return '/'
-  }
+/**
+ * The address this fork shows an ordinary browser.
+ *
+ * The native window never needs it: the parent process hands that window a session Cookie
+ * (`host-authentication-desktop`). A browser cannot be handed that Credential, so it still goes
+ * through the kernel's one-time login token, which the token plugin contributes here. When no
+ * plugin offers one, the bare root is returned and the kernel answers with its own login page
+ * instead of this fork inventing a credential.
+ */
+export function nextBrowserLoginUrl(ctx: Context, baseUrl: string): string {
+  const entries: WebEntryUrl[] = []
+  ctx.emit(ctx.webServer, 'webserver/entry-url', baseUrl, entries)
+  return entries.find(entry => entry.url !== baseUrl)?.url ?? baseUrl
 }
 
 /**
@@ -95,39 +101,44 @@ export default class NextWebServer extends WebServer {
     return !READ_METHODS.has(method ?? '')
   }
 
-  /** Write the fence's refusal, keeping the Market wording its clients already report. */
-  private refuse(response: Parameters<WebRoute['handler']>[1], path: string, rejection: number): void {
-    response.writeHead(rejection, { 'cache-control': 'no-store' })
-    response.end(matchesRoute(path, MARKET_ROUTE) ? 'Market request authentication required' : 'Request authentication required')
-  }
-
-  /** Apply the connection fence to one route family. */
-  private fence(path: string, request: Parameters<WebRoute['handler']>[0], response: Parameters<WebRoute['handler']>[1]): boolean {
-    if (!this.requiresSession(path, request.method)) return false
-    const connection = this.ctx.get('connection')
-    const rejection = connection === undefined ? 503 : connection.requestRejection(request)
-    if (rejection === undefined) return false
-    this.refuse(response, path, rejection)
-    return true
+  /**
+   * Turn the session rule into the route's own kernel policy instead of admitting requests here.
+   *
+   * `dsh 0.2.3-alpha.2` authorizes every route before its responder runs, and the `connection`
+   * plugin owns that decision. Reaching for `connection.admit` from a wrapped responder instead —
+   * one that another plugin registered, the Market for `/api/community-market*` — threw before any
+   * responder wrote a status: cordis resolves a service read through the injection surface of the
+   * calling plugin, which does not cover the `connection.authentication` read `admit` performs on
+   * its own service. Every `/api` RPC call then hung until the client's header timeout fired
+   * (300 s in the Host smoke), and Market reads fell back to the kernel's per-request 400. Declaring
+   * the policy hands the admission to the kernel, which answers 401/403/503 with its own body and
+   * passes the live Peer to the responder.
+   */
+  private authRule(declared: WebAuthenticationRule | undefined): (request: WebAuthRequest) => WebAuthPolicy {
+    const declaredRule = (request: WebAuthRequest): WebAuthPolicy =>
+      typeof declared === 'function' ? declared(request) : declared ?? 'required'
+    return request => this.requiresSession(request.url.pathname, request.method) ? 'required' : declaredRule(request)
   }
 
   override register(route: WebRoute | WebResourceRoute): () => void {
     if ('resource' in route) {
       // `dsh 0.2.2-rc.1` serves static assets as Fetch resources instead of Node handlers, so the
       // renderer capability arrives as a header and the gate has to answer with a `Response`.
+      // Every other registration field is kept, so only the responder and the session policy change.
       return super.register({
-        kind: route.kind,
-        path: route.path,
+        ...route,
+        auth: this.authRule(route.auth),
         resource: this.observeResource(String(route.path), async (request, peer) => {
           if (!this.permitsResource(request)) return new Response('Browser access is disabled', { status: 403, headers: { 'cache-control': 'no-store' } })
           return await route.resource(request, peer)
         }),
       })
     }
-    return super.register({ ...route, handler: this.observeHttp(route.path, async (request, response) => {
+    return super.register({ ...route, auth: this.authRule(route.auth), handler: this.observeHttp(route.path, async (request, response, peer) => {
       if (!this.permits(request)) { response.writeHead(403, { 'cache-control': 'no-store' }); response.end('Browser access is disabled'); return }
-      if (this.fence(route.path, request, response)) return
-      await route.handler(request, response)
+      // The admitted Peer belongs to the route contract: the connection plugin's `/api` RPC channel
+      // answers nothing at all when it is called without one, so dropping it hung every RPC call.
+      await route.handler(request, response, peer)
     }) })
   }
 
@@ -159,49 +170,43 @@ export default class NextWebServer extends WebServer {
   }
 
   private observeHttp(route: string, handler: WebRoute['handler']): WebRoute['handler'] {
-    return async (request, response) => {
+    return async (request, response, peer) => {
       const end = hostOperation('host.http', 'request', { route, method: request.method ?? '' }, true)
       const finish = () => { end(undefined, { status: response.statusCode, aborted: !response.writableFinished }); response.off('finish', finish); response.off('close', finish) }
       response.once('finish', finish); response.once('close', finish)
-      try { await handler(request, response) } catch (error) { response.off('finish', finish); response.off('close', finish); end(error); throw error }
+      try { await handler(request, response, peer) } catch (error) { response.off('finish', finish); response.off('close', finish); end(error); throw error }
     }
   }
 
   /**
-   * Apply the browser gates to the fallback too.
+   * Apply the browser gates to the fallback while keeping the seat's own shape.
    *
-   * `dsh 0.2.2-alpha.2` and later register the frontend fallback as `{ resource }` instead of a plain
-   * handler, and upstream's own `serveResource` resolves the requesting peer before calling it.
-   * Passing that object through unchanged answered every frontend request with `handler is not a
-   * function` (400); wrapping it as a function skipped the browser gate and answered 401 where the
-   * shell promises 403. This reproduces the same peer resolution so both gates still apply.
+   * `dsh 0.2.2-alpha.2` and later register the frontend fallback as `{ resource }` instead of a
+   * plain handler. Rewriting that seat as a handler used to be necessary to run the gates, but it
+   * costs more than it buys: `readResource` — how the `/` login document renders the SPA index for
+   * the admitted Peer — answers 404 whenever the fallback seat holds a handler, so a valid session
+   * cookie still got no page. Wrapping the resource instead keeps both gates and leaves the seat
+   * readable, and the kernel supplies the Fetch request and the admitted Peer on its own
+   * (`serveResource`), so the hand-built request and second admission are gone with it.
    */
-  override registerFallback(fallback: WebRoute['handler'] | Pick<WebResourceRoute, 'resource'>): () => void {
-    const resource = typeof fallback === 'function' ? undefined : fallback.resource
-    return super.registerFallback(this.observeHttp('fallback', async (request, response) => {
+  override registerFallback(fallback: WebRoute['handler'] | WebFallback): () => void {
+    const declaredAuth = typeof fallback === 'function' ? undefined : fallback.auth
+    if (typeof fallback !== 'function' && 'resource' in fallback) {
+      const resource = this.observeResource('fallback', async (request, peer) => {
+        if (!this.permitsResource(request)) return new Response('Browser access is disabled', { status: 403, headers: { 'cache-control': 'no-store' } })
+        return await fallback.resource(request, peer)
+      })
+      return super.registerFallback({ resource, auth: this.authRule(declaredAuth) })
+    }
+    const handler = this.observeHttp('fallback', async (request, response, peer) => {
       if (!this.permits(request)) { response.writeHead(403, { 'cache-control': 'no-store' }); response.end('Browser access is disabled'); return }
-      if (this.fence(requestPath(request), request, response)) return
-      if (resource === undefined) { await (fallback as WebRoute['handler'])(request, response); return }
-      // Upstream hands the resource a Fetch `Request` and the admitted peer; reproduce both so the
-      // static responder sees the same request shape it gets inside `serveResource`.
-      const absolute = new URL(request.url ?? '/', `http://${request.headers.host ?? '127.0.0.1'}`)
-      const connection = this.ctx.get('connection') as { admit?: (request: unknown) => unknown } | undefined
-      const admission = connection?.admit?.(request) as { peer?: unknown } | undefined
-      // `serveStatic` reads `request.headers.get(...)`, so the Node header map has to become real
-      // Fetch headers; passing the raw object answered every asset with 400.
-      const headers = new Headers()
-      for (const [name, value] of Object.entries(request.headers)) {
-        for (const item of typeof value === 'string' ? [value] : value ?? []) headers.append(name, item)
-      }
-      const served = await resource(new Request(absolute, { method: request.method, headers }), admission?.peer as never) as Response | undefined
-      if (served === undefined) { response.writeHead(404, { 'cache-control': 'no-store' }); response.end(); return }
-      response.writeHead(served.status, Object.fromEntries(served.headers as unknown as Iterable<[string, string]>))
-      response.end(request.method === 'HEAD' ? undefined : Buffer.from(await served.arrayBuffer()))
-    }))
+      await (typeof fallback === 'function' ? fallback : fallback.handler!)(request, response, peer)
+    })
+    return super.registerFallback({ handler, auth: this.authRule(declaredAuth) })
   }
 
   override registerUpgrade(route: WebUpgradeRoute): () => void {
-    return super.registerUpgrade({ ...route, handler: (request, socket, head) => {
+    return super.registerUpgrade({ ...route, handler: (request, socket, head, peer) => {
       hostLog({ source: 'host.http', event: 'upgrade', fields: { route: route.path }, developer: true })
       if (!this.permits(request)) { socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\nContent-Length: 0\r\n\r\n'); return }
       // An upgrade owns the socket instead of an HTTP response, so the session fence is the
@@ -212,7 +217,7 @@ export default class NextWebServer extends WebServer {
         this.browserSockets.add(socket)
         socket.once('close', () => this.browserSockets.delete(socket))
       }
-      return route.handler(request, socket, head)
+      return route.handler(request, socket, head, peer)
     } })
   }
 }

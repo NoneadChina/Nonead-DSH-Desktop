@@ -81,20 +81,6 @@ export async function serveWebDocument(request: Request, root: string, waitForHo
 }
 
 /**
- * Exchange the Host launch URL for an authority-bound browser cookie.
- * @param url - Authenticated URL reported by the owned Host process.
- * @returns Cookie header for requests forwarded to that Host.
- */
-export async function authenticateWebHost(url: string, nativeToken?: string): Promise<string> {
-  const response = await fetch(url, { redirect: 'manual', ...(nativeToken ? { headers: { [NATIVE_ACCESS_HEADER]: nativeToken } } : {}) })
-  const cookie = response.headers.get('set-cookie')
-  await response.body?.cancel()
-  if (response.status !== 303 || cookie === null) throw new Error('Desktop Host authentication failed')
-  const end = cookie.indexOf(';')
-  return end < 0 ? cookie : cookie.slice(0, end)
-}
-
-/**
  * Response headers not relayed to the renderer. `set-cookie` would hand the
  * Host's authentication cookie to the page's cookie jar, which the shell owns
  * instead; the rest describe the Node `fetch` connection (its encoding, length,
