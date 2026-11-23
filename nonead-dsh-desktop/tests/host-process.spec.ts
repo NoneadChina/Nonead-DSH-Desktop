@@ -11,6 +11,8 @@ const HTTP_HOST = `
 import { createServer } from 'node:http'
 import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+let authenticationReceived = false
+let receivedSecret = ''
 const server = createServer((request, response) => {
   if (request.url === '/fatal') {
     process.send({ type: 'fatal', message: 'plugin unavailable' })
@@ -24,7 +26,7 @@ const server = createServer((request, response) => {
     return
   }
   response.setHeader('content-type', 'application/json')
-  response.end(JSON.stringify({runtime: process.argv[2], profile: process.argv[3], cwd: process.cwd(), nodePath: process.env.NODE_PATH, registry: process.env.NPM_CONFIG_REGISTRY, nodeOptions: process.env.NODE_OPTIONS, runAsNode: process.env.ELECTRON_RUN_AS_NODE, internals: process.execArgv.includes('--expose-internals')}))
+  response.end(JSON.stringify({runtime: process.argv[2], profile: process.argv[3], cwd: process.cwd(), nodePath: process.env.NODE_PATH, registry: process.env.NPM_CONFIG_REGISTRY, nodeOptions: process.env.NODE_OPTIONS, runAsNode: process.env.ELECTRON_RUN_AS_NODE, internals: process.execArgv.includes('--expose-internals'), sessionAuth: authenticationReceived && /^[A-Za-z0-9_-]{43}$/.test(receivedSecret) && !JSON.stringify(process.argv).includes(receivedSecret) && !JSON.stringify(process.env).includes(receivedSecret)}))
 })
 // \`fetch\` refuses the WHATWG "bad port" list, and this machine's ephemeral range is
 // 1024-15000 (netsh int ipv4 show dynamicport tcp), so \`listen(0)\` can hand out one of
@@ -38,11 +40,17 @@ function listenOnFetchablePort(remaining) {
       server.close(() => listenOnFetchablePort(remaining - 1))
       return
     }
-    process.send({ type: 'ready', url: 'http://127.0.0.1:' + port + '/?token=fixture' })
+    process.send({ type: 'ready', url: 'http://127.0.0.1:' + port + '/' })
   })
 }
 listenOnFetchablePort(20)
 process.on('message', message => {
+  if (message.type === 'desktop-auth') {
+    if (authenticationReceived || !/^[A-Za-z0-9_-]{43}$/.test(message.secret)) throw new Error('invalid authentication handoff')
+    authenticationReceived = true
+    receivedSecret = message.secret
+    return
+  }
   if (message.type === 'browser-access') {
     process.send({ type: 'browser-access', requestId: message.requestId, ...(message.enabled ? {} : { error: 'fixture rejection' }) })
     return
@@ -141,7 +149,7 @@ describe('desktop host process', () => {
     expect(complete).toHaveLength(2)
     expect(complete[0].operationId).not.toBe(complete[1].operationId)
     expect(complete[0]).toMatchObject({ source: 'host.ipc', fields: { type: 'logging-config' } })
-    expect(JSON.stringify(diagnostic.mock.calls)).not.toContain('token=fixture')
+    expect(JSON.stringify(diagnostic.mock.calls)).not.toContain('dsh-desktop-session')
     await host.stop()
     await expect(host.setLogging({ developerLogging: true, logLevel: 'info' })).rejects.toThrow('unavailable')
   })
@@ -185,18 +193,42 @@ describe('desktop host process', () => {
     await expect(host.stop()).resolves.toBeUndefined()
   })
 
-  it('returns the Web authentication URL and waits for graceful shutdown', async () => {
+  it('returns the loopback root with a private session Cookie and waits for graceful shutdown', async () => {
     const runtime = projectWithHost()
     const failure = vi.fn()
     const host = hostProcess(runtime, runtime, failure)
     const ready = await host.start()
-    expect(new URL(ready.url).searchParams.get('token')).toBe('fixture')
+    expect(new URL(ready.url).search).toBe('')
+    expect(ready.authenticationCookie).toMatch(/^dsh-desktop-session=[A-Za-z0-9_-]{43}$/u)
+    // The Credential travels only on the private IPC channel: the child sees it, its environment and
+    // argument list do not.
+    expect(await (await fetch(ready.url)).json()).toMatchObject({ sessionAuth: true })
     expect(await host.start()).toEqual(ready)
     expect((await fetch(ready.url)).status).toBe(200)
     await host.stop()
     expect(existsSync(join(runtime, 'stopped'))).toBe(true)
     await expect(fetch(ready.url)).rejects.toThrow()
     expect(failure).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    'https://example.test/',
+    'http://127.0.0.1:3080/?token=untrusted',
+    'http://user:password@127.0.0.1:3080/',
+    'http://127.0.0.1:3080/other',
+  ])('refuses an unexpected ready address before any credential is used: %s', async (url) => {
+    const host = hostProcess(projectWithHost(`process.send({ type: 'ready', url: ${JSON.stringify(url)} })`))
+    await expect(host.start()).rejects.toThrow('invalid IPC event')
+  })
+
+  it('mints one private session Cookie per Host process', async () => {
+    const runtime = projectWithHost("process.send({ type: 'ready', url: 'http://127.0.0.1:3080/', injections: [] })")
+    const first = await hostProcess(runtime).start()
+    const second = await hostProcess(runtime).start()
+    expect(first.url).toBe('http://127.0.0.1:3080/')
+    expect(first.authenticationCookie).toMatch(/^dsh-desktop-session=[A-Za-z0-9_-]{43}$/u)
+    expect(first.authenticationCookie).not.toBe(second.authenticationCookie)
+    expect(first.injections).toEqual([])
   })
 
   it('passes external dependencies and package-manager paths to the Host', async () => {
@@ -259,7 +291,7 @@ describe('desktop host process', () => {
     })
     const { url } = await host.start()
     const response = await fetch(url)
-    expect(await response.json()).toEqual({ runtime, profile, cwd: realpathSync(profile), nodePath: '/custom', registry: 'https://registry.example.test/', nodeOptions: '--no-warnings', runAsNode: '1', internals: true })
+    expect(await response.json()).toEqual({ runtime, profile, cwd: realpathSync(profile), nodePath: '/custom', registry: 'https://registry.example.test/', nodeOptions: '--no-warnings', runAsNode: '1', internals: true, sessionAuth: true })
   })
 
   it.each([

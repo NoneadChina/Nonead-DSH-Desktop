@@ -1,12 +1,22 @@
 {
-  "repository": "https://github.com/deepseek-ai/deepseek-harness",
-  "commit": "9c2670d3bce5275e0d1610272958121af87787bb",
-  "version": "0.2.2-rc.5",
+  "repository": "https://github.com/deepseek-ai/deepseek-harness.git",
+  "commit": "4b399c39a6d1479cd84ca591b4d7c88e24d38a96",
+  "version": "0.2.3-alpha.2",
   "files": [
     {
       "upstream": "apps/desktop/src/host-process.ts",
       "local": "src/host-process.ts",
-      "upstreamSha256": "fb64b5a77ea65aaa8887268d7f9e2b2051768aa7fa1e5b1e416c8acb4f40c5d0"
+      "upstreamSha256": "bf6d4a32959228859c2adb3d034700d55e30591dccc0d70dfea5d02653aeaf44"
+    },
+    {
+      "upstream": "apps/desktop/src/parent-authentication.ts",
+      "local": "src/parent-authentication.ts",
+      "upstreamSha256": "1f186827200efeb047288fc96968db49b9530cdee2e3181414ded26de104576a"
+    },
+    {
+      "upstream": "apps/desktop-host/src/authentication.ts",
+      "local": "src/host/authentication.ts",
+      "upstreamSha256": "edf6c0ef2a3365319e571bc1e9d1d6f19c48ffbfa2f003926dd77ec49bc3732c"
     },
     {
       "upstream": "apps/desktop/src/browser-guests.ts",
@@ -26,7 +36,7 @@
     {
       "upstream": "apps/desktop/src/web-document.ts",
       "local": "src/web-document.ts",
-      "upstreamSha256": "70da9451b517f8a3b094b2e361b4d666662052b7761cc0302b97d10e46b3f3ce"
+      "upstreamSha256": "c871236eb4d7bd9cd1b9a52a3152a0eae5ec530f9de9889790f62563bf9b15a7"
     },
     {
       "upstream": "apps/desktop/src/backend-controller.ts",
@@ -46,7 +56,7 @@
     {
       "upstream": "apps/desktop/tests/host-process.spec.ts",
       "local": "tests/host-process.spec.ts",
-      "upstreamSha256": "a1b7178cc5e6e017298aefc795966f7ffb5a51e7efc06f6c2b39f7bb1f8438ab"
+      "upstreamSha256": "7f456aba4b5feb1a58314b505004d3aae94379f6e07907413870e6cbf2d779f4"
     },
     {
       "upstream": "apps/desktop/tests/node-environment.spec.ts",
@@ -56,7 +66,7 @@
     {
       "upstream": "apps/desktop/tests/web-document.spec.ts",
       "local": "tests/web-document.spec.ts",
-      "upstreamSha256": "251ac35160cf4d5d6d3080158333a4c5e06f2590f414a8f67b3b7b215283d349"
+      "upstreamSha256": "66fe261c43022164d5db98859c71c63d592067165b6b9c74896e2058f084226e"
     },
     {
       "upstream": "apps/desktop/tests/backend-controller.spec.ts",
@@ -96,7 +106,7 @@
     {
       "upstream": "apps/desktop/src/keyboard.ts",
       "local": "src/keyboard.ts",
-      "upstreamSha256": "7cf07391d8998813ea894d0e5d2f47053f5cc13dc9f48f257856cd19143b6728"
+      "upstreamSha256": "ccc441a001a23f52648f1172d0c68e30ea02a340e5fcf6b717e7ca5cd24872f2"
     },
     {
       "upstream": "apps/desktop/src/keybindings.ts",
@@ -161,7 +171,7 @@
     {
       "upstream": "apps/desktop/scripts/macos-runtime.ts",
       "local": "scripts/sign-runtime.ts",
-      "upstreamSha256": "8b7e4cf628076083f491a2d6996f89254e1f33b4dd3bfa21b345b1d1da89b251"
+      "upstreamSha256": "19b1bd0af57d12eb03e76b7037e6a9d7a9e23d38cc92a1f7e07cef2d60750edc"
     },
     {
       "upstream": "apps/desktop/scripts/verify-macos-signature.mjs",
@@ -176,7 +186,7 @@
     {
       "upstream": "apps/desktop/tests/macos-runtime.spec.ts",
       "local": "tests/sign-runtime.spec.ts",
-      "upstreamSha256": "56cc13c48e1937e2809a9b2719a9ec55837d650563aec414461cbfeebff86ade"
+      "upstreamSha256": "1b06b559c3da771dcaaa905c847f671ccd5d41918f46324c25fbf724cb02d200"
     }
   ]
 }
