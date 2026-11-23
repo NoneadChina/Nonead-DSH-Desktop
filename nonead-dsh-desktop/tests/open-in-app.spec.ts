@@ -68,13 +68,16 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllEnvs() })
 
 function routes() {
-  const handlers = new Map<string, (request: IncomingMessage, response: ServerResponse) => Promise<void>>()
+  const handlers = new Map<string, (request: IncomingMessage, response: ServerResponse, peer?: unknown) => Promise<void>>()
+  const peer = { id: 'next-open-in-app-fixture', principal: { kind: 'owner' }, signal: new AbortController().signal }
   const ctx = {
     get: () => createLaunchEnvironmentSnapshot([{ source: 'process', values: {} }]),
     effect: (register: () => unknown) => register(),
-    connection: { requestRejection: () => undefined },
+    // `dsh 0.2.3-alpha.2` registers these routes with `auth: 'required'` and answers only to an
+    // owner Peer, so the fixture hands the handler the Peer the kernel would have admitted.
+    peer,
     subprocess: { resolveExecutable: async (name: string) => name === 'code' ? '/fixture/bin/code' : null },
-    webServer: { register: (route: { path: string; handler: (request: IncomingMessage, response: ServerResponse) => Promise<void> }) => {
+    webServer: { register: (route: { path: string; handler: (request: IncomingMessage, response: ServerResponse, peer?: unknown) => Promise<void> }) => {
       handlers.set(route.path, route.handler)
       return () => {}
     } },
@@ -85,7 +88,7 @@ function routes() {
       method: 'POST', headers: { 'content-type': 'application/json' }, url: '/open-in-app/open',
     })
     const response = { statusCode: 0, body: '', setHeader() {}, end(body: string) { this.body = body } }
-    await handlers.get('/open-in-app/open')!(request as unknown as IncomingMessage, response as unknown as ServerResponse)
+    await handlers.get('/open-in-app/open')!(request as unknown as IncomingMessage, response as unknown as ServerResponse, peer)
     return response
   }
 }

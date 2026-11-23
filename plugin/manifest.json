@@ -13,8 +13,8 @@
     },
     {
       "name": "@changfenhuang/dsh-genui",
-      "version": "0.16.0",
-      "file": "changfenhuang-dsh-genui-0.16.0.tgz",
+      "version": "0.17.0",
+      "file": "changfenhuang-dsh-genui-0.17.0.tgz",
       "category": "workspace",
       "author": "changfenhuang",
       "description": "生成式 UI：模型可在回复里用 dsh-ui 围栏渲染布局、图表、表单、测验、mermaid 与 3D 场景，交互事件还能回传给模型。适合把说明变成可点的面板。",
@@ -22,8 +22,8 @@
     },
     {
       "name": "@deepseek-ai/dsh-tool-subagent",
-      "version": "0.2.2-rc.3",
-      "file": "deepseek-ai-dsh-tool-subagent-0.2.2-rc.3.tgz",
+      "version": "0.2.3-alpha.2",
+      "file": "deepseek-ai-dsh-tool-subagent-0.2.3-alpha.2.tgz",
       "category": "agent",
       "author": "DeepSeek Harness Team",
       "description": "子 Agent 委派工具：给模型一个命名工具，把任务交给指定的子 Agent 后端执行。每次调用返回子 id，完成通知与清理由运行时负责，适合把独立工作拆出去跑。",
@@ -40,8 +40,8 @@
     },
     {
       "name": "@linxin666/dsh-client-ui-task-board",
-      "version": "0.4.19",
-      "file": "linxin666-dsh-client-ui-task-board-0.4.19.tgz",
+      "version": "0.4.21",
+      "file": "linxin666-dsh-client-ui-task-board-0.4.21.tgz",
       "category": "workspace",
       "author": "linxin666",
       "description": "任务看板：卡片由 Host 托管并真实开 DSH 会话执行，支持 cron 定时与跨平台休眠抑制。适合让审查、巡检与定时流水线无人值守地跑。",
@@ -49,8 +49,8 @@
     },
     {
       "name": "@michengai/dsh-agency-agents",
-      "version": "1.2.34",
-      "file": "michengai-dsh-agency-agents-1.2.34.tgz",
+      "version": "1.3.1",
+      "file": "michengai-dsh-agency-agents-1.3.1.tgz",
       "category": "agent",
       "author": "MichengAI",
       "description": "专家库：内置 331 位可召唤的专业智能体与 5 个专家团，按能力分工处理各类任务。也支持自定义协作方式，适合需要专业视角时直接点名。",
@@ -58,8 +58,8 @@
     },
     {
       "name": "@michengai/dsh-archive-manager",
-      "version": "1.3.7",
-      "file": "michengai-dsh-archive-manager-1.3.7.tgz",
+      "version": "1.4.1",
+      "file": "michengai-dsh-archive-manager-1.4.1.tgz",
       "category": "workspace",
       "author": "MichengAI",
       "description": "会话归档管理：归档、恢复、收藏与永久删除会话，还能诊断损坏的会话日志。适合清理历史记录，或找回误归档的对话。",
@@ -67,8 +67,8 @@
     },
     {
       "name": "@michengai/dsh-code-review",
-      "version": "1.0.13",
-      "file": "michengai-dsh-code-review-1.0.13.tgz",
+      "version": "1.0.14",
+      "file": "michengai-dsh-code-review-1.0.14.tgz",
       "category": "engineering",
       "author": "MichengAI",
       "description": "代码审查：在当前会话发起审查，由独立子 Agent 检查 Git、源码、调用方与测试，再把报告带回主会话。可按范围或要求审查，报告支持中英文。",
@@ -76,8 +76,8 @@
     },
     {
       "name": "@michengai/dsh-skills-manager",
-      "version": "1.4.12",
-      "file": "michengai-dsh-skills-manager-1.4.12.tgz",
+      "version": "1.5.0",
+      "file": "michengai-dsh-skills-manager-1.5.0.tgz",
       "category": "agent",
       "author": "MichengAI",
       "description": "技能管理：统一加载并安全管理本机 Agent 技能，支持从 GitHub 安装、预览更新与备份回退。适合把散落的技能收拢到一处维护。",
@@ -85,8 +85,8 @@
     },
     {
       "name": "@tt-a1i/archify-dsh",
-      "version": "1.1.0",
-      "file": "tt-a1i-archify-dsh-1.1.0.tgz",
+      "version": "1.2.0",
+      "file": "tt-a1i-archify-dsh-1.2.0.tgz",
       "category": "agent",
       "author": "tt-a1i",
       "description": "架构图技能：以纯技能包的形式把 Archify 架构图能力接入 DSH，让模型能按描述生成架构图。适合梳理系统结构或表达技术方案。",
@@ -94,8 +94,8 @@
     },
     {
       "name": "@wenaixi/dsh-superpower",
-      "version": "8.1.1",
-      "file": "wenaixi-dsh-superpower-8.1.1.tgz",
+      "version": "8.1.2",
+      "file": "wenaixi-dsh-superpower-8.1.2.tgz",
       "category": "agent",
       "author": "wenaixi",
       "description": "工程技能包：移植 obra/superpowers 的 15 个工程纪律技能，技能描述中英双语可切换、每个都能单独开关。适合给日常开发加上成体系的方法约束。",
@@ -130,8 +130,8 @@
     },
     {
       "name": "dsh-client-auto-continue",
-      "version": "0.20.1",
-      "file": "dsh-client-auto-continue-0.20.1.tgz",
+      "version": "0.20.2",
+      "file": "dsh-client-auto-continue-0.20.2.tgz",
       "category": "workspace",
       "author": "社区贡献者",
       "description": "自动续跑：请求被网络错误等非人为原因中断时，自动补发一条本地化的继续提示；也可开启成功后循环继续。适合长时间无人值守的任务。",
@@ -139,8 +139,8 @@
     },
     {
       "name": "dsh-config-manager",
-      "version": "0.10.0",
-      "file": "dsh-config-manager-0.10.0.tgz",
+      "version": "0.12.0",
+      "file": "dsh-config-manager-0.12.0.tgz",
       "category": "integration",
       "author": "社区贡献者",
       "description": "配置管理：一键备份、恢复、导出、导入、迁移与同步 DSH 配置，覆盖设置、插件、MCP、技能与工作区。适合换机器时把整套环境搬过去，也支持定时备份。",
@@ -148,8 +148,8 @@
     },
     {
       "name": "dsh-context",
-      "version": "0.86.0",
-      "file": "dsh-context-0.86.0.tgz",
+      "version": "0.87.1",
+      "file": "dsh-context-0.87.1.tgz",
       "category": "core",
       "author": "bowenliang123",
       "description": "上下文洞察与管理：用仪表板查看上下文由什么组成、怎么增长，并在需要时压缩。提供 /context 命令与侧边栏面板，适合排查上下文被谁占满。",
@@ -157,8 +157,8 @@
     },
     {
       "name": "dsh-cost-meter",
-      "version": "1.9.73",
-      "file": "dsh-cost-meter-1.9.73.tgz",
+      "version": "1.9.85",
+      "file": "dsh-cost-meter-1.9.85.tgz",
       "category": "workspace",
       "author": "社区贡献者",
       "description": "费用与额度看板：统计本会话、当日与历史的 token 和成本，内置 170+ 模型价格目录并自动匹配。还能查 16 家 Coding Plan 订阅额度与自定义 Provider 余额，并在峰谷计价切换前提醒。",
@@ -166,8 +166,8 @@
     },
     {
       "name": "dsh-excel-chat",
-      "version": "0.43.0",
-      "file": "dsh-excel-chat-0.43.0.tgz",
+      "version": "0.45.0",
+      "file": "dsh-excel-chat-0.45.0.tgz",
       "category": "docs",
       "author": "社区贡献者",
       "description": "Excel 对话：用自然语言读取、编辑、清洗表格并生成报表，每次编辑后自动复查公式、修复静默错误。核心操作不依赖本机安装 Excel，适合批量改表。",
@@ -202,8 +202,8 @@
     },
     {
       "name": "dsh-mcp-connector",
-      "version": "0.2.113",
-      "file": "dsh-mcp-connector-0.2.113.tgz",
+      "version": "0.2.119",
+      "file": "dsh-mcp-connector-0.2.119.tgz",
       "category": "integration",
       "author": "社区贡献者",
       "description": "MCP 连接器：内置上百个连接器的数据市场，统一管理授权、跨连接搜索工具并排查连接问题。支持 OAuth、API Key 与 HTTP/stdio，适合接入企业数据。",
@@ -211,8 +211,8 @@
     },
     {
       "name": "dsh-nonead-prompt-recall",
-      "version": "0.8.7",
-      "file": "dsh-nonead-prompt-recall-0.8.7.tgz",
+      "version": "0.8.8",
+      "file": "dsh-nonead-prompt-recall-0.8.8.tgz",
       "category": "integration",
       "author": "拓德科技",
       "description": "输入历史：空输入框按 ↑ 召回上一条指令，再按 ↑ 往前翻、↓ 往回走，按工作区保存且重启不丢。模型选择器旁还有改写按钮，可在保留 @ 引用的前提下优化草稿。",
@@ -220,8 +220,8 @@
     },
     {
       "name": "dsh-nonead-prompt-rewind",
-      "version": "0.5.4",
-      "file": "dsh-nonead-prompt-rewind-0.5.4.tgz",
+      "version": "0.6.1",
+      "file": "dsh-nonead-prompt-rewind-0.6.1.tgz",
       "category": "integration",
       "author": "拓德科技",
       "description": "对话回退：一键就地回退到任意更早的用户消息，目标消息自动回填输入框。还能一并还原写类工具改过的文件，不依赖 git，适合走错路时重来。",
@@ -238,12 +238,12 @@
     },
     {
       "name": "dsh-remotion",
-      "version": "0.12.0",
-      "file": "dsh-remotion-0.12.0.tgz",
+      "version": "0.13.0",
+      "file": "dsh-remotion-0.13.0.tgz",
       "category": "docs",
       "author": "stardustlc",
       "description": "视频工作台：把 React 工程做成视频，内置官方 Remotion 技能、工程检索、模板、素材排序、Studio 预览与 MP4 导出。适合用代码生成带动画的视频。",
-      "descriptionEn": "DeepSeek Harness React 视频创作工作台：内置官方 Remotion 技能、工程检索、模板库、素材排序、Studio 预览与本地 MP4 导出，支持原生清透 / 米白纸感 / Claude 暖书卷 / 8-Bit 像素 / 晴空薄荷五套明亮工作台主题。欢迎提交 issues 和 PR。"
+      "descriptionEn": "DeepSeek Harness React 视频创作工作台：内置 OP-DSH 实体多轨导演台（实时监看屏 / 24-LED 矩阵 / 可擦洗多轨时间线）、官方 Remotion 技能、工程检索、模板库、素材排序、Studio 预览与本地 MP4 导出，支持 13 套明亮风格与 8 套中英双层字体搭配。欢迎提交 issues 和 PR。"
     }
   ]
 }

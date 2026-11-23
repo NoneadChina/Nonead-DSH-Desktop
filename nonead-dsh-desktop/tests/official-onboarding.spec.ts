@@ -6,7 +6,7 @@ import { expect, it, vi } from 'vitest'
 /** Run the installed official view; only React scheduling and external services are replaced. */
 function fixture(nativeBridge = true, lastVisible: unknown = null, apiKeyBridge?: object) {
   const source = readFileSync(createRequire(import.meta.url).resolve('@deepseek-ai/dsh-client-ui-settings-account/client'), 'utf8')
-    .replace(/return module\.exports;?(?=}\})/, 'module.exports.testEntry = DesktopOnboardingEntry; module.exports.readKeys = readOnboardingApiKeyPresence; return module.exports')
+    .replace(/return module\.exports(?=\s*\})/, 'module.exports.testEntry = DesktopOnboardingEntry; module.exports.readKeys = readOnboardingApiKeyPresence; return module.exports')
   let entry: (props: any) => any
   let readKeys: (ctx: any) => Promise<boolean>
   const jsx = (type: any, props: any) => ({ type, props })
@@ -111,23 +111,7 @@ it.each([true, false])('preserves the official native API-key decision when pres
   expect(hasApiKey).toHaveBeenCalledOnce()
 })
 
-it.each([true, false])('uses official provider and credential metadata when the shell has no native API-key method: %s', async configured => {
-  const describe = vi.fn(async (refs: string[]) => ({ ok: true, value: Object.fromEntries(refs.map(ref => [ref, { configured: ref === 'CUSTOM_KEY' && configured }])) }))
-  const remote = {
-    settings: { describe: async () => ({ ok: true, value: { namespaces: [
-      { ns: 'llm-deepseek', value: { apiKeyEnv: 'OFFICIAL_KEY' } },
-      { ns: 'custom', value: { providers: { example: { apiKeyEnv: 'CUSTOM_KEY' } } } },
-    ] } }) },
-    llm: { listConfigurableProviders: async () => ({ ok: true, value: [
-      { settingsNs: 'llm-deepseek', settingsPath: [] },
-      { settingsNs: 'custom', settingsPath: ['providers', 'example'] },
-    ] }) }, credentials: { describe },
-  }
-  expect(await fixture().readKeys({ remote })).toBe(configured)
-  expect(describe).toHaveBeenCalledExactlyOnceWith(['OFFICIAL_KEY', 'CUSTOM_KEY'])
-})
-
-it('does not report an API-key decision when credential discovery fails', async () => {
-  await expect(fixture().readKeys({ remote: { settings: { describe: async () => ({ ok: false }) },
-    llm: { listConfigurableProviders: async () => ({ ok: true, value: [] }) } } })).rejects.toThrow('directory unavailable')
+it('requires the Desktop login bridge for the official API-key decision', async () => {
+  // 0.2.3-alpha.2 collapsed the credential-discovery fallback into the Desktop bridge.
+  await expect(Promise.resolve().then(() => fixture().readKeys({}))).rejects.toThrow('desktop login bridge unavailable')
 })

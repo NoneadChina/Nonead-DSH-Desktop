@@ -313,9 +313,15 @@ describe('published package surface', () => {
     expect(dshResolution('@deepseek-ai/dsh-client-ui-primitives')).toContain(patchPath)
     const patch = readFileSync(new URL(patchPath, workspaceRoot), 'utf8')
     const installedStyles = readFileSync(new URL(
-      'node_modules/@deepseek-ai/dsh-client-ui-primitives/lib/markdown/MarkdownText.module.css',
+      'node_modules/@deepseek-ai/dsh-client-ui-primitives/src/markdown/MarkdownText.module.css',
       packageRoot,
     ), 'utf8')
+    // This runtime line inlines each stylesheet as text inside `lib/index.js`, so the bundle the
+    // Desktop renderer loads carries that copy rather than the source file; both must be patched.
+    const shippedStyles = readFileSync(new URL(
+      'node_modules/@deepseek-ai/dsh-client-ui-primitives/lib/index.js',
+      packageRoot,
+    ), 'utf8').split('\n').find(line => line.includes('"src/markdown/MarkdownText.module.css": { text:')) ?? ''
     for (const styles of [patch, installedStyles]) {
       expect(styles).toContain('overflow-x: auto;')
       expect(styles).toContain('scrollbar-width: thin;')
@@ -327,6 +333,9 @@ describe('published package surface', () => {
     expect(installedStyles).not.toMatch(
       /\.tableScroll:global\(\.md-table-wide\):hover,[\s\S]*?overflow-x: auto;/u,
     )
+    expect(shippedStyles).toContain('scrollbar-width:thin')
+    expect(shippedStyles).toContain('::-webkit-scrollbar-thumb{border-radius:4px')
+    expect(shippedStyles).not.toContain('.md-table-wide{padding-bottom:var(--dsh-scrollbar-width,5px);overflow-x:hidden}')
   })
 
   // The `dsh-settings` compatibility patch is not forward-ported to

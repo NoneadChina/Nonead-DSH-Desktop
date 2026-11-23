@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import ComputerUseRegistry from '@deepseek-ai/dsh-computer-use'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import * as ToolExecutorNative from '@deepseek-ai/dsh-tool-executor-native'
@@ -26,6 +27,9 @@ beforeEach(async () => {
   native.call.mockResolvedValue({ rawJson: JSON.stringify({ content: [{ type: 'text', text: 'Actual driver: screen recording denied' }] }) })
   ctx = new Context()
   await ctx.plugin(ComputerUseRegistry)
+  // 0.2.3-alpha.2 makes the system prompt depend on the projection registry and the tool runtime
+  // depend on the system prompt; without it the provider never leaves the waiting state.
+  await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(SystemPrompt)
   await ctx.plugin(ToolRuntime)
   await ctx.plugin(ToolExecutorNative)

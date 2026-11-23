@@ -9,6 +9,7 @@ import Include from '@deepseek-ai/cordis-plugin-include'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import SkillRegistry from '@deepseek-ai/dsh-skill'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import { expect, it } from 'vitest'
 import * as desktopOffice from '../src/host/office.ts'
@@ -35,7 +36,8 @@ it('loads Office skills from the bundled payload and removes them on disposal', 
     expect(ctx.loader.unwrapExports(desktopOffice)).toBe(desktopOffice)
     const modules = new Map<string, unknown>([
       ['agents', AgentRegistry], ['systemPrompt', SystemPrompt], ['tools', ToolRuntime],
-      ['skills', SkillRegistry], ['office', desktopOffice],
+      // The tool registry now hangs off the system prompt, which requires the projection registry.
+      ['projections', SessionProjectionRegistry], ['skills', SkillRegistry], ['office', desktopOffice],
     ])
     ctx.loader.internal = {
       version: 'v2',
@@ -46,17 +48,17 @@ it('loads Office skills from the bundled payload and removes them on disposal', 
     } as unknown as NonNullable<typeof ctx.loader.internal>
     const config = join(root, 'cordis.yml')
     await writeFile(config, [
-      '- name: agents', '- name: systemPrompt', '- name: tools', '- name: skills', '- name: office',
+      '- name: agents', '- name: systemPrompt', '- name: tools', '- name: projections', '- name: skills', '- name: office',
       '  config:', `    source: ${JSON.stringify(source)}`,
       `    root: ${JSON.stringify(join(root, 'installed'))}`, '',
     ].join('\n'))
     await ctx.loader.create({ name: 'cordis:include', config: { path: pathToFileURL(config).href } })
     await ctx.loader.await()
     for (const entry of ctx.loader.entries()) await entry.fiber?.await()
-    expect((await ctx.skills.list()).map(skill => skill.name)).toEqual(['office', 'office-docx', 'office-pptx', 'office-xlsx'])
-    expect((await ctx.skills.get('office-pptx'))?.resourceBase).toEqual({ kind: 'directory', path: join(assets, 'office-pptx').split(sep).join('/') })
-    const content = (await ctx.skills.get('office-pptx'))?.content ?? ''
-    expect(content).toContain('visual inspection was not completed')
+    expect((await ctx.skills.list()).map(skill => skill.name)).toEqual(['office'])
+    expect((await ctx.skills.get('office'))?.resourceBase).toEqual({ kind: 'directory', path: join(assets, 'office').split(sep).join('/') })
+    const content = (await ctx.skills.get('office'))?.content ?? ''
+    expect(content).toContain('PowerPoint')
     expect(content).not.toContain(nodeDirectory)
     expect(ctx.tools.schemas().map(tool => tool.name)).toEqual(['load_workspace_dependencies'])
     const entry = [...ctx.loader.entries()].find(entry => entry.options.name === 'office')

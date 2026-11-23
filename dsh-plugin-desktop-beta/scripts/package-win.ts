@@ -221,7 +221,15 @@ export function packageWindowsArtifact(
   // electron-builder builds the NSIS uninstaller by running a stub it just compiled. On a native
   // Windows host that stub has to be launched from a copy and awaited by artifact instead of exit
   // code, so make sure the installed app-builder-lib carries that fix before it runs.
-  if (target === 'nsis') ensureNsisStubFix(options.builderCli, message => options.log(message))
+  if (target === 'nsis') {
+    // The desktop workspace resolves its own `electron-builder`, so a second `app-builder-lib`
+    // install can be the one that actually loads; patch every copy this run can reach.
+    ensureNsisStubFix(
+      options.builderCli,
+      message => options.log(message),
+      [options.desktopRoot],
+    )
+  }
   // A running installation keeps the previous `resources/app.asar` mapped, and electron-builder
   // cannot unlink that file while it is mapped. `DSH_PACKAGE_OUTPUT_DIR` lets a local build write
   // to a fresh directory instead; the verifier reads electron-builder's own `outDir`, so it follows

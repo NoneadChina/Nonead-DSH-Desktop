@@ -172,10 +172,10 @@ export function verifyNextRuntimeTree(runtimeRoot: string, platform: NodeJS.Plat
       }
     }
     const skills = officeSkillsDirectory(runtimeRoot, arch)
-    // The pinned runtime line publishes the Office skills without the legacy `scripts/check_office.py`
-    // helper (that file exists only in the stable 0.2.0-rc.2 package), so the tree is verified
-    // against the SKILL.md resources this line actually ships.
-    for (const skill of ['office-docx', 'office-pptx', 'office-xlsx']) requireFile(join(skills, skill, 'SKILL.md'), `${arch} ${skill} skill`)
+    // This runtime line ships one merged `office` skill (upstream `SKILL_NAMES = ['office']`); the
+    // per-format `office-docx`/`office-pptx`/`office-xlsx` payload belongs to the 0.2.2 line, and the
+    // legacy `scripts/check_office.py` helper only existed in the stable 0.2.0-rc.2 package.
+    requireFile(join(skills, 'office', 'SKILL.md'), `${arch} office skill`)
     verified.push({ arch, directory, manifest })
   }
   return verified

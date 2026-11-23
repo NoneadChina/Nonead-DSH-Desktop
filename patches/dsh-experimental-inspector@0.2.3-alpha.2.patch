@@ -1,0 +1,15 @@
+diff --git a/lib/devtools/chunks/legacy-BU64wu7g.js b/lib/devtools/chunks/legacy-BU64wu7g.js
+index 7d0c1e7..2bdc61e 100644
+--- a/lib/devtools/chunks/legacy-BU64wu7g.js
++++ b/lib/devtools/chunks/legacy-BU64wu7g.js
+@@ -867,7 +867,9 @@ var Wn = function(e, t, n, r, i) {
+ 	setWhitelistedShortcuts(e) {}
+ 	setEyeDropperActive(e) {}
+ 	showCertificateViewer(e) {}
+-	reattach(e) {}
++	// Standalone Inspector has no native DevTools embedder to reattach.
++	// Complete the public callback so Reload DevTools can reload its iframe.
++	reattach(e) { e(); }
+ 	readyForTest() {}
+ 	connectionReady() {}
+ 	setOpenNewWindowForPopups(e) {}

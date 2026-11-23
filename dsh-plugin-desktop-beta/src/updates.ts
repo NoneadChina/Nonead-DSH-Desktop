@@ -55,10 +55,14 @@ export function apply(ctx: Context, config: Config): void {
       kind: 'exact',
       path: DESKTOP_UPDATE_CHECK_PATH,
       handler: (req, res) => {
-        const rejection = ctx.connection.requestRejection(req)
-        if (rejection !== undefined) {
-          res.writeHead(rejection)
-          res.end(rejection === 401 ? 'unauthorized' : 'forbidden')
+        const admission = ctx.connection.admit(req)
+        if (!('peer' in admission)) {
+          res.writeHead(admission.rejection)
+          res.end(admission.rejection === 401
+            ? 'unauthorized'
+            : admission.rejection === 503
+              ? 'unavailable'
+              : 'forbidden')
           return
         }
         return handleDesktopUpdateCheckRequest(

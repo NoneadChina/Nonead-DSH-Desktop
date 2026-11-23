@@ -31,7 +31,9 @@ export function createDesktopProfileBoot(prepared: PreparedDesktopProfile, pnpm:
     cwd: process.cwd(),
     home: prepared.homeDir,
     startedBundles: prepared.profile.layers.map(layer => layer.packageName),
-    overlays: structuredClone(prepared.overlays ?? []),
+    // The Desktop launcher never passes command-line overlays; every layer it
+    // owns is recomputed by readPatches below.
+    overlayPaths: [],
     telemetryDisabledEnv: options.telemetryDisabled,
     packageManager: {
       command: pnpm.appExecutable,
@@ -66,7 +68,7 @@ export function createDesktopProfileBoot(prepared: PreparedDesktopProfile, pnpm:
         generationMode: prepared.mode,
         ...(profilePatches === undefined ? {} : { profilePatches }),
       },
-    ).patches, ...context.overlays],
+    ).patches, ...(prepared.overlays ?? [])],
   }
   let ready = false
   let disposed = false

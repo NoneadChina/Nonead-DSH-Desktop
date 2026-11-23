@@ -109,9 +109,7 @@ function locateTarget(builderCli: string): string | undefined {
  * when the file is present but matches neither shape, so a silent regression cannot reach a
  * release build.
  */
-export function ensureNsisStubFix(builderCli: string, log: (message: string) => void = console.log): string {
-  const target = locateTarget(builderCli)
-  if (target === undefined) return 'skipped'
+function patchTarget(target: string, log: (message: string) => void): 'patched' | 'already patched' {
   const source = readFileSync(target, 'utf8')
   if (source.includes(MARKER)) {
     log(`NSIS uninstaller stub fix already applied: ${target}`)
@@ -126,4 +124,40 @@ export function ensureNsisStubFix(builderCli: string, log: (message: string) => 
   writeFileSync(target, source.replace(STOCK, PATCHED), 'utf8')
   log(`Applied the NSIS uninstaller stub fix to ${target}`)
   return 'patched'
+}
+
+/** Find the `app-builder-lib` copy installed directly under a workspace root. */
+function locateTargetUnder(root: string): string | undefined {
+  const candidate = join(root, 'node_modules', TARGET_FILE)
+  return existsSync(candidate) ? candidate : undefined
+}
+
+/**
+ * Apply the stub-launch fix to every `app-builder-lib` copy this packaging run can load.
+ *
+ * `builderCli` names the copy that *should* load, but a workspace with two installs can end up
+ * executing the sibling copy (the desktop workspace resolves its own `electron-builder` through the
+ * workspace root), so every extra root is patched as well. Patching an already-patched copy is a
+ * no-op, and the log line per copy shows which one the packaging process really loaded.
+ *
+ * Returns `'already patched'` when every located copy carries the fix (or a newer upstream that no
+ * longer has the stock call), `'skipped'` when `app-builder-lib` cannot be located at all (no log
+ * line: unit tests and unusual layouts use a synthetic CLI path), and throws when a located copy
+ * matches neither shape, so a silent regression cannot reach a release build.
+ */
+export function ensureNsisStubFix(
+  builderCli: string,
+  log: (message: string) => void = console.log,
+  extraRoots: readonly string[] = [],
+): string {
+  const targets = new Set<string>()
+  const primary = locateTarget(builderCli)
+  if (primary !== undefined) targets.add(primary)
+  for (const root of extraRoots) {
+    const candidate = locateTargetUnder(root)
+    if (candidate !== undefined) targets.add(candidate)
+  }
+  if (targets.size === 0) return 'skipped'
+  const results = [...targets].map(target => patchTarget(target, log))
+  return results.includes('patched') ? 'patched' : 'already patched'
 }

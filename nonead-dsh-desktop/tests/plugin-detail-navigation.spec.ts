@@ -90,7 +90,7 @@ function fixture() {
     update: null,
     install: { open: false } }
   const item = { id: 'nonead-dsh-desktop-computer-use', label: 'Computer Use' }
-  const ledger = { items: [item], bundles: new Set([remote.name]), rows: new Set(),
+  const ledger = { items: [item], bundles: new Set([remote.name]), rows: new Set(), sections: [] as { module: string; id: string; label: string }[],
     hiddenBundles: new Set([remote.name]), hiddenItems: new Set([item.id]) }
   let overview: { onOpenBundle(name: string): void; onOpenItem(id: string): void }
   const setEnabled = vi.fn()
@@ -105,6 +105,8 @@ function fixture() {
     useBundleDetails: (select: (snapshot: unknown) => unknown) => select({}),
     // 0.2.2-alpha.2 起的页面还通过 useLocale 读当前语言快照。
     useLocale: (select: (snapshot: unknown) => unknown) => select({ active: "en", available: [] }),
+    // 0.2.3-alpha.2 起的页面还通过 useClientSync 读客户端同步快照（ClientSyncNotice）。
+    useClientSync: (select: (snapshot: unknown) => unknown) => select({ syncing: false, failures: [] }),
     renderSlot: (name: string, owner: Record<string, unknown>, options?: unknown) => {
       if (name === 'plugins.overview') overview = owner as typeof overview
       return jsx('slot', { name, owner, options })
