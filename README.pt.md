@@ -14,7 +14,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-0078D6" alt="Windows, macOS, Linux">
   <img src="https://img.shields.io/badge/Electron-44-47848F?logo=electron&amp;logoColor=white" alt="Electron 44">
-  <img src="https://img.shields.io/badge/DSH%20runtime-0.2.3--alpha.1-4B32C3" alt="DSH runtime 0.2.3-alpha.1">
+  <img src="https://img.shields.io/badge/DSH%20runtime-0.2.3--alpha.1-4B32C3" alt="DSH runtime 0.2.3-alpha.2">
   <img src="https://img.shields.io/badge/node-%5E22.19%20%7C%20%3E%3D24-339933?logo=node.js&amp;logoColor=white" alt="Node.js">
 </p>
 
@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  Produto <code>2.3.2</code> · runtime do DSH <code>0.2.3-alpha.1</code> · Electron 44 · Licença MIT
+  Produto <code>2.3.4</code> · runtime do DSH <code>0.2.3-alpha.2</code> · Electron 44 · Licença MIT
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">Download em um clique, pronto para usar.</a></h3>
@@ -79,11 +79,11 @@ Shell e Host se comunicam por exatamente um canal IPC de processo filho. Trocar 
 
 | Item | Valor |
 | --- | --- |
-| Versão do produto | `2.3.2` (`nonead-dsh-desktop` e `dsh-plugin-desktop-beta` em sincronia) |
+| Versão do produto | `2.3.4` (`nonead-dsh-desktop` e `dsh-plugin-desktop-beta` em sincronia) |
 | Workspace do canal estável | `nonead-dsh-desktop` (os scripts da raiz usam o sufixo `:stable`) |
 | Workspace do canal Beta | `dsh-plugin-desktop-beta` (os scripts da raiz usam o sufixo `:beta`) |
-| Runtime do DSH | `0.2.3-alpha.1`, todas as dependências `@deepseek-ai/dsh*` com pin exato, runtime vendorizado |
-| Runtime vendorizado | `vendor/dsh-runtime/0.2.3-alpha.1/` (vários diretórios de versões históricas são mantidos) |
+| Runtime do DSH | `0.2.3-alpha.2`, todas as dependências `@deepseek-ai/dsh*` com pin exato, runtime vendorizado |
+| Runtime vendorizado | `vendor/dsh-runtime/0.2.3-alpha.2/` (vários diretórios de versões históricas são mantidos) |
 | Pin upstream | `d98f5d68519215da48f3002da2cb9c9d2068d81d` (`channels.beta` no `upstream.json`, replicado em `nonead-dsh-desktop/upstream-reference.json`) |
 | Electron / empacotador | Electron `44.0.0` / electron-builder `26.15.7` (`app-builder-lib` com patch) |
 | Node / Yarn | Node `^22.19.0` ou `>=24.0.0`; Yarn `4.18.0` via Corepack (`nodeLinker: node-modules`) |
@@ -91,7 +91,7 @@ Shell e Host se comunicam por exatamente um canal IPC de processo filho. Trocar 
 | Ponte de controle remoto | `@agents-anywhere/dsh-bridge-next` `2.2.0-desktop` (commit upstream `aa12e7a`) |
 | Skin da marca | `dsh-nonead-client-skin` (distribuída no instalador, montada por perfil) |
 
-O `upstream.json` registra duas linhas de runtime vendorizado: `stable` mapeia para o upstream `0.2.0-rc.2` e `beta` para o upstream `0.2.3-alpha.1`. O que realmente vai dentro de um instalador é a linha que o workspace fixa exatamente — hoje os dois workspaces desktop fixam `0.2.3-alpha.1`. **Nomes de canal descrevem linhas de runtime, não o canal de lançamento que um workspace consulta.**
+O `upstream.json` registra duas linhas de runtime vendorizado: `stable` mapeia para o upstream `0.2.0-rc.2` e `beta` para o upstream `0.2.3-alpha.2`. O que realmente vai dentro de um instalador é a linha que o workspace fixa exatamente — hoje os dois workspaces desktop fixam `0.2.3-alpha.2`. **Nomes de canal descrevem linhas de runtime, não o canal de lançamento que um workspace consulta.**
 
 <a id="download"></a>
 
@@ -297,6 +297,7 @@ O histórico completo está no [registro de alterações](CHANGELOG.pt.md) ([中
 
 | Versão | Data | Destaques |
 | --- | --- | --- |
+| `2.3.4` | 2026-11-26 | Runtime elevado para DSH `0.2.3-alpha.2` (upstream `4b399c39a6`, 398 pacotes) com os 24 patches de desktop rebaseados linha a linha; requisito de Node.js elevado para 24.22.3; `dshmarket` empacotado sobe para 1.84.1; ponte AA reconstruída para os peers do alpha.2 |
 | `2.3.2` | 2026-11-24 | Runtime elevado para DSH `0.2.3-alpha.1` (upstream `d98f5d6851`, 398 pacotes), os 24 patches de desktop rebaseados e o shell migrado para a entrega de credenciais por IPC; `dshmarket` empacotado sobe para 1.80.1; ponte AA reconstruída com os novos peers |
 | `2.2.11` | 2026-11-12 | Runtime atualizado para DSH `0.2.2-rc.2` (upstream `ddac96760b`, 374 pacotes), os 24 patches de desktop rebaseados e o minificador de espaços do upstream desligado; mercado incluído `dshmarket` para 1.73.17; a ponte AA ganha isenção de versão exata |
 | `2.2.8` | 2026-11-04 | Runtime atualizado para DSH `0.2.2-rc.1` (upstream `66491b05`) com o runtime incluído reempacotado (373 pacotes); mercado incluído `dshmarket` elevado para 1.73.10 e os 24 patches renomeados e reaplicados |

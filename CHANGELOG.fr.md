@@ -13,6 +13,16 @@ Conventions de maintenance :
 - Les entrées ne décrivent que les changements perceptibles par l’utilisateur et les changements de limite que les responsables de maintenance doivent connaître ; les refactorisations pures ne font pas l’objet d’une entrée.
 - L’historique plus ancien se trouve dans les étiquettes Git (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) et dans le journal des commits.
 
+## 2.3.4 — 2026-11-26
+
+Une version de suivi du noyau qui aligne les shells de bureau et les composants embarqués sur le nouveau runtime :
+
+- Runtime : DSH passe à `0.2.3-alpha.2`, le pin amont à `4b399c39a6d1479cd84ca591b4d7c88e24d38a96`, et le runtime embarqué est réempaqueté en 398 paquets ; toutes les dépendances `@deepseek-ai/dsh*` des deux espaces de travail de bureau sont épinglées sur cette version.
+- Compilation : les bundles client restent multilignes (la minification d espaces d amont est désactivée), ce qui permet aux 24 patchs de bureau de se rebaser ligne par ligne sur `@0.2.3-alpha.2` et de passer l application directe comme la vérification inverse.
+- Outillage : l exigence Node.js passe à `>=24.22.3` (plancher déclaré par le noyau), et `@deepseek-ai/cordis` 4.2.0-alpha.1 / `@deepseek-ai/schemastery` 3.20.0-alpha.1 sont alignés sur les plages de peers déclarées par le noyau.
+- Composants embarqués : `dshmarket` passe à 1.84.1 (son patch de bureau se rejoue sans conflit) et le pont AA de contrôle à distance par téléphone est reconstruit pour les peers d alpha.2 sous l identifiant `r7d47d227`.
+- Programmes d installation : les programmes NSIS monofichiers Windows x64 et arm64 sont reconstruits sur le nouveau runtime, en conservant le comportement 2.3.2 pour les langues, la fermeture de l application en cours et la réutilisation du répertoire d installation lors d une mise à jour.
+
 ## 2.3.2 — 2026-11-24
 
 Une version qui embarque une mise à niveau profonde du runtime :

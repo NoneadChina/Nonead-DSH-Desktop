@@ -13,6 +13,16 @@ Convenciones de mantenimiento:
 - Las entradas solo recogen los cambios que el usuario puede percibir y los cambios de límites que los mantenedores deben conocer; las refactorizaciones puras no tienen entrada propia.
 - El historial anterior está en las etiquetas de Git (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) y en el registro de confirmaciones.
 
+## 2.3.4 — 2026-11-26
+
+Una versión de seguimiento del kernel que lleva las shells de escritorio y los componentes incluidos al nuevo runtime:
+
+- Runtime: DSH sube a `0.2.3-alpha.2`, el pin upstream pasa a `4b399c39a6d1479cd84ca591b4d7c88e24d38a96` y el runtime incluido se reempaqueta con 398 paquetes; todas las dependencias `@deepseek-ai/dsh*` de ambos espacios de trabajo de escritorio quedan fijadas a esa versión.
+- Compilación: los bundles de cliente se mantienen en varias líneas (se desactiva la minificación de espacios de upstream), de modo que los 24 parches de escritorio se rebasan línea por línea sobre `@0.2.3-alpha.2` y pasan tanto la aplicación directa como la verificación inversa.
+- Entorno: el requisito de Node.js sube a `>=24.22.3` (el mínimo que declara el kernel) y `@deepseek-ai/cordis` 4.2.0-alpha.1 / `@deepseek-ai/schemastery` 3.20.0-alpha.1 se alinean con los rangos de peers que declara el kernel.
+- Componentes incluidos: `dshmarket` sube a 1.84.1 (su parche de escritorio se reaplica sin conflictos) y el puente AA de control remoto por móvil se reconstruye para los peers de alpha.2 como `r7d47d227`.
+- Instaladores: los instaladores NSIS de archivo único para Windows x64 y arm64 se reconstruyen con el nuevo runtime, manteniendo el comportamiento de 2.3.2 en idiomas del instalador, cierre de la aplicación en ejecución y reutilización del directorio de instalación existente al actualizar.
+
 ## 2.3.2 — 2026-11-24
 
 Una versión con una actualización profunda del runtime:
