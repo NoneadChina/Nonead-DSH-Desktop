@@ -80,7 +80,7 @@ patches/*@0.2.1-rc.2.patch
 # bridge referenced by package.json and yarn.lock is consumed. Every tgz kept in
 # the tree must also be negated below, otherwise a re-add silently drops it.
 vendor/agents-anywhere/*.tgz
-!vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.2.0-desktop.caa12e7a2c181.r46c6025b.tgz
+!vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.2.0-desktop.caa12e7a2c181.r7d47d227.tgz
 
 # Local-only scratch that must never enter the repository: copied Profile data
 # (may carry credentials), build caches, and inspection output.

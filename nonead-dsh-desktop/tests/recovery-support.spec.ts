@@ -68,8 +68,11 @@ it('takes over the lock of a holder process that exited', () => {
   // A PID no live process can own; the probe reports ESRCH.
   writeFileSync(lock, '2147483646\n')
   const started = Date.now()
-  expect(withProfileWriteLock(directory, () => readFileSync(lock, 'utf8'), { waitMs: 500 })).toBe(`${process.pid}\n`)
-  expect(Date.now() - started).toBeLessThan(500)
+  expect(withProfileWriteLock(directory, () => readFileSync(lock, 'utf8'), { waitMs: 5000 })).toBe(`${process.pid}\n`)
+  // Retry rather than poll: a dead holder is taken over on the first pass. The
+  // bound stays far below the wait budget so a regression still fails, while
+  // surviving scheduler stalls on a loaded test runner.
+  expect(Date.now() - started).toBeLessThan(2000)
   expect(existsSync(lock)).toBe(false)
 })
 

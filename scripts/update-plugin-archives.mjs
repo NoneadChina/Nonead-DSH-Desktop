@@ -34,7 +34,7 @@ const ARCHIVE = /\.(?:tgz|tar\.gz)$/u
  *   replace it.
  */
 const PINNED = {
-  '@deepseek-ai/dsh-tool-subagent': '0.2.3-alpha.1',
+  '@deepseek-ai/dsh-tool-subagent': '0.2.3-alpha.2',
   'dsh-ppt-master': '6.1.0',
 }
 

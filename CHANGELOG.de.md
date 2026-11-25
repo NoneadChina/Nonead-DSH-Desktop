@@ -13,6 +13,18 @@ Konventionen für die Pflege:
 - Einträge halten ausschließlich Änderungen fest, die Nutzer wahrnehmen können, sowie Grenzänderungen, die Maintainer kennen müssen; reine Refactorings erhalten keinen eigenen Eintrag.
 - Die frühere Historie findet sich in den Git-Tags (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) und in der Commit-Historie.
 
+## 2.3.3 — 2026-11-25
+
+Die Laufzeit wechselt auf dsh `0.2.3-alpha.2` (`4b399c39`); mitgelieferte Komponenten und vorinstallierte Plugins werden auf die aktuell übernehmbaren Versionen gebracht.
+
+- **Laufzeit** dsh `0.2.3-alpha.2` (`4b399c39`); `engines.node` verlangt nun `^24.22.3 || >=26.13.1`, die verwaltete Laufzeit pinnt Node `24.22.3`.
+- **Abhängigkeiten** die cordis-Familie steigt auf `4.2.0-alpha.1` / `1.2.0-alpha.1` / `1.3.0-alpha.1`, schemastery auf `3.20.0-alpha.1`; loader und include kommen zurück zu den offiziellen npm-Paketen, nur cordis bleibt ein lokaler Build.
+- **Desktop** der Zugangsdaten-Austausch des Elternprozesses behält das neue Protokoll; `/api` RPC und `/api/remote.mux` reichen den Peer über alle vier Argumente weiter, eine abgebrochene Verbindung wird also nicht mehr mit `1001` geschlossen.
+- **Brücke** die Agents-Anywhere-Brücke wird gegen die Laufzeit neu gebaut (`aa12e7a2c181`), alle drei Peers stehen auf `0.2.3-alpha.2`.
+- **Mitgelieferte Plugins** alle 27 vorinstallierten Plugins werden auf ihre aktuellen npm-Versionen gebracht (12 Aktualisierungen); `@deepseek-ai/dsh-tool-subagent` folgt der Laufzeit auf `0.2.3-alpha.2`.
+- **Plugin-Markt** dshmarket bleibt bei `1.83.3`: `1.84.1` ist veröffentlicht, liegt aber noch im 24-Stunden-Fenster, daher übernimmt die Supply-Chain-Regel des Repositories es noch nicht.
+- **Installer** Einzeldatei für zwei Architekturen, acht Sprachen, laufende Instanzen werden vor Installation und Deinstallation beendet, Standardpfad `C:\Program Files\Nonead DSH Desktop` und vorhandener Pfad werden weiterverwendet, alles unverändert.
+
 ## 2.3.1 — 2026-11-24
 
 Runtime auf DSH 0.2.3-alpha.1 angehoben: das gesamte Desktop-Projekt wurde darauf neu aufgebaut, einschließlich der Anpassung an die inkompatiblen Kernel-Änderungen:
@@ -52,33 +64,33 @@ Die Laufzeit steigt auf DSH 0.2.2-rc.3, die Agents-Anywhere-Brücke zieht auf 2.
 
 Diese 27 Plugins werden mit dem Installer ausgeliefert; nach dem ersten Start lassen sie sich auf der Seite „Plugins“ aktivieren, deaktivieren oder entfernen. Die Zahl hinter jedem Namen ist die mitgelieferte Version.
 
-- `@a9i5k4/dsh-auto-memory` 3.4.4 — Automatisches Gedächtnis. Erinnert vor jeder Aufgabe an frühere Entscheidungen.
+- `@a9i5k4/dsh-auto-memory` 3.4.5 — Automatisches Gedächtnis. Erinnert vor jeder Aufgabe an frühere Entscheidungen.
 - `@changfenhuang/dsh-genui` 0.17.0 — Generative Oberfläche. Zeigt Layouts, Diagramme und Formulare direkt in der Antwort.
-- `@deepseek-ai/dsh-tool-subagent` 0.2.3-alpha.1 — Subagent-Delegierung. Übergibt eine eigenständige Aufgabe an ein gewähltes Backend.
+- `@deepseek-ai/dsh-tool-subagent` 0.2.3-alpha.2 — Subagent-Delegierung. Übergibt eine eigenständige Aufgabe an ein gewähltes Backend.
 - `@linxin666/dsh-client-ui-git-graph` 0.4.14 — Git-Graph. Wechselt Branches und zeigt die Commit-Historie als Graphen.
-- `@linxin666/dsh-client-ui-task-board` 0.4.21 — Aufgabenboard. Führt Karten in echten Sitzungen aus, inklusive Cron-Zeitplan.
-- `@michengai/dsh-agency-agents` 1.3.1 — Expertenbibliothek. 331 aufrufbare Spezialisten und fünf Expertenteams.
-- `@michengai/dsh-archive-manager` 1.4.1 — Sitzungsarchiv. Archiviert, stellt wieder her oder löscht Sitzungen.
-- `@michengai/dsh-code-review` 1.0.14 — Code-Review. Ein eigener Subagent prüft den Code und liefert einen Bericht.
-- `@michengai/dsh-skills-manager` 1.5.3 — Skill-Verwaltung. Lädt und verwaltet lokale Skills sicher an einer Stelle.
+- `@linxin666/dsh-client-ui-task-board` 0.4.22 — Aufgabenboard. Führt Karten in echten Sitzungen aus, inklusive Cron-Zeitplan.
+- `@michengai/dsh-agency-agents` 1.3.2 — Expertenbibliothek. 331 aufrufbare Spezialisten und fünf Expertenteams.
+- `@michengai/dsh-archive-manager` 1.5.0 — Sitzungsarchiv. Archiviert, stellt wieder her oder löscht Sitzungen.
+- `@michengai/dsh-code-review` 1.0.15 — Code-Review. Ein eigener Subagent prüft den Code und liefert einen Bericht.
+- `@michengai/dsh-skills-manager` 1.5.5 — Skill-Verwaltung. Lädt und verwaltet lokale Skills sicher an einer Stelle.
 - `@tt-a1i/archify-dsh` 1.2.0 — Architekturdiagramme. Erzeugt Architekturdiagramme aus einer Beschreibung.
-- `@wenaixi/dsh-superpower` 8.1.2 — Engineering-Skills. Fünfzehn einzeln schaltbare Ingenieurskompetenzen.
-- `@yolk_vat-y/dsh-project-memory` 0.7.1 — Projektgedächtnis. Indexiert Dokumente und Symbole und antwortet mit Quellen.
+- `@wenaixi/dsh-superpower` 8.1.3 — Engineering-Skills. Fünfzehn einzeln schaltbare Ingenieurskompetenzen.
+- `@yolk_vat-y/dsh-project-memory` 0.7.2 — Projektgedächtnis. Indexiert Dokumente und Symbole und antwortet mit Quellen.
 - `billion-context` 0.1.216 — Kontextkompression. Fasst lange Gespräche zusammen und spart Kontextfenster.
-- `dsh-better-sidebar` 0.32.1 — Erweiterte Seitenleiste. Dateien, Editor, Änderungen und Aufgaben in einer Spalte.
+- `dsh-better-sidebar` 0.33.0 — Erweiterte Seitenleiste. Dateien, Editor, Änderungen und Aufgaben in einer Spalte.
 - `dsh-client-auto-continue` 0.20.2 — Automatische Fortsetzung. Startet die Anfrage nach einer Unterbrechung erneut.
 - `dsh-config-manager` 0.12.0 — Konfigurationsverwaltung. Sichert, stellt wieder her und synchronisiert die Konfiguration.
 - `dsh-context` 0.87.1 — Kontextanalyse. Zeigt die Zusammensetzung des Kontexts und komprimiert bei Bedarf.
-- `dsh-cost-meter` 1.9.87 — Kostenübersicht. Zählt Token und Ausgaben der Sitzung und der Historie.
+- `dsh-cost-meter` 1.9.92 — Kostenübersicht. Zählt Token und Ausgaben der Sitzung und der Historie.
 - `dsh-excel-chat` 0.45.0 — Tabellen-Chat. Bearbeitet Tabellen in natürlicher Sprache und prüft Formeln.
 - `dsh-find-plugins` 0.3.0 — Plugin-Entdeckung. Sucht in fünf Katalogen sowie live auf GitHub und npm.
 - `dsh-github-skills` 0.2.1 — GitHub-Skills. GitHub-Workflows, angepasst an mehrere Anbieter.
 - `dsh-markitdown` 0.2.2 — Markdown-Konvertierung. Wandelt Dokumente und Webseiten in lesbaren Text um.
-- `dsh-mcp-connector` 0.2.120 — MCP-Connector. Verwaltet Verbindungen und sucht verfügbare Werkzeuge.
+- `dsh-mcp-connector` 0.2.121 — MCP-Connector. Verwaltet Verbindungen und sucht verfügbare Werkzeuge.
 - `dsh-nonead-prompt-recall` 0.8.8 — Eingabeverlauf. Ruft die vorherige Anweisung mit der Pfeiltaste auf.
 - `dsh-nonead-prompt-rewind` 0.6.1 — Gesprächs-Rückspulen. Kehrt zu einer früheren Nachricht zurück und stellt Dateien her.
 - `dsh-ppt-master` 6.1.0 — Präsentationen. Erzeugt bearbeitbare PPTX und erweitert bestehende Foliensätze.
-- `dsh-remotion` 0.13.1 — Videowerkstatt. Wandelt ein React-Projekt in Video um, mit Vorschau und MP4-Export.
+- `dsh-remotion` 0.13.4 — Videowerkstatt. Wandelt ein React-Projekt in Video um, mit Vorschau und MP4-Export.
 
 ## 2.2.10 — 2026-11-12
 

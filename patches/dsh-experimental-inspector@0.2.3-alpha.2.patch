@@ -1,0 +1,15 @@
+diff --git a/lib/devtools/chunks/legacy-JfTsnHoI.js b/lib/devtools/chunks/legacy-JfTsnHoI.js
+index 5c23af2..6e2efb9 100644
+--- a/lib/devtools/chunks/legacy-JfTsnHoI.js
++++ b/lib/devtools/chunks/legacy-JfTsnHoI.js
+@@ -867,7 +867,9 @@ var Wn = function(e, t, n, r, i) {
+ 	setWhitelistedShortcuts(e) {}
+ 	setEyeDropperActive(e) {}
+ 	showCertificateViewer(e) {}
+-	reattach(e) {}
++	// Standalone Inspector has no native DevTools embedder to reattach.
++	// Complete the public callback so Reload DevTools can reload its iframe.
++	reattach(e) { e(); }
+ 	readyForTest() {}
+ 	connectionReady() {}
+ 	setOpenNewWindowForPopups(e) {}
