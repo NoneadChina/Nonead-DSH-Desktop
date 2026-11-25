@@ -17,7 +17,8 @@ export function createDesktopProfileBoot(prepared: PreparedDesktopProfile, pnpm:
     throw new Error('Desktop Profile context and package-manager identity disagree')
   }
   const inheritedPath = Object.entries(process.env).find(([key]) => key.toUpperCase() === 'PATH')?.[1]
-  // Desktop patches are composed in memory; no command-line overlay files exist.
+  // Launcher-composed overlays stay in memory: the pinned app-boot patch lets this hook
+  // return them above the profile layer, so no overlay FILE is ever written for them.
   const overlays = structuredClone(prepared.overlays ?? [])
   const context: ProfileContext = {
     name: options.profileName,
@@ -33,6 +34,8 @@ export function createDesktopProfileBoot(prepared: PreparedDesktopProfile, pnpm:
     cwd: process.cwd(),
     home: prepared.homeDir,
     startedBundles: prepared.profile.layers.map(layer => layer.packageName),
+    // The launcher hands composition in memory through `readPatches`; it never writes a
+    // command-line overlay file, so there are no overlay PATHS to declare.
     overlayPaths: [],
     telemetryDisabledEnv: options.telemetryDisabled,
     packageManager: {

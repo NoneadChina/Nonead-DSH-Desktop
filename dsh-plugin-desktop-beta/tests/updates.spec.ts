@@ -4,8 +4,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import type {
-  ConnectionTrustRequest,
   PeerAdmission,
+  ConnectionTrustRequest,
 } from '@deepseek-ai/dsh-client-connection'
 import type { WebRoute } from '@deepseek-ai/dsh-host-webserver'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -80,7 +80,7 @@ async function createHarness(options: {
   const downloadAndOpen = vi.fn(options.downloadAndOpen ?? (async () => {}))
   const admit = vi.fn<(
     request: ConnectionTrustRequest,
-  ) => PeerAdmission>(() => ({ peer: {} as never }))
+  ) => PeerAdmission>(() => ({ peer: undefined as never }))
   let tray: DesktopTrayItem | undefined
   const trays: DesktopTrayItem[] = []
   let route: WebRoute | undefined

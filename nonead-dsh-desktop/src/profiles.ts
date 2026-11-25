@@ -482,6 +482,8 @@ export function readNextProfilePatches(projectDir: string, home: string, overlay
     : [...profilePatches]
   const context: ProfileContext = { name: basename(projectDir), dir: projectDir, patchPath: profile.patchPath,
     installAnchor: NEXT_PACKAGE, cwd: process.cwd(), home, startedBundles: profile.layers.map(layer => layer.packageName),
+    // 0.2.3's `readProfilePatches` loads these itself (it flat-maps `overlayPaths` into
+    // `loadOverlayPatches`), so the launcher only hands over the paths and never pre-loads them.
     overlayPaths: overlays,
     telemetryDisabledEnv: process.env.DSH_TELEMETRY_DISABLED }
   return readProfilePatches('nonead-dsh-desktop', context, profile)

@@ -1,14 +1,16 @@
 /** Alpha.2 shared Web profile runner, hosted by an Electron Node-mode child. */
 import { auditHostPlugins, configureHostLogging, hostLog, hostOperation } from './logging.ts'
 import { basename, delimiter, join, resolve } from 'node:path'
+import { randomUUID } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { inspect } from 'node:util'
 import { loadLayeredEnv } from '@deepseek-ai/dsh-app-boot'
+import type { PluginOperationRunId } from '@deepseek-ai/dsh-plugin-manager/diagnostic'
+import * as DesktopAuthentication from '@deepseek-ai/dsh-host-authentication-desktop'
 import { runProfile } from '@deepseek-ai/dsh/profile-boot'
 import type {} from '@deepseek-ai/dsh-client-connection'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import type { PeerId, PeerScope } from '@deepseek-ai/dsh-typert-protocol'
-import { desktopAuthenticatedUrl } from '../../../dsh-plugin-desktop-beta/src/connection-fence.ts'
 import { loadNextProfile, NEXT_PACKAGE, readNextProfilePatches } from '../profiles.ts'
 import { bundledPnpmEntry } from '../extensions.ts'
 import { withDesktopPnpmPolicy } from '../pnpm-policy.ts'
@@ -50,6 +52,12 @@ export async function main(): Promise<void> {
   installSkillBadgeResolution(runtimeDir)
   const preferences = parsePreferences(JSON.parse(process.env.DSH_NONEAD_PREFERENCES ?? process.env.DSH_NEXT_PREFERENCES ?? '{}'))
   configureHostLogging(preferences)
+  // The parent owns the Desktop credential: it announces the Host lifetime on IPC first and
+  // answers with the secret the shell turns into its `dsh-desktop-session` cookie, so the
+  // Host accepts that cookie as its owner Peer without a launch token in any URL.
+  const runId = randomUUID() as PluginOperationRunId
+  let handOverSecret: (secret: string) => void = () => {}
+  const authenticationSecret = new Promise<string>(resolveSecret => { handOverSecret = resolveSecret })
   hostLog({ source: 'host', event: 'process.start', fields: { profile: basename(projectDir), node: process.version } })
   const trustedHosts = JSON.parse(process.env.DSH_NONEAD_TRUSTED_HOSTS ?? process.env.DSH_NEXT_TRUSTED_HOSTS ?? '[]') as unknown
   if (!Array.isArray(trustedHosts) || trustedHosts.some(host => typeof host !== 'string')) throw new Error('Invalid Next trusted hosts')
@@ -109,6 +117,9 @@ export async function main(): Promise<void> {
     process.send(value, error => error ? reject(error) : resolveSend())
   })
   let stopping: Promise<void> | undefined
+  // The parent delivers the credential only after this announcement, the same ordering the
+  // upstream Desktop Host uses; `ready` therefore always follows a completed handoff.
+  await send({ type: 'starting', runId })
   const accountWatch = new AbortController()
   const stop = (): Promise<void> => stopping ??= (async () => {
     const end = hostOperation('host', 'shutdown')
@@ -119,6 +130,12 @@ export async function main(): Promise<void> {
     if (process.connected) process.disconnect()
   })()
   process.on('message', (value: unknown) => {
+    if (typeof value === 'object' && value !== null && 'type' in value && value.type === 'desktop-auth') {
+      // The parent answers the lifetime announcement with the one credential it may use.
+      const handoff = value as { secret?: unknown }
+      if (typeof handoff.secret === 'string' && /^[A-Za-z0-9_-]{43}$/u.test(handoff.secret)) handOverSecret(handoff.secret)
+      return
+    }
     if (typeof value === 'object' && value !== null && 'type' in value && value.type === 'logging-config') {
       const request = value as { requestId?: unknown; developerLogging?: unknown; logLevel?: unknown }
       if (!Number.isSafeInteger(request.requestId) || typeof request.developerLogging !== 'boolean' || !['debug', 'info', 'warn', 'error'].includes(String(request.logLevel))) return
@@ -152,6 +169,10 @@ export async function main(): Promise<void> {
   process.once('disconnect', () => { void stop().catch(fatal) })
   const { ctx } = await application
   auditHostPlugins(ctx)
+  // Registering the verifier after the Web server exists still precedes any accepted request,
+  // because that server only answers once `ready` is announced below.
+  const authenticationCookie = await authenticationSecret
+  await ctx.plugin(DesktopAuthentication, { readSecret: () => authenticationCookie })
   // Office skills and the workspace dependency tool need the bundled payload; a packaged Host without it fails here.
   const office = resolveOfficeConfig(runtimeDir, primaryRuntime, home)
   if (office === undefined) hostLog({ source: 'host', event: 'office.unavailable', level: 'warn', fields: { source: primaryRuntime } })
@@ -165,7 +186,16 @@ export async function main(): Promise<void> {
     try { await ctx.plugin(desktopOffice, office); mounted() } catch (error) { mounted(error); throw error }
   }
   hostLog({ source: 'host', event: 'process.ready' })
-  await send({ type: 'ready', url: desktopAuthenticatedUrl(ctx, `http://127.0.0.1:${ctx.webServer.port}`),
+  // The parent authenticates through the IPC credential handoff, not a tokenized URL: it owns the
+  // `dsh-desktop-session` cookie and sends it with every forwarded request, so the renderer loads a
+  // plain loopback origin and the launch secret never reaches a URL, a history entry or a log line.
+  // A browser still needs a token to exchange for that cookie, so the Host publishes the entry URL
+  // the authentication plugin minted (`webserver/entry-url`) as a separate, opt-in field.
+  const origin = `http://127.0.0.1:${ctx.webServer.port}`
+  const entries: { label: string; url: string; open?: boolean }[] = []
+  ctx.emit('webserver/entry-url' as never, origin, entries as never)
+  const browserUrl = entries.find(entry => entry.url.includes('token='))?.url
+  await send({ type: 'ready', url: origin, browserUrl,
     injections: ctx.webServer.collectIndexInjections(hostPeer(ctx)) })
   const account = ctx.get('deepseekAccount') as PlatformLoginAccount | undefined
   if (account !== undefined && !stopping) {

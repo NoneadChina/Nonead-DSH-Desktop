@@ -73,7 +73,7 @@ describe('community market client registration', () => {
       'community-market: styles',
     ])
     expect(test.injections.map(value => value.name)).toEqual([
-      'settings.section',
+      'settings.plugins.tab',
       'sidebar.footer.action',
       'shell.overlay',
     ])
@@ -88,7 +88,7 @@ describe('community market client registration', () => {
     expect(test.registrations).toHaveLength(3)
     expect(test.registrations.map(value => value.spec)).toEqual([
       expect.objectContaining({
-        name: 'settings.section',
+        name: 'settings.plugins.tab',
         id: 'community-market',
         order: 20,
         locale: NS,

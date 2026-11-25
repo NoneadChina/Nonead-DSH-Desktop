@@ -13,17 +13,18 @@ Convenciones de mantenimiento:
 - Las entradas solo recogen los cambios que el usuario puede percibir y los cambios de límites que los mantenedores deben conocer; las refactorizaciones puras no tienen entrada propia.
 - El historial anterior está en las etiquetas de Git (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) y en el registro de confirmaciones.
 
-## 2.3.2 — 2026-11-23
+## 2.3.2 — 2026-11-24
 
-Una versión centrada en seguir el núcleo y sus dependencias incluidas:
+Una versión con una actualización profunda del runtime:
 
-- Runtime: DSH sube a `0.2.3-alpha.2`, el pin de origen pasa a `4b399c39a6d1479cd84ca591b4d7c88e24d38a96` y el runtime incluido se reempaqueta en 398 paquetes. El origen añade `dsh-cua-mcp`, `dsh-timeline`, `dsh-client-config`, `dsh-client-script-realm` y elimina `dsh-personalized-recommendations`, por lo que las dependencias de ambos espacios de trabajo y los avisos de terceros se ajustan a la vez; la familia `@deepseek-ai/cordis` se alinea con 4.2.0-alpha.1 y `schemastery` con 3.20.0-alpha.1.
-- Personalización: los parches de artefactos pasan de 24 a 23. El origen ya limpia `ELECTRON_RUN_AS_NODE`, así que se elimina el parche de `dsh-host-open-in-app`; el resto se rebasa sobre los nuevos artefactos, la barra de desplazamiento de las tablas Markdown pasa a un estilo en línea sin hover y la marca de la pantalla de inicio dice `NONEAD DEEPSEEK HARNESS`.
-- Interfaces: el manejador de conexión ya no expone `authenticatedUrl` ni `requestRejection`; el escritorio lee `webserver/entry-url` y llama a `admit()`. El `overlays` del contexto de perfil se integra en `overlayPaths` y `readPatches` nativos, las rutas web exigen autenticación por defecto, las rutas propias del escritorio se declaran anónimas y conservan sus comprobaciones locales, y las rutas de apertura de aplicaciones requieren identidad de propietario.
-- Mercado incluido: `dshmarket` pasa de 1.73.21 a 1.80.0 y los tres puntos de inyección del parche de autoactualización se reescriben para la nueva estructura `inventory()`/`check()`; la ranura de ajustes pasa de `settings.plugins.tab` a `settings.section`, con la página y sus pruebas actualizadas.
-- Compatibilidad: el puente AA incluido se reconstruye desde el commit upstream `02f04aae` con peers `0.2.3-alpha.2` (`2.2.0-desktop.c02f04aae5bb6.r7d47d227`); el parche del connector se aplica sin cambios.
-- Puertas: typecheck, pruebas (1845 casos en beta, 320 en el mercado, 729 en nonead) y compilación en verde.
-- Versión: producto 2.2.15 → **2.3.2** (ambos espacios de trabajo).
+- Runtime: DSH sube a `0.2.3-alpha.1`, el pin de upstream pasa a `d98f5d68519215da48f3002da2cb9c9d2068d81d` y el runtime empaquetado se reconstruye con 398 paquetes. Todas las dependencias `@deepseek-ai/dsh*` de ambos espacios de trabajo de escritorio quedan fijadas a esa versión, y la familia cordis sigue la línea `next` de upstream (`@deepseek-ai/cordis` 4.2.0-alpha.1, loader/group/include 1.2.0-alpha.1, timer 1.3.0-alpha.1).
+- Personalización de escritorio: los 24 parches de artefactos se rebasan a `@0.2.3-alpha.1` y se verifican uno a uno. Un parche nuevo de `dsh-host-authentication-token` expone al shell el token de inicio del proceso; el punto de parcheo de `dsh-host-open-in-app` ya lo resolvió upstream, así que ese parche desaparece.
+- Shell de escritorio: adopta el traspaso de credenciales por IPC del nuevo kernel — el Host anuncia primero `starting` con su identidad de ejecución, el proceso padre entrega el secreto de sesión por IPC y los enlaces de navegador siguen saliendo de la URL con token derivada de `webserver/entry-url`. La autorización HTTP pasa a las políticas de ruta declaradas por el kernel, mientras la puerta de navegador de escritorio conserva su texto 403.
+- Mercado incluido: `dshmarket` pasa de 1.73.21 a 1.80.1, con el parche de escritorio rebasado sobre el nuevo artefacto; el mercado incluido registra su página de ajustes mediante `settings.section`.
+- Compatibilidad: el puente AA incluido se reconstruye contra los peers de `0.2.3-alpha.1` desde el mismo commit de upstream (`2.2.0-desktop.caa12e7a2c181.r46c6025b`), y los shells incorporan los paquetes del kernel recién divididos (`dsh-deepseek-auth`, `dsh-client-config`, `dsh-client-script-realm`, `dsh-cua-mcp`, `dsh-timeline`, `dsh-computer-use`, `dsh-tool-executor-ptc`, `dsh-host-authentication-desktop`).
+- Puertas: typecheck, las dos suites (94 archivos / 758 casos en escritorio, 173 archivos / 1881 casos en beta), las compilaciones, `verify:host`, `verify:desktop-runtime`, `verify:frontend`, `verify:safe-cleanup` y `check:vendored-runtime` pasan.
+- Instalador de Windows: el instalador NSIS ofrece una interfaz en 8 idiomas que sigue el idioma de presentación de Windows (chino simplificado, inglés, japonés, español, francés, alemán, ruso y portugués de Brasil) y solo muestra el selector cuando no puede determinarlo. Tanto la instalación como la desinstalación cierran antes la aplicación en ejecución, y los avisos de "no se pudo cerrar" están traducidos en lugar de los diálogos fijos en chino. Una actualización conserva el directorio ya instalado, la primera instalación sigue yendo a `C:\Program Files\Nonead DSH Desktop` y el icono del instalador se deriva de `app-icon.png`.
+- Versión: el producto pasa de 2.2.15 a **2.3.2** (ambos espacios de trabajo de escritorio a la vez).
 
 ## 2.2.15 — 2026-11-19
 

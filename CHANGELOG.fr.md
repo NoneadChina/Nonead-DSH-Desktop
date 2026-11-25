@@ -13,17 +13,18 @@ Conventions de maintenance :
 - Les entrées ne décrivent que les changements perceptibles par l’utilisateur et les changements de limite que les responsables de maintenance doivent connaître ; les refactorisations pures ne font pas l’objet d’une entrée.
 - L’historique plus ancien se trouve dans les étiquettes Git (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) et dans le journal des commits.
 
-## 2.3.2 — 2026-11-23
+## 2.3.2 — 2026-11-24
 
-Une version centrée sur le suivi du noyau et de ses dépendances embarquées :
+Une version qui embarque une mise à niveau profonde du runtime :
 
-- Runtime : DSH passe à `0.2.3-alpha.2`, le pin amont devient `4b399c39a6d1479cd84ca591b4d7c88e24d38a96` et le runtime embarqué est réempaqueté en 398 paquets. L'amont ajoute `dsh-cua-mcp`, `dsh-timeline`, `dsh-client-config`, `dsh-client-script-realm` et retire `dsh-personalized-recommendations` ; les dépendances des deux espaces de travail et les mentions tierces suivent, la famille `@deepseek-ai/cordis` s'aligne sur 4.2.0-alpha.1 et `schemastery` sur 3.20.0-alpha.1.
-- Personnalisation : les correctifs d'artefacts passent de 24 à 23. L'amont nettoie désormais lui-même `ELECTRON_RUN_AS_NODE`, donc le correctif de `dsh-host-open-in-app` est supprimé ; les autres sont rebasés sur les nouveaux artefacts, la barre de défilement des tableaux Markdown devient un style en ligne sans survol et l'écran d'accueil affiche `NONEAD DEEPSEEK HARNESS`.
-- Interfaces : le handle de connexion n'expose plus `authenticatedUrl` ni `requestRejection` ; le bureau lit `webserver/entry-url` et appelle `admit()`. L'`overlays` du contexte de profil rejoint les `overlayPaths` et `readPatches` natifs, les routes web exigent une authentification par défaut, les routes propres au bureau se déclarent anonymes tout en gardant leurs contrôles locaux, et les routes d'ouverture d'application exigent une identité propriétaire.
-- Marché embarqué : `dshmarket` passe de 1.73.21 à 1.80.0 et les trois points d'injection du correctif d'auto-mise à jour sont réécrits pour la nouvelle structure `inventory()`/`check()` ; l'emplacement des réglages passe de `settings.plugins.tab` à `settings.section`, page et tests mis à jour.
-- Compatibilité : le pont AA embarqué est reconstruit à partir du commit amont `02f04aae` avec les peers `0.2.3-alpha.2` (`2.2.0-desktop.c02f04aae5bb6.r7d47d227`) ; le correctif du connector s'applique sans modification.
-- Portes : typecheck, tests (1845 cas pour beta, 320 pour le marché, 729 pour nonead) et build au vert.
-- Version : produit 2.2.15 → **2.3.2** (les deux espaces de travail).
+- Runtime : DSH passe à `0.2.3-alpha.1`, le pin amont passe à `d98f5d68519215da48f3002da2cb9c9d2068d81d` et le runtime embarqué est reconstruit en 398 paquets. Toutes les dépendances `@deepseek-ai/dsh*` des deux espaces de travail de bureau sont épinglées à cette version, et la famille cordis suit la ligne `next` de l'amont (`@deepseek-ai/cordis` 4.2.0-alpha.1, loader/group/include 1.2.0-alpha.1, timer 1.3.0-alpha.1).
+- Personnalisation de bureau : les 24 patchs d'artefacts sont rebasés sur `@0.2.3-alpha.1` et revérifiés un par un. Un nouveau patch `dsh-host-authentication-token` expose au shell le jeton de lancement du processus ; le point de patch de `dsh-host-open-in-app` est désormais corrigé en amont, donc ce patch disparaît.
+- Shell de bureau : il adopte la remise d'identifiants par IPC du nouveau noyau — l'Hôte annonce d'abord `starting` avec son identité d'exécution, le processus parent transmet le secret de session par IPC, et les liens navigateur proviennent toujours de l'URL à jeton dérivée de `webserver/entry-url`. L'autorisation HTTP passe aux politiques de route déclarées par le noyau, la porte navigateur de bureau conservant son texte 403.
+- Marché embarqué : `dshmarket` passe de 1.73.21 à 1.80.1, avec le patch de bureau rebasé sur le nouvel artefact ; le marché embarqué enregistre sa page de réglages via `settings.section`.
+- Compatibilité : le pont AA embarqué est reconstruit contre les peers de `0.2.3-alpha.1` depuis le même commit amont (`2.2.0-desktop.caa12e7a2c181.r46c6025b`), et les shells récupèrent les paquets du noyau récemment scindés (`dsh-deepseek-auth`, `dsh-client-config`, `dsh-client-script-realm`, `dsh-cua-mcp`, `dsh-timeline`, `dsh-computer-use`, `dsh-tool-executor-ptc`, `dsh-host-authentication-desktop`).
+- Portes : typecheck, les deux suites (94 fichiers / 758 cas côté bureau, 173 fichiers / 1881 cas côté beta), les builds, `verify:host`, `verify:desktop-runtime`, `verify:frontend`, `verify:safe-cleanup` et `check:vendored-runtime` passent.
+- Programme d'installation Windows : l'installateur NSIS propose une interface en 8 langues qui suit la langue d'affichage de Windows (chinois simplifié, anglais, japonais, espagnol, français, allemand, russe et portugais du Brésil) et n'affiche le sélecteur que lorsqu'il ne peut pas la déterminer. L'installation comme la désinstallation ferment d'abord l'application en cours d'exécution, et les messages « impossible de fermer » sont désormais traduits au lieu des boîtes de dialogue figées en chinois. Une mise à jour conserve le répertoire déjà installé, la première installation va toujours dans `C:\Program Files\Nonead DSH Desktop` et l'icône de l'installateur est dérivée de `app-icon.png`.
+- Version : le produit passe de 2.2.15 à **2.3.2** (les deux espaces de travail de bureau avancent ensemble).
 
 ## 2.2.15 — 2026-11-19
 

@@ -32,8 +32,8 @@ function writePayload(runtimeRoot: string, arch: NextRuntimeArch, options: Paylo
     writeFileSync(join(directory, path), content)
   }
   const skills = officeSkillsDirectory(runtimeRoot, arch)
-  // 0.2.3-alpha.2 ships one consolidated `office` skill and no legacy `scripts/check_office.py`,
-  // so the fixture matches what that line actually publishes.
+  // The 0.2.3 runtime line publishes one `office` umbrella skill without the legacy
+  // `scripts/check_office.py` helper, so the fixture matches what that line actually ships.
   for (const path of ['office/SKILL.md']) {
     if (options.omit?.includes(`office-skills/${path}`)) continue
     mkdirSync(join(skills, path, '..'), { recursive: true })
@@ -107,4 +107,7 @@ it('rejects missing entry points and Office resources', () => {
   writePayload(office, 'arm64')
   writePayload(office, 'x64', { omit: ['office-skills/office/SKILL.md'] })
   expect(() => verifyNextRuntimeTree(office, 'darwin', '2.0.0-next')).toThrow('missing x64 office skill')
+  const skill = fixture()
+  writePayload(skill, 'arm64', { omit: ['office-skills/office/SKILL.md'] })
+  expect(() => verifyNextRuntimeTree(skill, 'darwin', '2.0.0-next')).toThrow('missing arm64 office skill')
 })

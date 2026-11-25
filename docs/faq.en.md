@@ -1,6 +1,6 @@
 # Nonead DSH Desktop FAQ
 
-This page answers common questions about installation, platforms, runtime requirements, plugins, updates, and networking for the current version 2.3.2. The feature scope follows the [latest GitHub Release](https://github.com/anywhere-labs/deepseek-harness-desktop/releases/latest) and the [user guide](user-guide.en.md); the user guide describes the interface flows and limits in more detail.
+This page answers common questions about installation, platforms, runtime requirements, plugins, updates, and networking for the current version 2.2.15. The feature scope follows the [latest GitHub Release](https://github.com/anywhere-labs/deepseek-harness-desktop/releases/latest) and the [user guide](user-guide.en.md); the user guide describes the interface flows and limits in more detail.
 
 ## What is Nonead DSH Desktop?
 
@@ -16,7 +16,7 @@ The release scripts for official installers cover Windows x64 and universal macO
 
 ## Do I need to install Node.js, pnpm, or DSH first?
 
-No. The installer already contains Electron, Node.js, pnpm, and a pinned DSH runtime (currently DSH `0.2.3-alpha.2`). You can start right after installing, and Desktop does not modify the global PATH or your shell configuration.
+No. The installer already contains Electron, Node.js, pnpm, and a pinned DSH runtime (currently DSH `0.2.2-rc.5`). You can start right after installing, and Desktop does not modify the global PATH or your shell configuration.
 
 ## Does the first launch download a runtime?
 
@@ -24,7 +24,7 @@ No. The runtime and pinned dependencies ship inside the installer, which is why 
 
 ## Does Nonead DSH Desktop modify official Harness?
 
-No. The repository imports the unmodified official Harness at a pinned upstream commit (the Beta channel pin is `4b399c39a6d1479cd84ca591b4d7c88e24d38a96`, corresponding to DSH `0.2.3-alpha.2`, recorded in the root `upstream.json`). Compatibility mode runs the upstream default Web client below a separate desktop frame; the extended and advanced modes install the Desktop-owned root registration through plugin and profile composition boundaries while still hosting the official occupants. No mode edits upstream source.
+No. The repository imports the unmodified official Harness at a pinned upstream commit (the Beta channel pin is `9c2670d3bce5275e0d1610272958121af87787bb`, corresponding to DSH `0.2.2-rc.5`, recorded in the root `upstream.json`). Compatibility mode runs the upstream default Web client below a separate desktop frame; the extended and advanced modes install the Desktop-owned root registration through plugin and profile composition boundaries while still hosting the official occupants. No mode edits upstream source.
 
 ## Is my data stored locally?
 

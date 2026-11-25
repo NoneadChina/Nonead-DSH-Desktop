@@ -1,0 +1,48 @@
+diff --git a/lib/index.js b/lib/index.js
+index 4371246..7cc5265 100644
+--- a/lib/index.js
++++ b/lib/index.js
+@@ -1,6 +1,6 @@
+ import { createRequire } from "node:module";
+ import { createHash } from "node:crypto";
+-import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
++import { existsSync, readFileSync, statSync } from "node:fs";
+ import { readFile } from "node:fs/promises";
+ import { dirname, isAbsolute, join } from "node:path";
+ import { Readable } from "node:stream";
+@@ -586,7 +586,7 @@ function readSourceMap(clientPath) {
+ /** Count generated lines while assembling indexed-map section offsets. */
+ function newlineCount(value) {
+ 	let count = 0;
+-	for (const char of value) if (char === "\n") count += 1;
++	for (let offset = value.indexOf("\n"); offset !== -1; offset = value.indexOf("\n", offset + 1)) count += 1;
+ 	return count;
+ }
+ /** Resolve section sources against their original per-plugin map URL before combo relocation. */
+@@ -1354,10 +1354,25 @@ var ClientModuleRegistry = class extends Service {
+ 			status: 304,
+ 			headers
+ 		};
++		if (method === "HEAD") return {
++			status: 200,
++			headers
++		};
++		// Read the bytes rather than streaming them: a packaged app keeps plugin
++		// assets inside `app.asar`, where a stream's `open` can fail after
++		// `stat`/`readFile` already succeeded, and that open error fires before any
++		// consumer attaches a listener: an uncaught exception that kills the Host.
++		// A failed read answers 404 instead of taking the whole process down.
++		let body;
++		try {
++			body = readFileSync(file);
++		} catch {
++			return { status: 404 };
++		}
+ 		return {
+ 			status: 200,
+ 			headers,
+-			...method === "HEAD" ? {} : { body: createReadStream(file) }
++			body
+ 		};
+ 	}
+ 	/**

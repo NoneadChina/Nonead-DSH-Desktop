@@ -29,10 +29,12 @@ export function apply(ctx: ClientContext): void {
   const readLocale = () => ctx.locale.getLocale().active
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'community-market: dictionaries')
   ctx.effect(() => installMarketStyles(), 'community-market: styles')
+  // 0.2.3 replaced the Plugins settings tab strip with `settings.section` entries, so the market
+  // contributes its page as a section of its own instead of a tab inside the Plugins page.
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section',
     id: 'community-market',
-    order: 20,
+    order: 25,
     label: () => ctx.locale.bind(NS)('tab'),
     locale: NS,
     inject: () => ({ readLocale }),

@@ -25,7 +25,7 @@ it('keeps the loopback Host ready when optional LAN certificate setup fails at s
   directories.push(home)
   const stop = vi.spyOn(DesktopHostProcess.prototype, 'stop').mockResolvedValue()
   vi.spyOn(DesktopHostProcess.prototype, 'start').mockResolvedValue({
-    url: 'http://127.0.0.1:43120/?token=fixture', injections: [],
+    url: 'http://127.0.0.1:43120/', injections: [], authenticationCookie: 'dsh-desktop-session=fixture',
   })
   const onFailure = vi.fn()
   const runtime = new NextDesktopRuntime({

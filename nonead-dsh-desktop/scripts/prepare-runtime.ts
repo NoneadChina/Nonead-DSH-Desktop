@@ -169,9 +169,9 @@ export function verifyNextRuntimeTree(runtimeRoot: string, platform: NodeJS.Plat
       }
     }
     const skills = officeSkillsDirectory(runtimeRoot, arch)
-    // 0.2.3-alpha.2 folds `office-docx`, `office-pptx` and `office-xlsx` into one consolidated
-    // `office` skill and drops the legacy `scripts/check_office.py` helper, so the tree is verified
-    // against the SKILL.md resources this line actually ships.
+    // The 0.2.3 runtime line collapses the four sibling Office skills into one `office` umbrella
+    // document and drops the legacy `scripts/check_office.py` helper, so the tree is verified
+    // against the SKILL.md resource this line actually ships.
     requireFile(join(skills, 'office', 'SKILL.md'), `${arch} office skill`)
     verified.push({ arch, directory, manifest })
   }

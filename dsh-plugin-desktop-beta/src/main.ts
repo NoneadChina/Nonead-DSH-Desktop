@@ -36,6 +36,7 @@ import {
   isDesktopInstallerQuitRequest,
 } from './desktop-installer-quit.ts'
 import { createDesktopBrowserAccess } from './desktop-browser-access.ts'
+import { authenticatedBrowserUrl } from './browser-authentication.ts'
 import {
   installDesktopDshRuntime,
   installDesktopPnpmRuntime,
@@ -72,7 +73,6 @@ import {
   desktopListeningPort,
   desktopLoopbackBrowserUrl,
 } from './desktop-network.ts'
-import { desktopAuthenticatedUrl } from './connection-fence.ts'
 import { desktopLanAddresses } from './lan-addresses.ts'
 import {
   buildDesktopProxyOverlay,
@@ -1827,11 +1827,11 @@ async function start(): Promise<void> {
                 ? desktopLanBrowserUrls(lan.actualPort, lan.addresses)
                 : []
               return {
-                localUrl: desktopAuthenticatedUrl(
+                localUrl: authenticatedBrowserUrl(
                   hostCtx,
                   desktopLoopbackBrowserUrl(desktopListeningPort(hostCtx.webServer)),
                 ),
-                lanUrls: lanOrigins.map(url => desktopAuthenticatedUrl(hostCtx, url)),
+                lanUrls: lanOrigins.map(url => authenticatedBrowserUrl(hostCtx, url)),
                 lanState: lan.state,
                 lanError: lan.errorCode,
                 lanCaFingerprint: lan.caFingerprint,

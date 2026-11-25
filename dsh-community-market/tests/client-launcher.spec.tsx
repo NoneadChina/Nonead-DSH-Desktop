@@ -35,6 +35,7 @@ describe('community market launcher', () => {
       useStore,
       t,
       useSessions: (() => undefined) as MarketLauncherProps['useSessions'],
+      useSessionStatus: (() => undefined) as MarketLauncherProps['useSessionStatus'],
       useSessionRetainInfo: (() => undefined) as MarketLauncherProps['useSessionRetainInfo'],
       useWorkspaces: (() => undefined) as MarketLauncherProps['useWorkspaces'],
       useSessionAccess: (() => true) as MarketLauncherProps['useSessionAccess'],

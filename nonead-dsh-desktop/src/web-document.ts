@@ -38,6 +38,25 @@ body:has(#root:empty), body:has([data-dsh-boot]) { background: #000 !important; 
 }
 </style>`
 
+/**
+ * Whether a captured request was issued by the owned window.
+ *
+ * Electron populates `webContentsId` on ordinary document requests but leaves it
+ * `undefined` on upgrade handshakes, where only `webContents` is present. Testing
+ * `webContentsId` alone therefore dropped the credential from exactly the request
+ * that cannot be credentialed any other way, and every retry reached the Host
+ * unauthenticated. Fail closed: a request that reports no id at all is not ours.
+ */
+export function ownsRenderRequest(
+  request: Pick<OnBeforeSendHeadersListenerDetails, 'webContentsId' | 'webContents'>,
+  owner: Pick<WebContents, 'id'> | undefined,
+): boolean {
+  if (owner === undefined) return false
+  const provided = [request.webContentsId, request.webContents?.id]
+    .filter((id): id is number => id !== undefined)
+  return provided.length > 0 && provided.every(id => id === owner.id)
+}
+
 /** Mark live same-origin frames in the owned window; strip the marker from other targets and redirects. */
 export function appRequestHeaders(
   request: Pick<OnBeforeSendHeadersListenerDetails, 'url' | 'webContentsId' | 'webContents' | 'frame' | 'resourceType' | 'requestHeaders'>,
@@ -48,10 +67,43 @@ export function appRequestHeaders(
     .filter(([name]) => name.toLowerCase() !== NATIVE_ACCESS_HEADER))
   const target = new URL(request.url)
   if (target.protocol === 'dsh-app:' && target.host === 'app' && !target.username && !target.password && owner && nativeToken
-    && request.webContentsId === owner.id && (!request.webContents || request.webContents.id === owner.id)
+    && ownsRenderRequest(request, owner)
     && request.resourceType !== 'mainFrame' && request.frame
     && !request.frame.detached && request.frame.origin === 'dsh-app://app') headers[NATIVE_ACCESS_HEADER] = nativeToken
   return headers
+}
+
+/**
+ * Resolve the headers for one renderer upgrade handshake.
+ *
+ * A direct HTTP request to the Host can be rebuilt in the protocol handler, which
+ * sets the session credential itself. An upgrade cannot: Chromium owns that
+ * handshake, so its only credential surface is this hook. `undefined` leaves a
+ * foreign request untouched, `cancel` refuses an owned upgrade that claims another
+ * origin, and `requestHeaders` carries the Desktop session cookie the Host verifies.
+ * @param request - Captured upgrade request.
+ * @param owner - The owned application window's WebContents, if it still exists.
+ * @param auth - The running Host origin and its renderer credential.
+ * @returns The callback payload, or `undefined` when the request is not ours.
+ */
+export function upgradeCredentialHeaders(
+  request: Pick<OnBeforeSendHeadersListenerDetails, 'url' | 'webContentsId' | 'webContents' | 'frame' | 'resourceType' | 'requestHeaders'>,
+  owner: Pick<WebContents, 'id' | 'mainFrame'> | undefined,
+  auth: { url: string; cookie: string; token: string } | undefined,
+): { cancel: true } | { requestHeaders: Record<string, string> } | undefined {
+  let target: URL
+  try { target = new URL(request.url) } catch { return undefined }
+  if (target.protocol !== 'ws:' || target.hostname !== '127.0.0.1' || auth === undefined) return undefined
+  if (!ownsRenderRequest(request, owner) || owner === undefined) return undefined
+  const host = new URL(auth.url)
+  if (target.host !== host.host) return undefined
+  const headers = Object.fromEntries(Object.entries(appRequestHeaders(request, owner, auth.token))
+    .map(([name, value]) => [name.toLowerCase(), value]))
+  if (headers.origin !== 'dsh-app://app') return { cancel: true }
+  return { requestHeaders: {
+    ...headers, origin: host.origin, cookie: auth.cookie, 'sec-fetch-site': 'same-origin',
+    [NATIVE_ACCESS_HEADER]: auth.token,
+  } }
 }
 
 /**
@@ -80,20 +132,25 @@ export async function serveWebDocument(request: Request, root: string, waitForHo
   })
 }
 
-/**
- * Exchange the Host launch URL for an authority-bound browser cookie.
- * @param url - Authenticated URL reported by the owned Host process.
- * @returns Cookie header for requests forwarded to that Host.
- */
-export async function authenticateWebHost(url: string, nativeToken?: string): Promise<string> {
-  const response = await fetch(url, { redirect: 'manual', ...(nativeToken ? { headers: { [NATIVE_ACCESS_HEADER]: nativeToken } } : {}) })
-  const cookie = response.headers.get('set-cookie')
-  await response.body?.cancel()
-  if (response.status !== 303 || cookie === null) throw new Error('Desktop Host authentication failed')
-  const end = cookie.indexOf(';')
-  return end < 0 ? cookie : cookie.slice(0, end)
+/** Cookie store operations used to remove legacy Host authentication cookies. */
+export interface HostCookieStore {
+  get(filter: { url: string }): Promise<readonly { readonly name: string }[]>
+  remove(url: string, name: string): Promise<void>
 }
 
+/**
+ * Remove every `dsh-auth-*` cookie that earlier releases left in a cookie store for the Host's hostname.
+ * Cookies ignore ports, so cookies from earlier random-port Hosts would otherwise travel with every
+ * request to that hostname until they expire.
+ * @param cookies - Electron session cookie store.
+ * @param url - Host URL; cookies for its hostname on every port are removed.
+ */
+export async function removeLegacyHostCookies(cookies: HostCookieStore, url: string): Promise<void> {
+  const origin = new URL(url).origin
+  for (const { name } of await cookies.get({ url: origin })) {
+    if (name.startsWith('dsh-auth-')) await cookies.remove(origin, name)
+  }
+}
 /**
  * Response headers not relayed to the renderer. `set-cookie` would hand the
  * Host's authentication cookie to the page's cookie jar, which the shell owns
@@ -116,7 +173,7 @@ const PLUGIN_BUNDLE_PATH = /^\/plugins\//u
  * no later launch can reuse.
  * @param request - Request from the application origin.
  * @param host - Owned Host URL.
- * @param cookie - Host-issued authentication cookie.
+ * @param cookie - Desktop-private credential carried in the Cookie header for the owned Host.
  * @returns Host response without connection-level headers.
  */
 export async function forwardWebRequest(request: Request, host: string, cookie: string, nativeToken: string): Promise<Response> {

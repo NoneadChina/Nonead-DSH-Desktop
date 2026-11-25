@@ -2,6 +2,7 @@
 import { boot, resolveProfileDir } from '@deepseek-ai/dsh-app-boot'
 import { provideCmdline } from '@deepseek-ai/dsh-cmdline'
 import { createDesktopProfileBoot } from './profile-context.ts'
+import { authenticatedBrowserUrl } from './browser-authentication.ts'
 import { logInactiveStartupEntries } from './startup-audit.ts'
 import { DSH_LAUNCH_ENVIRONMENT_KEY, type LaunchEnvironmentSnapshot } from '@deepseek-ai/dsh-launch-environment'
 import { DESKTOP_PACKAGE_NAME as BIN_NAME } from './product-identity.ts'
@@ -18,7 +19,6 @@ import { clearDesktopProfilePreferences, desktopProfilePreferencesFromSettings, 
 import { clearDesktopProfileUsageHistory, type DesktopReleaseUserDataLocations } from './profile-channel-admission.ts'
 import { desktopInstallAnchor, type PreparedDesktopProfile } from './profile.ts'
 import { desktopLanBrowserUrls, desktopListeningPort, desktopLoopbackBrowserUrl } from './desktop-network.ts'
-import { desktopAuthenticatedUrl } from './connection-fence.ts'
 import { DESKTOP_LAN_HTTPS_CA_PATH, type DesktopLanHttpsRuntime } from './lan-https-runtime.ts'
 import type { DesktopBrowserAccess } from './desktop-browser-access.ts'
 import type { DesktopPnpmBootstrap } from './pnpm.ts'
@@ -243,11 +243,11 @@ export async function bootDesktopHost(options: DesktopHostOptions, runtime: Desk
               ? desktopLanBrowserUrls(lan.actualPort, lan.addresses)
               : []
             return {
-              localUrl: desktopAuthenticatedUrl(
+              localUrl: authenticatedBrowserUrl(
                 hostCtx,
                 desktopLoopbackBrowserUrl(desktopListeningPort(hostCtx.webServer)),
               ),
-              lanUrls: lanOrigins.map(url => desktopAuthenticatedUrl(hostCtx, url)),
+              lanUrls: lanOrigins.map(url => authenticatedBrowserUrl(hostCtx, url)),
               lanState: lan.state,
               lanError: lan.errorCode,
               lanCaFingerprint: lan.caFingerprint,

@@ -13,17 +13,18 @@ Maintenance conventions:
 - Entries record only changes users can perceive and boundary changes maintainers must know about; pure refactors do not get their own entry.
 - Earlier history lives in the Git tags (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) and in the commit log.
 
-## 2.3.2 — 2026-11-23
+## 2.3.2 — 2026-11-24
 
-A release focused on following the kernel and its bundled dependencies:
+A release that carries a substantial runtime upgrade:
 
-- Runtime: DSH is raised to `0.2.3-alpha.2`, the upstream pin moves to `4b399c39a6d1479cd84ca591b4d7c88e24d38a96`, and the vendored runtime is repacked as 398 packages. Upstream adds `dsh-cua-mcp`, `dsh-timeline`, `dsh-client-config`, `dsh-client-script-realm` and drops `dsh-personalized-recommendations`, so both desktop workspaces' dependencies and the third-party notices move in step; the `@deepseek-ai/cordis` family aligns to 4.2.0-alpha.1 and `schemastery` to 3.20.0-alpha.1.
-- Desktop customisation: build-output patches go from 24 to 23. Upstream now clears the `ELECTRON_RUN_AS_NODE` variable itself, so the `dsh-host-open-in-app` patch is dropped; every other patch is rebased onto the new artifacts, the Markdown table scrollbar becomes a hover-free inline style, and the launch wordmark reads `NONEAD DEEPSEEK HARNESS`.
-- Desktop interfaces: the connection handle no longer exposes `authenticatedUrl` or `requestRejection`; the desktop reads `webserver/entry-url` and calls `admit()` instead. The profile context's `overlays` folds into the native `overlayPaths` and `readPatches`, web routes default to required authentication while desktop-owned routes declare themselves anonymous and keep their local capability checks, and the open-in-app routes require an owner peer.
-- Bundled market: `dshmarket` goes from 1.73.21 to 1.80.0, with the self-update patch's three injection points rewritten against the new `inventory()`/`check()` dependencies; the settings slot moves from `settings.plugins.tab` to `settings.section`, with the page and its tests updated.
-- Compatibility: the bundled AA bridge is rebuilt from upstream commit `02f04aae` with `0.2.3-alpha.2` peers (`2.2.0-desktop.c02f04aae5bb6.r7d47d227`); the connector patch applies unchanged.
-- Gates: typecheck, tests (1845 cases in beta, 320 in the market, 729 in nonead) and the build are green.
-- Version: product 2.2.15 → **2.3.2** (both desktop workspaces).
+- Runtime: DSH is raised to `0.2.3-alpha.1`, the upstream pin moves to `d98f5d68519215da48f3002da2cb9c9d2068d81d`, and the vendored runtime is repacked as 398 packages. Every `@deepseek-ai/dsh*` dependency in both desktop workspaces is pinned to that version, and the cordis family follows upstream's `next` line (`@deepseek-ai/cordis` 4.2.0-alpha.1, loader/group/include 1.2.0-alpha.1, timer 1.3.0-alpha.1).
+- Desktop customisation: all 24 build-output patches are rebased to `@0.2.3-alpha.1` and re-verified one by one. A new `dsh-host-authentication-token` patch exports the process-scoped launch token to the desktop shell; the `dsh-host-open-in-app` patch site is now upstream's own fix, so that patch is gone.
+- Desktop shell: the shell adopts the new kernel's IPC credential handoff — the Host announces `starting` with its run identity first, the parent delivers the session secret over IPC, and browser links still come from the tokenised URL derived from `webserver/entry-url`. HTTP authorisation now uses kernel-declared route policies, while the desktop browser gate keeps its 403 wording.
+- Bundled market: `dshmarket` goes from 1.73.21 to 1.80.1, with the desktop patch rebased onto the new build; the bundled market registers its settings page through `settings.section`.
+- Compatibility: the bundled AA bridge is rebuilt against `0.2.3-alpha.1` peers from the same upstream commit (`2.2.0-desktop.caa12e7a2c181.r46c6025b`), and the shells pick up the newly split kernel packages (`dsh-deepseek-auth`, `dsh-client-config`, `dsh-client-script-realm`, `dsh-cua-mcp`, `dsh-timeline`, `dsh-computer-use`, `dsh-tool-executor-ptc`, `dsh-host-authentication-desktop`).
+- Gates: typecheck, both test suites (94 desktop files / 758 tests, 173 beta files / 1881 tests), the builds, `verify:host`, `verify:desktop-runtime`, `verify:frontend`, `verify:safe-cleanup` and `check:vendored-runtime` all pass.
+- Windows installer: the NSIS installer now carries an 8-language UI that follows the Windows display language (Simplified Chinese, English, Japanese, Spanish, French, German, Russian, Brazilian Portuguese) and only shows the picker when the language cannot be determined. Setup and the uninstaller shut a running app down first, and the "cannot close" prompts are localised instead of the hardcoded Chinese dialogs. An upgrade keeps the existing installation directory, a first install still lands in `C:\Program Files\Nonead DSH Desktop`, and the installer icon is derived from `app-icon.png`.
+- Version: the product goes from 2.2.15 to **2.3.2** (both desktop workspaces move together).
 
 ## 2.2.15 — 2026-11-19
 

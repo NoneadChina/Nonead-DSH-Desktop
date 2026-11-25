@@ -94,46 +94,55 @@ export class DesktopWebServer extends WebServer {
   }
 
   private traceHttp(route: string, handler: WebRoute['handler']): WebRoute['handler'] {
-    return async (req, res) => {
+    return async (req, res, peer) => {
       const end = diagnosticOperation('host.http', 'request', { route, method: req.method })
       const finish = () => { cleanup(); end(undefined, { status: res.statusCode, aborted: !res.writableFinished }) }
       const cleanup = () => { res.removeListener('finish', finish); res.removeListener('close', finish) }
       res.once('finish', finish)
       res.once('close', finish)
-      try { await handler(req, res) } catch (error) { cleanup(); end(error); throw error }
+      try { await handler(req, res, peer) } catch (error) { cleanup(); end(error); throw error }
     }
   }
 
+  /**
+   * 0.2.3 authorizes every route in the Host before the handler runs, and a route that declares no
+   * policy defaults to `required` — which would turn the wrapper's own 403 into the kernel's 503.
+   * This wrapper is the Desktop gate (see `permits`), so only routes without a policy are declared
+   * `anonymous`; a route that declares its own policy keeps it, because the kernel only hands that
+   * handler the admitted Peer the route asked for (the connection plugin's `/api` carrier returns
+   * without answering when it gets none).
+   */
   override register(route: WebRoute | WebResourceRoute): () => void {
-    // Desktop routes carry their own renderer-capability gate; declaring them
-    // anonymous keeps upstream's `webserver/authorize` bail (which denies with
-    // 503 when no connection plugin is present) from shadowing it.
-    const auth = route.auth ?? 'anonymous'
-    if (!('handler' in route)) return super.register({ ...route, auth, resource: this.guardResource(route.resource) })
+    if (!('handler' in route)) {
+      return super.register({ ...route, auth: 'anonymous', resource: this.guardResource(route.resource) })
+    }
     return super.register({
       ...route,
-      auth,
-      handler: this.traceHttp(String(route.path), async (req, res) => {
+      auth: route.auth ?? 'anonymous',
+      handler: this.traceHttp(String(route.path), async (req, res, peer) => {
         if (!this.permits(req)) return rejectBrowserRequest(res)
-        await route.handler(req, res)
+        await route.handler(req, res, peer)
       }),
     })
   }
 
   override registerFallback(fallback: WebRoute['handler'] | Pick<WebResourceRoute, 'resource'>): () => void {
     if (typeof fallback !== 'function') {
-      return super.registerFallback({ auth: 'anonymous', resource: this.guardResource(fallback.resource) })
+      return super.registerFallback({ resource: this.guardResource(fallback.resource) })
     }
-    return super.registerFallback({ auth: 'anonymous', handler: this.traceHttp('fallback', async (req, res) => {
-      if (!this.permits(req)) return rejectBrowserRequest(res)
-      await fallback(req, res)
-    }) })
+    return super.registerFallback({
+      auth: 'anonymous',
+      handler: this.traceHttp('fallback', async (req, res, peer) => {
+        if (!this.permits(req)) return rejectBrowserRequest(res)
+        await fallback(req, res, peer)
+      }),
+    })
   }
 
   override registerUpgrade(route: WebUpgradeRoute): () => void {
     return super.registerUpgrade({
       ...route,
-      auth: route.auth ?? 'anonymous',
+      auth: 'anonymous',
       handler: (req, socket, head) => {
         if (!this.permits(req)) return rejectBrowserUpgrade(socket)
         return route.handler(req, socket, head)

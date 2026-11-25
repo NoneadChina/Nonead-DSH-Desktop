@@ -2,16 +2,27 @@
 
 import type { LogInput } from './log-record.ts'
 import { spawn, type ChildProcess } from 'node:child_process'
+import { DesktopParentAuthentication } from './parent-authentication.ts'
 import { join } from 'node:path'
 import { desktopNodeEnvironment } from './node-environment.ts'
 import type { DesktopNotification } from './desktop-contract.ts'
 import { isDesktopNotification } from './notifications.ts'
 import type { DesktopPermission, DesktopPermissionAction, DesktopPermissionSnapshot } from './permissions.ts'
+import type { PluginOperationRunId } from '@deepseek-ai/dsh-plugin-manager/diagnostic'
+
+interface StartingEvent {
+  readonly type: 'starting'
+  readonly runId: PluginOperationRunId
+}
 
 interface ReadyEvent {
   readonly type: 'ready'
   readonly url: string
   readonly injections?: readonly unknown[] | undefined
+  /** Cookie header the parent synthesized for the owned Host; never received from the renderer. */
+  readonly authenticationCookie?: string | undefined
+  /** Tokenized entry URL the Host minted for a human browser; never sent to the renderer. */
+  readonly browserUrl?: string | undefined
 }
 
 interface FatalEvent {
@@ -64,7 +75,7 @@ interface InjectionsEvent {
   readonly error?: string
 }
 
-type DesktopHostEvent = ReadyEvent | FatalEvent | PlatformSessionEvent | PlatformLoginEvent | InjectionsEvent | { type: 'permission'; requestId: number; action: DesktopPermissionAction; permission: DesktopPermission } | { type: 'logging-config'; requestId: number; error?: string } | { type: 'browser-access'; requestId: number; error?: string } | { type: 'notification'; notification: DesktopNotification } | { readonly type: 'shutdown-complete' } | { readonly type: 'desktop-action'; readonly action: 'restart' | 'terminal' } | {
+type DesktopHostEvent = StartingEvent | ReadyEvent | FatalEvent | PlatformSessionEvent | PlatformLoginEvent | InjectionsEvent | { type: 'permission'; requestId: number; action: DesktopPermissionAction; permission: DesktopPermission } | { type: 'logging-config'; requestId: number; error?: string } | { type: 'browser-access'; requestId: number; error?: string } | { type: 'notification'; notification: DesktopNotification } | { readonly type: 'shutdown-complete' } | { readonly type: 'desktop-action'; readonly action: 'restart' | 'terminal' } | {
   readonly type: 'update-tasks'
   readonly requestId: number
   readonly active: boolean
@@ -73,14 +84,28 @@ type DesktopHostEvent = ReadyEvent | FatalEvent | PlatformSessionEvent | Platfor
 
 const MAX_HOST_DIAGNOSTIC_CHARS = 64 * 1024
 
+function isOwnedHostUrl(value: unknown): value is string {
+  if (typeof value !== 'string') return false
+  try {
+    const url = new URL(value)
+    return (url.protocol === 'http:' || url.protocol === 'https:')
+      && url.hostname === '127.0.0.1' && url.username === '' && url.password === ''
+      && url.pathname === '/' && url.search === '' && url.hash === ''
+  } catch (_invalidUrl) {
+    return false
+  }
+}
+
 function isDesktopHostEvent(message: unknown): message is DesktopHostEvent {
   if (typeof message !== 'object' || message === null || !('type' in message)) return false
   const candidate = message as Record<string, unknown>
   switch (candidate.type) {
     case 'shutdown-complete':
       return true
+    case 'starting':
+      return typeof candidate.runId === 'string' && candidate.runId.length > 0
     case 'ready':
-      return typeof candidate.url === 'string'
+      return isOwnedHostUrl(candidate.url)
     case 'platform-session': {
       const session = candidate.session
       if (session === null) return true
@@ -137,10 +162,14 @@ async function exitsWithin(exit: Promise<void>, milliseconds: number): Promise<b
   }
 }
 
-/** Browser authentication URL reported by the running Web application. */
+/** Host readiness plus the parent-owned credential used only by the main process. */
 export interface DesktopHostReady {
   readonly url: string
   readonly injections?: readonly unknown[] | undefined
+  /** Cookie header for the owned Host; synthesized locally and never received from the renderer. */
+  readonly authenticationCookie: string
+  /** Tokenized entry URL for a human browser, when the Host publishes one. */
+  readonly browserUrl?: string | undefined
 }
 
 /** The child has exited, but task teardown did not finish successfully. */
@@ -170,6 +199,8 @@ export class DesktopHostFatalError extends Error {
 
 /** One Web backend running under the Electron executable in Node mode. */
 export class DesktopHostProcess {
+  readonly #authentication = new DesktopParentAuthentication()
+  private runId: PluginOperationRunId | undefined
   private child: ChildProcess | undefined
   private readyResolve!: (ready: DesktopHostReady) => void
   private readyReject!: (error: Error) => void
@@ -263,7 +294,24 @@ export class DesktopHostProcess {
         return
       }
       this.diagnostic({ source: 'host.ipc', event: 'received', developer: true, pid: child.pid, fields: { type: message.type, ...('requestId' in message ? { requestId: message.requestId } : {}) } })
-      if (message.type === 'ready') this.readyResolve({ url: message.url, injections: message.injections })
+      if (message.type === 'starting') {
+        if (this.runId === undefined && !this.failureReported && !this.stopping) {
+          this.runId = message.runId
+          void this.#authentication.deliver(child).catch((error: unknown) => {
+            this.fail(error instanceof Error ? error : new Error(String(error)))
+            child.kill('SIGTERM')
+          })
+        }
+      }
+      else if (message.type === 'ready') {
+        void this.#authentication.readyCookie().then((authenticationCookie) => {
+          if (this.failureReported || this.stopping) return
+          this.readyResolve({ url: message.url, injections: message.injections, authenticationCookie, browserUrl: message.browserUrl })
+        }, (error: unknown) => {
+          this.fail(error instanceof Error ? error : new Error(String(error)))
+          child.kill('SIGTERM')
+        })
+      }
       else if (message.type === 'platform-session') this.onPlatformSession?.(message.session)
       else if (message.type === 'platform-login') {
         if (!this.stopping && !this.failureReported) {
@@ -470,6 +518,9 @@ export class DesktopHostProcess {
   }
 
   private fail(error: Error): void {
+    // A failure after the child announced its run identity still names that run, so a recovery
+    // dialog can point the user at the operation journal entry it belongs to.
+    if (this.runId !== undefined) Object.assign(error, { hostRunId: this.runId })
     this.onPlatformSession?.(null)
     this.readyReject(error)
     for (const query of this.taskQueries.values()) query.reject(error)

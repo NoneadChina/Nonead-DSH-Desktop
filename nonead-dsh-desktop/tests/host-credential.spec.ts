@@ -15,11 +15,6 @@ import { NextDesktopRuntime } from '../src/desktop-runtime.ts'
 import { DesktopHostProcess } from '../src/host-process.ts'
 import { readRendererCredential } from '../src/host/credential.ts'
 
-vi.mock('../src/web-document.ts', async importOriginal => ({
-  ...await importOriginal<typeof import('../src/web-document.ts')>(),
-  authenticateWebHost: vi.fn(async (_url: string, token: string) => `dsh-session=${token}`),
-}))
-
 const TOKEN = Buffer.alloc(32, 5).toString('base64url')
 
 /** A Host that reads the credential from stdin and reports what it received. */
@@ -41,6 +36,7 @@ const server = createServer((request, response) => {
 // 1024-15000, so \`listen(0)\` can hand out one of them. Rebinding keeps the fixture
 // deterministic instead of failing with "fetch failed: bad port".
 const FETCH_BLOCKED_PORTS = new Set([1719, 1720, 1723, 2049, 3659, 4045, 4190, 5060, 5061, 6000])
+let announced = false
 function listenOnFetchablePort(remaining) {
   server.listen(0, '127.0.0.1', () => {
     const port = server.address().port
@@ -48,7 +44,16 @@ function listenOnFetchablePort(remaining) {
       server.close(() => listenOnFetchablePort(remaining - 1))
       return
     }
-    process.send({ type: 'ready', url: 'http://127.0.0.1:' + port + '/?token=fixture', injections: [] })
+    if (!announced) {
+      announced = true
+      process.send({ type: 'starting', runId: 'credential-fixture' })
+    }
+    process.send({
+      type: 'ready',
+      url: 'http://127.0.0.1:' + port + '/',
+      injections: [],
+      authenticationCookie: 'dsh-desktop-session=' + 'f'.repeat(43),
+    })
   })
 }
 listenOnFetchablePort(20)

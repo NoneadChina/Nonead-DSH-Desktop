@@ -13,16 +13,17 @@
 - 条目只写"用户能感知的变化"与"维护者必须知道的边界变化"；纯重构不单独成条。
 - 更早的历史见 Git 标签（`v1.7.3`、`v2.0.7`、`v2.0.8`、`v2.1.3`、`v2.1.4`、`v2.1.5`）与提交记录。
 
-## 2.3.2 — 2026-11-23
+## 2.3.2 — 2026-11-24
 
-一次以内核与随包依赖跟进为主的发布：
+一次跨度较大的内核升级发布：
 
-- 运行时：DSH 升级到 `0.2.3-alpha.2`，上游 pin 改为 `4b399c39a6d1479cd84ca591b4d7c88e24d38a96`，预置运行时重新打包为 398 个包。上游新增 `dsh-cua-mcp`、`dsh-timeline`、`dsh-client-config`、`dsh-client-script-realm` 等包并删除 `dsh-personalized-recommendations`，两个桌面工作区的依赖与第三方公告同步调整；`@deepseek-ai/cordis` 家族对齐到 4.2.0-alpha.1、`schemastery` 到 3.20.0-alpha.1。
-- 桌面定制：构建产物补丁由 24 个变为 23 个。`dsh-host-open-in-app` 的环境变量清理已被上游接管，其补丁删除；其余补丁全部重定基到新产物，Markdown 表格的横向滚动条改为不依赖悬停的内联样式，启动屏品牌词改为 `NONEAD DEEPSEEK HARNESS`。
-- 桌面接口适配：连接句柄不再提供 `authenticatedUrl` 与 `requestRejection`，改用 `webserver/entry-url` 事件与 `admit()`；配置上下文的 `overlays` 并入上游原生的 `overlayPaths` 与 `readPatches`；Web 路由默认要求认证，桌面自管路由显式声明匿名并保留本地能力校验，外部应用跳转路由要求 owner 身份。
-- 随包市场：`dshmarket` 由 1.73.21 升到 1.80.0，自更新补丁的三处注入点按 `inventory()`/`check()` 新结构重写；设置页槽位由 `settings.plugins.tab` 改为 `settings.section`，页面与测试同步更新。
-- 兼容性：随包的 AA 桥按上游提交 `02f04aae` 以 `0.2.3-alpha.2` peers 重建（`2.2.0-desktop.c02f04aae5bb6.r7d47d227`）；connector 补丁对新产物无需改动。
-- 门禁：typecheck、测试（beta 1845 个用例、市场 320 个、nonead 729 个）与构建全绿。
+- 运行时：DSH 升级到 `0.2.3-alpha.1`，上游 pin 改为 `d98f5d68519215da48f3002da2cb9c9d2068d81d`，预置运行时重新打包为 398 个包；两个桌面工作区的全部 `@deepseek-ai/dsh*` 依赖同步 pin 到该版本，cordis 家族跟进上游的 `next` 线（`@deepseek-ai/cordis` 4.2.0-alpha.1，loader/group/include 1.2.0-alpha.1，timer 1.3.0-alpha.1）。
+- 桌面定制：24 个构建产物补丁全部重定基到 `@0.2.3-alpha.1` 并逐条复核；新增 `dsh-host-authentication-token` 补丁，把进程级启动令牌导出给桌面外壳，`dsh-host-open-in-app` 的补丁点已被上游采纳因而不再需要补丁。
+- 桌面外壳：改用新内核的 IPC 凭据交接——Host 先上报 `starting` 与运行标识，父进程经 IPC 交付会话密钥，浏览器地址仍由 `webserver/entry-url` 派生的带令牌链接提供；HTTP 授权改成内核声明的路由策略，桌面浏览器门保留原有 403 文案。
+- 随包市场：`dshmarket` 由 1.73.21 升到 1.80.1，桌面补丁按新产物重定基；随包市场改用 `settings.section` 注册设置页。
+- 兼容性：随包的 AA 桥按同一上游提交以 `0.2.3-alpha.1` peers 重建（`2.2.0-desktop.caa12e7a2c181.r46c6025b`）；补齐 `dsh-deepseek-auth`、`dsh-client-config`、`dsh-client-script-realm`、`dsh-cua-mcp`、`dsh-timeline`、`dsh-computer-use`、`dsh-tool-executor-ptc`、`dsh-host-authentication-desktop` 等新内核拆分包。
+- 门禁：typecheck、两支测试（桌面 94 个文件 / 758 个用例、beta 173 个文件 / 1881 个用例）、构建、`verify:host`、`verify:desktop-runtime`、`verify:frontend`、`verify:safe-cleanup` 与 `check:vendored-runtime` 全绿。
+- Windows 安装包：NSIS 安装器改为跟随 Windows 显示语言的 8 语种界面（简中、英、日、西、法、德、俄、巴西葡语），仅在判定不出语言时才弹出选择框；安装与卸载前主动结束正在运行的程序，关不掉时改用各语言的提示，替代原先写死的中文对话框；升级安装沿用已有安装目录，首次安装仍落在 `C:\Program Files\Nonead DSH Desktop`；安装包图标由 `app-icon.png` 派生。
 - 版本号：产品 2.2.15 → **2.3.2**（两个桌面工作区同步）。
 
 ## 2.2.15 — 2026-11-19

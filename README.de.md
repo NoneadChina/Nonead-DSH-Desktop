@@ -14,7 +14,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-0078D6" alt="Windows, macOS, Linux">
   <img src="https://img.shields.io/badge/Electron-44-47848F?logo=electron&amp;logoColor=white" alt="Electron 44">
-  <img src="https://img.shields.io/badge/DSH%20runtime-0.2.3--alpha.2-4B32C3" alt="DSH runtime 0.2.3-alpha.2">
+  <img src="https://img.shields.io/badge/DSH%20runtime-0.2.3--alpha.1-4B32C3" alt="DSH runtime 0.2.3-alpha.1">
   <img src="https://img.shields.io/badge/node-%5E22.19%20%7C%20%3E%3D24-339933?logo=node.js&amp;logoColor=white" alt="Node.js">
 </p>
 
@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  Produkt <code>2.3.2</code> · DSH-Laufzeit <code>0.2.3-alpha.2</code> · Electron 44 · MIT License
+  Produkt <code>2.3.2</code> · DSH-Laufzeit <code>0.2.3-alpha.1</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">Mit einem Klick herunterladen, sofort einsatzbereit.</a></h3>
@@ -82,16 +82,16 @@ Shell und Host kommunizieren über genau einen IPC-Kanal zwischen Kindprozessen.
 | Produktversion | `2.3.2` (`nonead-dsh-desktop` und `dsh-plugin-desktop-beta` im Gleichschritt) |
 | Workspace des Stable-Kanals | `nonead-dsh-desktop` (Root-Skripte mit Suffix `:stable`) |
 | Workspace des Beta-Kanals | `dsh-plugin-desktop-beta` (Root-Skripte mit Suffix `:beta`) |
-| DSH-Laufzeit | `0.2.3-alpha.2`, jede Abhängigkeit von `@deepseek-ai/dsh*` exakt gepinnt, Laufzeit lokal vendored |
-| Vendored Laufzeit | `vendor/dsh-runtime/0.2.3-alpha.2/` (mehrere historische Versionsverzeichnisse bleiben erhalten) |
-| Upstream-Pin | `9c2670d3bce5275e0d1610272958121af87787bb` (`channels.beta` in `upstream.json`, gespiegelt in `nonead-dsh-desktop/upstream-reference.json`) |
+| DSH-Laufzeit | `0.2.3-alpha.1`, jede Abhängigkeit von `@deepseek-ai/dsh*` exakt gepinnt, Laufzeit lokal vendored |
+| Vendored Laufzeit | `vendor/dsh-runtime/0.2.3-alpha.1/` (mehrere historische Versionsverzeichnisse bleiben erhalten) |
+| Upstream-Pin | `d98f5d68519215da48f3002da2cb9c9d2068d81d` (`channels.beta` in `upstream.json`, gespiegelt in `nonead-dsh-desktop/upstream-reference.json`) |
 | Electron / Packager | Electron `44.0.0` / electron-builder `26.15.7` (`app-builder-lib` gepatcht) |
 | Node / Yarn | Node `^22.19.0` oder `>=24.0.0`; Yarn `4.18.0` über Corepack (`nodeLinker: node-modules`) |
-| Plugin-Marktplatz | `dshmarket` `1.73.21`, dazu `dsh-community-market` `0.1.0-dev.0` aus diesem Repository |
+| Plugin-Marktplatz | `dshmarket` `1.80.1`, dazu `dsh-community-market` `0.1.0-dev.0` aus diesem Repository |
 | Bridge zur Fernsteuerung | `@agents-anywhere/dsh-bridge-next` `2.2.0-desktop` (Upstream-Commit `aa12e7a`) |
 | Marken-Skin | `dsh-nonead-client-skin` (wird mit dem Installationsprogramm ausgeliefert, pro Profil eingebunden) |
 
-`upstream.json` führt zwei vendored Laufzeitlinien: `stable` verweist auf Upstream `0.2.0-rc.2`, `beta` auf Upstream `0.2.3-alpha.2`. Was tatsächlich in einem Installationsprogramm landet, ist die Linie, die ein Workspace exakt pinnt – derzeit pinnen beide Desktop-Workspaces `0.2.3-alpha.2`. **Kanalnamen beschreiben Laufzeitlinien, nicht den Release-Kanal, den ein Workspace abfragt.**
+`upstream.json` führt zwei vendored Laufzeitlinien: `stable` verweist auf Upstream `0.2.0-rc.2`, `beta` auf Upstream `0.2.3-alpha.1`. Was tatsächlich in einem Installationsprogramm landet, ist die Linie, die ein Workspace exakt pinnt – derzeit pinnen beide Desktop-Workspaces `0.2.3-alpha.1`. **Kanalnamen beschreiben Laufzeitlinien, nicht den Release-Kanal, den ein Workspace abfragt.**
 
 <a id="download"></a>
 
@@ -297,6 +297,7 @@ Die vollständige Historie steht im [Changelog](CHANGELOG.de.md) ([中文](CHANG
 
 | Version | Datum | Highlights |
 | --- | --- | --- |
+| `2.3.2` | 2026-11-24 | Runtime auf DSH `0.2.3-alpha.1` angehoben (Upstream `d98f5d6851`, 398 Pakete), alle 24 Desktop-Patches rebased und die Shell auf die IPC-Übergabe der Zugangsdaten umgestellt; mitgelieferter `dshmarket` auf 1.80.1; AA-Brücke gegen die neuen Peers neu gebaut |
 | `2.2.11` | 2026-11-12 | Laufzeit auf DSH `0.2.2-rc.2` (Upstream `ddac96760b`, 374 Pakete) aktualisiert, alle 24 Desktop-Patches neu aufgesetzt und der Upstream-Whitespace-Minifier abgeschaltet; mitgelieferter Markt `dshmarket` auf 1.73.17; AA-Brücke erhält eine exakte Versionsausnahme |
 | `2.2.8` | 2026-11-04 | Laufzeit auf DSH `0.2.2-rc.1` (Upstream `66491b05`) aktualisiert, mitgelieferte Laufzeit neu gepackt (373 Pakete); mitgelieferter Markt `dshmarket` auf 1.73.10 angehoben und alle 24 Desktop-Anpassungspatches umbenannt und erneut angewendet |
 | `2.2.7` | 2026-11-03 | Laufzeit auf DSH `0.2.2-alpha.3` (Upstream `05b1cae8`) aktualisiert, mitgelieferter Markt `dshmarket` auf 1.73.9 angehoben und alle 24 Desktop-Anpassungspatches gegen den neuen Build neu erzeugt |

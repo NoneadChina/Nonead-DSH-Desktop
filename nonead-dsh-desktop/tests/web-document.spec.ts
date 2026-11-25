@@ -6,7 +6,7 @@ import { runInNewContext } from 'node:vm'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import type { WebContents } from 'electron'
-import { APP_BOOT_SCRIPT, appRequestHeaders, authenticateWebHost, forwardWebRequest, serveWebDocument } from '../src/web-document.ts'
+import { APP_BOOT_SCRIPT, appRequestHeaders, forwardWebRequest, ownsRenderRequest, removeLegacyHostCookies, serveWebDocument, upgradeCredentialHeaders } from '../src/web-document.ts'
 import { NATIVE_ACCESS_HEADER } from '../src/desktop-contract.ts'
 
 const roots: string[] = []
@@ -54,14 +54,6 @@ it('installs the file-upload page carrier before the application entry', async (
   expect(carrier.fetch('api/session/uploadFileBinary?sessionId=s', init)).toBe(response)
   expect(page.fetch).toHaveBeenCalledWith('api/session/uploadFileBinary?sessionId=s', init)
   expect(await serveWebDocument(new Request('dsh-app://app/'), root, false).then(r => r.text())).not.toContain('__DSH_FILE_UPLOAD__')
-})
-
-it('requires the Host authentication exchange and retains only its cookie value', async () => {
-  const fetch = vi.fn().mockResolvedValueOnce(new Response(null, { status: 303, headers: { 'set-cookie': 'session=owned; HttpOnly; SameSite=Strict' } }))
-    .mockResolvedValueOnce(new Response('unauthorized', { status: 401 }))
-  vi.stubGlobal('fetch', fetch)
-  expect(await authenticateWebHost('http://127.0.0.1:1234/?token=owned')).toBe('session=owned')
-  await expect(authenticateWebHost('http://127.0.0.1:1234/')).rejects.toThrow('authentication failed')
 })
 
 it.each(['', '&ws=app%2Finspector%2Fdevtools%2Fcdp', '&wss=foreign.example%2Fcdp', '&ws=old&ws=duplicate'])(
@@ -118,13 +110,18 @@ it('forwards upload bytes and cancellation with Host credentials while keeping t
   const fetch = vi.fn().mockResolvedValue(new Response(body, { headers: { 'content-encoding': 'gzip', 'set-cookie': 'private' } }))
   vi.stubGlobal('fetch', fetch)
   const request = ownedRequest('dsh-app://app/api/upload?name=file', {
-    method: 'POST', body: 'upload bytes', headers: { origin: 'dsh-app://app', cookie: 'untrusted' },
+    method: 'POST', body: 'upload bytes',
+    headers: { origin: 'dsh-app://app', cookie: 'untrusted', host: 'untrusted', 'sec-fetch-site': 'cross-site', accept: 'text/plain' },
   })
-  const response = await forwardWebRequest(request, 'http://127.0.0.1:1234/?token=secret', 'session=owned', NATIVE_TOKEN)
+  const response = await forwardWebRequest(request, 'http://127.0.0.1:1234/', 'dsh-desktop-session=owned', NATIVE_TOKEN)
   const [target, init] = fetch.mock.calls[0] as unknown as [URL, RequestInit]
   expect(target.href).toBe('http://127.0.0.1:1234/api/upload?name=file')
-  expect(new Headers(init.headers).get('cookie')).toBe('session=owned')
+  expect(new Headers(init.headers).get('cookie')).toBe('dsh-desktop-session=owned')
   expect(new Headers(init.headers).get('origin')).toBe('http://127.0.0.1:1234')
+  expect(new Headers(init.headers).get('host')).toBeNull()
+  expect(new Headers(init.headers).get('sec-fetch-site')).toBe('same-origin')
+  expect(new Headers(init.headers).get('accept')).toBe('text/plain')
+  expect(request.headers.get('cookie')).toBe('untrusted')
   expect(init.signal).toBe(request.signal)
   expect(init.body).toBe(request.body)
   expect(response.headers.get('set-cookie')).toBeNull()
@@ -266,3 +263,39 @@ it.each(['null', 'https://other.example', 'dsh-app://shell', 'dsh-app://app.evil
     expect(new Headers(headers).get(NATIVE_ACCESS_HEADER)).toBeNull()
   },
 )
+
+const UPGRADE_FRAME = { origin: 'dsh-app://app', detached: false } as WebContents['mainFrame']
+const UPGRADE_OWNER = { id: 7, mainFrame: UPGRADE_FRAME }
+const UPGRADE_AUTH = { url: 'http://127.0.0.1:4321/', cookie: 'dsh-desktop-session=abcdefghij', token: NATIVE_TOKEN }
+
+it('recognises the owned window from either id Electron reports', () => {
+  // An upgrade handshake reaches the hook with `webContents` but no `webContentsId`; the strict
+  // `webContentsId === owner.id` test it replaced dropped the session credential from every retry.
+  expect(ownsRenderRequest({ webContents: { id: 7 } as WebContents }, UPGRADE_OWNER)).toBe(true)
+  expect(ownsRenderRequest({ webContentsId: 7 }, UPGRADE_OWNER)).toBe(true)
+  expect(ownsRenderRequest({ webContentsId: 7, webContents: { id: 7 } as WebContents }, UPGRADE_OWNER)).toBe(true)
+  expect(ownsRenderRequest({}, UPGRADE_OWNER)).toBe(false)
+  expect(ownsRenderRequest({ webContentsId: 8, webContents: { id: 7 } as WebContents }, UPGRADE_OWNER)).toBe(false)
+  expect(ownsRenderRequest({ webContents: { id: 8 } as WebContents }, UPGRADE_OWNER)).toBe(false)
+  expect(ownsRenderRequest({ webContentsId: 7 }, undefined)).toBe(false)
+})
+
+it('carries the session credential on every owned upgrade to the Host', () => {
+  const upgrade = { url: 'ws://127.0.0.1:4321/api/events', webContents: { id: 7 } as WebContents, frame: UPGRADE_FRAME,
+    resourceType: 'xhr' as const, requestHeaders: { origin: 'dsh-app://app', connection: 'Upgrade', upgrade: 'websocket' } }
+  expect(upgradeCredentialHeaders(upgrade, UPGRADE_OWNER, UPGRADE_AUTH)).toEqual({ requestHeaders: {
+    origin: 'http://127.0.0.1:4321', connection: 'Upgrade', upgrade: 'websocket', 'sec-fetch-site': 'same-origin',
+    cookie: UPGRADE_AUTH.cookie, [NATIVE_ACCESS_HEADER]: NATIVE_TOKEN,
+  } })
+  expect(upgradeCredentialHeaders({ ...upgrade, webContentsId: 7 }, UPGRADE_OWNER, UPGRADE_AUTH))
+    .toEqual(upgradeCredentialHeaders(upgrade, UPGRADE_OWNER, UPGRADE_AUTH))
+  // A foreign window, another port, a non-upgrade scheme, or no Host yet: leave the request alone.
+  expect(upgradeCredentialHeaders({ ...upgrade, webContents: { id: 8 } as WebContents }, UPGRADE_OWNER, UPGRADE_AUTH)).toBeUndefined()
+  expect(upgradeCredentialHeaders({ ...upgrade, url: 'ws://127.0.0.1:5555/api/events' }, UPGRADE_OWNER, UPGRADE_AUTH)).toBeUndefined()
+  expect(upgradeCredentialHeaders({ ...upgrade, url: 'wss://127.0.0.1:4321/api/events' }, UPGRADE_OWNER, UPGRADE_AUTH)).toBeUndefined()
+  expect(upgradeCredentialHeaders(upgrade, UPGRADE_OWNER, undefined)).toBeUndefined()
+  // An owned upgrade that claims a foreign origin never receives the credential.
+  expect(upgradeCredentialHeaders({ ...upgrade, requestHeaders: { origin: 'https://other.example' } }, UPGRADE_OWNER, UPGRADE_AUTH))
+    .toEqual({ cancel: true })
+  expect(upgradeCredentialHeaders({ ...upgrade, requestHeaders: {} }, UPGRADE_OWNER, UPGRADE_AUTH)).toEqual({ cancel: true })
+})

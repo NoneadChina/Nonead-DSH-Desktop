@@ -18,7 +18,6 @@ function tools() {
 afterEach(() => {
   for (const path of roots.splice(0)) rmSync(path, { recursive: true, force: true })
 })
-
 it('signs Mach-O files in their final locations and verifies each signature', async () => {
   const path = root()
   writeFileSync(join(path, 'addon.node'), machO)

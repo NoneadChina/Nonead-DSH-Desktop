@@ -14,7 +14,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-0078D6" alt="Windows, macOS, Linux">
   <img src="https://img.shields.io/badge/Electron-44-47848F?logo=electron&amp;logoColor=white" alt="Electron 44">
-  <img src="https://img.shields.io/badge/DSH%20runtime-0.2.3--alpha.2-4B32C3" alt="DSH runtime 0.2.3-alpha.2">
+  <img src="https://img.shields.io/badge/DSH%20runtime-0.2.3--alpha.1-4B32C3" alt="DSH runtime 0.2.3-alpha.1">
   <img src="https://img.shields.io/badge/node-%5E22.19%20%7C%20%3E%3D24-339933?logo=node.js&amp;logoColor=white" alt="Node.js">
 </p>
 
@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  製品バージョン <code>2.3.2</code> · DSH ランタイム <code>0.2.3-alpha.2</code> · Electron 44 · MIT License
+  製品バージョン <code>2.3.2</code> · DSH ランタイム <code>0.2.3-alpha.1</code> · Electron 44 · MIT License
 </p>
 
 <h3 align="center"><a href="https://www.nonead.com">ワンクリックでダウンロード、すぐに使えます。</a></h3>
@@ -82,16 +82,16 @@ Nonead DSH Desktop は、[DeepSeek Harness](https://github.com/deepseek-ai/deeps
 | 製品バージョン | `2.3.2`（`nonead-dsh-desktop` と `dsh-plugin-desktop-beta` が同期） |
 | 安定チャネルのワークスペース | `nonead-dsh-desktop`（ルートスクリプトは `:stable` 接尾辞） |
 | Beta チャネルのワークスペース | `dsh-plugin-desktop-beta`（ルートスクリプトは `:beta` 接尾辞） |
-| DSH ランタイム | `0.2.3-alpha.2`、すべての `@deepseek-ai/dsh*` 依存を厳密に pin し、ランタイムは vendored |
-| vendored 済みランタイム | `vendor/dsh-runtime/0.2.3-alpha.2/`（過去バージョンのディレクトリもいくつか保持） |
-| 上流の pin | `9c2670d3bce5275e0d1610272958121af87787bb`（`upstream.json` の `channels.beta`、`nonead-dsh-desktop/upstream-reference.json` にも記録） |
+| DSH ランタイム | `0.2.3-alpha.1`、すべての `@deepseek-ai/dsh*` 依存を厳密に pin し、ランタイムは vendored |
+| vendored 済みランタイム | `vendor/dsh-runtime/0.2.3-alpha.1/`（過去バージョンのディレクトリもいくつか保持） |
+| 上流の pin | `d98f5d68519215da48f3002da2cb9c9d2068d81d`（`upstream.json` の `channels.beta`、`nonead-dsh-desktop/upstream-reference.json` にも記録） |
 | Electron / パッケージャー | Electron `44.0.0` / electron-builder `26.15.7`（`app-builder-lib` にパッチあり） |
 | Node / Yarn | Node `^22.19.0` または `>=24.0.0`、Yarn `4.18.0`（Corepack 経由、`nodeLinker: node-modules`） |
-| プラグインマーケット | `dshmarket` `1.73.21`、加えて本リポジトリの `dsh-community-market` `0.1.0-dev.0` |
+| プラグインマーケット | `dshmarket` `1.80.1`、加えて本リポジトリの `dsh-community-market` `0.1.0-dev.0` |
 | スマートフォン遠隔操作ブリッジ | `@agents-anywhere/dsh-bridge-next` `2.2.0-desktop`（上流コミット `aa12e7a`） |
 | ブランドスキン | `dsh-nonead-client-skin`（インストーラーに同梱、プロファイルごとに組み込み読み込み） |
 
-`upstream.json` は vendored された 2 本のランタイム系列を記録しています。`stable` は上流 `0.2.0-rc.2`、`beta` は上流 `0.2.3-alpha.2` に対応します。実際にインストーラーに含まれるのは、ワークスペースが厳密に pin している系列です。現在は 2 つのデスクトップワークスペースがともに `0.2.3-alpha.2` を pin しています。**チャネル名が表すのは「ランタイム系列」であり、ワークスペースが参照するリリースチャネルではありません。**
+`upstream.json` は vendored された 2 本のランタイム系列を記録しています。`stable` は上流 `0.2.0-rc.2`、`beta` は上流 `0.2.3-alpha.1` に対応します。実際にインストーラーに含まれるのは、ワークスペースが厳密に pin している系列です。現在は 2 つのデスクトップワークスペースがともに `0.2.3-alpha.1` を pin しています。**チャネル名が表すのは「ランタイム系列」であり、ワークスペースが参照するリリースチャネルではありません。**
 
 <a id="download"></a>
 
@@ -297,6 +297,7 @@ Nonead DSH Desktop は、[DeepSeek Harness](https://github.com/deepseek-ai/deeps
 
 | バージョン | 日付 | ポイント |
 | --- | --- | --- |
+| `2.3.2` | 2026-11-24 | ランタイムを DSH `0.2.3-alpha.1`（上流 `d98f5d6851`、398 パッケージ）へ更新し、24 個のデスクトップパッチを再ベース、シェルは IPC 資格情報の引き渡しへ移行。同梱 `dshmarket` を 1.80.1 へ更新し、AA ブリッジを新しい peers で再ビルド |
 | `2.2.11` | 2026-11-12 | ランタイムを DSH `0.2.2-rc.2`（上流 `ddac96760b`、374 パッケージ）へ更新し、24 個のデスクトップパッチを再適用、上流の空白圧縮を無効化。同梱マーケット `dshmarket` を 1.73.17 に更新。AA ブリッジに正確なバージョン例外を追加 |
 | `2.2.8` | 2026-11-04 | ランタイムを DSH `0.2.2-rc.1`（上流 `66491b05`）へ更新し、同梱ランタイムを再パック（373 パッケージ）。同梱マーケット `dshmarket` を 1.73.10 に更新し、24 個のデスクトップ向けパッチを改名して再適用 |
 | `2.2.7` | 2026-11-03 | ランタイムを DSH `0.2.2-alpha.3`（上流 `05b1cae8`）へ更新し、同梱マーケット `dshmarket` を 1.73.9 に、24 個のデスクトップ向けパッチを新しいビルド成果物に合わせて再生成しました |

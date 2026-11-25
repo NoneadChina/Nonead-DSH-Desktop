@@ -8,8 +8,9 @@ import Loader from '@deepseek-ai/cordis-plugin-loader'
 import Include from '@deepseek-ai/cordis-plugin-include'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
+import SessionProjections from '@deepseek-ai/dsh-session-projection'
 import SkillRegistry from '@deepseek-ai/dsh-skill'
-import SessionProjection from '@deepseek-ai/dsh-session-projection'
+import * as WorkspaceDependencies from '@deepseek-ai/dsh-tool-workspace-dependencies'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import { expect, it } from 'vitest'
 import * as desktopOffice from '../src/desktop-office.ts'
@@ -36,9 +37,11 @@ it('loads Office skills with the bundled Node and the installed CLI, and removes
     expect('default' in desktopOffice).toBe(false)
     expect(ctx.loader.unwrapExports(desktopOffice)).toBe(desktopOffice)
     const modules = new Map<string, unknown>([
-      ['sessionProjections', SessionProjection],
-      ['agents', AgentRegistry], ['systemPrompt', SystemPrompt], ['tools', ToolRuntime],
-      ['skills', SkillRegistry], ['office', desktopOffice],
+      // 0.2.3's ToolRuntime injects systemPrompt, which injects sessionProjections; a fixture without
+      // the projections registry never mounts tools at all.
+      ['sessionProjections', SessionProjections], ['agents', AgentRegistry], ['systemPrompt', SystemPrompt],
+      ['tools', ToolRuntime], ['skills', SkillRegistry], ['workspaceDependencies', WorkspaceDependencies],
+      ['office', desktopOffice],
     ])
     ctx.loader.internal = {
       version: 'v2',
@@ -49,22 +52,22 @@ it('loads Office skills with the bundled Node and the installed CLI, and removes
     } as unknown as NonNullable<typeof ctx.loader.internal>
     const config = join(root, 'cordis.yml')
     await writeFile(config, [
-      '- name: sessionProjections', '- name: agents', '- name: systemPrompt', '- name: tools', '- name: skills', '- name: office',
-      '  config:', `    source: ${JSON.stringify(source)}`,
-      `    root: ${JSON.stringify(join(root, 'installed'))}`, '',
+      '- name: sessionProjections', '- name: agents', '- name: systemPrompt', '- name: tools', '- name: skills',
+      '- name: workspaceDependencies', '  config:', `    source: ${JSON.stringify(source)}`, `    root: ${JSON.stringify(join(root, 'installed'))}`,
+      '- name: office', '  config:', `    source: ${JSON.stringify(source)}`, `    root: ${JSON.stringify(join(root, 'installed'))}`, '',
     ].join('\n'))
     await ctx.loader.create({ name: 'cordis:include', config: { path: pathToFileURL(config).href } })
     await ctx.loader.await()
     for (const entry of ctx.loader.entries()) await entry.fiber?.await()
-    // 0.2.3-alpha.2's dsh-skill-office ships a single `office` skill that covers Word,
-    // PowerPoint and Excel; the per-format documents and the LibreOffice Kit bundles are gone.
+    // 0.2.3 collapses the Office skills into one umbrella document: `office` now carries the
+    // render/convert/recalculate commands inline instead of shipping four sibling skill folders.
     expect((await ctx.skills.list()).map(skill => skill.name)).toEqual(['office'])
     expect((await ctx.skills.get('office'))?.resourceBase).toEqual({
       kind: 'directory',
       path: join(assets, 'office').replaceAll('\\', '/'),
     })
     const content = (await ctx.skills.get('office'))?.content ?? ''
-    expect(content).toContain('PowerPoint')
+    expect(content).toContain('office_render')
     expect(content.length).toBeGreaterThan(0)
     // The bundled skill document no longer interpolates the runtime paths, so only its own content
     // is asserted here; `resourceBase` above still proves the asset directory is the one we ship.
@@ -73,7 +76,7 @@ it('loads Office skills with the bundled Node and the installed CLI, and removes
     expect(entry).toBeDefined()
     await entry?.fiber?.dispose()
     expect(await ctx.skills.list()).toEqual([])
-    expect(ctx.tools.schemas()).toEqual([])
+    expect(ctx.tools.schemas().map(tool => tool.name)).toEqual(['load_workspace_dependencies'])
   } finally {
     await ctx.fiber.dispose()
     await rm(root, { recursive: true, force: true })

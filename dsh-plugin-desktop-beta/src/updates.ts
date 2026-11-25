@@ -6,7 +6,6 @@ import type {} from '@deepseek-ai/dsh-client-connection'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import { DESKTOP_UPDATE_CHECK_PATH } from './desktop-settings-contract.ts'
 import { handleDesktopUpdateCheckRequest } from './desktop-settings-route.ts'
-import { rejectDesktopRequest } from './connection-fence.ts'
 import type {} from './runtime.ts'
 import { startDesktopUpdateLifecycle } from './update-lifecycle.ts'
 
@@ -56,7 +55,14 @@ export function apply(ctx: Context, config: Config): void {
       kind: 'exact',
       path: DESKTOP_UPDATE_CHECK_PATH,
       handler: (req, res) => {
-        if (rejectDesktopRequest(ctx, req, res)) return
+        const admission = ctx.connection.admit(req)
+        if ('rejection' in admission) {
+          res.writeHead(admission.rejection)
+          res.end(admission.rejection === 401
+            ? 'unauthorized'
+            : admission.rejection === 503 ? 'unavailable' : 'forbidden')
+          return
+        }
         return handleDesktopUpdateCheckRequest(
           req,
           res,

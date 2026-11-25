@@ -13,17 +13,18 @@
 - エントリには「ユーザーが認識できる変更」と「メンテナーが知っておくべき境界の変更」だけを書き、単なるリファクタリングは独立した項目にしません。
 - それ以前の履歴は Git タグ（`v1.7.3`、`v2.0.7`、`v2.0.8`、`v2.1.3`、`v2.1.4`、`v2.1.5`）とコミットログを参照してください。
 
-## 2.3.2 — 2026-11-23
+## 2.3.2 — 2026-11-24
 
-カーネルと同梱依存の追従を中心としたリリース：
+ランタイムの大幅な更新を含むリリースです：
 
-- ランタイム：DSH を `0.2.3-alpha.2` に更新し、上流ピンを `4b399c39a6d1479cd84ca591b4d7c88e24d38a96` に移動、同梱ランタイムを 398 パッケージで再パック。上流は `dsh-cua-mcp`、`dsh-timeline`、`dsh-client-config`、`dsh-client-script-realm` を追加し `dsh-personalized-recommendations` を削除したため、両デスクトップワークスペースの依存とサードパーティ通知を同期。`@deepseek-ai/cordis` 系は 4.2.0-alpha.1、`schemastery` は 3.20.0-alpha.1 に揃えた。
-- デスクトップカスタマイズ：ビルド成果物パッチは 24 個から 23 個に。上流が `ELECTRON_RUN_AS_NODE` の除去を実装したため `dsh-host-open-in-app` のパッチは削除し、残りはすべて新成果物へ再ベース。Markdown 表のスクロールバーはホバー不要のインラインスタイルに、起動画面のブランド名は `NONEAD DEEPSEEK HARNESS` に変更した。
-- デスクトップインターフェース：接続ハンドルの `authenticatedUrl` と `requestRejection` は廃止され、デスクトップは `webserver/entry-url` イベントと `admit()` を使う。構成コンテキストの `overlays` は上流標準の `overlayPaths` と `readPatches` に統合。Web ルートは既定で認証必須となり、デスクトップ管理ルートは匿名を明示しつつローカル能力検査を維持、外部アプリ起動ルートは owner を要求する。
-- 同梱マーケット：`dshmarket` を 1.73.21 から 1.80.0 へ更新し、自己更新パッチの 3 か所の注入点を新しい `inventory()`/`check()` 構造に合わせて書き直した。設定スロットを `settings.plugins.tab` から `settings.section` に変更し、ページとテストも更新。
-- 互換性：同梱 AA ブリッジを上流コミット `02f04aae` から `0.2.3-alpha.2` の peers で再構築（`2.2.0-desktop.c02f04aae5bb6.r7d47d227`）。connector パッチは新しい成果物にそのまま適用できる。
-- ゲート：typecheck、テスト（beta 1845 件、マーケット 320 件、nonead 729 件）、ビルドがすべて成功。
-- バージョン：製品 2.2.15 → **2.3.2**（両デスクトップワークスペース同時）。
+- ランタイム：DSH を `0.2.3-alpha.1` に更新し、上流 pin を `d98f5d68519215da48f3002da2cb9c9d2068d81d` に変更、同梱ランタイムを 398 パッケージで再パックしました。両デスクトップワークスペースの `@deepseek-ai/dsh*` 依存はすべてこの版に固定し、cordis ファミリは上流の `next` 系（`@deepseek-ai/cordis` 4.2.0-alpha.1、loader/group/include 1.2.0-alpha.1、timer 1.3.0-alpha.1）に追随します。
+- デスクトップ独自変更：24 個のビルド成果物パッチを `@0.2.3-alpha.1` へ再ベースし、個別に検証しました。`dsh-host-authentication-token` のパッチを追加してプロセス単位の起動トークンをシェルへ公開し、`dsh-host-open-in-app` のパッチ箇所は上流に取り込まれたためパッチ自体を削除しました。
+- デスクトップシェル：新カーネルの IPC 資格情報引き渡しへ移行しました。Host がまず `starting` と実行識別子を通知し、親プロセスが IPC でセッション秘密を渡します。ブラウザー URL は `webserver/entry-url` 由来のトークン付きリンクのままです。HTTP 認可はカーネルのルートポリシー宣言に切り替え、デスクトップのブラウザーゲートは従来の 403 文言を維持します。
+- 同梱マーケット：`dshmarket` を 1.73.21 から 1.80.1 へ更新し、デスクトップパッチを新成果物へ再ベースしました。同梱マーケットは設定ページを `settings.section` で登録します。
+- 互換性：同梱 AA ブリッジを同一の上流コミットから `0.2.3-alpha.1` の peers で再ビルドしました（`2.2.0-desktop.caa12e7a2c181.r46c6025b`）。新たに分割されたカーネルパッケージ（`dsh-deepseek-auth`、`dsh-client-config`、`dsh-client-script-realm`、`dsh-cua-mcp`、`dsh-timeline`、`dsh-computer-use`、`dsh-tool-executor-ptc`、`dsh-host-authentication-desktop`）を追加しています。
+- ゲート：typecheck、2 つのテスト（デスクトップ 94 ファイル / 758 ケース、beta 173 ファイル / 1881 ケース）、ビルド、`verify:host`、`verify:desktop-runtime`、`verify:frontend`、`verify:safe-cleanup`、`check:vendored-runtime` がすべて通過しました。
+- Windows インストーラー：NSIS インストーラーは Windows の表示言語に追随する 8 言語 UI（簡体字中国語・英語・日本語・スペイン語・フランス語・ドイツ語・ロシア語・ブラジルポルトガル語）を備え、言語を判定できない場合にのみ選択ダイアログを表示します。インストールとアンインストールの前に実行中のプログラムを終了し、終了できない場合の案内も各言語化しました（従来は中国語で固定）。アップグレード時は既存のインストール先を引き継ぎ、初回インストールは `C:\Program Files\Nonead DSH Desktop` に入ります。インストーラーのアイコンは `app-icon.png` から生成しています。
+- バージョン：製品 2.2.15 → **2.3.2**（両デスクトップワークスペースを同時に更新）。
 
 ## 2.2.15 — 2026-11-19
 

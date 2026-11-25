@@ -80,13 +80,16 @@ patches/*@0.2.1-rc.2.patch
 # Agents Anywhere artifacts accumulate one file per release build; only the
 # bridge referenced by package.json and yarn.lock is consumed.
 vendor/agents-anywhere/*.tgz
-!vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.2.0-desktop.c02f04aae5bb6.r7d47d227.tgz
+!vendor/agents-anywhere/agents-anywhere-dsh-bridge-next-2.2.0-desktop.caa12e7a2c181.r97f2390e.tgz
 
 # Packaging output dirs used when dist is locked
 build-out-*/
 
-# Local scratch: temporary scripts, package caches and build logs.
-/.tmp-*
-/.npm-cache-tmp/
-/artifacts/
-/artifacts-build.log
+# Local scratch directories and agent state: never product source, so a release
+# commit must not carry probe scripts, logs or memory caches.
+/.tmp/
+/.work/
+/.logs/
+/.corepack-home/
+/.dsh-memory/
+/.dsh-project-memory/

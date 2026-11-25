@@ -1,4 +1,11 @@
-/** Prove the Host HTTP gate fails closed and fences every browser-reachable route family. */
+/**
+ * Prove the Host HTTP gate fails closed and declares the right route authentication policy.
+ *
+ * 0.2.3 authorizes every request before the handler runs (`webserver/authorize`) from the policy
+ * a route declares, so these tests mount a stand-in credential verifier that answers the way the
+ * kernel's own connection plugin does: a request without a session cookie is refused, one with it
+ * is admitted with a peer.
+ */
 import { afterEach, describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import {
@@ -8,6 +15,20 @@ import {
 import NextWebServer from '../src/webserver.ts'
 
 const RENDERER_TOKEN = Buffer.alloc(32, 11).toString('base64url')
+const PEER = { signal: new AbortController().signal }
+
+/** The kernel's credential verifier, reduced to the decisions these tests distinguish. */
+const BROWSER_SESSION = {
+  name: 'test-browser-session',
+  apply(ctx: Context) {
+    ctx.on('webserver/authorize' as never, ((request: { headers: { cookie?: string } }, policy: string) => {
+      if (policy === 'anonymous') return { kind: 'allow' }
+      return request.headers.cookie === undefined
+        ? { kind: 'deny', status: 401 }
+        : { kind: 'allow', peer: PEER }
+    }) as never)
+  },
+}
 
 const contexts: Context[] = []
 
@@ -21,11 +42,8 @@ const ok = () => (_request: unknown, response: { writeHead(status: number): void
   response.end('ok')
 }
 
-async function start(context: Context, connection?: { admit(request: unknown): { peer?: unknown } | { rejection: number } }): Promise<NextWebServer> {
-  if (connection !== undefined) {
-    // The real service answers 401/403; the tests only need its admission decision.
-    context.provide('connection', connection as never)
-  }
+async function start(context: Context): Promise<NextWebServer> {
+  await context.plugin(BROWSER_SESSION)
   await context.plugin(NextWebServer, { host: '127.0.0.1', port: 0 })
   const webServer = context.get('webServer')
   if (!(webServer instanceof NextWebServer)) throw new Error('Next WebServer did not start')
@@ -79,18 +97,18 @@ describe('Next WebServer connection fence', () => {
 
     const read = await fetch(url(server, '/api/community-market/state'))
     const write = await fetch(url(server, '/api/community-market/install'), { method: 'POST' })
+    const authenticated = await fetch(url(server, '/api/community-market/state'), { headers: { cookie: 'session=1' } })
 
-    expect(read.status).toBe(503)
-    expect(await read.text()).toBe('Market request authentication required')
-    expect(write.status).toBe(503)
-    expect(await write.text()).toBe('Market request authentication required')
+    expect(read.status).toBe(401)
+    expect(await read.text()).toBe('unauthorized')
+    expect(write.status).toBe(401)
+    expect(await write.text()).toBe('unauthorized')
+    expect(authenticated.status).toBe(200)
   })
 
   it('fences non-read methods elsewhere and keeps reads and the login exchange open', async () => {
     configureNextBrowserAccess(RENDERER_TOKEN, true)
-    const server = await start(context(), {
-      admit: request => ((request as { headers: Record<string, string> }).headers.cookie === undefined ? { rejection: 401 } : { peer: {} }),
-    })
+    const server = await start(context())
     server.register({ kind: 'exact', path: '/api/session', handler: ok() })
     server.register({ kind: 'exact', path: '/connect', handler: ok() })
 
@@ -101,21 +119,21 @@ describe('Next WebServer connection fence', () => {
 
     expect(read.status).toBe(200)
     expect(write.status).toBe(401)
-    expect(await write.text()).toBe('Request authentication required')
+    expect(await write.text()).toBe('unauthorized')
     expect(authenticated.status).toBe(200)
     expect(login.status).toBe(200)
   })
 
   it('fences the fallback route by its request path', async () => {
     configureNextBrowserAccess(RENDERER_TOKEN, true)
-    const server = await start(context(), { admit: () => ({ rejection: 403 }) })
+    const server = await start(context())
     server.registerFallback(ok())
 
     const read = await fetch(url(server, '/assets/index.js'))
     const write = await fetch(url(server, '/api/other'), { method: 'DELETE' })
 
     expect(read.status).toBe(200)
-    expect(write.status).toBe(403)
-    expect(await write.text()).toBe('Request authentication required')
+    expect(write.status).toBe(401)
+    expect(await write.text()).toBe('unauthorized')
   })
 })

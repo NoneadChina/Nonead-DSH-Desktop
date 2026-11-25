@@ -1,6 +1,6 @@
 # Why a desktop edition
 
-This document explains why Nonead DSH Desktop exists: which work that arguably belongs to the operating system it takes over, why that work has to be added as plugins and profiles on top of an unmodified upstream Harness, and what it deliberately does not do. The current version is 2.3.2.
+This document explains why Nonead DSH Desktop exists: which work that arguably belongs to the operating system it takes over, why that work has to be added as plugins and profiles on top of an unmodified upstream Harness, and what it deliberately does not do. The current version is 2.2.15.
 
 ## The problem we solve
 

@@ -8,8 +8,9 @@ import Loader from '@deepseek-ai/cordis-plugin-loader'
 import Include from '@deepseek-ai/cordis-plugin-include'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
+import SessionProjections from '@deepseek-ai/dsh-session-projection'
 import SkillRegistry from '@deepseek-ai/dsh-skill'
-import SessionProjection from '@deepseek-ai/dsh-session-projection'
+import * as WorkspaceDependencies from '@deepseek-ai/dsh-tool-workspace-dependencies'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import { expect, it } from 'vitest'
 import * as desktopOffice from '../src/host/office.ts'
@@ -37,9 +38,11 @@ it('loads Office skills with the bundled Node and the installed CLI, and removes
     expect('default' in desktopOffice).toBe(false)
     expect(ctx.loader.unwrapExports(desktopOffice)).toBe(desktopOffice)
     const modules = new Map<string, unknown>([
-      ['sessionProjections', SessionProjection],
-      ['agents', AgentRegistry], ['systemPrompt', SystemPrompt], ['tools', ToolRuntime],
-      ['skills', SkillRegistry], ['office', desktopOffice],
+      // 0.2.3's ToolRuntime injects systemPrompt, which injects sessionProjections; without the
+      // projections registry the whole tool chain stays unmounted and the Host has no tools.
+      ['sessionProjections', SessionProjections], ['agents', AgentRegistry], ['systemPrompt', SystemPrompt],
+      ['tools', ToolRuntime], ['skills', SkillRegistry], ['workspaceDependencies', WorkspaceDependencies],
+      ['office', desktopOffice],
     ])
     ctx.loader.internal = {
       version: 'v2',
@@ -50,26 +53,26 @@ it('loads Office skills with the bundled Node and the installed CLI, and removes
     } as unknown as NonNullable<typeof ctx.loader.internal>
     const config = join(root, 'cordis.yml')
     await writeFile(config, [
-      '- name: sessionProjections', '- name: agents', '- name: systemPrompt', '- name: tools', '- name: skills', '- name: office',
-      '  config:', `    source: ${JSON.stringify(source)}`,
-      `    root: ${JSON.stringify(join(root, 'installed'))}`, '',
+      '- name: sessionProjections', '- name: agents', '- name: systemPrompt', '- name: tools', '- name: skills',
+      '- name: workspaceDependencies', '  config:', `    source: ${JSON.stringify(source)}`, `    root: ${JSON.stringify(join(root, 'installed'))}`,
+      '- name: office', '  config:', `    source: ${JSON.stringify(source)}`, `    root: ${JSON.stringify(join(root, 'installed'))}`, '',
     ].join('\n'))
     await ctx.loader.create({ name: 'cordis:include', config: { path: pathToFileURL(config).href } })
     await ctx.loader.await()
     for (const entry of ctx.loader.entries()) await entry.fiber?.await()
-    // 0.2.3-alpha.2 folds the three document skills into one `office` skill whose document
-    // loads the render/convert/recalculate tool families itself.
+    // 0.2.3's dsh-skill-office ships one umbrella skill; the document workflows and the
+    // LibreOffice-backed render, convert and recalculate tools are all described inside it.
     expect((await ctx.skills.list()).map(skill => skill.name)).toEqual(['office'])
     expect((await ctx.skills.get('office'))?.resourceBase).toEqual({ kind: 'directory', path: join(assets, 'office').split(sep).join('/') })
     const content = (await ctx.skills.get('office'))?.content ?? ''
-    expect(content).toContain('PowerPoint')
+    expect(content).toContain('office_render')
     expect(content).not.toContain(nodeDirectory)
     expect(ctx.tools.schemas().map(tool => tool.name)).toEqual(['load_workspace_dependencies'])
     const entry = [...ctx.loader.entries()].find(entry => entry.options.name === 'office')
     expect(entry).toBeDefined()
     await entry?.fiber?.dispose()
     expect(await ctx.skills.list()).toEqual([])
-    expect(ctx.tools.schemas()).toEqual([])
+    expect(ctx.tools.schemas().map(tool => tool.name)).toEqual(['load_workspace_dependencies'])
   } finally {
     await ctx.fiber.dispose()
     await rm(root, { recursive: true, force: true })

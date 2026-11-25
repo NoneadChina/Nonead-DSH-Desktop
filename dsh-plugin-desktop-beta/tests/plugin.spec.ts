@@ -2,8 +2,8 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { join } from 'node:path'
 import type { Context, Volatile } from '@deepseek-ai/cordis'
 import type {
-  ConnectionTrustRequest,
   PeerAdmission,
+  ConnectionTrustRequest,
 } from '@deepseek-ai/dsh-client-connection'
 import type { LocaleId } from '@deepseek-ai/dsh-client-locale'
 import type { WebRoute } from '@deepseek-ai/dsh-host-webserver'
@@ -187,7 +187,7 @@ function createHarness(
   }
   const admit = vi.fn<(
     request: ConnectionTrustRequest,
-  ) => PeerAdmission>(() => ({ peer: {} as never }))
+  ) => PeerAdmission>(() => ({ peer: undefined as never }))
   const routes = new Map<string, WebRoute>()
   const documentUpdated = new Set<(namespace: unknown, revision: number) => void>()
   let localePreference: LocaleId | undefined
@@ -198,12 +198,6 @@ function createHarness(
   )
   const lanHttps = new DesktopLanHttpsRuntime({ addresses: [] })
   const setLanHttpsEnabled = vi.spyOn(lanHttps, 'setEnabled')
-  const authenticatedUrl = vi.fn((baseUrl: string) => {
-    const url = new URL(baseUrl)
-    url.pathname = '/'
-    url.search = 'token=test-token'
-    return url.href
-  })
   const runtime: DesktopRuntime = {
     platform,
     locale: 'en',
@@ -267,18 +261,7 @@ function createHarness(
     },
     settings,
     connection: { admit },
-    events: {
-      emit: vi.fn((
-        _subject: unknown,
-        event: string,
-        baseUrl: string,
-        entries: { label: string, url: string, open: boolean }[],
-      ) => {
-        if (event === 'webserver/entry-url') {
-          entries.push({ label: 'dsh web', url: authenticatedUrl(baseUrl), open: true })
-        }
-      }),
-    },
+    root: {},
     logger: { warn: vi.fn(), error: vi.fn() },
     get: vi.fn((key: unknown) => {
       if (String(key) === 'desktopRuntime') return runtime
@@ -475,7 +458,7 @@ describe('desktop Host plugin', () => {
     expect(harness.shell()).toEqual(expect.objectContaining({
       mode: 'compatibility',
       url: 'http://127.0.0.1:43120/?dsh-desktop-mode=compatibility&dsh-desktop-platform=darwin&dsh-desktop-version=2.0.0&dsh-desktop-material=transparent&dsh-desktop-titlebar-inset=36',
-      authenticationUrl: 'http://127.0.0.1:43120/?token=test-token',
+      authenticationUrl: expect.stringMatching(/^http:\/\/127\.0\.0\.1:43120\/\?token=[A-Za-z0-9_-]{43}$/u),
       productName: 'DSH Desktop Beta',
       windowTitle: 'DeepSeek Harness Desktop',
       rendererAccessHeader: {
