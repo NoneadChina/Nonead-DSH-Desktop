@@ -13,6 +13,18 @@
 - 条目只写"用户能感知的变化"与"维护者必须知道的边界变化"；纯重构不单独成条。
 - 更早的历史见 Git 标签（`v1.7.3`、`v2.0.7`、`v2.0.8`、`v2.1.3`、`v2.1.4`、`v2.1.5`）与提交记录。
 
+## 2.3.1 — 2026-11-24
+
+运行时升到 DSH 0.2.3-alpha.1，整个桌面项目随之重建，并处理了内核的破坏性变更：
+
+- 运行时：内置 DeepSeek Harness 从 0.2.2-rc.5 升到 **0.2.3-alpha.1**（上游 commit `d98f5d685`，398 包重新 vendored、24 个桌面补丁全部重定基到新产物）。
+- 桌面认证：内核改为父进程随机凭据 + 私有 `desktop-auth` IPC 握手，桌面外壳同步移植——Host 先注册认证 Provider，再发布普通 URL；旧的「Token URL 换 Cookie」流程已随内核移除。
+- 桥接：Agents Anywhere 桥接按新内核的 peer 范围（`0.2.3-alpha.1`）重新生成，上游 commit 不变。
+- 内置插件：27 个插件全部对照 npm latest，18 个升级（`@a9i5k4/dsh-auto-memory` 3.4.4、`dsh-cost-meter` 1.9.87、`dsh-mcp-connector` 0.2.120、`dsh-context` 0.87.1、`dsh-excel-chat` 0.45.0 等）；`@deepseek-ai/dsh-tool-subagent` 随内核升到 **0.2.3-alpha.1**。
+- 插件市场：`dshmarket` 1.73.21 → **1.83.3**。
+- 安装器：Windows 安装包按架构各出一份单文件安装包（x64 与 arm64）；安装与卸载前会先关闭正在运行的应用，关不掉时按系统语言说明原因（简体中文、English、日本語、Español、Français、Deutsch、Русский、Português (Brasil)）；语言默认跟随 Windows 显示语言，判定不出时才询问。
+- 版本号：产品 2.2.14 → **2.3.1**（两个桌面工作区同步）。
+
 ## 2.2.14 — 2026-11-19
 
 运行时升到 DSH 0.2.2-rc.5，桥接与随包依赖同步重建：
@@ -31,7 +43,7 @@
 
 - 运行时：内置 DeepSeek Harness 从 0.2.2-rc.2 升到 **0.2.2-rc.3**（上游 commit `38a6a5c96`，375 包重新 vendored，24 个桌面补丁按新产物全部重定基）。
 - 桥接：Agents Anywhere 桥接从 2.1.0 升到 **2.2.0**（上游 commit `aa12e7a2c1`），peer 范围直接对齐 rc.3，启用远程控制不再需要写版本豁免；连接器健壮性补丁只剩 SyncFeed 溢出降级一处，其余改动已被上游实现。
-- 内置插件：27 个随包插件逐个对过 npm latest，14 个更新（如 `dsh-better-sidebar` 0.32.1、`dsh-mcp-connector` 0.2.106、`@michengai/dsh-agency-agents` 1.2.32）；`@deepseek-ai/dsh-tool-subagent` 随内核到 0.2.2-rc.3；`dsh-ppt-master` 保持 6.1.0（npm 上同名包已是另一个产品）。
+- 内置插件：27 个随包插件逐个对过 npm latest，14 个更新（如 `dsh-better-sidebar` 0.32.1 0.2.106、`@michengai/dsh-agency-agents` 1.3.1 随内核到 0.2.2-rc.3；`dsh-ppt-master` 保持 6.1.0（npm 上同名包已是另一个产品）。
 - 插件市场：`dshmarket` 1.73.17 → 1.73.19。
 - 依赖：补上 rc.3 新增的可选包 `@deepseek-ai/dsh-deepseek-chat-import`，以及它运行时闭包里的 `@deepseek-ai/dsh-tool-web`。
 - 版本号：产品 2.2.10 → **2.2.12**（两个桌面工作区同步）。
@@ -40,33 +52,33 @@
 
 以下 27 个插件随安装包一起分发，首次启动后可在「插件」页随时启用、停用或卸载；名称后的数字是随包版本。
 
-- `@a9i5k4/dsh-auto-memory` 3.3.17 — 自动记忆。开工前唤回相关历史与已定决策，并把日志自动沉淀成笔记、账本与白板；长任务可以跨会话接着做。
-- `@changfenhuang/dsh-genui` 0.16.0 — 生成式 UI。模型可用围栏在回复里渲染布局、图表、表单与流程图，面板上的点击还能回传给模型。
-- `@deepseek-ai/dsh-tool-subagent` 0.2.2-rc.3 — 子 Agent 委派。给模型一个命名工具，把独立任务交给指定后端执行，完成通知与清理由运行时负责。
+- `@a9i5k4/dsh-auto-memory` 3.4.4 — 自动记忆。开工前唤回相关历史与已定决策，并把日志自动沉淀成笔记、账本与白板；长任务可以跨会话接着做。
+- `@changfenhuang/dsh-genui` 0.17.0 — 生成式 UI。模型可用围栏在回复里渲染布局、图表、表单与流程图，面板上的点击还能回传给模型。
+- `@deepseek-ai/dsh-tool-subagent` 0.2.3-alpha.1 — 子 Agent 委派。给模型一个命名工具，把独立任务交给指定后端执行，完成通知与清理由运行时负责。
 - `@linxin666/dsh-client-ui-git-graph` 0.4.14 — Git 图谱。在空白会话里切换分支，查看提交图与 worktree 隔离，分支操作带安全守卫。
-- `@linxin666/dsh-client-ui-task-board` 0.4.18 — 任务看板。卡片由宿主托管并真实开会话执行，支持 cron 定时与休眠抑制，适合无人值守的巡检。
-- `@michengai/dsh-agency-agents` 1.2.32 — 专家库。内置 331 位可召唤的专业智能体与 5 个专家团，需要专业视角时直接点名。
-- `@michengai/dsh-archive-manager` 1.3.5 — 会话归档。归档、恢复、收藏与永久删除会话，并能诊断损坏的会话日志。
-- `@michengai/dsh-code-review` 1.0.11 — 代码审查。由独立子 Agent 检查 Git、源码、调用方与测试，再把报告带回主会话，报告支持中英文。
-- `@michengai/dsh-skills-manager` 1.4.6 — 技能管理。统一加载并安全管理本机技能，支持从 GitHub 安装、预览更新与备份回退。
-- `@tt-a1i/archify-dsh` 1.1.0 — 架构图。以纯技能包接入 Archify，按描述生成架构图，用来梳理系统结构或表达技术方案。
-- `@wenaixi/dsh-superpower` 8.0.0 — 工程技能包。移植 obra/superpowers 的 15 个工程纪律技能，中英双语描述，每个都能单独开关。
-- `@yolk_vat-y/dsh-project-memory` 0.7.0 — 项目记忆。把文档与代码符号索引进本地库，检索带 path:line 出处；任务、读过的文件与踩坑经验也会留下。
-- `billion-context` 0.1.213 — 上下文压缩。把长会话折叠成摘要，用更小的窗口和更少的 token 跑完，官方称可支撑数月的单次会话。
+- `@linxin666/dsh-client-ui-task-board` 0.4.21 — 任务看板。卡片由宿主托管并真实开会话执行，支持 cron 定时与休眠抑制，适合无人值守的巡检。
+- `@michengai/dsh-agency-agents` 1.3.1 — 专家库。内置 331 位可召唤的专业智能体与 5 个专家团，需要专业视角时直接点名。
+- `@michengai/dsh-archive-manager` 1.4.1 — 会话归档。归档、恢复、收藏与永久删除会话，并能诊断损坏的会话日志。
+- `@michengai/dsh-code-review` 1.0.14 — 代码审查。由独立子 Agent 检查 Git、源码、调用方与测试，再把报告带回主会话，报告支持中英文。
+- `@michengai/dsh-skills-manager` 1.5.3 — 技能管理。统一加载并安全管理本机技能，支持从 GitHub 安装、预览更新与备份回退。
+- `@tt-a1i/archify-dsh` 1.2.0 — 架构图。以纯技能包接入 Archify，按描述生成架构图，用来梳理系统结构或表达技术方案。
+- `@wenaixi/dsh-superpower` 8.1.2 — 工程技能包。移植 obra/superpowers 的 15 个工程纪律技能，中英双语描述，每个都能单独开关。
+- `@yolk_vat-y/dsh-project-memory` 0.7.1 — 项目记忆。把文档与代码符号索引进本地库，检索带 path:line 出处；任务、读过的文件与踩坑经验也会留下。
+- `billion-context` 0.1.216 — 上下文压缩。把长会话折叠成摘要，用更小的窗口和更少的 token 跑完，官方称可支撑数月的单次会话。
 - `dsh-better-sidebar` 0.32.1 — 增强侧边栏。把文件树、编辑器、改动、任务与侧边聊天收进同一列，每个会话独立，并向其他插件开放侧栏注册服务。
-- `dsh-client-auto-continue` 0.19.0 — 自动续跑。请求被网络错误等非人为原因中断时自动补一条继续提示，也可开启成功后循环继续。
-- `dsh-config-manager` 0.8.2 — 配置管理。备份、恢复、导出、导入、迁移与同步 DSH 配置，覆盖设置、插件、MCP、技能与工作区。
-- `dsh-context` 0.84.1 — 上下文洞察。用仪表板看清上下文由什么组成、怎么增长，需要时压缩，也可用 /context 命令。
-- `dsh-cost-meter` 1.9.64 — 费用看板。统计本会话、当日与历史的 token 与成本，内置 170+ 模型价格目录，还能查订阅额度与 Provider 余额。
-- `dsh-excel-chat` 0.43.0 — 表格对话。用自然语言读取、编辑与清洗表格，每次编辑后自动复查公式，核心操作不依赖本机装 Excel。
+- `dsh-client-auto-continue` 0.20.2 — 自动续跑。请求被网络错误等非人为原因中断时自动补一条继续提示，也可开启成功后循环继续。
+- `dsh-config-manager` 0.12.0 — 配置管理。备份、恢复、导出、导入、迁移与同步 DSH 配置，覆盖设置、插件、MCP、技能与工作区。
+- `dsh-context` 0.87.1 — 上下文洞察。用仪表板看清上下文由什么组成、怎么增长，需要时压缩，也可用 /context 命令。
+- `dsh-cost-meter` 1.9.87 — 费用看板。统计本会话、当日与历史的 token 与成本，内置 170+ 模型价格目录，还能查订阅额度与 Provider 余额。
+- `dsh-excel-chat` 0.45.0 — 表格对话。用自然语言读取、编辑与清洗表格，每次编辑后自动复查公式，核心操作不依赖本机装 Excel。
 - `dsh-find-plugins` 0.3.0 — 插件发现。聚合五个社区目录并实时搜 GitHub 与 npm，按相关度、可信度、新鲜度与热度排序。
 - `dsh-github-skills` 0.2.1 — GitHub 工作流技能。以 OpenAI Codex 的语义为上游基线，适配 DSH 的多 provider、审批与按需加载。
 - `dsh-markitdown` 0.2.2 — 文档转 Markdown。调用微软 MarkItDown，把 PDF、Word、Excel、PPT、HTML、CSV、EPUB 或网址转成模型可读的正文。
-- `dsh-mcp-connector` 0.2.106 — MCP 连接器。内置上百个连接器的数据市场，统一管理授权、跨连接搜索工具并排查连接问题。
-- `dsh-nonead-prompt-recall` 0.8.7 — 输入历史。空输入框按 ↑ 召回上一条指令，按工作区保存且重启不丢；改写按钮可在保留 @ 引用时优化草稿。
-- `dsh-nonead-prompt-rewind` 0.5.4 — 对话回退。一键就地回退到任意更早的用户消息并回填输入框，写类工具改过的文件也能一并还原。
+- `dsh-mcp-connector` 0.2.120 — MCP 连接器。内置上百个连接器的数据市场，统一管理授权、跨连接搜索工具并排查连接问题。
+- `dsh-nonead-prompt-recall` 0.8.8 — 输入历史。空输入框按 ↑ 召回上一条指令，按工作区保存且重启不丢；改写按钮可在保留 @ 引用时优化草稿。
+- `dsh-nonead-prompt-rewind` 0.6.1 — 对话回退。一键就地回退到任意更早的用户消息并回填输入框，写类工具改过的文件也能一并还原。
 - `dsh-ppt-master` 6.1.0 — PPT 生成。按内容产出可编辑 PPTX，也能输出 SVG 快照、填充原生模板并做 PPTX 增强。
-- `dsh-remotion` 0.10.6 — 视频工作台。把 React 工程做成视频，内置官方技能、模板、素材排序、Studio 预览与 MP4 导出。
+- `dsh-remotion` 0.13.1 — 视频工作台。把 React 工程做成视频，内置官方技能、模板、素材排序、Studio 预览与 MP4 导出。
 
 ## 2.2.10 — 2026-11-12
 
@@ -82,33 +94,33 @@
 
 以下 27 个插件随安装包一起分发，首次启动后可在「插件」页随时启用、停用或卸载；名称后的数字是随包版本。
 
-- `@a9i5k4/dsh-auto-memory` 3.3.17 — 自动记忆。开工前唤回相关历史与已定决策，并把日志自动沉淀成笔记、账本与白板；长任务可以跨会话接着做。
-- `@changfenhuang/dsh-genui` 0.16.0 — 生成式 UI。模型可用围栏在回复里渲染布局、图表、表单与流程图，面板上的点击还能回传给模型。
-- `@deepseek-ai/dsh-tool-subagent` 0.2.2-rc.2 — 子 Agent 委派。给模型一个命名工具，把独立任务交给指定后端执行，完成通知与清理由运行时负责。
+- `@a9i5k4/dsh-auto-memory` 3.4.4 — 自动记忆。开工前唤回相关历史与已定决策，并把日志自动沉淀成笔记、账本与白板；长任务可以跨会话接着做。
+- `@changfenhuang/dsh-genui` 0.17.0 — 生成式 UI。模型可用围栏在回复里渲染布局、图表、表单与流程图，面板上的点击还能回传给模型。
+- `@deepseek-ai/dsh-tool-subagent` 0.2.3-alpha.1 — 子 Agent 委派。给模型一个命名工具，把独立任务交给指定后端执行，完成通知与清理由运行时负责。
 - `@linxin666/dsh-client-ui-git-graph` 0.4.14 — Git 图谱。在空白会话里切换分支，查看提交图与 worktree 隔离，分支操作带安全守卫。
-- `@linxin666/dsh-client-ui-task-board` 0.4.16 — 任务看板。卡片由宿主托管并真实开会话执行，支持 cron 定时与休眠抑制，适合无人值守的巡检。
-- `@michengai/dsh-agency-agents` 1.2.27 — 专家库。内置 331 位可召唤的专业智能体与 5 个专家团，需要专业视角时直接点名。
-- `@michengai/dsh-archive-manager` 1.3.1 — 会话归档。归档、恢复、收藏与永久删除会话，并能诊断损坏的会话日志。
-- `@michengai/dsh-code-review` 1.0.10 — 代码审查。由独立子 Agent 检查 Git、源码、调用方与测试，再把报告带回主会话，报告支持中英文。
-- `@michengai/dsh-skills-manager` 1.4.1 — 技能管理。统一加载并安全管理本机技能，支持从 GitHub 安装、预览更新与备份回退。
-- `@tt-a1i/archify-dsh` 1.1.0 — 架构图。以纯技能包接入 Archify，按描述生成架构图，用来梳理系统结构或表达技术方案。
-- `@wenaixi/dsh-superpower` 8.0.0 — 工程技能包。移植 obra/superpowers 的 15 个工程纪律技能，中英双语描述，每个都能单独开关。
-- `@yolk_vat-y/dsh-project-memory` 0.6.12 — 项目记忆。把文档与代码符号索引进本地库，检索带 path:line 出处；任务、读过的文件与踩坑经验也会留下。
-- `billion-context` 0.1.213 — 上下文压缩。把长会话折叠成摘要，用更小的窗口和更少的 token 跑完，官方称可支撑数月的单次会话。
-- `dsh-better-sidebar` 0.30.1 — 增强侧边栏。把文件树、编辑器、改动、任务与侧边聊天收进同一列，每个会话独立，并向其他插件开放侧栏注册服务。
-- `dsh-client-auto-continue` 0.18.0 — 自动续跑。请求被网络错误等非人为原因中断时自动补一条继续提示，也可开启成功后循环继续。
-- `dsh-config-manager` 0.8.0 — 配置管理。备份、恢复、导出、导入、迁移与同步 DSH 配置，覆盖设置、插件、MCP、技能与工作区。
-- `dsh-context` 0.83.1 — 上下文洞察。用仪表板看清上下文由什么组成、怎么增长，需要时压缩，也可用 /context 命令。
-- `dsh-cost-meter` 1.9.64 — 费用看板。统计本会话、当日与历史的 token 与成本，内置 170+ 模型价格目录，还能查订阅额度与 Provider 余额。
-- `dsh-excel-chat` 0.43.0 — 表格对话。用自然语言读取、编辑与清洗表格，每次编辑后自动复查公式，核心操作不依赖本机装 Excel。
+- `@linxin666/dsh-client-ui-task-board` 0.4.21 — 任务看板。卡片由宿主托管并真实开会话执行，支持 cron 定时与休眠抑制，适合无人值守的巡检。
+- `@michengai/dsh-agency-agents` 1.3.1 — 专家库。内置 331 位可召唤的专业智能体与 5 个专家团，需要专业视角时直接点名。
+- `@michengai/dsh-archive-manager` 1.4.1 — 会话归档。归档、恢复、收藏与永久删除会话，并能诊断损坏的会话日志。
+- `@michengai/dsh-code-review` 1.0.14 — 代码审查。由独立子 Agent 检查 Git、源码、调用方与测试，再把报告带回主会话，报告支持中英文。
+- `@michengai/dsh-skills-manager` 1.5.3 — 技能管理。统一加载并安全管理本机技能，支持从 GitHub 安装、预览更新与备份回退。
+- `@tt-a1i/archify-dsh` 1.2.0 — 架构图。以纯技能包接入 Archify，按描述生成架构图，用来梳理系统结构或表达技术方案。
+- `@wenaixi/dsh-superpower` 8.1.2 — 工程技能包。移植 obra/superpowers 的 15 个工程纪律技能，中英双语描述，每个都能单独开关。
+- `@yolk_vat-y/dsh-project-memory` 0.7.1 — 项目记忆。把文档与代码符号索引进本地库，检索带 path:line 出处；任务、读过的文件与踩坑经验也会留下。
+- `billion-context` 0.1.216 — 上下文压缩。把长会话折叠成摘要，用更小的窗口和更少的 token 跑完，官方称可支撑数月的单次会话。
+- `dsh-better-sidebar` 0.32.1 — 增强侧边栏。把文件树、编辑器、改动、任务与侧边聊天收进同一列，每个会话独立，并向其他插件开放侧栏注册服务。
+- `dsh-client-auto-continue` 0.20.2 — 自动续跑。请求被网络错误等非人为原因中断时自动补一条继续提示，也可开启成功后循环继续。
+- `dsh-config-manager` 0.12.0 — 配置管理。备份、恢复、导出、导入、迁移与同步 DSH 配置，覆盖设置、插件、MCP、技能与工作区。
+- `dsh-context` 0.87.1 — 上下文洞察。用仪表板看清上下文由什么组成、怎么增长，需要时压缩，也可用 /context 命令。
+- `dsh-cost-meter` 1.9.87 — 费用看板。统计本会话、当日与历史的 token 与成本，内置 170+ 模型价格目录，还能查订阅额度与 Provider 余额。
+- `dsh-excel-chat` 0.45.0 — 表格对话。用自然语言读取、编辑与清洗表格，每次编辑后自动复查公式，核心操作不依赖本机装 Excel。
 - `dsh-find-plugins` 0.3.0 — 插件发现。聚合五个社区目录并实时搜 GitHub 与 npm，按相关度、可信度、新鲜度与热度排序。
 - `dsh-github-skills` 0.2.1 — GitHub 工作流技能。以 OpenAI Codex 的语义为上游基线，适配 DSH 的多 provider、审批与按需加载。
 - `dsh-markitdown` 0.2.2 — 文档转 Markdown。调用微软 MarkItDown，把 PDF、Word、Excel、PPT、HTML、CSV、EPUB 或网址转成模型可读的正文。
-- `dsh-mcp-connector` 0.2.101 — MCP 连接器。内置上百个连接器的数据市场，统一管理授权、跨连接搜索工具并排查连接问题。
-- `dsh-nonead-prompt-recall` 0.8.7 — 输入历史。空输入框按 ↑ 召回上一条指令，按工作区保存且重启不丢；改写按钮可在保留 @ 引用时优化草稿。
-- `dsh-nonead-prompt-rewind` 0.5.4 — 对话回退。一键就地回退到任意更早的用户消息并回填输入框，写类工具改过的文件也能一并还原。
+- `dsh-mcp-connector` 0.2.120 — MCP 连接器。内置上百个连接器的数据市场，统一管理授权、跨连接搜索工具并排查连接问题。
+- `dsh-nonead-prompt-recall` 0.8.8 — 输入历史。空输入框按 ↑ 召回上一条指令，按工作区保存且重启不丢；改写按钮可在保留 @ 引用时优化草稿。
+- `dsh-nonead-prompt-rewind` 0.6.1 — 对话回退。一键就地回退到任意更早的用户消息并回填输入框，写类工具改过的文件也能一并还原。
 - `dsh-ppt-master` 6.1.0 — PPT 生成。按内容产出可编辑 PPTX，也能输出 SVG 快照、填充原生模板并做 PPTX 增强。
-- `dsh-remotion` 0.10.5 — 视频工作台。把 React 工程做成视频，内置官方技能、模板、素材排序、Studio 预览与 MP4 导出。
+- `dsh-remotion` 0.13.1 — 视频工作台。把 React 工程做成视频，内置官方技能、模板、素材排序、Studio 预览与 MP4 导出。
 
 ## 2.2.9 — 2026-11-10
 
@@ -117,50 +129,50 @@
 - 运行时：内置 DeepSeek Harness 从 0.2.2-alpha.3 升到 **0.2.2-rc.1**（上游 commit `66491b0`，cordis 家族转正到 4.1.0、schemastery 3.19.0）。`vendor/dsh-runtime/0.2.2-rc.1` 由本地上游源码重建为 373 个包，包集合与上一版完全一致；24 个桌面补丁全部重定基到新产物，根 `resolutions` 与两个桌面工作区的 DSH 依赖一并指向新版本，`yarn check:vendored-runtime` 双通道通过。
 - 引导页：装机向导的「开箱即用」不再先列出全部插件，只按大类说明这批预装插件能做什么；点开始安装后，每个插件轮到时展示名称、版本、所属大类与完整说明，并致谢作者——「感谢 X 带来这个插件」。
 - 内置插件：随包插件从 30 个补到 **35 个**，新增 `@changfenhuang/dsh-genui`、`@deepseek-ai/dsh-tool-subagent`、`@linxin666/dsh-client-ui-task-board`、`@weibaohui/skills-management`、`billion-context`、`dsh-client-auto-continue`、`dsh-cost-meter`、`dsh-markitdown`、`dsh-nonead-prompt-rewind`、`dshmarket`；`dsh-api-client`、`dsh-design`、`dsh-doc-reader`、`dsh-rewind-plugin` 与 `@kenz1117/dsh-ui-usage-billing` 退出随包清单。
-- 插件升级：`dsh-ppt-master` 1.0.8 → 6.1.0，`dsh-config-manager` 0.3.1 → 0.6.0，`@michengai/dsh-skills-manager` 1.2.28 → 1.4.0，`dsh-better-sidebar` 0.28.2 → 0.30.1，`dsh-context` 0.80.3 → 0.83.0，其余随 npm latest。
+- 插件升级：`dsh-ppt-master` 6.1.0 → 6.1.0，`dsh-config-manager` 0.12.0 → 0.6.0，`@michengai/dsh-skills-manager` 1.5.3 → 1.4.0，`dsh-better-sidebar` 0.32.1 → 0.30.1，`dsh-context` 0.87.1 → 0.83.0，其余随 npm latest。
 - 插件清单：`plugin/manifest.json` 升到 v4，每个条目带上分类与作者，安装向导据此分组与致谢。
 - 版本号：产品 2.2.6 → **2.2.9**（两个桌面工作区同步）。
 - 启动告警：未启用远程控制的 Profile 不再把桥接条目写进 cordis 覆盖层，`patch: entry "agents-anywhere-bridge-next" not found` 不再出现在每次启动的日志里；已启用该功能的 Profile 行为不变，仍写 `dshHome` 与打包安装的重定向路径。
 - 内置插件：`dsh-nonead-ursim` 升到 **0.3.15**，描述改为离线仿真定位（此前与真机插件 `dsh-nonead-universal-robots` 逐字节相同，容易让人在真机场景误装）。
 - 内置桥接：`Agents Anywhere` 桥接插件升到 **2.1.0** 线（上游 tag `v2.1.0`）。AA 明确要求 Desktop/Connector 升 MINOR 版本时插件同步升级，否则本机连接会一直停在等待状态；随包产物仍是自建的 desktop 变体，连接器健壮性补丁已按 2.1.0 重做。
-- 插件升级：`@michengai/dsh-archive-manager` 1.3.1，`dsh-config-manager` 0.7.0，`dsh-context` 0.83.1，`dshmarket` 1.73.17。
+- 插件升级：`@michengai/dsh-archive-manager` 1.4.1 0.7.0，`dsh-context` 0.87.1 1.73.17。
 
 ### 内置插件清单（35 个）
 
 以下 35 个插件随安装包一起分发，首次启动后可在「插件」页随时启用、停用或卸载；名称后的数字是随包版本。
 
-- `@a9i5k4/dsh-auto-memory` 3.3.17 — 自动记忆。开工前唤回相关历史与已定决策，并把日志自动沉淀成笔记、账本与白板；长任务可以跨会话接着做。
-- `@changfenhuang/dsh-genui` 0.16.0 — 生成式 UI。模型可用围栏在回复里渲染布局、图表、表单与流程图，面板上的点击还能回传给模型。
-- `@deepseek-ai/dsh-tool-subagent` 0.2.2-rc.1 — 子 Agent 委派。给模型一个命名工具，把独立任务交给指定后端执行，完成通知与清理由运行时负责。
+- `@a9i5k4/dsh-auto-memory` 3.4.4 — 自动记忆。开工前唤回相关历史与已定决策，并把日志自动沉淀成笔记、账本与白板；长任务可以跨会话接着做。
+- `@changfenhuang/dsh-genui` 0.17.0 — 生成式 UI。模型可用围栏在回复里渲染布局、图表、表单与流程图，面板上的点击还能回传给模型。
+- `@deepseek-ai/dsh-tool-subagent` 0.2.3-alpha.1 — 子 Agent 委派。给模型一个命名工具，把独立任务交给指定后端执行，完成通知与清理由运行时负责。
 - `@linxin666/dsh-client-ui-git-graph` 0.4.14 — Git 图谱。在空白会话里切换分支，查看提交图与 worktree 隔离，分支操作带安全守卫。
 - `@linxin666/dsh-client-ui-skill-explorer` 0.4.16 — 技能中心。按来源浏览已加载的技能，可开关模型调用，也能新建或删除技能。
-- `@linxin666/dsh-client-ui-task-board` 0.4.16 — 任务看板。卡片由宿主托管并真实开会话执行，支持 cron 定时与休眠抑制，适合无人值守的巡检。
-- `@michengai/dsh-agency-agents` 1.2.27 — 专家库。内置 331 位可召唤的专业智能体与 5 个专家团，需要专业视角时直接点名。
-- `@michengai/dsh-archive-manager` 1.3.1 — 会话归档。归档、恢复、收藏与永久删除会话，并能诊断损坏的会话日志。
-- `@michengai/dsh-code-review` 1.0.9 — 代码审查。由独立子 Agent 检查 Git、源码、调用方与测试，再把报告带回主会话，报告支持中英文。
-- `@michengai/dsh-skills-manager` 1.4.0 — 技能管理。统一加载并安全管理本机技能，支持从 GitHub 安装、预览更新与备份回退。
-- `@tt-a1i/archify-dsh` 1.1.0 — 架构图。以纯技能包接入 Archify，按描述生成架构图，用来梳理系统结构或表达技术方案。
+- `@linxin666/dsh-client-ui-task-board` 0.4.21 — 任务看板。卡片由宿主托管并真实开会话执行，支持 cron 定时与休眠抑制，适合无人值守的巡检。
+- `@michengai/dsh-agency-agents` 1.3.1 — 专家库。内置 331 位可召唤的专业智能体与 5 个专家团，需要专业视角时直接点名。
+- `@michengai/dsh-archive-manager` 1.4.1 — 会话归档。归档、恢复、收藏与永久删除会话，并能诊断损坏的会话日志。
+- `@michengai/dsh-code-review` 1.0.14 — 代码审查。由独立子 Agent 检查 Git、源码、调用方与测试，再把报告带回主会话，报告支持中英文。
+- `@michengai/dsh-skills-manager` 1.5.3 — 技能管理。统一加载并安全管理本机技能，支持从 GitHub 安装、预览更新与备份回退。
+- `@tt-a1i/archify-dsh` 1.2.0 — 架构图。以纯技能包接入 Archify，按描述生成架构图，用来梳理系统结构或表达技术方案。
 - `@weibaohui/skills-management` 0.9.3 — 技能市场。一个页面管理本机各类 coding agent 的技能，内置 6600+ 技能市场，并统计每个技能的注入开销。
-- `@wenaixi/dsh-superpower` 8.0.0 — 工程技能包。移植 obra/superpowers 的 15 个工程纪律技能，中英双语描述，每个都能单独开关。
-- `@yolk_vat-y/dsh-project-memory` 0.6.12 — 项目记忆。把文档与代码符号索引进本地库，检索带 path:line 出处；任务、读过的文件与踩坑经验也会留下。
-- `billion-context` 0.1.213 — 上下文压缩。把长会话折叠成摘要，用更小的窗口和更少的 token 跑完，官方称可支撑数月的单次会话。
-- `dsh-better-sidebar` 0.30.1 — 增强侧边栏。把文件树、编辑器、改动、任务与侧边聊天收进同一列，每个会话独立，并向其他插件开放侧栏注册服务。
-- `dsh-client-auto-continue` 0.17.4 — 自动续跑。请求被网络错误等非人为原因中断时自动补一条继续提示，也可开启成功后循环继续。
-- `dsh-config-manager` 0.7.0 — 配置管理。备份、恢复、导出、导入、迁移与同步 DSH 配置，覆盖设置、插件、MCP、技能与工作区。
-- `dsh-context` 0.83.1 — 上下文洞察。用仪表板看清上下文由什么组成、怎么增长，需要时压缩，也可用 /context 命令。
-- `dsh-cost-meter` 1.9.62 — 费用看板。统计本会话、当日与历史的 token 与成本，内置 170+ 模型价格目录，还能查订阅额度与 Provider 余额。
-- `dsh-excel-chat` 0.43.0 — 表格对话。用自然语言读取、编辑与清洗表格，每次编辑后自动复查公式，核心操作不依赖本机装 Excel。
+- `@wenaixi/dsh-superpower` 8.1.2 — 工程技能包。移植 obra/superpowers 的 15 个工程纪律技能，中英双语描述，每个都能单独开关。
+- `@yolk_vat-y/dsh-project-memory` 0.7.1 — 项目记忆。把文档与代码符号索引进本地库，检索带 path:line 出处；任务、读过的文件与踩坑经验也会留下。
+- `billion-context` 0.1.216 — 上下文压缩。把长会话折叠成摘要，用更小的窗口和更少的 token 跑完，官方称可支撑数月的单次会话。
+- `dsh-better-sidebar` 0.32.1 — 增强侧边栏。把文件树、编辑器、改动、任务与侧边聊天收进同一列，每个会话独立，并向其他插件开放侧栏注册服务。
+- `dsh-client-auto-continue` 0.20.2 — 自动续跑。请求被网络错误等非人为原因中断时自动补一条继续提示，也可开启成功后循环继续。
+- `dsh-config-manager` 0.12.0 — 配置管理。备份、恢复、导出、导入、迁移与同步 DSH 配置，覆盖设置、插件、MCP、技能与工作区。
+- `dsh-context` 0.87.1 — 上下文洞察。用仪表板看清上下文由什么组成、怎么增长，需要时压缩，也可用 /context 命令。
+- `dsh-cost-meter` 1.9.87 — 费用看板。统计本会话、当日与历史的 token 与成本，内置 170+ 模型价格目录，还能查订阅额度与 Provider 余额。
+- `dsh-excel-chat` 0.45.0 — 表格对话。用自然语言读取、编辑与清洗表格，每次编辑后自动复查公式，核心操作不依赖本机装 Excel。
 - `dsh-find-plugins` 0.3.0 — 插件发现。聚合五个社区目录并实时搜 GitHub 与 npm，按相关度、可信度、新鲜度与热度排序。
 - `dsh-github-skills` 0.2.1 — GitHub 工作流技能。以 OpenAI Codex 的语义为上游基线，适配 DSH 的多 provider、审批与按需加载。
 - `dsh-image-gen` 0.11.1 — 图片生成。用说话的方式画图与改图，支持 Gemini、OpenAI、Seedream、DashScope 与本地 ComfyUI，也能用订阅账号免 Key。
 - `dsh-markitdown` 0.2.2 — 文档转 Markdown。调用微软 MarkItDown，把 PDF、Word、Excel、PPT、HTML、CSV、EPUB 或网址转成模型可读的正文。
-- `dsh-mcp-connector` 0.2.97 — MCP 连接器。内置上百个连接器的数据市场，统一管理授权、跨连接搜索工具并排查连接问题。
-- `dsh-nonead-prompt-recall` 0.8.7 — 输入历史。空输入框按 ↑ 召回上一条指令，按工作区保存且重启不丢；改写按钮可在保留 @ 引用时优化草稿。
-- `dsh-nonead-prompt-rewind` 0.5.4 — 对话回退。一键就地回退到任意更早的用户消息并回填输入框，写类工具改过的文件也能一并还原。
+- `dsh-mcp-connector` 0.2.120 — MCP 连接器。内置上百个连接器的数据市场，统一管理授权、跨连接搜索工具并排查连接问题。
+- `dsh-nonead-prompt-recall` 0.8.8 — 输入历史。空输入框按 ↑ 召回上一条指令，按工作区保存且重启不丢；改写按钮可在保留 @ 引用时优化草稿。
+- `dsh-nonead-prompt-rewind` 0.6.1 — 对话回退。一键就地回退到任意更早的用户消息并回填输入框，写类工具改过的文件也能一并还原。
 - `dsh-nonead-universal-robots` 0.8.6 — UR 机械臂。用自然语言驱动 Universal Robots 协作臂，读位姿、关节运动、画图与 I/O 都能做。
 - `dsh-nonead-ursim` 0.3.15 — UR 仿真。在离线仿真里编排并验证机械臂动作，先把轨迹与逻辑跑通再上真机。
 - `dsh-ppt-master` 6.1.0 — PPT 生成。按内容产出可编辑 PPTX，也能输出 SVG 快照、填充原生模板并做 PPTX 增强。
-- `dsh-remotion` 0.10.5 — 视频工作台。把 React 工程做成视频，内置官方技能、模板、素材排序、Studio 预览与 MP4 导出。
+- `dsh-remotion` 0.13.1 — 视频工作台。把 React 工程做成视频，内置官方技能、模板、素材排序、Studio 预览与 MP4 导出。
 - `dsh-superagent` 0.1.0 — 主动式智能体原型。监听一个 GitHub 仓库（可选飞书），按 Policy 把被授权的请求转成工单并在独立会话执行（DeepSeek 研究原型，非官方产品）。
 - `dsh-univer-office` 0.4.0 — Office 集成。把表格、文档、演示、画布与多维表接进 DSH，改动可在对话里预览、批准或丢弃。
 - `dshmarket` 1.73.17 — 可视化插件市场。在 DSH 里浏览、搜索社区插件并一键安装，装错了也能在插件页停用。
@@ -171,7 +183,7 @@
 
 - 运行时：内置 DeepSeek Harness 从 0.2.2-alpha.2 升到 **0.2.2-alpha.3**（上游 commit `05b1cae`，含 cordis 4.0.6-alpha.2、cosmokit 1.8.7-alpha.2 等 vendor 更新）。`vendor/dsh-runtime/0.2.2-alpha.3` 由本地上游源码重建为 373 个包，根 `resolutions` 与两个桌面工作区的 DSH 依赖一并指向新版本，`yarn check:vendored-runtime` 双通道通过。
 - 新增插件：`dsh-superagent` 0.1.0（DeepSeek 研究原型：监听 GitHub 与飞书，把被授权的请求转成工单并在独立会话中执行，Web 面板汇总待人工处理项；由 `deepseek-ai/dsh-superagent-prototype` 的官方构建链产出）。
-- 插件刷新：`dsh-remotion` 升到 0.10.4；未发布的 `dsh-design-skills` 由 `dsh-design` 取代；其余 `@michengai/dsh-agency-agents` 1.2.23、`@michengai/dsh-archive-manager` 1.2.0、`@michengai/dsh-code-review` 1.0.7、`@michengai/dsh-skills-manager` 1.2.28、`dsh-config-manager` 0.3.1、`dsh-context` 0.80.3、`dsh-rewind-plugin` 0.19.2 跟随 npm latest。
+- 插件刷新：`dsh-remotion` 升到 0.10.4；未发布的 `dsh-design-skills` 由 `dsh-design` 取代；其余 `@michengai/dsh-agency-agents` 1.3.1 1.2.0、`@michengai/dsh-code-review` 1.0.14 1.2.28、`dsh-config-manager` 0.12.0 0.80.3、`dsh-rewind-plugin` 0.19.2 跟随 npm latest。
 - 内置市场：`dshmarket` 升到 1.73.9。
 - 工具：新增 `yarn plugins:update`，把 `plugin/` 下全部插件刷新到 npm latest 并重建清单。
 - 版本号：产品 2.2.5 → **2.2.6**（两个桌面工作区同步）。
@@ -180,33 +192,33 @@
 
 以下 30 个插件随安装包一起分发，首次启动后可在「插件」页随时启用、停用或卸载；名称后的数字是随包版本。
 
-- `@a9i5k4/dsh-auto-memory` 3.3.17 — 自动记忆。开工前自动注入相关的历史工作记录与已定决策，不必手动提示；跨会话累积的上下文留在本机，随时可检索。
+- `@a9i5k4/dsh-auto-memory` 3.4.4 — 自动记忆。开工前自动注入相关的历史工作记录与已定决策，不必手动提示；跨会话累积的上下文留在本机，随时可检索。
 - `@kenz1117/dsh-ui-usage-billing` 1.8.1 — 用量与费用看板。在侧边栏集中展示调用用量指标与开销明细，便于随时核对成本。
 - `@linxin666/dsh-client-ui-git-graph` 0.4.14 — Git 分支图谱。以图形展示提交历史与分支走向，并可在空白会话中直接切换分支，不必回到终端执行 git 命令。
 - `@linxin666/dsh-client-ui-skill-explorer` 0.4.14 — 技能中心。按来源浏览当前已加载的技能，查看每个技能的用途，判断某个能力由谁提供。
-- `@michengai/dsh-agency-agents` 1.2.23 — 专家库。内置 331 位可召唤的专业智能体，覆盖工程、设计、市场、法务等多个职能；需要某一领域的判断时直接召唤对应专家执行，而不是让主会话代为分析。
-- `@michengai/dsh-archive-manager` 1.2.0 — 会话归档。归档、恢复、收藏与永久删除会话，并能诊断损坏的会话日志；日常清理不必删掉还想留着的记录。
-- `@michengai/dsh-code-review` 1.0.7 — 代码审查。采用 Codex 风格的审查流程，由原生独立子 Agent 执行，审查范围可灵活选定（改动、提交区间或整个仓库）。
-- `@michengai/dsh-skills-manager` 1.2.28 — 技能管理。统一加载并安全管理本机的 Agent 技能，启停与来源一目了然。
-- `@tt-a1i/archify-dsh` 1.0.0 — 架构图。把系统结构或业务流程转成可交互的架构图、流程图、时序图、数据流图与状态图。
-- `@wenaixi/dsh-superpower` 8.0.0 — 工程技能包。包含 15 个 superpowers 工程技能，中英双语可用。
-- `@yolk_vat-y/dsh-project-memory` 0.6.9 — 项目记忆。为文档（PDF、Markdown）与代码符号建立索引，之后用检索代替反复通读。
+- `@michengai/dsh-agency-agents` 1.3.1 — 专家库。内置 331 位可召唤的专业智能体，覆盖工程、设计、市场、法务等多个职能；需要某一领域的判断时直接召唤对应专家执行，而不是让主会话代为分析。
+- `@michengai/dsh-archive-manager` 1.4.1 — 会话归档。归档、恢复、收藏与永久删除会话，并能诊断损坏的会话日志；日常清理不必删掉还想留着的记录。
+- `@michengai/dsh-code-review` 1.0.14 — 代码审查。采用 Codex 风格的审查流程，由原生独立子 Agent 执行，审查范围可灵活选定（改动、提交区间或整个仓库）。
+- `@michengai/dsh-skills-manager` 1.5.3 — 技能管理。统一加载并安全管理本机的 Agent 技能，启停与来源一目了然。
+- `@tt-a1i/archify-dsh` 1.2.0 — 架构图。把系统结构或业务流程转成可交互的架构图、流程图、时序图、数据流图与状态图。
+- `@wenaixi/dsh-superpower` 8.1.2 — 工程技能包。包含 15 个 superpowers 工程技能，中英双语可用。
+- `@yolk_vat-y/dsh-project-memory` 0.7.1 — 项目记忆。为文档（PDF、Markdown）与代码符号建立索引，之后用检索代替反复通读。
 - `dsh-api-client` 0.2.0 — API 调试。在编辑器内发起 HTTP 请求并查看响应，用于接口联调。
-- `dsh-better-sidebar` 0.28.2 — 更好用的侧边栏。把文件树、编辑器、改动、任务与侧边聊天合成一栏，每个会话相互独立；同时向其他插件开放侧栏标签与文件查看器的注册服务。
-- `dsh-config-manager` 0.3.1 — 配置管理。备份、恢复、导出、导入、迁移与同步 DSH 配置，换机或重装后可整体搬回。
-- `dsh-context` 0.80.3 — 上下文洞察与管理。查看当前上下文占用，并在接近上限时进行压缩。
+- `dsh-better-sidebar` 0.32.1 — 更好用的侧边栏。把文件树、编辑器、改动、任务与侧边聊天合成一栏，每个会话相互独立；同时向其他插件开放侧栏标签与文件查看器的注册服务。
+- `dsh-config-manager` 0.12.0 — 配置管理。备份、恢复、导出、导入、迁移与同步 DSH 配置，换机或重装后可整体搬回。
+- `dsh-context` 0.87.1 — 上下文洞察与管理。查看当前上下文占用，并在接近上限时进行压缩。
 - `dsh-design` 0.2.0 — 设计系统技能。约束设计选择，并用 `design_audit` 实测渲染页面的字阶、对比度、间距与配色漂移。
 - `dsh-doc-reader` 0.2.0 — 文档读取。解析 PDF、Word 等文件的正文内容，让模型直接读到文档文字，而不是只有文件名。
-- `dsh-excel-chat` 0.43.0 — 表格对话。用自然语言操作 Excel 工作表，不必记忆函数与单元格坐标。
+- `dsh-excel-chat` 0.45.0 — 表格对话。用自然语言操作 Excel 工作表，不必记忆函数与单元格坐标。
 - `dsh-find-plugins` 0.3.0 — 插件搜索。跨五个社区目录检索插件，同时用 GitHub 与 npm 做实时搜索。
 - `dsh-github-skills` 0.2.1 — GitHub 工作流技能。改编自 OpenAI Codex 的 GitHub 相关技能。
 - `dsh-image-gen` 0.10.2 — 图片生成。接入 Gemini、OpenAI 等渠道，完成画图与改图。
-- `dsh-mcp-connector` 0.2.93 — MCP 连接器。连接 MCP 服务，并在多个服务之间统一搜索与调用工具。
-- `dsh-nonead-prompt-recall` 0.8.4 — 输入历史。输入框为空时按 ↑ 召回上一条指令。
+- `dsh-mcp-connector` 0.2.120 — MCP 连接器。连接 MCP 服务，并在多个服务之间统一搜索与调用工具。
+- `dsh-nonead-prompt-recall` 0.8.8 — 输入历史。输入框为空时按 ↑ 召回上一条指令。
 - `dsh-nonead-universal-robots` 0.8.5 — UR 机械臂。用自然语言直接控制 Universal Robots 机械臂，省去手写脚本。
 - `dsh-nonead-ursim` 0.3.13 — UR 仿真。在离线仿真中编排机械臂动作，不接真机也能先验证轨迹。
-- `dsh-ppt-master` 1.0.8 — PPT 生成。根据给定内容生成演示文稿。
-- `dsh-remotion` 0.10.4 — 视频制作。在 DSH 里用 React 工程渲染视频。
+- `dsh-ppt-master` 6.1.0 — PPT 生成。根据给定内容生成演示文稿。
+- `dsh-remotion` 0.13.1 — 视频制作。在 DSH 里用 React 工程渲染视频。
 - `dsh-rewind-plugin` 0.19.2 — 对话回退。在同一窗口内回退对话，并同步恢复工作区文件。
 - `dsh-superagent` 0.1.0 — 超级智能体原型。监听 GitHub 与飞书，把被授权的请求转成工单并在独立会话中执行，Web 面板汇总待人工处理项（DeepSeek 研究原型，非官方产品）。
 - `dsh-univer-office` 0.4.0 — Office 文档。DSH 与 Univer 集成，支持表格、文档与演示。

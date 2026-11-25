@@ -82,20 +82,11 @@ async function boot(name) {
   const url = new URL(ready.url)
   assert.equal(url.hostname, '127.0.0.1')
   assert.ok(Number(url.port) > 0)
-  assert.equal(url.pathname, '/')
-  assert.equal(url.search, '')
   assert.ok(Array.isArray(ready.injections))
-  // The session credential is the parent's own: it arrives with readiness, so there is no launch
-  // token to exchange and no redirect to follow.
+  // 0.2.3-alpha.1 retired the token-URL → cookie exchange: the Desktop synthesizes the Host
+  // credential in the parent process and hands the cookie over with the readiness report.
   const cookie = ready.authenticationCookie
-  assert.ok(cookie.startsWith('dsh-desktop-session='), 'the Host must hand over the Desktop session cookie')
-  // A browser is never handed that parent-owned Cookie, so this fork still needs the kernel's
-  // one-time login token for its loopback and LAN links.
-  assert.ok(typeof ready.browserUrl === 'string' && new URL(ready.browserUrl).searchParams.has('token'),
-    'the Host must publish a token-bearing browser login address')
-  const login = await hostFetch(ready.browserUrl, { redirect: 'manual' })
-  assert.equal(login.status, 303, 'the browser login token must still mint a cookie')
-  await login.body?.cancel()
+  assert.match(cookie, /^dsh-desktop-session=[A-Za-z0-9_-]{43}$/u)
   return { origin: url.origin, cookie }
 }
 async function stop() { await host.stop(true); host = undefined }

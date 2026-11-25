@@ -284,6 +284,16 @@ Var dshFreshInstall
     StrCpy $dshFreshInstall 0
   dsh_installer_fresh_done:
 
+  ; A fresh machine-wide install always lands in the documented location. An existing
+  ; installation wins instead: multiUser.nsh already adopted its InstallLocation above, and
+  ; this branch stays out of the way so upgrades keep the folder the user picked earlier.
+  !if "${PRODUCT_NAME}" == "Nonead DSH Desktop"
+  ${if} $dshFreshInstall == 1
+  ${AndIf} $installMode == all
+    StrCpy $INSTDIR "$PROGRAMFILES64\${PRODUCT_NAME}"
+  ${endIf}
+  !endif
+
   !insertmacro dshInstallerFindApp $R0
   ${if} $R0 == 0
     !insertmacro dshInstallerCloseRunningApp `dshCannotCloseAppInstall` `dshCannotCloseAppInstallHint`
@@ -296,10 +306,21 @@ Var dshFreshInstall
 ; localized notice telling them to quit it manually and uninstall again.
 !ifdef BUILD_UNINSTALLER
 !macro customUnInstall
+  ; The release build executes this uninstaller payload once - as the freshly built Setup.exe -
+  ; to write Uninstall.exe, and the release machine usually has some copy of this application
+  ; running. Only a real uninstallation runs from an Uninstall*.exe, so identify that first:
+  ; closing a running instance is required there, and attempting it during the build would abort
+  ; the release with exit code 2 whenever any copy of the application happens to be open.
+  StrCpy $R0 $EXEFILE 9
+  StrCmp $R0 "Uninstall" 0 dsh_installer_uninstall_close_done
+  ; A real uninstallation of an installed copy has the executable under $INSTDIR.
+  StrCmp $INSTDIR "" dsh_installer_uninstall_close_done
+  IfFileExists "$INSTDIR\${APP_EXECUTABLE_FILENAME}" 0 dsh_installer_uninstall_close_done
   !insertmacro dshInstallerFindApp $R0
   ${if} $R0 == 0
     !insertmacro dshInstallerCloseRunningApp `dshCannotCloseAppUninstall` `dshCannotCloseAppUninstallHint`
-  ${endIf}
+  ${endif}
+  dsh_installer_uninstall_close_done:
 !macroend
 !endif
 

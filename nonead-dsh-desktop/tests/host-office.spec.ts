@@ -5,11 +5,10 @@ import { sep, dirname, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { Context } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
-import Include from '@deepseek-ai/cordis-plugin-include'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import SkillRegistry from '@deepseek-ai/dsh-skill'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
+import SkillRegistry from '@deepseek-ai/dsh-skill'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import { expect, it } from 'vitest'
 import * as desktopOffice from '../src/host/office.ts'
@@ -31,39 +30,23 @@ it('loads Office skills from the bundled payload and removes them on disposal', 
     await cp(process.execPath, join(nodeDirectory, nodeName))
     ctx.baseUrl = pathToFileURL(root).href + '/'
     await ctx.plugin(Loader)
-    ctx.loader.builtins.include = Include
     expect('default' in desktopOffice).toBe(false)
     expect(ctx.loader.unwrapExports(desktopOffice)).toBe(desktopOffice)
-    const modules = new Map<string, unknown>([
-      ['agents', AgentRegistry], ['systemPrompt', SystemPrompt], ['tools', ToolRuntime],
-      // The tool registry now hangs off the system prompt, which requires the projection registry.
-      ['projections', SessionProjectionRegistry], ['skills', SkillRegistry], ['office', desktopOffice],
-    ])
-    ctx.loader.internal = {
-      version: 'v2',
-      async import(specifier: string) {
-        if (!modules.has(specifier)) throw new Error(`unexpected plugin ${specifier}`)
-        return modules.get(specifier)
-      },
-    } as unknown as NonNullable<typeof ctx.loader.internal>
-    const config = join(root, 'cordis.yml')
-    await writeFile(config, [
-      '- name: agents', '- name: systemPrompt', '- name: tools', '- name: projections', '- name: skills', '- name: office',
-      '  config:', `    source: ${JSON.stringify(source)}`,
-      `    root: ${JSON.stringify(join(root, 'installed'))}`, '',
-    ].join('\n'))
-    await ctx.loader.create({ name: 'cordis:include', config: { path: pathToFileURL(config).href } })
-    await ctx.loader.await()
-    for (const entry of ctx.loader.entries()) await entry.fiber?.await()
+    await ctx.plugin(AgentRegistry)
+    await ctx.plugin(SessionProjectionRegistry)
+    await ctx.plugin(SystemPrompt)
+    await ctx.plugin(ToolRuntime)
+    await ctx.plugin(SkillRegistry)
+    const officeFiber = ctx.plugin(desktopOffice, { source, root: join(root, 'installed') })
+    await officeFiber
     expect((await ctx.skills.list()).map(skill => skill.name)).toEqual(['office'])
     expect((await ctx.skills.get('office'))?.resourceBase).toEqual({ kind: 'directory', path: join(assets, 'office').split(sep).join('/') })
     const content = (await ctx.skills.get('office'))?.content ?? ''
-    expect(content).toContain('PowerPoint')
+    expect(content).toContain('office_recalculate')
     expect(content).not.toContain(nodeDirectory)
     expect(ctx.tools.schemas().map(tool => tool.name)).toEqual(['load_workspace_dependencies'])
-    const entry = [...ctx.loader.entries()].find(entry => entry.options.name === 'office')
-    expect(entry).toBeDefined()
-    await entry?.fiber?.dispose()
+    expect(officeFiber).toBeDefined()
+    await officeFiber.dispose()
     expect(await ctx.skills.list()).toEqual([])
     expect(ctx.tools.schemas()).toEqual([])
   } finally {

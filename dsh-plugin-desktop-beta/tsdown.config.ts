@@ -24,8 +24,6 @@ export default defineConfig([
       runtime: 'src/runtime.ts',
       'electron-runtime': 'src/electron-runtime.ts',
       'desktop-runtime-environment': 'src/desktop-runtime-environment.ts',
-      'desktop-network': 'src/desktop-network.ts',
-      'desktop-session': 'src/desktop-session.ts',
       'desktop-terminal': 'src/desktop-terminal.ts',
       'desktop-cli': 'src/desktop-cli.ts',
       terminal: 'src/terminal.ts',

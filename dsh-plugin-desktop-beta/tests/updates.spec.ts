@@ -4,8 +4,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import type {
-  ConnectionTrustRequest,
   PeerAdmission,
+  ConnectionTrustRequest,
 } from '@deepseek-ai/dsh-client-connection'
 import type { WebRoute } from '@deepseek-ai/dsh-host-webserver'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -207,7 +207,7 @@ describe('desktop update Host plugin', () => {
 
     await harness.route.handler(req, res)
 
-    expect(harness.admit).toHaveBeenCalledWith(req)
+    expect(harness.admit).toHaveBeenCalledWith(expect.objectContaining({ headers: req.headers }))
     expect(writeHead).toHaveBeenCalledWith(status)
     expect(end).toHaveBeenCalledWith(body)
     expect(request).not.toHaveBeenCalled()
@@ -237,7 +237,7 @@ describe('desktop update Host plugin', () => {
 
     await harness.route.handler(req, res)
 
-    expect(harness.admit).toHaveBeenCalledWith(req)
+    expect(harness.admit).toHaveBeenCalledWith(expect.objectContaining({ headers: req.headers }))
     expect(request).toHaveBeenCalledOnce()
     expect(harness.showManualCheckResult).toHaveBeenCalledWith({
       status: 'up-to-date',

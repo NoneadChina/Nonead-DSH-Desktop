@@ -26,10 +26,8 @@ beforeEach(async () => {
   vi.clearAllMocks()
   native.call.mockResolvedValue({ rawJson: JSON.stringify({ content: [{ type: 'text', text: 'Actual driver: screen recording denied' }] }) })
   ctx = new Context()
-  await ctx.plugin(ComputerUseRegistry)
-  // 0.2.3-alpha.2 makes the system prompt depend on the projection registry and the tool runtime
-  // depend on the system prompt; without it the provider never leaves the waiting state.
   await ctx.plugin(SessionProjectionRegistry)
+  await ctx.plugin(ComputerUseRegistry)
   await ctx.plugin(SystemPrompt)
   await ctx.plugin(ToolRuntime)
   await ctx.plugin(ToolExecutorNative)
@@ -45,7 +43,8 @@ function service(): DesktopPermissions {
 async function mount() {
   const fiber = ctx.plugin(Provider)
   await fiber
-  expect(native.create).toHaveBeenCalledOnce() // Never run calls if the native mock was bypassed.
+  // The native runtime mounts from an async plugin effect, so creation settles after the fiber resolves.
+  await vi.waitFor(() => { expect(native.create).toHaveBeenCalledOnce() }) // Never run calls if the native mock was bypassed.
   return fiber
 }
 function execute(name = 'check_permissions', args: Record<string, unknown> = { prompt: false }) {

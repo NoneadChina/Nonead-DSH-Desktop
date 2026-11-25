@@ -32,7 +32,7 @@ function writePayload(runtimeRoot: string, arch: NextRuntimeArch, options: Paylo
     writeFileSync(join(directory, path), content)
   }
   const skills = officeSkillsDirectory(runtimeRoot, arch)
-  // This runtime line ships one merged `office` skill and no legacy `scripts/check_office.py`
+  // The pinned runtime line publishes the Office skills without the legacy `scripts/check_office.py`
   // helper, so the fixture matches what that line actually ships.
   for (const path of ['office/SKILL.md']) {
     if (options.omit?.includes(`office-skills/${path}`)) continue

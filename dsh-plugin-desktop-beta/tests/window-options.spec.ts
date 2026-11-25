@@ -25,8 +25,7 @@ const spec: DesktopShellSpec = {
   minWidth: 900,
   minHeight: 640,
   url: 'http://127.0.0.1:43120/',
-  authenticationUrl: 'http://127.0.0.1:43120/',
-  sessionSecret: Buffer.alloc(32, 6).toString('base64url'),
+  authenticationUrl: 'http://127.0.0.1:43120/?token=test-token',
   rendererAccessHeader: {
     name: 'x-dsh-desktop-renderer',
     value: Buffer.alloc(32, 8).toString('base64url'),

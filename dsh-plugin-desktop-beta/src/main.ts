@@ -71,9 +71,7 @@ import {
   desktopLanBrowserUrls,
   desktopListeningPort,
   desktopLoopbackBrowserUrl,
-  desktopSessionSecret,
 } from './desktop-network.ts'
-import { mountDesktopSessionAuthentication } from './desktop-session.ts'
 import { desktopLanAddresses } from './lan-addresses.ts'
 import {
   buildDesktopProxyOverlay,
@@ -1723,8 +1721,6 @@ async function start(): Promise<void> {
             () => releasePackageResolver,
             'dsh-plugin-desktop: profile package resolution',
           )
-          // Before the profile tree loads: the provider must admit the window's first request.
-          await mountDesktopSessionAuthentication(hostCtx, desktopSessionSecret())
           // Official plugin metadata and package lookups read the packages this resolver loads.
           await hostCtx.plugin(DesktopPluginPackages)
           hostCtx.provide(DSH_LAUNCH_ENVIRONMENT_KEY, desktopLaunchEnvironment)

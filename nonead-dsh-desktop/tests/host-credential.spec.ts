@@ -9,11 +9,12 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Readable } from 'node:stream'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_PREFERENCES } from '../src/desktop-contract.ts'
 import { NextDesktopRuntime } from '../src/desktop-runtime.ts'
 import { DesktopHostProcess } from '../src/host-process.ts'
 import { readRendererCredential } from '../src/host/credential.ts'
+
 
 const TOKEN = Buffer.alloc(32, 5).toString('base64url')
 
@@ -23,6 +24,14 @@ import { createServer } from 'node:http'
 const chunks = []
 for await (const chunk of process.stdin) chunks.push(chunk)
 const credential = Buffer.concat(chunks).toString('utf8').trim()
+let authenticationReceived = false
+let listening = false
+let published = false
+const publishReady = () => {
+  if (!authenticationReceived || !listening || published) return
+  published = true
+  process.send({ type: 'ready', url: 'http://127.0.0.1:' + server.address().port + '/', injections: [] })
+}
 const server = createServer((request, response) => {
   response.setHeader('content-type', 'application/json')
   response.end(JSON.stringify({
@@ -43,15 +52,23 @@ function listenOnFetchablePort(remaining) {
       server.close(() => listenOnFetchablePort(remaining - 1))
       return
     }
-    process.send({ type: 'ready', url: 'http://127.0.0.1:' + port + '/', injections: [] })
+    listening = true
+    publishReady()
   })
 }
 listenOnFetchablePort(20)
 process.on('message', message => {
+  if (message.type === 'desktop-auth') {
+    if (authenticationReceived || !/^[A-Za-z0-9_-]{43}$/.test(message.secret)) throw new Error('invalid authentication handoff')
+    authenticationReceived = true
+    publishReady()
+    return
+  }
   if (message.type !== 'shutdown') return
   server.close(() => { process.send({ type: 'shutdown-complete' }, () => process.disconnect()) })
   server.closeAllConnections()
 })
+process.send({ type: 'starting', runId: 'c254ab28-97c9-4382-95e6-2db9c66f98c8' })
 `
 
 const roots: string[] = []
@@ -134,6 +151,8 @@ describe('renderer credential hand-off', () => {
     await runtime.start()
     const auth = runtime.auth
     expect(auth).toBeDefined()
+    expect(auth!.cookie).toMatch(/^dsh-desktop-session=[A-Za-z0-9_-]{43}$/u)
+    expect(new URL(auth!.url).searchParams.get('token')).toBeNull()
     const body = await (await fetch(new URL('/', auth!.url))).json() as {
       credential: string; envToken: string | null; argv: string[]; home: string | null
     }

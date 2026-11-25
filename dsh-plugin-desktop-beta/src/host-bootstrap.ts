@@ -17,8 +17,7 @@ import DesktopSettingsController from './desktop-settings-controller.ts'
 import { clearDesktopProfilePreferences, desktopProfilePreferencesFromSettings, readDesktopProfilePreferences, writeDesktopProfilePreferences, type DesktopProfilePreferences, type DesktopProfilePreferencesStateV1 } from './profile-preferences.ts'
 import { clearDesktopProfileUsageHistory, type DesktopReleaseUserDataLocations } from './profile-channel-admission.ts'
 import { desktopInstallAnchor, type PreparedDesktopProfile } from './profile.ts'
-import { desktopLanBrowserUrls, desktopListeningPort, desktopLoopbackBrowserUrl, desktopSessionSecret } from './desktop-network.ts'
-import { mountDesktopSessionAuthentication } from './desktop-session.ts'
+import { desktopLanBrowserUrls, desktopListeningPort, desktopLoopbackBrowserUrl } from './desktop-network.ts'
 import { DESKTOP_LAN_HTTPS_CA_PATH, type DesktopLanHttpsRuntime } from './lan-https-runtime.ts'
 import type { DesktopBrowserAccess } from './desktop-browser-access.ts'
 import type { DesktopPnpmBootstrap } from './pnpm.ts'
@@ -138,9 +137,6 @@ export async function bootDesktopHost(options: DesktopHostOptions, runtime: Desk
           () => releasePackageResolver,
           'dsh-plugin-desktop: profile package resolution',
         )
-        // But before the profile tree loads, so the provider is in place for the first request
-        // any plugin makes. The shell hands the same credential to the window's session.
-        await mountDesktopSessionAuthentication(hostCtx, desktopSessionSecret())
         // Official plugin metadata and package lookups read the packages this resolver loads.
         await hostCtx.plugin(DesktopPluginPackages)
         hostCtx.provide(DSH_LAUNCH_ENVIRONMENT_KEY, desktopLaunchEnvironment)

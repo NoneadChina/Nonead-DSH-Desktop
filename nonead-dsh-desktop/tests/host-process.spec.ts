@@ -13,6 +13,16 @@ import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 let authenticationReceived = false
 let receivedSecret = ''
+let listening = false
+let published = false
+const publishReady = () => {
+  if (!authenticationReceived || !listening || published) return
+  published = true
+  process.send({ type: 'ready', url: 'http://127.0.0.1:' + server.address().port + '/' })
+}
+// The Desktop hands its private credential to the Host before the single readiness report;
+// tests replace this line to publish their own events in that window.
+const readyExtras = () => {}
 const server = createServer((request, response) => {
   if (request.url === '/fatal') {
     process.send({ type: 'fatal', message: 'plugin unavailable' })
@@ -26,7 +36,7 @@ const server = createServer((request, response) => {
     return
   }
   response.setHeader('content-type', 'application/json')
-  response.end(JSON.stringify({runtime: process.argv[2], profile: process.argv[3], cwd: process.cwd(), nodePath: process.env.NODE_PATH, registry: process.env.NPM_CONFIG_REGISTRY, nodeOptions: process.env.NODE_OPTIONS, runAsNode: process.env.ELECTRON_RUN_AS_NODE, internals: process.execArgv.includes('--expose-internals'), sessionAuth: authenticationReceived && /^[A-Za-z0-9_-]{43}$/.test(receivedSecret) && !JSON.stringify(process.argv).includes(receivedSecret) && !JSON.stringify(process.env).includes(receivedSecret)}))
+  response.end(JSON.stringify({runtime: process.argv[2], profile: process.argv[3], cwd: process.cwd(), nodePath: process.env.NODE_PATH, registry: process.env.NPM_CONFIG_REGISTRY, nodeOptions: process.env.NODE_OPTIONS, runAsNode: process.env.ELECTRON_RUN_AS_NODE, internals: process.execArgv.includes('--expose-internals'), privateAuth: authenticationReceived && /^[A-Za-z0-9_-]{43}$/.test(receivedSecret) && !JSON.stringify(process.argv).includes(receivedSecret) && !JSON.stringify(process.env).includes(receivedSecret)}))
 })
 // \`fetch\` refuses the WHATWG "bad port" list, and this machine's ephemeral range is
 // 1024-15000 (netsh int ipv4 show dynamicport tcp), so \`listen(0)\` can hand out one of
@@ -40,7 +50,8 @@ function listenOnFetchablePort(remaining) {
       server.close(() => listenOnFetchablePort(remaining - 1))
       return
     }
-    process.send({ type: 'ready', url: 'http://127.0.0.1:' + port + '/' })
+    listening = true
+    publishReady()
   })
 }
 listenOnFetchablePort(20)
@@ -49,6 +60,8 @@ process.on('message', message => {
     if (authenticationReceived || !/^[A-Za-z0-9_-]{43}$/.test(message.secret)) throw new Error('invalid authentication handoff')
     authenticationReceived = true
     receivedSecret = message.secret
+    readyExtras()
+    publishReady()
     return
   }
   if (message.type === 'browser-access') {
@@ -66,6 +79,7 @@ process.on('message', message => {
   })
   server.closeAllConnections()
 })
+process.send({ type: 'starting', runId: 'c254ab28-97c9-4382-95e6-2db9c66f98c8' })
 `
 
 function projectWithHost(source = HTTP_HOST): string {
@@ -179,7 +193,11 @@ describe('desktop host process', () => {
     'process.exit(0)',
   ])('refuses installation when exit lacks successful teardown acknowledgement: %s', async (exit) => {
     const host = hostProcess(projectWithHost(`
-      process.send({ type: 'ready', url: 'http://127.0.0.1:3080/' })
+      process.send({ type: 'starting', runId: 'c254ab28-97c9-4382-95e6-2db9c66f98c8' })
+      process.once('message', message => {
+        if (message.type !== 'desktop-auth') throw new Error('expected authentication')
+        process.send({ type: 'ready', url: 'http://127.0.0.1:3080/' })
+      })
       process.on('message', message => {
         if (message.type === 'shutdown') process.stderr.write('token=fixture-secret', () => { ${exit} })
       })
@@ -193,42 +211,26 @@ describe('desktop host process', () => {
     await expect(host.stop()).resolves.toBeUndefined()
   })
 
-  it('returns the loopback root with a private session Cookie and waits for graceful shutdown', async () => {
+  it('returns the plain Web URL with the private authentication cookie and waits for graceful shutdown', async () => {
     const runtime = projectWithHost()
     const failure = vi.fn()
     const host = hostProcess(runtime, runtime, failure)
     const ready = await host.start()
-    expect(new URL(ready.url).search).toBe('')
     expect(ready.authenticationCookie).toMatch(/^dsh-desktop-session=[A-Za-z0-9_-]{43}$/u)
-    // The Credential travels only on the private IPC channel: the child sees it, its environment and
-    // argument list do not.
-    expect(await (await fetch(ready.url)).json()).toMatchObject({ sessionAuth: true })
+    expect(new URL(ready.url).searchParams.get('token')).toBeNull()
+    expect(new URL(ready.url).pathname).toBe('/')
+    expect(await (await fetch(ready.url)).json()).toMatchObject({ privateAuth: true })
     expect(await host.start()).toEqual(ready)
-    expect((await fetch(ready.url)).status).toBe(200)
     await host.stop()
     expect(existsSync(join(runtime, 'stopped'))).toBe(true)
     await expect(fetch(ready.url)).rejects.toThrow()
     expect(failure).not.toHaveBeenCalled()
   })
 
-  it.each([
-    'https://example.test/',
-    'http://127.0.0.1:3080/?token=untrusted',
-    'http://user:password@127.0.0.1:3080/',
-    'http://127.0.0.1:3080/other',
-  ])('refuses an unexpected ready address before any credential is used: %s', async (url) => {
-    const host = hostProcess(projectWithHost(`process.send({ type: 'ready', url: ${JSON.stringify(url)} })`))
+  it('refuses a readiness report that announces another origin', async () => {
+    const host = hostProcess(projectWithHost(HTTP_HOST.replace(
+      "url: 'http://127.0.0.1:' + server.address().port + '/'", "url: 'http://example.test:' + server.address().port + '/'")))
     await expect(host.start()).rejects.toThrow('invalid IPC event')
-  })
-
-  it('mints one private session Cookie per Host process', async () => {
-    const runtime = projectWithHost("process.send({ type: 'ready', url: 'http://127.0.0.1:3080/', injections: [] })")
-    const first = await hostProcess(runtime).start()
-    const second = await hostProcess(runtime).start()
-    expect(first.url).toBe('http://127.0.0.1:3080/')
-    expect(first.authenticationCookie).toMatch(/^dsh-desktop-session=[A-Za-z0-9_-]{43}$/u)
-    expect(first.authenticationCookie).not.toBe(second.authenticationCookie)
-    expect(first.injections).toEqual([])
   })
 
   it('passes external dependencies and package-manager paths to the Host', async () => {
@@ -291,7 +293,7 @@ describe('desktop host process', () => {
     })
     const { url } = await host.start()
     const response = await fetch(url)
-    expect(await response.json()).toEqual({ runtime, profile, cwd: realpathSync(profile), nodePath: '/custom', registry: 'https://registry.example.test/', nodeOptions: '--no-warnings', runAsNode: '1', internals: true, sessionAuth: true })
+    expect(await response.json()).toEqual({ runtime, profile, cwd: realpathSync(profile), nodePath: '/custom', registry: 'https://registry.example.test/', nodeOptions: '--no-warnings', runAsNode: '1', internals: true, privateAuth: true })
   })
 
   it.each([
@@ -318,7 +320,8 @@ describe('desktop host process', () => {
   })
 
   it('carries Platform credentials over private IPC and clears them on shutdown', async () => {
-    const runtime = projectWithHost(HTTP_HOST.replace("process.send({ type: 'ready'", "process.send({ type: 'platform-session', session: { origin: 'https://platform.deepseek.com', token: 'fixture-secret', embeddedPageDist: 'feat/test' } }); process.send({ type: 'ready'"))
+    const runtime = projectWithHost(HTTP_HOST.replace('const readyExtras = () => {}',
+      "const readyExtras = () => { process.send({ type: 'platform-session', session: { origin: 'https://platform.deepseek.com', token: 'fixture-secret', embeddedPageDist: 'feat/test' } }) }"))
     const changed = vi.fn()
     const host = new DesktopHostProcess(process.execPath, runtime, runtime, undefined, process.env, undefined,
       undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, changed)
@@ -344,8 +347,8 @@ describe('desktop host process', () => {
 
   it('hands Platform sign-in pages and ended attempts to the shell', async () => {
     const url = 'https://platform.deepseek.com/dsh/authorize?state=fixture'
-    const runtime = projectWithHost(HTTP_HOST.replace("process.send({ type: 'ready'",
-      `process.send({ type: 'platform-login', action: 'open', url: '${url}' }); process.send({ type: 'platform-login', action: 'close', focus: true }); process.send({ type: 'ready'`))
+    const runtime = projectWithHost(HTTP_HOST.replace('const readyExtras = () => {}',
+      `const readyExtras = () => { process.send({ type: 'platform-login', action: 'open', url: '${url}' }); process.send({ type: 'platform-login', action: 'close', focus: true }) }`))
     const login = vi.fn()
     const host = new DesktopHostProcess(process.execPath, runtime, runtime, undefined, process.env, undefined,
       undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, login)
@@ -366,3 +369,4 @@ describe('desktop host process', () => {
     await expect(host.start()).rejects.toThrow('invalid IPC event')
   })
 })
+

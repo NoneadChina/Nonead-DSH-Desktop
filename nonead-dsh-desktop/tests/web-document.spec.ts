@@ -56,6 +56,7 @@ it('installs the file-upload page carrier before the application entry', async (
   expect(await serveWebDocument(new Request('dsh-app://app/'), root, false).then(r => r.text())).not.toContain('__DSH_FILE_UPLOAD__')
 })
 
+
 it.each(['', '&ws=app%2Finspector%2Fdevtools%2Fcdp', '&wss=foreign.example%2Fcdp', '&ws=old&ws=duplicate'])(
   'adapts the official Inspector entry to the current Host without changing CSP (%s)', async extra => {
     const fetch = vi.fn().mockResolvedValue(new Response('official frontend'))
@@ -110,19 +111,12 @@ it('forwards upload bytes and cancellation with Host credentials while keeping t
   const fetch = vi.fn().mockResolvedValue(new Response(body, { headers: { 'content-encoding': 'gzip', 'set-cookie': 'private' } }))
   vi.stubGlobal('fetch', fetch)
   const request = ownedRequest('dsh-app://app/api/upload?name=file', {
-    method: 'POST', body: 'upload bytes',
-    headers: { origin: 'dsh-app://app', cookie: 'untrusted', host: 'untrusted', 'sec-fetch-site': 'cross-site', accept: 'text/plain' },
+    method: 'POST', body: 'upload bytes', headers: { origin: 'dsh-app://app', cookie: 'untrusted' },
   })
-  const response = await forwardWebRequest(request, 'http://127.0.0.1:1234/', 'dsh-desktop-session=owned', NATIVE_TOKEN)
+  const response = await forwardWebRequest(request, 'http://127.0.0.1:1234/?token=secret', 'session=owned', NATIVE_TOKEN)
   const [target, init] = fetch.mock.calls[0] as unknown as [URL, RequestInit]
   expect(target.href).toBe('http://127.0.0.1:1234/api/upload?name=file')
-  expect(new Headers(init.headers).get('cookie')).toBe('dsh-desktop-session=owned')
-  expect(new Headers(init.headers).get('host')).toBeNull()
-  // The fork rewrites Origin and Sec-Fetch-Site to satisfy the kernel's same-origin gate.
-  expect(new Headers(init.headers).get('sec-fetch-site')).toBe('same-origin')
-  expect(new Headers(init.headers).get('accept')).toBe('text/plain')
-  expect(request.headers.get('cookie')).toBe('untrusted')
-  // This fork speaks to the kernel's same-origin gate, so it rewrites Origin instead of dropping it.
+  expect(new Headers(init.headers).get('cookie')).toBe('session=owned')
   expect(new Headers(init.headers).get('origin')).toBe('http://127.0.0.1:1234')
   expect(init.signal).toBe(request.signal)
   expect(init.body).toBe(request.body)

@@ -8,8 +8,8 @@ import Loader from '@deepseek-ai/cordis-plugin-loader'
 import Include from '@deepseek-ai/cordis-plugin-include'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import SkillRegistry from '@deepseek-ai/dsh-skill'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
+import SkillRegistry from '@deepseek-ai/dsh-skill'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import { expect, it } from 'vitest'
 import * as desktopOffice from '../src/desktop-office.ts'
@@ -36,9 +36,9 @@ it('loads Office skills from the bundled payload and removes them on disposal', 
     expect('default' in desktopOffice).toBe(false)
     expect(ctx.loader.unwrapExports(desktopOffice)).toBe(desktopOffice)
     const modules = new Map<string, unknown>([
+      ['sessionProjections', SessionProjectionRegistry],
       ['agents', AgentRegistry], ['systemPrompt', SystemPrompt], ['tools', ToolRuntime],
-      // The tool registry now hangs off the system prompt, which requires the projection registry.
-      ['projections', SessionProjectionRegistry], ['skills', SkillRegistry], ['office', desktopOffice],
+      ['skills', SkillRegistry], ['office', desktopOffice],
     ])
     ctx.loader.internal = {
       version: 'v2',
@@ -49,7 +49,7 @@ it('loads Office skills from the bundled payload and removes them on disposal', 
     } as unknown as NonNullable<typeof ctx.loader.internal>
     const config = join(root, 'cordis.yml')
     await writeFile(config, [
-      '- name: agents', '- name: systemPrompt', '- name: tools', '- name: projections', '- name: skills', '- name: office',
+      '- name: sessionProjections', '- name: agents', '- name: systemPrompt', '- name: tools', '- name: skills', '- name: office',
       '  config:', `    source: ${JSON.stringify(source)}`,
       `    root: ${JSON.stringify(join(root, 'installed'))}`, '',
     ].join('\n'))
@@ -62,7 +62,7 @@ it('loads Office skills from the bundled payload and removes them on disposal', 
       path: join(assets, 'office').replaceAll('\\', '/'),
     })
     const content = (await ctx.skills.get('office'))?.content ?? ''
-    expect(content).toContain('PowerPoint')
+    expect(content).toContain('office_recalculate')
     expect(content.length).toBeGreaterThan(0)
     // The bundled skill document no longer interpolates the runtime paths, so only its own content
     // is asserted here; `resourceBase` above still proves the asset directory is the one we ship.

@@ -17,6 +17,7 @@ export function createDesktopProfileBoot(prepared: PreparedDesktopProfile, pnpm:
     throw new Error('Desktop Profile context and package-manager identity disagree')
   }
   const inheritedPath = Object.entries(process.env).find(([key]) => key.toUpperCase() === 'PATH')?.[1]
+  const overlays = structuredClone(prepared.overlays ?? [])
   const context: ProfileContext = {
     name: options.profileName,
     dir: prepared.profile.dir,
@@ -31,8 +32,6 @@ export function createDesktopProfileBoot(prepared: PreparedDesktopProfile, pnpm:
     cwd: process.cwd(),
     home: prepared.homeDir,
     startedBundles: prepared.profile.layers.map(layer => layer.packageName),
-    // The Desktop launcher never passes command-line overlays; every layer it
-    // owns is recomputed by readPatches below.
     overlayPaths: [],
     telemetryDisabledEnv: options.telemetryDisabled,
     packageManager: {
@@ -68,7 +67,7 @@ export function createDesktopProfileBoot(prepared: PreparedDesktopProfile, pnpm:
         generationMode: prepared.mode,
         ...(profilePatches === undefined ? {} : { profilePatches }),
       },
-    ).patches, ...(prepared.overlays ?? [])],
+    ).patches, ...overlays],
   }
   let ready = false
   let disposed = false

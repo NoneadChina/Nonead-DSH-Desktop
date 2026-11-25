@@ -312,30 +312,25 @@ describe('published package surface', () => {
     const patchPath = `./patches/dsh-client-ui-primitives@${runtimeVersion}.patch`
     expect(dshResolution('@deepseek-ai/dsh-client-ui-primitives')).toContain(patchPath)
     const patch = readFileSync(new URL(patchPath, workspaceRoot), 'utf8')
-    const installedStyles = readFileSync(new URL(
-      'node_modules/@deepseek-ai/dsh-client-ui-primitives/src/markdown/MarkdownText.module.css',
-      packageRoot,
-    ), 'utf8')
-    // This runtime line inlines each stylesheet as text inside `lib/index.js`, so the bundle the
-    // Desktop renderer loads carries that copy rather than the source file; both must be patched.
-    const shippedStyles = readFileSync(new URL(
+    // Since 0.2.3-alpha.1 the component CSS is inlined into the client bundle, so the
+    // installed styles are readable only inside `lib/index.js` (minified, no spaces).
+    const installedClient = readFileSync(new URL(
       'node_modules/@deepseek-ai/dsh-client-ui-primitives/lib/index.js',
       packageRoot,
-    ), 'utf8').split('\n').find(line => line.includes('"src/markdown/MarkdownText.module.css": { text:')) ?? ''
-    for (const styles of [patch, installedStyles]) {
-      expect(styles).toContain('overflow-x: auto;')
-      expect(styles).toContain('scrollbar-width: thin;')
-      expect(styles).toContain('::-webkit-scrollbar-thumb')
-      expect(styles).toContain('height: 8px;')
-      expect(styles).toContain('background: var(--dsw-alias-label-tertiary, #9098a3);')
+    ), 'utf8')
+    for (const bundle of [patch, installedClient]) {
+      expect(bundle).toContain('overflow-x:auto')
+      expect(bundle).toContain('scrollbar-width:thin')
+      expect(bundle).toContain('::-webkit-scrollbar-thumb')
+      expect(bundle).toContain('height:8px')
+      expect(bundle).toContain('background:var(--dsw-alias-label-tertiary,#9098a3)')
     }
-    expect(installedStyles).not.toContain('overflow-x: hidden;')
-    expect(installedStyles).not.toMatch(
-      /\.tableScroll:global\(\.md-table-wide\):hover,[\s\S]*?overflow-x: auto;/u,
+    expect(installedClient).not.toContain(
+      'md-table-wide{padding-bottom:var(--dsh-scrollbar-width,5px);overflow-x:hidden',
     )
-    expect(shippedStyles).toContain('scrollbar-width:thin')
-    expect(shippedStyles).toContain('::-webkit-scrollbar-thumb{border-radius:4px')
-    expect(shippedStyles).not.toContain('.md-table-wide{padding-bottom:var(--dsh-scrollbar-width,5px);overflow-x:hidden}')
+    expect(installedClient).not.toContain(
+      'md-table-wide:focus-visible{padding-bottom:0;overflow-x:scroll}',
+    )
   })
 
   // The `dsh-settings` compatibility patch is not forward-ported to

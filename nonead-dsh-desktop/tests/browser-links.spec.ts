@@ -16,7 +16,7 @@ function fixture() {
   })
   cleanup.push(async () => { await runtime.close(); rmSync(home, { force: true, recursive: true }) })
   const phase = vi.spyOn(runtime.backend, 'state', 'get').mockReturnValue({ phase: 'ready' })
-  runtime.auth = { url: 'http://127.0.0.1:1234/', browserUrl: 'http://127.0.0.1:1234/?token=browser-login', cookie: 'session=private-cookie', token: 'native-capability', injections: [] }
+  runtime.auth = { url: 'http://127.0.0.1:1234/?token=browser-login', cookie: 'session=private-cookie', token: 'native-capability', injections: [] }
   runtime.preferences.browserAccess = true
   runtime.preferences.networkExposure = 'lan'
   runtime.lan = new DesktopLanHttpsRuntime({ addresses: ['192.168.1.20', '10.0.0.20'] })
@@ -41,7 +41,7 @@ it('issues a distinct login URL for each LAN address while keeping general state
 it('rejects stale, disabled, unready and safe-mode login links', () => {
   const { runtime, phase } = fixture()
   const old = runtime.browserLinks()
-  runtime.auth!.browserUrl = 'http://127.0.0.1:1234/?token=rotated-login'
+  runtime.auth!.url = 'http://127.0.0.1:1234/?token=rotated-login'
   expect(() => runtime.resolveBrowserLink(old.localUrl)).toThrow('unavailable')
   runtime.preferences.networkExposure = 'loopback'
   expect(runtime.browserLinks().lanUrls).toEqual([])

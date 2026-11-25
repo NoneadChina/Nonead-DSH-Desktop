@@ -19,8 +19,6 @@ import { DesktopPluginPackages } from '../lib/plugin-packages.js'
 import { prepareDesktopProfile } from '../lib/profile.js'
 import { DesktopProfileService } from '../lib/profile-service.js'
 import { createDesktopProfileBoot } from '../lib/profile-context.js'
-import { DESKTOP_SESSION_COOKIE, desktopSessionSecret } from '../lib/desktop-network.js'
-import { mountDesktopSessionAuthentication } from '../lib/desktop-session.js'
 
 /** Loader entry id of the Desktop shell row, which 0.1.7 uses as its settings namespace. */
 const DESKTOP_SETTINGS_ENTRY_ID = 'desktop-shell'
@@ -41,8 +39,6 @@ const BIN_NAME = 'dsh-plugin-desktop-profile-smoke'
 const HOST_SERVICE_PLUGIN_NAME = 'dsh-desktop-host-services-smoke-plugin'
 const HOST_SERVICE_PROBE_KEY = 'desktopHostServiceProbe'
 let ordinaryBrowserEnabled = false
-/** The credential the Host mounts, compared against what the shell spec carried. */
-let sessionSecret
 const BROWSER_ACCESS = Object.freeze({
   get ordinaryBrowserEnabled() { return ordinaryBrowserEnabled },
   rendererHeader: Object.freeze({
@@ -226,9 +222,6 @@ try {
       profileBoot.prepare(host)
       // Match the public resolver path used by packaged Electron.
       host.loader.internal = undefined
-      // The provider has to admit the window's first request, so it mounts with the Host.
-      sessionSecret = desktopSessionSecret()
-      await mountDesktopSessionAuthentication(host, sessionSecret)
       await host.plugin(DesktopPluginPackages)
       host.provide(DSH_LAUNCH_ENVIRONMENT_KEY, createLaunchEnvironmentSnapshot([]))
       host.provide('desktopBrowserAccess', BROWSER_ACCESS)
@@ -388,39 +381,34 @@ try {
   }
   const authenticationUrl = new URL(mountedSpec.authenticationUrl)
   const rendererUrl = new URL(expectedUrl)
-  // The window exchanges its session cookie for the document at the Host root,
-  // so the URL carries no launch token: the credential never enters history.
-  if (mountedSpec.authenticationUrl !== `${rendererUrl.origin}/`
-    || authenticationUrl.origin !== rendererUrl.origin
+  const authenticationTokens = authenticationUrl.searchParams.getAll('token')
+  if (authenticationUrl.origin !== rendererUrl.origin
     || authenticationUrl.pathname !== '/'
-    || authenticationUrl.search !== ''
-    || authenticationUrl.hash !== '') {
+    || authenticationUrl.hash !== ''
+    || [...authenticationUrl.searchParams.keys()].some(key => key !== 'token')
+    || authenticationTokens.length !== 1
+    || !/^[A-Za-z0-9_-]{43}$/u.test(authenticationTokens[0])) {
     throw new Error(`desktop plugin produced an invalid authentication URL: ${authenticationUrl.href}`)
   }
-  if (typeof mountedSpec.sessionSecret !== 'string'
-    || !/^[A-Za-z0-9_-]{43}$/u.test(mountedSpec.sessionSecret)) {
-    throw new Error(`desktop plugin produced an invalid session secret: ${String(mountedSpec.sessionSecret)}`)
-  }
-  if (mountedSpec.sessionSecret !== sessionSecret) {
-    throw new Error('desktop plugin did not carry the session secret the assembled Host mounted')
-  }
-  if (ctx.get('desktopSessionSecret')?.secret !== sessionSecret) {
-    throw new Error('assembled profile did not expose the mounted desktop session secret')
-  }
-  const foreignCookie = `${DESKTOP_SESSION_COOKIE}=${Buffer.alloc(32, 9).toString('base64url')}`
-  const rejected = await fetch(expectedUrl, {
+  const exchange = await fetch(authenticationUrl, {
     headers: {
       [BROWSER_ACCESS.rendererHeader.name]: BROWSER_ACCESS.rendererHeader.value,
-      Cookie: foreignCookie,
     },
+    redirect: 'manual',
   })
-  await rejected.body?.cancel()
-  if (rejected.status !== 401) {
+  await exchange.body?.cancel()
+  // 0.1.7 redirects document-relative (`./`, `dsh-client-connection/lib/index.js:405`)
+  // rather than to the site root, so the exchange survives a mounted base path.
+  if (exchange.status !== 303 || exchange.headers.get('location') !== './') {
     throw new Error(
-      `assembled Web root accepted a foreign desktop session cookie: HTTP ${String(rejected.status)}`,
+      `browser authentication exchange returned HTTP ${String(exchange.status)} instead of a document-relative redirect`,
     )
   }
-  const cookie = `${DESKTOP_SESSION_COOKIE}=${sessionSecret}`
+  const setCookie = exchange.headers.get('set-cookie')
+  const cookie = setCookie?.split(';', 1)[0]
+  if (cookie === undefined || cookie.length === 0) {
+    throw new Error('browser authentication exchange did not mint a cookie')
+  }
   const response = await fetch(expectedUrl, {
     headers: {
       [BROWSER_ACCESS.rendererHeader.name]: BROWSER_ACCESS.rendererHeader.value,
@@ -452,21 +440,16 @@ try {
   if (aaEnabled) {
     // AA 2.0.3 publishes one fixed per-user rendezvous that DSH_HOME does not
     // move, so the isolated Profile home is not where the Connector looks.
-    const bridgeDir = join(userInfo().homedir, '.agents-anywhere', 'dsh-bridge')
-    const endpoint = join(bridgeDir, 'endpoint.json')
+    const endpoint = join(userInfo().homedir, '.agents-anywhere', 'dsh-bridge', 'endpoint.json')
     const runtimeStatus = ctx.get('agentsAnywhereRuntime').status()
     if (runtimeStatus.state !== 'ready') {
       // The per-user rendezvous is machine-global, so a Desktop that is already
       // running with AA enabled wins the socket and this isolated Profile fails
-      // to start its own. The manager publishes its ownership before an endpoint
-      // exists, so both files count as evidence of who holds the socket; naming
-      // that owner beats relaying AA's raw "connection in use" copy.
-      const ownerFile = [endpoint, join(bridgeDir, '.manager-lock.json')]
-        .find(candidate => existsSync(candidate))
-      const owner = ownerFile === undefined ? undefined : Number(JSON.parse(readFileSync(ownerFile, 'utf8')).pid)
-      const busy = Number.isInteger(owner) && owner !== process.pid
+      // to start its own. Say that plainly instead of relaying the raw error.
+      const owner = existsSync(endpoint) ? JSON.parse(readFileSync(endpoint, 'utf8')).pid : undefined
+      const busy = owner !== undefined && owner !== process.pid
       throw new Error(busy
-        ? `AA local runtime is ${String(runtimeStatus.state)}: another process (pid ${String(owner)}) owns ${ownerFile}; quit any running Desktop with AA enabled and retry (${String(runtimeStatus.message)})`
+        ? `AA local runtime is ${String(runtimeStatus.state)}: another process (pid ${String(owner)}) owns ${endpoint}; quit any running Desktop with AA enabled and retry (${String(runtimeStatus.message)})`
         : `AA local runtime is ${String(runtimeStatus.state)}: ${String(runtimeStatus.message)}`)
     }
     if (!existsSync(endpoint)) throw new Error('AA did not publish its per-user bridge endpoint')

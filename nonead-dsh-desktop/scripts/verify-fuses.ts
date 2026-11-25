@@ -37,18 +37,6 @@ function elfMachine(path: string): number {
 }
 
 /**
- * Read the Windows CPU one packaged executable carries.
- * A sequential x64+arm64 build leaves `win-unpacked` and `win-arm64-unpacked` in the same output
- * directory, so the architecture verified must come from each executable rather than from the
- * architecture the packaging command currently targets.
- * @param path - Packaged Windows executable.
- * @returns The CPU its PE header declares.
- */
-function windowsExecutableArch(path: string): 'x64' | 'arm64' {
-  return peMachine(path) === PE_MACHINES.arm64 ? 'arm64' : 'x64'
-}
-
-/**
  * Report whether this host cannot execute one packaged application, whichever platform built it.
  * A cross-arch artifact (an arm64 installer built on this x64 host) is inspected but never run.
  * @param path - Packaged executable.
@@ -103,6 +91,15 @@ function peMachine(path: string): number {
   }
 }
 
+/** CPU an unpacked tree was built for, read from the Electron Builder output directory name. */
+function packagedArch(path: string): 'arm64' | 'x64' | undefined {
+  // Electron Builder names the cross-arch directory after the CPU: `win-arm64-unpacked`,
+  // `linux-arm64-unpacked`. The host directory carries no suffix (`win-unpacked`, `linux-unpacked`).
+  if (path.includes('-arm64-unpacked')) return 'arm64'
+  if (path.includes('-unpacked')) return 'x64'
+  return undefined
+}
+
 /** Verify one packaged executable end to end. */
 async function verifyExecutable(path: string, expectedVersion: string): Promise<void> {
   // The stable shell ships an archive: assert the hardened fuse table, including the archive
@@ -115,10 +112,11 @@ async function verifyExecutable(path: string, expectedVersion: string): Promise<
   // the archive, so the final tree is checked against the descriptor it carries with code-signing
   // tolerance; verify-mac-release.ts validates the signatures themselves.
   const platform = darwin ? 'darwin' : path.endsWith('.exe') ? 'win32' : 'linux'
-  // Each executable declares its own CPU: a sequential x64+arm64 build leaves both unpacked trees
-  // beside each other, so the packaging switch is only the fallback for platforms that carry one.
-  const arch = path.endsWith('.exe') ? windowsExecutableArch(path) : packagingTargetArch() ?? (process.arch === 'arm64' ? 'arm64' : 'x64')
-  const target = nextPackagingTarget(platform, process.arch, arch)
+  // A directory that already exists in `outDir` can belong to another CPU than the one this run
+  // packages: an arm64 build finds the x64 `win-unpacked` of an earlier build beside its own tree
+  // and would then compare that x64 descriptor against an arm64 target. Name the CPU the tree was
+  // built for; the environment only answers for runs whose directory carries no CPU suffix.
+  const target = nextPackagingTarget(platform, process.arch, packagedArch(path) ?? packagingTargetArch() ?? process.arch)
   const merge = universalMergeRewrite(join(desktopRoot, ...PAYLOAD_DIR.split('/')))
   const descriptor = verifyNextRuntime(resources, expectedVersion, target, { afterCodeSigning: true, acceptRewrite: merge.accept })
   console.log(`Verified ${root} against its sealed descriptor: ${String(descriptor.files.length)} files, dsh ${descriptor.release.dshVersion}`
@@ -128,7 +126,7 @@ async function verifyExecutable(path: string, expectedVersion: string): Promise<
   try { verifyUpdaterManifestShim(resources, archived, target.platform, expectedVersion) } finally { archived.close() }
   // The interpreter payloads are pre-signed resources; code signing must have left them as prepared.
   const runtimes = verifyNextRuntimeTree(join(resources, 'runtime'), target.platform, expectedVersion,
-    target.platform === 'win32' ? arch : undefined)
+    target.platform === 'win32' ? (packagedArch(path) ?? packagingTargetArch() ?? 'x64') : undefined)
   if (runtimes.length > 0) console.log(`Verified the bundled primary runtimes: ${runtimes.map(runtime => runtime.arch).join(', ')}`)
   // A cross-arch artifact (an arm64 installer built on this x64 host) is inspected but never run:
   // this host cannot execute it, and the failure would say nothing about the payload itself.

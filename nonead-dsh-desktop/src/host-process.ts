@@ -2,19 +2,24 @@
 
 import type { LogInput } from './log-record.ts'
 import { spawn, type ChildProcess } from 'node:child_process'
-import { DesktopParentAuthentication } from './parent-authentication.ts'
 import { join } from 'node:path'
 import { desktopNodeEnvironment } from './node-environment.ts'
 import type { DesktopNotification } from './desktop-contract.ts'
 import { isDesktopNotification } from './notifications.ts'
 import type { DesktopPermission, DesktopPermissionAction, DesktopPermissionSnapshot } from './permissions.ts'
+import { DesktopParentAuthentication } from './parent-authentication.ts'
+
+/** The Host announced startup and waits for the private credential before serving. */
+interface StartingEvent {
+  readonly type: 'starting'
+  readonly runId?: string | undefined
+}
 
 interface ReadyEvent {
   readonly type: 'ready'
   readonly url: string
-  readonly injections?: readonly unknown[] | undefined
-  /** Fork-only: the token-bearing login address an ordinary browser opens, never the native window. */
   readonly browserUrl?: string | undefined
+  readonly injections?: readonly unknown[] | undefined
 }
 
 interface FatalEvent {
@@ -67,7 +72,7 @@ interface InjectionsEvent {
   readonly error?: string
 }
 
-type DesktopHostEvent = ReadyEvent | FatalEvent | PlatformSessionEvent | PlatformLoginEvent | InjectionsEvent | { type: 'permission'; requestId: number; action: DesktopPermissionAction; permission: DesktopPermission } | { type: 'logging-config'; requestId: number; error?: string } | { type: 'browser-access'; requestId: number; error?: string } | { type: 'notification'; notification: DesktopNotification } | { readonly type: 'shutdown-complete' } | { readonly type: 'desktop-action'; readonly action: 'restart' | 'terminal' } | {
+type DesktopHostEvent = StartingEvent | ReadyEvent | FatalEvent | PlatformSessionEvent | PlatformLoginEvent | InjectionsEvent | { type: 'permission'; requestId: number; action: DesktopPermissionAction; permission: DesktopPermission } | { type: 'logging-config'; requestId: number; error?: string } | { type: 'browser-access'; requestId: number; error?: string } | { type: 'notification'; notification: DesktopNotification } | { readonly type: 'shutdown-complete' } | { readonly type: 'desktop-action'; readonly action: 'restart' | 'terminal' } | {
   readonly type: 'update-tasks'
   readonly requestId: number
   readonly active: boolean
@@ -76,7 +81,11 @@ type DesktopHostEvent = ReadyEvent | FatalEvent | PlatformSessionEvent | Platfor
 
 const MAX_HOST_DIAGNOSTIC_CHARS = 64 * 1024
 
-/** The owned Host serves its Web app from the loopback root, and nothing else. */
+/**
+ * Whether a value is a bare loopback URL the Desktop may own.
+ * @param value - candidate from a child IPC payload.
+ * @returns true only for `http(s)://127.0.0.1/`, with no credentials, query or fragment.
+ */
 function isOwnedHostUrl(value: unknown): value is string {
   if (typeof value !== 'string') return false
   try {
@@ -89,13 +98,23 @@ function isOwnedHostUrl(value: unknown): value is string {
   }
 }
 
-function isBrowserLoginUrl(value: unknown): value is string {
+/**
+ * Whether a value is a browser login address for the owned Host.
+ *
+ * The kernel's token provider mints `?token=` URLs on the same loopback origin; the Desktop only
+ * forwards them to the renderer and never redeems them itself, so the shape is pinned here.
+ * @param value - candidate from a child IPC payload.
+ * @returns true only for `http(s)://127.0.0.1/?token=<one value>`.
+ */
+function isOwnedBrowserUrl(value: unknown): value is string {
   if (typeof value !== 'string') return false
   try {
     const url = new URL(value)
     return (url.protocol === 'http:' || url.protocol === 'https:')
       && url.hostname === '127.0.0.1' && url.username === '' && url.password === ''
       && url.pathname === '/' && url.hash === ''
+      && url.searchParams.getAll('token').length === 1 && (url.searchParams.get('token') ?? '') !== ''
+      && [...url.searchParams.keys()].every(name => name === 'token')
   } catch (_invalidUrl) {
     return false
   }
@@ -105,12 +124,13 @@ function isDesktopHostEvent(message: unknown): message is DesktopHostEvent {
   if (typeof message !== 'object' || message === null || !('type' in message)) return false
   const candidate = message as Record<string, unknown>
   switch (candidate.type) {
+    case 'starting':
+      return candidate.runId === undefined || typeof candidate.runId === 'string'
     case 'shutdown-complete':
       return true
     case 'ready':
-      // `browserUrl` is this fork's ordinary-browser link; it never reaches the native window.
       return isOwnedHostUrl(candidate.url)
-        && (candidate.browserUrl === undefined || isBrowserLoginUrl(candidate.browserUrl))
+        && (candidate.browserUrl === undefined || isOwnedBrowserUrl(candidate.browserUrl))
     case 'platform-session': {
       const session = candidate.session
       if (session === null) return true
@@ -170,16 +190,11 @@ async function exitsWithin(exit: Promise<void>, milliseconds: number): Promise<b
 /** Host readiness plus the parent-owned credential used only by the main process. */
 export interface DesktopHostReady {
   readonly url: string
+  /** Loopback login address carrying the kernel-issued browser token, when the profile mints one. */
+  readonly browserUrl?: string | undefined
   readonly injections?: readonly unknown[] | undefined
   /** Cookie header for the owned Host; synthesized locally and never received from the renderer. */
   readonly authenticationCookie: string
-  /**
-   * Fork-only: the loopback address an ordinary browser can open, complete with the kernel's one-time
-   * login token. Upstream's Desktop model has no browser hand-off; this fork shows LAN and loopback
-   * links, and a browser cannot be handed the parent-owned Cookie, so the Host publishes this
-   * separate address while the native window keeps authenticating with that Cookie.
-   */
-  readonly browserUrl?: string | undefined
 }
 
 /** The child has exited, but task teardown did not finish successfully. */
@@ -209,8 +224,9 @@ export class DesktopHostFatalError extends Error {
 
 /** One Web backend running under the Electron executable in Node mode. */
 export class DesktopHostProcess {
-  private child: ChildProcess | undefined
   readonly #authentication = new DesktopParentAuthentication()
+  private runId: string | undefined
+  private child: ChildProcess | undefined
   private readyResolve!: (ready: DesktopHostReady) => void
   private readyReject!: (error: Error) => void
   private readonly readyPromise = new Promise<DesktopHostReady>((resolve, reject) => {
@@ -290,13 +306,6 @@ export class DesktopHostProcess {
     })
     this.child = child
     this.handOverCredential(child)
-    // This fork has no `starting` event, so the parent-owned session credential is
-    // handed over as soon as the IPC channel exists: the Host must register its
-    // listener and mount its authentication provider before it can report ready.
-    this.#authentication.deliver(child).catch((error: unknown) => {
-      this.fail(error instanceof Error ? error : new Error(String(error)))
-      child.kill('SIGTERM')
-    })
     this.diagnostic({ source: 'host.process', event: 'spawn', pid: child.pid })
     child.stderr?.setEncoding('utf8')
     child.stderr?.on('data', (chunk: string) => { this.stderr = (this.stderr + chunk).slice(-MAX_HOST_DIAGNOSTIC_CHARS); this.onLog?.(chunk, 'stderr', child.pid) })
@@ -310,7 +319,17 @@ export class DesktopHostProcess {
         return
       }
       this.diagnostic({ source: 'host.ipc', event: 'received', developer: true, pid: child.pid, fields: { type: message.type, ...('requestId' in message ? { requestId: message.requestId } : {}) } })
-      if (message.type === 'ready') {
+      if (message.type === 'starting') {
+        // The Host waits for this private credential before it publishes readiness.
+        if (this.runId === undefined && !this.failureReported && !this.stopping) {
+          this.runId = message.runId
+          void this.#authentication.deliver(child).catch((error: unknown) => {
+            this.fail(error instanceof Error ? error : new Error(String(error)))
+            child.kill('SIGTERM')
+          })
+        }
+      }
+      else if (message.type === 'ready') {
         void this.#authentication.readyCookie().then((authenticationCookie) => {
           if (this.failureReported || this.stopping) return
           this.readyResolve({ url: message.url, browserUrl: message.browserUrl, injections: message.injections, authenticationCookie })

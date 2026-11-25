@@ -33,8 +33,7 @@ it.each(['zh', undefined] as const)('synchronizes tray language at boot and on c
     const mode = vi.fn(async () => {})
     const invoke = vi.fn(async () => {})
     const spec = { url: 'http://127.0.0.1:1234/?dsh-desktop-mode=advanced',
-      authenticationUrl: 'http://127.0.0.1:1234/',
-      sessionSecret: 'fixture-session-secret-fixture-session-secret',
+      authenticationUrl: 'http://127.0.0.1:1234/?token=fixture',
       rendererAccessHeader: { name: 'x-dsh-desktop-renderer', value: 'fixture' },
       readLocalePreference: () => language, readThemeSource: () => 'dark',
       requestQuit() {}, requestModeChange: mode,

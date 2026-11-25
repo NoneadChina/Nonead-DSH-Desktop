@@ -1,22 +1,12 @@
 {
-  "repository": "https://github.com/deepseek-ai/deepseek-harness.git",
-  "commit": "4b399c39a6d1479cd84ca591b4d7c88e24d38a96",
-  "version": "0.2.3-alpha.2",
+  "repository": "https://github.com/deepseek-ai/deepseek-harness",
+  "commit": "d98f5d68519215da48f3002da2cb9c9d2068d81d",
+  "version": "0.2.3-alpha.1",
   "files": [
     {
       "upstream": "apps/desktop/src/host-process.ts",
       "local": "src/host-process.ts",
       "upstreamSha256": "bf6d4a32959228859c2adb3d034700d55e30591dccc0d70dfea5d02653aeaf44"
-    },
-    {
-      "upstream": "apps/desktop/src/parent-authentication.ts",
-      "local": "src/parent-authentication.ts",
-      "upstreamSha256": "1f186827200efeb047288fc96968db49b9530cdee2e3181414ded26de104576a"
-    },
-    {
-      "upstream": "apps/desktop-host/src/authentication.ts",
-      "local": "src/host/authentication.ts",
-      "upstreamSha256": "edf6c0ef2a3365319e571bc1e9d1d6f19c48ffbfa2f003926dd77ec49bc3732c"
     },
     {
       "upstream": "apps/desktop/src/browser-guests.ts",
@@ -37,6 +27,11 @@
       "upstream": "apps/desktop/src/web-document.ts",
       "local": "src/web-document.ts",
       "upstreamSha256": "c871236eb4d7bd9cd1b9a52a3152a0eae5ec530f9de9889790f62563bf9b15a7"
+    },
+    {
+      "upstream": "apps/desktop/src/parent-authentication.ts",
+      "local": "src/parent-authentication.ts",
+      "upstreamSha256": "1f186827200efeb047288fc96968db49b9530cdee2e3181414ded26de104576a"
     },
     {
       "upstream": "apps/desktop/src/backend-controller.ts",

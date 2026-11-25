@@ -1,6 +1,5 @@
 /** Desktop ordinary-browser access and listener exposure preferences. */
 
-import { randomBytes } from 'node:crypto'
 import type { Config as WebServerConfig } from '@deepseek-ai/dsh-host-webserver'
 import type { DesktopShellMode } from './runtime.ts'
 
@@ -81,24 +80,6 @@ export function desktopListeningPort(webServer: { readonly port: number | undefi
 /** Marker-free URL suitable for an ordinary local browser. */
 export function desktopLoopbackBrowserUrl(port: number): string {
   return `http://127.0.0.1:${String(port)}/`
-}
-
-/**
- * Cookie one Desktop window generation carries into its own Host.
- *
- * The name matches the upstream Desktop session cookie: the Host-side provider that admits it is
- * `@deepseek-ai/dsh-host-authentication-desktop`, which reads this exact name and hands the request
- * an owner peer. The credential travels only from the launcher into the window's own Electron
- * session, so it never appears in the page, the entry URL or renderer history.
- */
-export const DESKTOP_SESSION_COOKIE = 'dsh-desktop-session'
-
-/** The upstream Desktop provider accepts only a base64url-encoded 32-byte secret. */
-export const DESKTOP_SESSION_SECRET_PATTERN: RegExp = /^[A-Za-z0-9_-]{43}$/u
-
-/** Mint the session credential of one Host generation. */
-export function desktopSessionSecret(): string {
-  return randomBytes(32).toString('base64url')
 }
 
 /** HTTPS URLs advertised for the edge's startup-sampled LAN IPv4 addresses. */

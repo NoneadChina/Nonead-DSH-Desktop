@@ -4,8 +4,8 @@
   "plugins": [
     {
       "name": "@a9i5k4/dsh-auto-memory",
-      "version": "3.3.17",
-      "file": "a9i5k4-dsh-auto-memory-3.3.17.tgz",
+      "version": "3.4.4",
+      "file": "a9i5k4-dsh-auto-memory-3.4.4.tgz",
       "category": "core",
       "author": "a9i5k4",
       "description": "主动联想记忆：开工前自动唤回相关历史并注入上下文，无需手动提示。内置三层自动沉淀与技能固化，还提供交接账本、PLAN 白板与上下文水位感知，适合让长任务跨会话接着做。",
@@ -22,8 +22,8 @@
     },
     {
       "name": "@deepseek-ai/dsh-tool-subagent",
-      "version": "0.2.3-alpha.2",
-      "file": "deepseek-ai-dsh-tool-subagent-0.2.3-alpha.2.tgz",
+      "version": "0.2.3-alpha.1",
+      "file": "deepseek-ai-dsh-tool-subagent-0.2.3-alpha.1.tgz",
       "category": "agent",
       "author": "DeepSeek Harness Team",
       "description": "子 Agent 委派工具：给模型一个命名工具，把任务交给指定的子 Agent 后端执行。每次调用返回子 id，完成通知与清理由运行时负责，适合把独立工作拆出去跑。",
@@ -76,8 +76,8 @@
     },
     {
       "name": "@michengai/dsh-skills-manager",
-      "version": "1.5.0",
-      "file": "michengai-dsh-skills-manager-1.5.0.tgz",
+      "version": "1.5.3",
+      "file": "michengai-dsh-skills-manager-1.5.3.tgz",
       "category": "agent",
       "author": "MichengAI",
       "description": "技能管理：统一加载并安全管理本机 Agent 技能，支持从 GitHub 安装、预览更新与备份回退。适合把散落的技能收拢到一处维护。",
@@ -157,8 +157,8 @@
     },
     {
       "name": "dsh-cost-meter",
-      "version": "1.9.85",
-      "file": "dsh-cost-meter-1.9.85.tgz",
+      "version": "1.9.87",
+      "file": "dsh-cost-meter-1.9.87.tgz",
       "category": "workspace",
       "author": "社区贡献者",
       "description": "费用与额度看板：统计本会话、当日与历史的 token 和成本，内置 170+ 模型价格目录并自动匹配。还能查 16 家 Coding Plan 订阅额度与自定义 Provider 余额，并在峰谷计价切换前提醒。",
@@ -202,8 +202,8 @@
     },
     {
       "name": "dsh-mcp-connector",
-      "version": "0.2.119",
-      "file": "dsh-mcp-connector-0.2.119.tgz",
+      "version": "0.2.120",
+      "file": "dsh-mcp-connector-0.2.120.tgz",
       "category": "integration",
       "author": "社区贡献者",
       "description": "MCP 连接器：内置上百个连接器的数据市场，统一管理授权、跨连接搜索工具并排查连接问题。支持 OAuth、API Key 与 HTTP/stdio，适合接入企业数据。",
@@ -238,8 +238,8 @@
     },
     {
       "name": "dsh-remotion",
-      "version": "0.13.0",
-      "file": "dsh-remotion-0.13.0.tgz",
+      "version": "0.13.1",
+      "file": "dsh-remotion-0.13.1.tgz",
       "category": "docs",
       "author": "stardustlc",
       "description": "视频工作台：把 React 工程做成视频，内置官方 Remotion 技能、工程检索、模板、素材排序、Studio 预览与 MP4 导出。适合用代码生成带动画的视频。",

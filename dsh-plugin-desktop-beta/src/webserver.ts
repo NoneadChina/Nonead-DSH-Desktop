@@ -6,7 +6,6 @@ import type { Duplex } from 'node:stream'
 import { Service } from '@deepseek-ai/cordis'
 import WebServer, {
   type Config,
-  type WebFallback,
   type WebResource,
   type WebResourceRoute,
   type WebRoute,
@@ -132,8 +131,8 @@ export class DesktopWebServer extends WebServer {
 
   override register(route: WebRoute | WebResourceRoute): () => void {
     if ('resource' in route) {
-      // The WebServer resolves each route's own auth rule, so the Desktop wrapper keeps every
-      // registration field and only wraps the responder.
+      // Forward the caller's own authentication policy; the kernel admits the Host session
+      // before a resource runs, and the shell only adds the renderer browser gate on top.
       return super.register({
         ...route,
         resource: this.traceResource(String(route.path), this.gateResource(route.resource)),
@@ -143,37 +142,25 @@ export class DesktopWebServer extends WebServer {
       ...route,
       handler: this.traceHttp(String(route.path), async (req, res, peer) => {
         if (!this.permits(req)) return rejectBrowserRequest(res)
-        // The admitted Peer is part of the route contract: the connection plugin's `/api` RPC
-        // channel returns without answering when it receives no Peer, so dropping this argument
-        // made every RPC call hang until the client's header timeout.
+        // The admitted Peer must survive this wrapper: `/api` answers nothing without it.
         await route.handler(req, res, peer)
       }),
     })
   }
 
-  override registerFallback(fallback: WebRoute['handler'] | WebFallback): () => void {
-    // The kernel resolves the fallback's own auth rule, so every registration shape
-    // keeps its declared `auth` and only the responder is wrapped.
-    if (typeof fallback === 'function') {
-      return super.registerFallback({
-        handler: this.traceHttp('fallback', async (req, res, peer) => {
-          if (!this.permits(req)) return rejectBrowserRequest(res)
-          await fallback(req, res, peer)
-        }),
+  override registerFallback(fallback: WebRoute['handler'] | Pick<WebRoute, 'handler' | 'auth'> | Pick<WebResourceRoute, 'resource'>): () => void {
+    if (typeof fallback === 'function' || 'handler' in fallback) {
+      const handler = typeof fallback === 'function' ? fallback : fallback.handler
+      const gated = this.traceHttp('fallback', async (req, res, peer) => {
+        if (!this.permits(req)) return rejectBrowserRequest(res)
+        await handler(req, res, peer)
       })
-    }
-    if ('resource' in fallback) {
-      return super.registerFallback({
-        ...fallback,
-        resource: this.traceResource('fallback', this.gateResource(fallback.resource)),
-      })
+      // Keep the caller's own policy when it declared one; `undefined` means the kernel default.
+      return super.registerFallback(typeof fallback === 'function' ? gated : { ...fallback, handler: gated })
     }
     return super.registerFallback({
       ...fallback,
-      handler: this.traceHttp('fallback', async (req, res, peer) => {
-        if (!this.permits(req)) return rejectBrowserRequest(res)
-        await fallback.handler(req, res, peer)
-      }),
+      resource: this.traceResource('fallback', this.gateResource(fallback.resource)),
     })
   }
 
@@ -182,6 +169,9 @@ export class DesktopWebServer extends WebServer {
       ...route,
       handler: (req, socket, head, peer) => {
         if (!this.permits(req)) return rejectBrowserUpgrade(socket)
+        // The admitted Peer must survive this wrapper: the `/api` upgrade gateway binds its
+        // remote session from it, and a missing Peer closes the socket with 1001 instead of
+        // answering the renderer, which shows up as an endless reconnect loop.
         return route.handler(req, socket, head, peer)
       },
     })

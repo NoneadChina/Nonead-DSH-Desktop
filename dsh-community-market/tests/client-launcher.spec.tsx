@@ -36,8 +36,8 @@ describe('community market launcher', () => {
       t,
       useSessions: (() => undefined) as MarketLauncherProps['useSessions'],
       useSessionRetainInfo: (() => undefined) as MarketLauncherProps['useSessionRetainInfo'],
-      useWorkspaces: (() => undefined) as MarketLauncherProps['useWorkspaces'],
       useSessionAccess: (() => true) as MarketLauncherProps['useSessionAccess'],
+      useWorkspaces: (() => undefined) as MarketLauncherProps['useWorkspaces'],
       useWorkspaceAccess: (() => true) as MarketLauncherProps['useWorkspaceAccess'],
       usePanelInfo: (select => select({ activePanelId: null })) as MarketLauncherProps['usePanelInfo'],
     } satisfies MarketLauncherProps

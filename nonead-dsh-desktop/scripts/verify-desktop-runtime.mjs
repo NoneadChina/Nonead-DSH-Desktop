@@ -95,7 +95,7 @@ try {
   assert.notEqual(runtime.auth.token, first.token, 'An actual Host restart rotates the native capability')
   assert.equal(new URL(runtime.state().browserUrl).search, '')
   assert.equal(JSON.stringify(runtime.state()).includes(runtime.auth.token), false)
-  assert.equal(JSON.stringify(runtime.state()).includes(new URL(runtime.auth.browserUrl ?? runtime.auth.url).search), false, 'The browser login token must not reach the reported state')
+  assert.equal(JSON.stringify(runtime.state()).includes(new URL(runtime.auth.browserUrl).search), false)
   // A slow certificate bootstrap leaves a live Host with its captured boot
   // policy. A change made during startup must reach that Host after readiness.
   let certificateStarted

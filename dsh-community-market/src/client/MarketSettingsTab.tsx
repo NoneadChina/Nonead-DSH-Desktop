@@ -231,7 +231,7 @@ function addPluginRejectionMessage(reason: MarketPluginSpecRejection, t: MarketS
   }
 }
 
-export type MarketSettingsTabProps = PropsRuntime<'plugins.tab'>
+export type MarketSettingsTabProps = PropsRuntime<'settings.section'>
   & PropsLocale<'community-market'>
   & {
     readLocale: () => string

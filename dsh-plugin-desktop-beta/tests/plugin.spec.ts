@@ -2,8 +2,8 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { join } from 'node:path'
 import type { Context, Volatile } from '@deepseek-ai/cordis'
 import type {
-  ConnectionTrustRequest,
   PeerAdmission,
+  ConnectionTrustRequest,
 } from '@deepseek-ai/dsh-client-connection'
 import type { LocaleId } from '@deepseek-ai/dsh-client-locale'
 import type { WebRoute } from '@deepseek-ai/dsh-host-webserver'
@@ -60,8 +60,6 @@ const DEFAULT_SETTINGS: DesktopSettings = {
 
 /** Geometry fields the shell adopts once at window construction. */
 const GEOMETRY = { width: 1280, height: 840, minWidth: 900, minHeight: 640 } as const
-/** The credential the fake Host exposes to the shell spec. */
-const DESKTOP_SESSION_SECRET = Buffer.alloc(32, 5).toString('base64url')
 
 /**
  * A live configuration fixture.
@@ -200,18 +198,11 @@ function createHarness(
   )
   const lanHttps = new DesktopLanHttpsRuntime({ addresses: [] })
   const setLanHttpsEnabled = vi.spyOn(lanHttps, 'setEnabled')
-  const entryUrl = vi.fn((baseUrl: string) => {
+  const authenticatedUrl = vi.fn((baseUrl: string) => {
     const url = new URL(baseUrl)
     url.pathname = '/'
     url.search = 'token=test-token'
     return url.href
-  })
-  // The credential-bearing entry URL is contributed by the `host-authentication-token`
-  // bundle plugin through `webserver/entry-url`; this stub plays that role.
-  const emit = vi.fn((_scope: unknown, event: string, ...args: unknown[]) => {
-    if (event !== 'webserver/entry-url') return
-    const entries = args[1] as { label: string; url: string; open: boolean }[]
-    entries.push({ label: 'dsh web', url: entryUrl(String(args[0])), open: true })
   })
   const runtime: DesktopRuntime = {
     platform,
@@ -263,7 +254,6 @@ function createHarness(
     update,
   }
   const fiber = { id: DESKTOP_SETTINGS_ENTRY_ID }
-  const sessionSecret = Object.freeze({ secret: DESKTOP_SESSION_SECRET })
   const ctx = {
     fiber,
     desktopRuntime: runtime,
@@ -276,14 +266,12 @@ function createHarness(
       }),
     },
     settings,
-    connection: { admit },
-    emit,
+    connection: { authenticatedUrl, admit },
     logger: { warn: vi.fn(), error: vi.fn() },
     get: vi.fn((key: unknown) => {
       if (String(key) === 'desktopRuntime') return runtime
       if (String(key) === 'desktopBrowserAccess') return browserAccess
       if (String(key) === 'desktopLanHttps') return lanHttps
-      if (String(key) === 'desktopSessionSecret') return sessionSecret
       if (String(key) === 'settings') return settings
       if (String(key) === 'deepseekAccount') return account
       return () => {}
@@ -473,8 +461,9 @@ describe('desktop Host plugin', () => {
     expect(harness.shell()).toEqual(expect.objectContaining({
       mode: 'compatibility',
       url: 'http://127.0.0.1:43120/?dsh-desktop-mode=compatibility&dsh-desktop-platform=darwin&dsh-desktop-version=2.0.0&dsh-desktop-material=transparent&dsh-desktop-titlebar-inset=36',
-      authenticationUrl: 'http://127.0.0.1:43120/',
-      sessionSecret: DESKTOP_SESSION_SECRET,
+      // 0.2.3-alpha.1 dropped the token-URL → cookie exchange: the Desktop now hands the Host a
+      // private credential over IPC, so the advertised authentication origin carries no token.
+      authenticationUrl: 'http://127.0.0.1:43120',
       productName: 'DSH Desktop Beta',
       windowTitle: 'DeepSeek Harness Desktop',
       rendererAccessHeader: {
@@ -528,7 +517,7 @@ describe('desktop Host plugin', () => {
 
     await route?.handler(req, res)
 
-    expect(harness.admit).toHaveBeenCalledWith(req)
+    expect(harness.admit).toHaveBeenCalledWith(expect.objectContaining({ headers: req.headers }))
     expect(harness.rendererBoot).toHaveBeenCalledWith(report)
     expect(res.statusCode).toBe(204)
   })

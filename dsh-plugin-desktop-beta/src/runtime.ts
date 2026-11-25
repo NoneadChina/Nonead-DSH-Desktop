@@ -158,13 +158,8 @@ export interface DesktopShellSpec extends DesktopWindowConfig {
   material: DesktopWindowMaterial
   /** Unmodified Web root served by the active DSH profile. */
   url: string
-  /** Host root: where the window's session cookie is exchanged for a document. */
+  /** Official one-time launch URL used to mint this Electron session's browser cookie. */
   authenticationUrl: string
-  /**
-   * Credential the launcher installs as this window generation's session cookie, the only
-   * renderer credential a 0.2.3 Host accepts.
-   */
-  sessionSecret: string
   /** Ephemeral capability attached by Electron to this renderer generation's requests. */
   rendererAccessHeader: DesktopRendererAccessHeader
   /** Native application and tray label. */

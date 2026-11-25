@@ -245,8 +245,8 @@ export class NextDesktopRuntime {
 
   browserLinks(): DesktopBrowserLinks {
     if (!this.auth || this.closing || this.recoveryMode || this.backend.state.phase !== 'ready' || !this.preferences.browserAccess || this.safeMode) return { localUrl: null, lanUrls: [] }
-    // A browser is never handed the parent-owned session Cookie, so it gets the separate
-    // token-bearing address the Host publishes; the native window keeps using `auth.url`.
+    // The loopback login address carries the kernel's browser token; the bare origin only answers
+    // a request that already holds the Desktop session cookie, so it is not a shareable link.
     const localUrl = new URL(this.auth.browserUrl ?? this.auth.url).href
     const edge = this.lan?.snapshot()
     const lanUrls = this.preferences.networkExposure === 'lan' && edge?.state === 'ready' && edge.actualPort
@@ -330,11 +330,11 @@ export class NextDesktopRuntime {
           const url = new URL(ready.url)
           if (url.protocol !== 'http:' || url.hostname !== '127.0.0.1') throw new Error('Next Host must use loopback HTTP')
           if (!ready.injections) throw new Error('Next Host omitted Web boot injections')
-          // Upstream's Desktop model: this process already owns the session credential, so the
-          // document cookie is handed over with readiness instead of being exchanged for a token.
+          // The parent synthesized this credential and handed it to the Host over private IPC;
+          // there is no longer a browser-visible token URL to exchange for a Cookie.
           const cookie = ready.authenticationCookie
           if (stopped) { started(); return }
-          this.auth = { url: ready.url, browserUrl: ready.browserUrl, cookie, token, injections: ready.injections }
+          this.auth = { url: ready.url, ...(ready.browserUrl === undefined ? {} : { browserUrl: ready.browserUrl }), cookie, token, injections: ready.injections }
           lan.attach(Number(url.port))
           if (effective.browserAccess && effective.networkExposure === 'lan') {
             const edge = await lan.setEnabled(true)

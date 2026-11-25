@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { DesktopHostProcess } from '../lib/host-process.js'
 import { NextProfiles } from '../lib/profiles.js'
-import { serveWebDocument } from '../lib/web-document.js'
+import { authenticateWebHost, serveWebDocument } from '../lib/web-document.js'
 
 // Renderer capability header. `lib/desktop-browser-access.js` is emitted under a content-hashed
 // name, so the contract value is mirrored here instead of imported (`src/desktop-contract.ts`).
@@ -45,7 +45,7 @@ const selection = { mode: 'compatibility', macosMaterial: 'off', windowsMaterial
 try {
   const ready = await host.start()
   const origin = new URL(ready.url).origin
-  const cookie = ready.authenticationCookie, separator = cookie.indexOf('=')
+  const cookie = await authenticateWebHost(ready.url, credential), separator = cookie.indexOf('=')
   const document = await (await serveWebDocument(new Request('dsh-app://app/'), webRoot)).text()
   const browserChannel = process.env.DSH_NONEAD_TEST_BROWSER_CHANNEL ?? process.env.DSH_NEXT_TEST_BROWSER_CHANNEL
   browser = await chromium.launch({ headless: true, ...(browserChannel ? { channel: browserChannel } : {}) })

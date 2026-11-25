@@ -68,16 +68,16 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllEnvs() })
 
 function routes() {
-  const handlers = new Map<string, (request: IncomingMessage, response: ServerResponse, peer?: unknown) => Promise<void>>()
-  const peer = { id: 'next-open-in-app-fixture', principal: { kind: 'owner' }, signal: new AbortController().signal }
+  // `dsh 0.2.3` admits the request upstream and hands the owner Peer to the route, so the
+  // fixture has to model that peer explicitly: the official handlers answer 403 without it.
+  const peer = { principal: { kind: 'owner' } }
+  const handlers = new Map<string, (request: IncomingMessage, response: ServerResponse, peer: unknown) => Promise<void>>()
   const ctx = {
     get: () => createLaunchEnvironmentSnapshot([{ source: 'process', values: {} }]),
     effect: (register: () => unknown) => register(),
-    // `dsh 0.2.3-alpha.2` registers these routes with `auth: 'required'` and answers only to an
-    // owner Peer, so the fixture hands the handler the Peer the kernel would have admitted.
-    peer,
+    connection: { admit: () => ({ peer }) },
     subprocess: { resolveExecutable: async (name: string) => name === 'code' ? '/fixture/bin/code' : null },
-    webServer: { register: (route: { path: string; handler: (request: IncomingMessage, response: ServerResponse, peer?: unknown) => Promise<void> }) => {
+    webServer: { register: (route: { path: string; handler: (request: IncomingMessage, response: ServerResponse, peer: unknown) => Promise<void> }) => {
       handlers.set(route.path, route.handler)
       return () => {}
     } },

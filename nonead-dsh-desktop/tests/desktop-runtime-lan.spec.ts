@@ -7,6 +7,7 @@ import { NextDesktopRuntime } from '../src/desktop-runtime.ts'
 import { DesktopHostProcess } from '../src/host-process.ts'
 import { DesktopLanHttpsCertificateError } from '../src/lan-https-certificate.ts'
 
+
 const runtimes: NextDesktopRuntime[] = []
 const directories: string[] = []
 afterEach(async () => {
@@ -20,7 +21,7 @@ it('keeps the loopback Host ready when optional LAN certificate setup fails at s
   directories.push(home)
   const stop = vi.spyOn(DesktopHostProcess.prototype, 'stop').mockResolvedValue()
   vi.spyOn(DesktopHostProcess.prototype, 'start').mockResolvedValue({
-    url: 'http://127.0.0.1:43120/', injections: [], authenticationCookie: `dsh-desktop-session=${Buffer.alloc(32, 4).toString('base64url')}`,
+    url: 'http://127.0.0.1:43120/', injections: [], authenticationCookie: 'dsh-desktop-session=fixture',
   })
   const onFailure = vi.fn()
   const runtime = new NextDesktopRuntime({

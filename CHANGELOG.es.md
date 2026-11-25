@@ -13,6 +13,18 @@ Convenciones de mantenimiento:
 - Las entradas solo recogen los cambios que el usuario puede percibir y los cambios de límites que los mantenedores deben conocer; las refactorizaciones puras no tienen entrada propia.
 - El historial anterior está en las etiquetas de Git (`v1.7.3`, `v2.0.7`, `v2.0.8`, `v2.1.3`, `v2.1.4`, `v2.1.5`) y en el registro de confirmaciones.
 
+## 2.3.1 — 2026-11-24
+
+Runtime elevado a DSH 0.2.3-alpha.1: todo el proyecto de escritorio se reconstruyó sobre él, incluida la adaptación a los cambios incompatibles del kernel:
+
+- Runtime: DeepSeek Harness empacotado pasa de 0.2.2-rc.5 a **0.2.3-alpha.1** (commit upstream `d98f5d685`, 398 paquetes re-vendored, los 24 parches de escritorio rebaseados sobre los nuevos artefactos).
+- Autenticación del escritorio: el kernel ahora entrega al Host una credencial aleatoria por inicio mediante un mensaje IPC privado `desktop-auth`, así que el shell se adaptó para registrar el proveedor de autenticación antes de publicar su URL normal; el antiguo intercambio de cookie por URL con token se eliminó con el kernel.
+- Puente: la ponte Agents Anywhere se reempaqueta para el nuevo intervalo de peers del kernel (`0.2.3-alpha.1`) desde el mismo commit upstream.
+- Plugins empacotados: los 27 se compararon con npm latest y 18 se actualizaron (`@a9i5k4/dsh-auto-memory` 3.4.4, `dsh-cost-meter` 1.9.87, `dsh-mcp-connector` 0.2.120, `dsh-context` 0.87.1, `dsh-excel-chat` 0.45.0 y más); `@deepseek-ai/dsh-tool-subagent` sigue al kernel a **0.2.3-alpha.1**.
+- Mercado de plugins: `dshmarket` 1.73.21 → **1.83.3**.
+- Instalador: el instalador de Windows se entrega como un único ejecutable por arquitectura (x64 y arm64); cierra la aplicación en ejecución antes de instalar o desinstalar y, si no puede, explica el motivo en el idioma del sistema: chino simplificado, inglés, japonés, español, francés, alemán, ruso o portugués de Brasil. El idioma sigue el idioma de presentación de Windows y solo pregunta cuando no puede detectarlo.
+- Versión: producto 2.2.14 → **2.3.1** (ambos workspaces de escritorio sincronizados).
+
 ## 2.2.14 — 2026-11-19
 
 Runtime elevado a DSH 0.2.2-rc.5, con el puente y las dependencias empaquetadas reconstruidos:
@@ -31,7 +43,7 @@ El runtime pasa a DSH 0.2.2-rc.3, el puente de Agents Anywhere sube a 2.2.0 y lo
 
 - Runtime: DeepSeek Harness incluido pasa de 0.2.2-rc.2 a **0.2.2-rc.3** (commit upstream `38a6a5c96`, 375 paquetes re-vendored, los 24 parches de escritorio rebasados sobre los nuevos artefactos).
 - Puente: el puente de Agents Anywhere pasa de 2.1.0 a **2.2.0** (commit upstream `aa12e7a2c1`) con el rango peer alineado a rc.3, así que activar el control remoto ya no requiere una exención de versión; el parche del conector queda en un único respaldo para el desbordamiento de SyncFeed, el resto ya está upstream.
-- Plugins incluidos: los 27 se contrastaron con npm latest y 14 se actualizan (por ejemplo `dsh-better-sidebar` 0.32.1, `dsh-mcp-connector` 0.2.106, `@michengai/dsh-agency-agents` 1.2.32); `@deepseek-ai/dsh-tool-subagent` sigue al kernel a 0.2.2-rc.3; `dsh-ppt-master` se queda en 6.1.0 (el paquete homónimo de npm es otro producto).
+- Plugins incluidos: los 27 se contrastaron con npm latest y 14 se actualizan (por ejemplo `dsh-better-sidebar` 0.32.1 `dsh-mcp-connector` 0.2.120 `@michengai/dsh-agency-agents` 1.3.1 `@deepseek-ai/dsh-tool-subagent` sigue al kernel a 0.2.2-rc.3; `dsh-ppt-master` se queda en 6.1.0 (el paquete homónimo de npm es otro producto).
 - Mercado de plugins: `dshmarket` 1.73.17 → 1.73.19.
 - Dependencias: se añade el bundle opcional `@deepseek-ai/dsh-deepseek-chat-import` que introduce rc.3, junto con `@deepseek-ai/dsh-tool-web` de su cierre de ejecución.
 - Versión: producto 2.2.10 → **2.2.12** (ambos espacios de trabajo de escritorio).
@@ -40,33 +52,33 @@ El runtime pasa a DSH 0.2.2-rc.3, el puente de Agents Anywhere sube a 2.2.0 y lo
 
 Estos 27 plugins se distribuyen con el instalador; tras el primer arranque puede activarlos, desactivarlos o quitarlos desde la página Plugins. El número tras cada nombre es la versión incluida.
 
-- `@a9i5k4/dsh-auto-memory` 3.3.17 — Memoria automática. Recupera decisiones previas y resume los registros en notas y libros.
-- `@changfenhuang/dsh-genui` 0.16.0 — UI generativa. El modelo dibuja gráficos, formularios y diagramas; los clics vuelven a él.
-- `@deepseek-ai/dsh-tool-subagent` 0.2.2-rc.3 — Delegación en subagentes. Pasa trabajo independiente al backend y avisa al terminar.
+- `@a9i5k4/dsh-auto-memory` 3.4.4 — Memoria automática. Recupera decisiones previas y resume los registros en notas y libros.
+- `@changfenhuang/dsh-genui` 0.17.0 — UI generativa. El modelo dibuja gráficos, formularios y diagramas; los clics vuelven a él.
+- `@deepseek-ai/dsh-tool-subagent` 0.2.3-alpha.1 — Delegación en subagentes. Pasa trabajo independiente al backend y avisa al terminar.
 - `@linxin666/dsh-client-ui-git-graph` 0.4.14 — Gráfico de Git. Cambia de rama en sesión vacía y muestra el historial y los worktrees.
-- `@linxin666/dsh-client-ui-task-board` 0.4.18 — Tablero de tareas. El host abre sesiones reales para ejecutar tarjetas, con cron y reposo.
-- `@michengai/dsh-agency-agents` 1.2.32 — Biblioteca de expertos. 331 especialistas invocables y cinco equipos de expertos.
-- `@michengai/dsh-archive-manager` 1.3.5 — Archivo de sesiones. Archiva, restaura y borra sesiones y diagnostica registros dañados.
-- `@michengai/dsh-code-review` 1.0.11 — Revisión de código. Un subagente aparte revisa Git, fuentes y pruebas y trae el informe.
-- `@michengai/dsh-skills-manager` 1.4.6 — Gestor de habilidades. Carga y administra las locales, con instalación desde GitHub.
-- `@tt-a1i/archify-dsh` 1.1.0 — Diagramas de arquitectura. Integra Archify para dibujar desde una descripción del sistema.
-- `@wenaixi/dsh-superpower` 8.0.0 — Paquete de ingeniería. Porta 15 habilidades de superpowers, con conmutación individual.
-- `@yolk_vat-y/dsh-project-memory` 0.7.0 — Memoria del proyecto. Indexa documentos y símbolos con citas path:line y guarda lecciones.
-- `billion-context` 0.1.213 — Compresión de contexto. Pliega conversaciones largas en resúmenes para usar menos tokens.
+- `@linxin666/dsh-client-ui-task-board` 0.4.21 — Tablero de tareas. El host abre sesiones reales para ejecutar tarjetas, con cron y reposo.
+- `@michengai/dsh-agency-agents` 1.3.1 — Biblioteca de expertos. 331 especialistas invocables y cinco equipos de expertos.
+- `@michengai/dsh-archive-manager` 1.4.1 — Archivo de sesiones. Archiva, restaura y borra sesiones y diagnostica registros dañados.
+- `@michengai/dsh-code-review` 1.0.14 — Revisión de código. Un subagente aparte revisa Git, fuentes y pruebas y trae el informe.
+- `@michengai/dsh-skills-manager` 1.5.3 — Gestor de habilidades. Carga y administra las locales, con instalación desde GitHub.
+- `@tt-a1i/archify-dsh` 1.2.0 — Diagramas de arquitectura. Integra Archify para dibujar desde una descripción del sistema.
+- `@wenaixi/dsh-superpower` 8.1.2 — Paquete de ingeniería. Porta 15 habilidades de superpowers, con conmutación individual.
+- `@yolk_vat-y/dsh-project-memory` 0.7.1 — Memoria del proyecto. Indexa documentos y símbolos con citas path:line y guarda lecciones.
+- `billion-context` 0.1.216 — Compresión de contexto. Pliega conversaciones largas en resúmenes para usar menos tokens.
 - `dsh-better-sidebar` 0.32.1 — Barra lateral mejorada. Reúne árbol, editor, cambios, tareas y chat lateral por sesión.
-- `dsh-client-auto-continue` 0.19.0 — Continuación automática. Reenvía la petición de continuar si el fallo no es del usuario.
-- `dsh-config-manager` 0.8.2 — Gestor de configuración. Respalda, restaura, exporta, importa, migra y sincroniza DSH.
-- `dsh-context` 0.84.1 — Perspectiva del contexto. Un panel muestra su composición y comprime cuando hace falta.
-- `dsh-cost-meter` 1.9.64 — Panel de coste. Cuenta tokens y coste por sesión, día e historial, con más de 170 precios.
-- `dsh-excel-chat` 0.43.0 — Chat de hojas de cálculo. Lee, edita y limpia hojas en lenguaje natural y valida fórmulas.
+- `dsh-client-auto-continue` 0.20.2 — Continuación automática. Reenvía la petición de continuar si el fallo no es del usuario.
+- `dsh-config-manager` 0.12.0 — Gestor de configuración. Respalda, restaura, exporta, importa, migra y sincroniza DSH.
+- `dsh-context` 0.87.1 — Perspectiva del contexto. Un panel muestra su composición y comprime cuando hace falta.
+- `dsh-cost-meter` 1.9.87 — Panel de coste. Cuenta tokens y coste por sesión, día e historial, con más de 170 precios.
+- `dsh-excel-chat` 0.45.0 — Chat de hojas de cálculo. Lee, edita y limpia hojas en lenguaje natural y valida fórmulas.
 - `dsh-find-plugins` 0.3.0 — Descubrimiento de plugins. Agrega cinco catálogos y busca en GitHub y npm por relevancia.
 - `dsh-github-skills` 0.2.1 — Habilidades de flujo de GitHub. Parte de la semántica de OpenAI Codex y la adapta a DSH.
 - `dsh-markitdown` 0.2.2 — Documentos a Markdown. Convierte PDF, Word, Excel, PPT, HTML o una URL en texto legible.
-- `dsh-mcp-connector` 0.2.106 — Conector MCP. Incluye más de cien conectores, gestiona autorización y diagnostica fallos.
-- `dsh-nonead-prompt-recall` 0.8.7 — Historial de entrada. Con el compositor vacío, ↑ recupera la instrucción anterior.
-- `dsh-nonead-prompt-rewind` 0.5.4 — Rebobinado de la conversación. Vuelve a un mensaje anterior y restaura los archivos.
+- `dsh-mcp-connector` 0.2.120 — Conector MCP. Incluye más de cien conectores, gestiona autorización y diagnostica fallos.
+- `dsh-nonead-prompt-recall` 0.8.8 — Historial de entrada. Con el compositor vacío, ↑ recupera la instrucción anterior.
+- `dsh-nonead-prompt-rewind` 0.6.1 — Rebobinado de la conversación. Vuelve a un mensaje anterior y restaura los archivos.
 - `dsh-ppt-master` 6.1.0 — Generación de presentaciones. Crea PPTX editable y exporta SVG o mejora el archivo.
-- `dsh-remotion` 0.10.6 — Taller de vídeo. Convierte un proyecto React en vídeo con plantillas, vista previa y MP4.
+- `dsh-remotion` 0.13.1 — Taller de vídeo. Convierte un proyecto React en vídeo con plantillas, vista previa y MP4.
 
 ## 2.2.10 — 2026-11-12
 
@@ -82,33 +94,33 @@ Tiempo de ejecución elevado a DSH 0.2.2-rc.2, adaptando los cambios incompatibl
 
 Estos 27 plugins se distribuyen con el instalador; tras el primer arranque puede activarlos, desactivarlos o quitarlos desde la página Plugins. El número tras cada nombre es la versión incluida.
 
-- `@a9i5k4/dsh-auto-memory` 3.3.17 — Memoria automática. Recupera decisiones previas y resume los registros en notas y libros.
-- `@changfenhuang/dsh-genui` 0.16.0 — UI generativa. El modelo dibuja gráficos, formularios y diagramas; los clics vuelven a él.
-- `@deepseek-ai/dsh-tool-subagent` 0.2.2-rc.2 — Delegación en subagentes. Pasa trabajo independiente al backend y avisa al terminar.
+- `@a9i5k4/dsh-auto-memory` 3.4.4 — Memoria automática. Recupera decisiones previas y resume los registros en notas y libros.
+- `@changfenhuang/dsh-genui` 0.17.0 — UI generativa. El modelo dibuja gráficos, formularios y diagramas; los clics vuelven a él.
+- `@deepseek-ai/dsh-tool-subagent` 0.2.3-alpha.1 — Delegación en subagentes. Pasa trabajo independiente al backend y avisa al terminar.
 - `@linxin666/dsh-client-ui-git-graph` 0.4.14 — Gráfico de Git. Cambia de rama en sesión vacía y muestra el historial y los worktrees.
-- `@linxin666/dsh-client-ui-task-board` 0.4.16 — Tablero de tareas. El host abre sesiones reales para ejecutar tarjetas, con cron y reposo.
-- `@michengai/dsh-agency-agents` 1.2.27 — Biblioteca de expertos. 331 especialistas invocables y cinco equipos de expertos.
-- `@michengai/dsh-archive-manager` 1.3.1 — Archivo de sesiones. Archiva, restaura y borra sesiones y diagnostica registros dañados.
-- `@michengai/dsh-code-review` 1.0.10 — Revisión de código. Un subagente aparte revisa Git, fuentes y pruebas y trae el informe.
-- `@michengai/dsh-skills-manager` 1.4.1 — Gestor de habilidades. Carga y administra las locales, con instalación desde GitHub.
-- `@tt-a1i/archify-dsh` 1.1.0 — Diagramas de arquitectura. Integra Archify para dibujar desde una descripción del sistema.
-- `@wenaixi/dsh-superpower` 8.0.0 — Paquete de ingeniería. Porta 15 habilidades de superpowers, con conmutación individual.
-- `@yolk_vat-y/dsh-project-memory` 0.6.12 — Memoria del proyecto. Indexa documentos y símbolos con citas path:line y guarda lecciones.
-- `billion-context` 0.1.213 — Compresión de contexto. Pliega conversaciones largas en resúmenes para usar menos tokens.
-- `dsh-better-sidebar` 0.30.1 — Barra lateral mejorada. Reúne árbol, editor, cambios, tareas y chat lateral por sesión.
-- `dsh-client-auto-continue` 0.18.0 — Continuación automática. Reenvía la petición de continuar si el fallo no es del usuario.
-- `dsh-config-manager` 0.8.0 — Gestor de configuración. Respalda, restaura, exporta, importa, migra y sincroniza DSH.
-- `dsh-context` 0.83.1 — Perspectiva del contexto. Un panel muestra su composición y comprime cuando hace falta.
-- `dsh-cost-meter` 1.9.64 — Panel de coste. Cuenta tokens y coste por sesión, día e historial, con más de 170 precios.
-- `dsh-excel-chat` 0.43.0 — Chat de hojas de cálculo. Lee, edita y limpia hojas en lenguaje natural y valida fórmulas.
+- `@linxin666/dsh-client-ui-task-board` 0.4.21 — Tablero de tareas. El host abre sesiones reales para ejecutar tarjetas, con cron y reposo.
+- `@michengai/dsh-agency-agents` 1.3.1 — Biblioteca de expertos. 331 especialistas invocables y cinco equipos de expertos.
+- `@michengai/dsh-archive-manager` 1.4.1 — Archivo de sesiones. Archiva, restaura y borra sesiones y diagnostica registros dañados.
+- `@michengai/dsh-code-review` 1.0.14 — Revisión de código. Un subagente aparte revisa Git, fuentes y pruebas y trae el informe.
+- `@michengai/dsh-skills-manager` 1.5.3 — Gestor de habilidades. Carga y administra las locales, con instalación desde GitHub.
+- `@tt-a1i/archify-dsh` 1.2.0 — Diagramas de arquitectura. Integra Archify para dibujar desde una descripción del sistema.
+- `@wenaixi/dsh-superpower` 8.1.2 — Paquete de ingeniería. Porta 15 habilidades de superpowers, con conmutación individual.
+- `@yolk_vat-y/dsh-project-memory` 0.7.1 — Memoria del proyecto. Indexa documentos y símbolos con citas path:line y guarda lecciones.
+- `billion-context` 0.1.216 — Compresión de contexto. Pliega conversaciones largas en resúmenes para usar menos tokens.
+- `dsh-better-sidebar` 0.32.1 — Barra lateral mejorada. Reúne árbol, editor, cambios, tareas y chat lateral por sesión.
+- `dsh-client-auto-continue` 0.20.2 — Continuación automática. Reenvía la petición de continuar si el fallo no es del usuario.
+- `dsh-config-manager` 0.12.0 — Gestor de configuración. Respalda, restaura, exporta, importa, migra y sincroniza DSH.
+- `dsh-context` 0.87.1 — Perspectiva del contexto. Un panel muestra su composición y comprime cuando hace falta.
+- `dsh-cost-meter` 1.9.87 — Panel de coste. Cuenta tokens y coste por sesión, día e historial, con más de 170 precios.
+- `dsh-excel-chat` 0.45.0 — Chat de hojas de cálculo. Lee, edita y limpia hojas en lenguaje natural y valida fórmulas.
 - `dsh-find-plugins` 0.3.0 — Descubrimiento de plugins. Agrega cinco catálogos y busca en GitHub y npm por relevancia.
 - `dsh-github-skills` 0.2.1 — Habilidades de flujo de GitHub. Parte de la semántica de OpenAI Codex y la adapta a DSH.
 - `dsh-markitdown` 0.2.2 — Documentos a Markdown. Convierte PDF, Word, Excel, PPT, HTML o una URL en texto legible.
-- `dsh-mcp-connector` 0.2.101 — Conector MCP. Incluye más de cien conectores, gestiona autorización y diagnostica fallos.
-- `dsh-nonead-prompt-recall` 0.8.7 — Historial de entrada. Con el compositor vacío, ↑ recupera la instrucción anterior.
-- `dsh-nonead-prompt-rewind` 0.5.4 — Rebobinado de la conversación. Vuelve a un mensaje anterior y restaura los archivos.
+- `dsh-mcp-connector` 0.2.120 — Conector MCP. Incluye más de cien conectores, gestiona autorización y diagnostica fallos.
+- `dsh-nonead-prompt-recall` 0.8.8 — Historial de entrada. Con el compositor vacío, ↑ recupera la instrucción anterior.
+- `dsh-nonead-prompt-rewind` 0.6.1 — Rebobinado de la conversación. Vuelve a un mensaje anterior y restaura los archivos.
 - `dsh-ppt-master` 6.1.0 — Generación de presentaciones. Crea PPTX editable y exporta SVG o mejora el archivo.
-- `dsh-remotion` 0.10.5 — Taller de vídeo. Convierte un proyecto React en vídeo con plantillas, vista previa y MP4.
+- `dsh-remotion` 0.13.1 — Taller de vídeo. Convierte un proyecto React en vídeo con plantillas, vista previa y MP4.
 
 ## 2.2.9 — 2026-11-10
 
@@ -117,50 +129,50 @@ El tiempo de ejecución pasa a DSH 0.2.2-rc.1, el conjunto de plugins incluidos 
 - Tiempo de ejecución: el DeepSeek Harness incluido pasa de 0.2.2-alpha.3 a **0.2.2-rc.1** (commit upstream `66491b0`, con la familia cordis promovida a 4.1.0 y schemastery 3.19.0). `vendor/dsh-runtime/0.2.2-rc.1` se reconstruye desde el código upstream local como 373 paquetes, exactamente el mismo conjunto que la versión anterior; los 24 parches de escritorio se reajustan sobre los nuevos artefactos, el `resolutions` raíz y las dependencias de DSH de los dos espacios de trabajo de escritorio apuntan a la nueva versión, y `yarn check:vendored-runtime` pasa en ambos canales.
 - Guía de inicio: el paso «listo para usar» del instalador ya no enumera todos los plugins de entrada, sino que explica por categorías qué cubre el conjunto incluido; al empezar la instalación, cada plugin muestra al llegar su turno el nombre, la versión, la categoría y la descripción completa, y da crédito a su autor: «Gracias a X por este plugin».
 - Plugins incluidos: el conjunto pasa de 30 a **35**, con la incorporación de `@changfenhuang/dsh-genui`, `@deepseek-ai/dsh-tool-subagent`, `@linxin666/dsh-client-ui-task-board`, `@weibaohui/skills-management`, `billion-context`, `dsh-client-auto-continue`, `dsh-cost-meter`, `dsh-markitdown`, `dsh-nonead-prompt-rewind`, `dshmarket`; salen del conjunto `dsh-api-client`, `dsh-design`, `dsh-doc-reader`, `dsh-rewind-plugin` y `@kenz1117/dsh-ui-usage-billing`.
-- Actualización de plugins: `dsh-ppt-master` 1.0.8 → 6.1.0, `dsh-config-manager` 0.3.1 → 0.6.0, `@michengai/dsh-skills-manager` 1.2.28 → 1.4.0, `dsh-better-sidebar` 0.28.2 → 0.30.1, `dsh-context` 0.80.3 → 0.83.0, y el resto sigue npm latest.
+- Actualización de plugins: `dsh-ppt-master` 6.1.0 → 6.1.0, `dsh-config-manager` 0.12.0 → 0.6.0, `@michengai/dsh-skills-manager` 1.5.3 → 1.4.0, `dsh-better-sidebar` 0.32.1 → 0.30.1, `dsh-context` 0.87.1 → 0.83.0, y el resto sigue npm latest.
 - Manifiesto de plugins: `plugin/manifest.json` sube a v4 y cada entrada lleva categoría y autor; de ahí salen la agrupación y la línea de crédito del instalador.
 - Versión: producto 2.2.6 → **2.2.9** (los dos espacios de trabajo de escritorio avanzan juntos).
 - Aviso al iniciar: un Profile que no habilita el control remoto ya no escribe la fila del puente en su capa cordis, así que `patch: entry "agents-anywhere-bridge-next" not found` deja de aparecer en cada arranque; los Profile que sí lo habilitan conservan la fila anterior, incluidas las redirecciones de la instalación empaquetada.
 - Complementos incluidos: `dsh-nonead-ursim` pasa a **0.3.15** con una descripción de simulación (antes coincidía byte a byte con el complemento de robot real `dsh-nonead-universal-robots`, lo que invitaba a instalarlo para trabajo con hardware).
 - Puente incluido: el puente de Agents Anywhere pasa a la línea **2.1.0** (tag `v2.1.0`). AA exige actualizar el complemento junto con un salto MINOR de Desktop/Connector; si no, la conexión local se queda esperando. El artefacto sigue siendo la variante desktop de compilación propia, con el parche de robustez del conector reajustado a 2.1.0.
-- Actualizaciones: `@michengai/dsh-archive-manager` 1.3.1, `dsh-config-manager` 0.7.0, `dsh-context` 0.83.1, `dshmarket` 1.73.17.
+- Actualizaciones: `@michengai/dsh-archive-manager` 1.4.1 `dsh-config-manager` 0.12.0 `dsh-context` 0.87.1 `dshmarket` 1.73.17.
 
 ### Lista de plugins incluidos (35)
 
 Estos 35 plugins se distribuyen con el instalador; tras el primer arranque puede activarlos, desactivarlos o quitarlos desde la página Plugins. El número tras cada nombre es la versión incluida.
 
-- `@a9i5k4/dsh-auto-memory` 3.3.17 — Memoria automática. Recupera decisiones previas y resume los registros en notas y libros.
-- `@changfenhuang/dsh-genui` 0.16.0 — UI generativa. El modelo dibuja gráficos, formularios y diagramas; los clics vuelven a él.
-- `@deepseek-ai/dsh-tool-subagent` 0.2.2-rc.1 — Delegación en subagentes. Pasa trabajo independiente al backend y avisa al terminar.
+- `@a9i5k4/dsh-auto-memory` 3.4.4 — Memoria automática. Recupera decisiones previas y resume los registros en notas y libros.
+- `@changfenhuang/dsh-genui` 0.17.0 — UI generativa. El modelo dibuja gráficos, formularios y diagramas; los clics vuelven a él.
+- `@deepseek-ai/dsh-tool-subagent` 0.2.3-alpha.1 — Delegación en subagentes. Pasa trabajo independiente al backend y avisa al terminar.
 - `@linxin666/dsh-client-ui-git-graph` 0.4.14 — Gráfico de Git. Cambia de rama en sesión vacía y muestra el historial y los worktrees.
 - `@linxin666/dsh-client-ui-skill-explorer` 0.4.16 — Centro de habilidades. Explora las habilidades por origen y permite crearlas o borrarlas.
-- `@linxin666/dsh-client-ui-task-board` 0.4.16 — Tablero de tareas. El host abre sesiones reales para ejecutar tarjetas, con cron y reposo.
-- `@michengai/dsh-agency-agents` 1.2.27 — Biblioteca de expertos. 331 especialistas invocables y cinco equipos de expertos.
-- `@michengai/dsh-archive-manager` 1.3.1 — Archivo de sesiones. Archiva, restaura y borra sesiones y diagnostica registros dañados.
-- `@michengai/dsh-code-review` 1.0.9 — Revisión de código. Un subagente aparte revisa Git, fuentes y pruebas y trae el informe.
-- `@michengai/dsh-skills-manager` 1.4.0 — Gestor de habilidades. Carga y administra las locales, con instalación desde GitHub.
-- `@tt-a1i/archify-dsh` 1.1.0 — Diagramas de arquitectura. Integra Archify para dibujar desde una descripción del sistema.
+- `@linxin666/dsh-client-ui-task-board` 0.4.21 — Tablero de tareas. El host abre sesiones reales para ejecutar tarjetas, con cron y reposo.
+- `@michengai/dsh-agency-agents` 1.3.1 — Biblioteca de expertos. 331 especialistas invocables y cinco equipos de expertos.
+- `@michengai/dsh-archive-manager` 1.4.1 — Archivo de sesiones. Archiva, restaura y borra sesiones y diagnostica registros dañados.
+- `@michengai/dsh-code-review` 1.0.14 — Revisión de código. Un subagente aparte revisa Git, fuentes y pruebas y trae el informe.
+- `@michengai/dsh-skills-manager` 1.5.3 — Gestor de habilidades. Carga y administra las locales, con instalación desde GitHub.
+- `@tt-a1i/archify-dsh` 1.2.0 — Diagramas de arquitectura. Integra Archify para dibujar desde una descripción del sistema.
 - `@weibaohui/skills-management` 0.9.3 — Mercado de habilidades. Gestiona en una página las de cada agente local, con más de 6600.
-- `@wenaixi/dsh-superpower` 8.0.0 — Paquete de ingeniería. Porta 15 habilidades de superpowers, con conmutación individual.
-- `@yolk_vat-y/dsh-project-memory` 0.6.12 — Memoria del proyecto. Indexa documentos y símbolos con citas path:line y guarda lecciones.
-- `billion-context` 0.1.213 — Compresión de contexto. Pliega conversaciones largas en resúmenes para usar menos tokens.
-- `dsh-better-sidebar` 0.30.1 — Barra lateral mejorada. Reúne árbol, editor, cambios, tareas y chat lateral por sesión.
-- `dsh-client-auto-continue` 0.17.4 — Continuación automática. Reenvía la petición de continuar si el fallo no es del usuario.
-- `dsh-config-manager` 0.7.0 — Gestor de configuración. Respalda, restaura, exporta, importa, migra y sincroniza DSH.
-- `dsh-context` 0.83.1 — Perspectiva del contexto. Un panel muestra su composición y comprime cuando hace falta.
-- `dsh-cost-meter` 1.9.62 — Panel de coste. Cuenta tokens y coste por sesión, día e historial, con más de 170 precios.
-- `dsh-excel-chat` 0.43.0 — Chat de hojas de cálculo. Lee, edita y limpia hojas en lenguaje natural y valida fórmulas.
+- `@wenaixi/dsh-superpower` 8.1.2 — Paquete de ingeniería. Porta 15 habilidades de superpowers, con conmutación individual.
+- `@yolk_vat-y/dsh-project-memory` 0.7.1 — Memoria del proyecto. Indexa documentos y símbolos con citas path:line y guarda lecciones.
+- `billion-context` 0.1.216 — Compresión de contexto. Pliega conversaciones largas en resúmenes para usar menos tokens.
+- `dsh-better-sidebar` 0.32.1 — Barra lateral mejorada. Reúne árbol, editor, cambios, tareas y chat lateral por sesión.
+- `dsh-client-auto-continue` 0.20.2 — Continuación automática. Reenvía la petición de continuar si el fallo no es del usuario.
+- `dsh-config-manager` 0.12.0 — Gestor de configuración. Respalda, restaura, exporta, importa, migra y sincroniza DSH.
+- `dsh-context` 0.87.1 — Perspectiva del contexto. Un panel muestra su composición y comprime cuando hace falta.
+- `dsh-cost-meter` 1.9.87 — Panel de coste. Cuenta tokens y coste por sesión, día e historial, con más de 170 precios.
+- `dsh-excel-chat` 0.45.0 — Chat de hojas de cálculo. Lee, edita y limpia hojas en lenguaje natural y valida fórmulas.
 - `dsh-find-plugins` 0.3.0 — Descubrimiento de plugins. Agrega cinco catálogos y busca en GitHub y npm por relevancia.
 - `dsh-github-skills` 0.2.1 — Habilidades de flujo de GitHub. Parte de la semántica de OpenAI Codex y la adapta a DSH.
 - `dsh-image-gen` 0.11.1 — Generación de imágenes. Dibuja y retoca hablando, con Gemini, OpenAI, Seedream o ComfyUI.
 - `dsh-markitdown` 0.2.2 — Documentos a Markdown. Convierte PDF, Word, Excel, PPT, HTML o una URL en texto legible.
-- `dsh-mcp-connector` 0.2.97 — Conector MCP. Incluye más de cien conectores, gestiona autorización y diagnostica fallos.
-- `dsh-nonead-prompt-recall` 0.8.7 — Historial de entrada. Con el compositor vacío, ↑ recupera la instrucción anterior.
-- `dsh-nonead-prompt-rewind` 0.5.4 — Rebobinado de la conversación. Vuelve a un mensaje anterior y restaura los archivos.
+- `dsh-mcp-connector` 0.2.120 — Conector MCP. Incluye más de cien conectores, gestiona autorización y diagnostica fallos.
+- `dsh-nonead-prompt-recall` 0.8.8 — Historial de entrada. Con el compositor vacío, ↑ recupera la instrucción anterior.
+- `dsh-nonead-prompt-rewind` 0.6.1 — Rebobinado de la conversación. Vuelve a un mensaje anterior y restaura los archivos.
 - `dsh-nonead-universal-robots` 0.8.6 — Brazos UR. Mueve cobots Universal Robots en lenguaje natural: pose, articulaciones y E/S.
 - `dsh-nonead-ursim` 0.3.15 — Simulación UR. Valida movimientos sin conexión antes de tocar la máquina real.
 - `dsh-ppt-master` 6.1.0 — Generación de presentaciones. Crea PPTX editable y exporta SVG o mejora el archivo.
-- `dsh-remotion` 0.10.5 — Taller de vídeo. Convierte un proyecto React en vídeo con plantillas, vista previa y MP4.
+- `dsh-remotion` 0.13.1 — Taller de vídeo. Convierte un proyecto React en vídeo con plantillas, vista previa y MP4.
 - `dsh-superagent` 0.1.0 — Prototipo de agente proactivo (investigación de DeepSeek, no un producto oficial). Vigila un repositorio de GitHub (opcionalmente Feishu) y ejecuta las peticiones autorizadas como tareas en sesiones propias.
 - `dsh-univer-office` 0.4.0 — Integración con Office. Trae hojas, documentos, presentaciones, lienzos y bases a DSH.
 - `dshmarket` 1.73.17 — Mercado visual de plugins. Explora, busca e instala plugins dentro de DSH en un clic.
@@ -171,7 +183,7 @@ El tiempo de ejecución pasa a DSH 0.2.2-alpha.3 y el conjunto de plugins inclui
 
 - Tiempo de ejecución: el DeepSeek Harness incluido pasa de 0.2.2-alpha.2 a **0.2.2-alpha.3** (commit upstream `05b1cae`, con la actualización de vendor cordis 4.0.6-alpha.2 y cosmokit 1.8.7-alpha.2). `vendor/dsh-runtime/0.2.2-alpha.3` se reconstruye desde el código upstream local como 373 paquetes, y tanto el `resolutions` raíz como los dos espacios de trabajo de escritorio apuntan a la nueva versión; `yarn check:vendored-runtime` pasa en ambos canales.
 - Plugin nuevo: `dsh-superagent` 0.1.0 (prototipo de investigación de DeepSeek: vigila GitHub y Feishu, convierte las solicitudes autorizadas en tareas que se ejecutan en sesiones propias y un panel web reúne lo que necesita a una persona; creado desde `deepseek-ai/dsh-superagent-prototype` con su cadena de compilación oficial).
-- Actualización de plugins: `dsh-remotion` pasa a 0.10.4 y `dsh-design` sustituye al no publicado `dsh-design-skills`; `@michengai/dsh-agency-agents` 1.2.23, `@michengai/dsh-archive-manager` 1.2.0, `@michengai/dsh-code-review` 1.0.7, `@michengai/dsh-skills-manager` 1.2.28, `dsh-config-manager` 0.3.1, `dsh-context` 0.80.3 y `dsh-rewind-plugin` 0.19.2 siguen npm latest.
+- Actualización de plugins: `dsh-remotion` pasa a 0.10.4 y `dsh-design` sustituye al no publicado `dsh-design-skills`; `@michengai/dsh-agency-agents` 1.3.1 `@michengai/dsh-archive-manager` 1.4.1 `@michengai/dsh-code-review` 1.0.14 `@michengai/dsh-skills-manager` 1.5.3 `dsh-config-manager` 0.12.0 `dsh-context` 0.87.1 y `dsh-rewind-plugin` 0.19.2 siguen npm latest.
 - Mercado incluido: `dshmarket` pasa a 1.73.9.
 - Herramientas: el nuevo `yarn plugins:update` actualiza todos los archivos de `plugin/` a npm latest y reconstruye el manifiesto.
 - Versión: producto 2.2.5 → **2.2.6** (los dos espacios de trabajo de escritorio avanzan juntos).
@@ -180,33 +192,33 @@ El tiempo de ejecución pasa a DSH 0.2.2-alpha.3 y el conjunto de plugins inclui
 
 Estos 30 plugins se distribuyen con el instalador; tras el primer arranque puede activarlos, desactivarlos o quitarlos desde la página Plugins. El número tras cada nombre es la versión incluida.
 
-- `@a9i5k4/dsh-auto-memory` 3.3.17 — Memoria automática. Inyecta el trabajo pasado relevante y las decisiones ya tomadas antes de empezar una tarea, sin necesidad de pedirlo; el contexto acumulado permanece en este equipo y sigue siendo consultable entre sesiones.
+- `@a9i5k4/dsh-auto-memory` 3.4.4 — Memoria automática. Inyecta el trabajo pasado relevante y las decisiones ya tomadas antes de empezar una tarea, sin necesidad de pedirlo; el contexto acumulado permanece en este equipo y sigue siendo consultable entre sesiones.
 - `@kenz1117/dsh-ui-usage-billing` 1.8.1 — Panel de uso y coste. Reúne las métricas de consumo y el detalle del gasto en la barra lateral para poder revisar el coste en cualquier momento.
 - `@linxin666/dsh-client-ui-git-graph` 0.4.14 — Gráfico de ramas de Git. Dibuja el historial de confirmaciones y el flujo de ramas, y permite cambiar de rama desde una sesión vacía sin volver al terminal.
 - `@linxin666/dsh-client-ui-skill-explorer` 0.4.14 — Centro de habilidades. Explora las habilidades cargadas por origen, muestra qué hace cada una y aclara qué componente aporta una capacidad concreta.
-- `@michengai/dsh-agency-agents` 1.2.23 — Biblioteca de expertos. Incluye 331 agentes especialistas invocables de ingeniería, diseño, marketing, legal y más; para un juicio de un área concreta se invoca al experto correspondiente en lugar de dejar que la sesión principal lo supla.
-- `@michengai/dsh-archive-manager` 1.2.0 — Archivo de sesiones. Archiva, restaura, marca como favoritas y elimina definitivamente sesiones, y diagnostica registros de sesión dañados, de modo que la limpieza rutinaria no obliga a perder registros que aún quieres.
-- `@michengai/dsh-code-review` 1.0.7 — Revisión de código. Un flujo de revisión estilo Codex ejecutado por un subagente nativo independiente, con alcance de revisión elegible (cambios, un rango de confirmaciones o todo el repositorio).
-- `@michengai/dsh-skills-manager` 1.2.28 — Gestor de habilidades. Carga en un solo lugar las habilidades del agente local y las mantiene gestionadas de forma segura, con el origen y el estado de activación a la vista.
-- `@tt-a1i/archify-dsh` 1.0.0 — Diagramas de arquitectura. Convierte la estructura de un sistema o un proceso de negocio en diagramas interactivos de arquitectura, flujo, secuencia, flujo de datos y estados.
-- `@wenaixi/dsh-superpower` 8.0.0 — Paquete de habilidades de ingeniería. Quince habilidades de ingeniería de superpowers, disponibles en chino e inglés.
-- `@yolk_vat-y/dsh-project-memory` 0.6.9 — Memoria del proyecto. Indexa documentos (PDF, Markdown) y símbolos de código para que las preguntas posteriores se respondan por recuperación en lugar de relectura.
+- `@michengai/dsh-agency-agents` 1.3.1 — Biblioteca de expertos. Incluye 331 agentes especialistas invocables de ingeniería, diseño, marketing, legal y más; para un juicio de un área concreta se invoca al experto correspondiente en lugar de dejar que la sesión principal lo supla.
+- `@michengai/dsh-archive-manager` 1.4.1 — Archivo de sesiones. Archiva, restaura, marca como favoritas y elimina definitivamente sesiones, y diagnostica registros de sesión dañados, de modo que la limpieza rutinaria no obliga a perder registros que aún quieres.
+- `@michengai/dsh-code-review` 1.0.14 — Revisión de código. Un flujo de revisión estilo Codex ejecutado por un subagente nativo independiente, con alcance de revisión elegible (cambios, un rango de confirmaciones o todo el repositorio).
+- `@michengai/dsh-skills-manager` 1.5.3 — Gestor de habilidades. Carga en un solo lugar las habilidades del agente local y las mantiene gestionadas de forma segura, con el origen y el estado de activación a la vista.
+- `@tt-a1i/archify-dsh` 1.2.0 — Diagramas de arquitectura. Convierte la estructura de un sistema o un proceso de negocio en diagramas interactivos de arquitectura, flujo, secuencia, flujo de datos y estados.
+- `@wenaixi/dsh-superpower` 8.1.2 — Paquete de habilidades de ingeniería. Quince habilidades de ingeniería de superpowers, disponibles en chino e inglés.
+- `@yolk_vat-y/dsh-project-memory` 0.7.1 — Memoria del proyecto. Indexa documentos (PDF, Markdown) y símbolos de código para que las preguntas posteriores se respondan por recuperación en lugar de relectura.
 - `dsh-api-client` 0.2.0 — Depuración de API. Envía peticiones HTTP y muestra las respuestas dentro del editor, para trabajos de integración de interfaces.
-- `dsh-better-sidebar` 0.28.2 — Una barra lateral mejor. Fusiona árbol de archivos, editor, cambios, tareas y chat lateral en una sola columna, independiente por sesión; además expone a otros plugins un servicio de registro de pestañas laterales y visores de archivos.
-- `dsh-config-manager` 0.3.1 — Gestor de configuración. Copia de seguridad, restauración, exportación, importación, migración y sincronización de la configuración de DSH, para trasladar el entorno a otro equipo o tras reinstalar.
-- `dsh-context` 0.80.3 — Observación y gestión del contexto. Muestra el uso actual del contexto y comprime cuando se acerca al límite.
+- `dsh-better-sidebar` 0.32.1 — Una barra lateral mejor. Fusiona árbol de archivos, editor, cambios, tareas y chat lateral en una sola columna, independiente por sesión; además expone a otros plugins un servicio de registro de pestañas laterales y visores de archivos.
+- `dsh-config-manager` 0.12.0 — Gestor de configuración. Copia de seguridad, restauración, exportación, importación, migración y sincronización de la configuración de DSH, para trasladar el entorno a otro equipo o tras reinstalar.
+- `dsh-context` 0.87.1 — Observación y gestión del contexto. Muestra el uso actual del contexto y comprime cuando se acerca al límite.
 - `dsh-design` 0.2.0 — Habilidades de sistema de diseño. Restringe las decisiones de diseño y usa `design_audit` para medir escala tipográfica, contraste, espaciado y deriva de la paleta en páginas renderizadas.
 - `dsh-doc-reader` 0.2.0 — Lector de documentos. Extrae el texto de PDF, Word y formatos similares para que el modelo lea el documento y no solo su nombre de archivo.
-- `dsh-excel-chat` 0.43.0 — Chat de hojas de cálculo. Opera hojas de Excel en lenguaje natural sin memorizar funciones ni coordenadas de celdas.
+- `dsh-excel-chat` 0.45.0 — Chat de hojas de cálculo. Opera hojas de Excel en lenguaje natural sin memorizar funciones ni coordenadas de celdas.
 - `dsh-find-plugins` 0.3.0 — Búsqueda de plugins. Busca plugins en cinco catálogos comunitarios y realiza búsquedas en vivo en GitHub y npm.
 - `dsh-github-skills` 0.2.1 — Habilidades de flujo de trabajo de GitHub. Adaptadas a partir de las habilidades de GitHub de OpenAI Codex.
 - `dsh-image-gen` 0.10.2 — Generación de imágenes. Se conecta a Gemini, OpenAI y proveedores similares para generar y editar imágenes.
-- `dsh-mcp-connector` 0.2.93 — Conector MCP. Conecta servicios MCP y ofrece búsqueda e invocación unificadas de herramientas entre ellos.
-- `dsh-nonead-prompt-recall` 0.8.4 — Historial de entrada. Pulsa ↑ en un compositor vacío para recuperar la instrucción anterior.
+- `dsh-mcp-connector` 0.2.120 — Conector MCP. Conecta servicios MCP y ofrece búsqueda e invocación unificadas de herramientas entre ellos.
+- `dsh-nonead-prompt-recall` 0.8.8 — Historial de entrada. Pulsa ↑ en un compositor vacío para recuperar la instrucción anterior.
 - `dsh-nonead-universal-robots` 0.8.5 — Brazos robóticos UR. Controla brazos Universal Robots directamente en lenguaje natural, sin escribir scripts a mano.
 - `dsh-nonead-ursim` 0.3.13 — Simulación UR. Programa el movimiento del brazo en un simulador sin conexión, para validar una trayectoria antes de tocar hardware real.
-- `dsh-ppt-master` 1.0.8 — Generación de presentaciones. Produce diapositivas a partir del contenido facilitado.
-- `dsh-remotion` 0.10.4 — Producción de vídeo. Renderiza vídeo desde un proyecto React dentro de DSH.
+- `dsh-ppt-master` 6.1.0 — Generación de presentaciones. Produce diapositivas a partir del contenido facilitado.
+- `dsh-remotion` 0.13.1 — Producción de vídeo. Renderiza vídeo desde un proyecto React dentro de DSH.
 - `dsh-rewind-plugin` 0.19.2 — Rebobinado de la conversación. Retrocede la conversación en la misma ventana y restaura con ella los archivos del espacio de trabajo.
 - `dsh-superagent` 0.1.0 — Prototipo de superagente. Vigila GitHub y Feishu, convierte las solicitudes autorizadas en tareas que se ejecutan en sesiones separadas y un panel web reúne lo que necesita a una persona (prototipo de investigación de DeepSeek, no un producto oficial).
 - `dsh-univer-office` 0.4.0 — Documentos de Office. Integración de DSH y Univer para hojas de cálculo, documentos y presentaciones.
